@@ -13,6 +13,8 @@ export function InputCard(props: {
   surface: "input" | "floating";
   layout: "stacked" | "inline";
   onSubmit: () => void;
+  /** What waits to go with the text, such as pasted images, on its own line above the field. */
+  attachments?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -25,6 +27,10 @@ export function InputCard(props: {
         props.onSubmit();
       }}
     >
+      {/* motion: Coming and going */}
+      {props.attachments === undefined ? null : (
+        <div className={styles.attachments}>{props.attachments}</div>
+      )}
       {props.children}
     </form>
   );

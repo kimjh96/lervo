@@ -1,7 +1,13 @@
-import type { ConversationItem, HostMessage, SentImage } from "@lervo/session-host-contract";
+import type {
+  ConversationItem,
+  HostMessage,
+  ImageMark,
+  SentImage,
+} from "@lervo/session-host-contract";
 
 import { RequestFailure, type SessionHost } from "../../../ports";
 import { DeltaBuffer } from "./deltas";
+import { dataUrl } from "./images";
 import { RecentWindows } from "./recent";
 import type { ConversationSource } from "./source";
 import { FIRST_MESSAGE_ID, standInWindow } from "./stand-in";
@@ -14,6 +20,8 @@ export interface SessionTarget {
   readonly sessionId: string;
   /** The instruction that started the work, shown until the session's own copy arrives. */
   readonly firstMessage?: string;
+  /** The images pasted with that instruction, shown with it. */
+  readonly firstImages?: readonly ImageMark[];
   /** Whether the session last ran in another mode, so it opens in the native conversation first. */
   readonly reopenNatively?: boolean;
 }
@@ -56,7 +64,7 @@ export class ConversationController implements ConversationSource {
       window:
         first === undefined
           ? (this.recent.get(this.target.sessionId) ?? emptyWindow)
-          : standInWindow(first, Date.now()),
+          : standInWindow(first, Date.now(), this.target.firstImages),
       loadingEarlier: false,
       loadingLater: false,
       arrived: new Set(),
@@ -89,6 +97,16 @@ export class ConversationController implements ConversationSource {
       text,
       ...(images.length === 0 ? {} : { images: [...images] }),
     });
+  }
+
+  async readImage(imageId: string): Promise<string> {
+    const answer = await this.client.request({
+      kind: "image.read",
+      sessionId: this.sessionId,
+      imageId,
+    });
+    if (answer.kind !== "image.data") throw new RequestFailure("answer_unexpected");
+    return dataUrl(answer.mediaType, answer.data);
   }
 
   async interrupt(): Promise<void> {

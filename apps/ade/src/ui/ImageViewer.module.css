@@ -1,0 +1,108 @@
+/* An image at full size over the dimmed window. It opens and closes as overlays do (ADE motion,
+   "Overlays"). */
+.viewer {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-48);
+  animation: open var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+@keyframes open {
+  from {
+    opacity: 0;
+  }
+}
+
+.veil {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--glass-tint-color) 80%, transparent);
+  backdrop-filter: blur(var(--glass-overlay-blur));
+  cursor: zoom-out;
+}
+
+.image {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-window);
+  animation: grow var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+@keyframes grow {
+  from {
+    transform: scale(0.98);
+  }
+}
+
+.close,
+.arrow {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.close {
+  top: var(--space-14);
+  right: var(--space-14);
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  border-radius: var(--radius-sm);
+}
+
+.arrow {
+  top: 50%;
+  width: var(--size-control-lg);
+  height: var(--size-control-lg);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  transform: translateY(-50%);
+}
+
+.arrow[data-side="previous"] {
+  left: var(--space-16);
+}
+
+.arrow[data-side="next"] {
+  right: var(--space-16);
+}
+
+.arrow:disabled {
+  visibility: hidden;
+}
+
+.close:hover,
+.arrow:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.close:focus-visible,
+.arrow:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.count {
+  position: absolute;
+  bottom: var(--space-16);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-meta-size);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewer,
+  .image {
+    animation: none;
+  }
+}

@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Button } from "../src/ui/Button";
 import { IconButton } from "../src/ui/IconButton";
 import { ArrowUpIcon } from "../src/ui/icons";
+import { ImageTray } from "../src/ui/ImageTray";
+import { ImageViewer } from "../src/ui/ImageViewer";
 import { InputCard, InputField } from "../src/ui/InputCard";
 import { Presence } from "../src/ui/Presence";
 import { SegmentedControl } from "../src/ui/SegmentedControl";
@@ -98,5 +100,61 @@ export function SelectDemo() {
       ]}
       onChange={setValue}
     />
+  );
+}
+
+/** A small picture for the image demos, drawn inline so the catalog needs no asset. */
+export function samplePicture(hue: number): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200"><rect width="320" height="200" fill="hsl(${hue} 45% 32%)"/><rect x="24" y="24" width="180" height="14" rx="4" fill="hsl(${hue} 30% 70%)"/><rect x="24" y="52" width="250" height="10" rx="4" fill="hsl(${hue} 25% 55%)"/><rect x="24" y="72" width="210" height="10" rx="4" fill="hsl(${hue} 25% 55%)"/></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+export function ImageTrayDemo() {
+  const [images, setImages] = useState([
+    { key: "a", src: samplePicture(220), alt: "Image 1, 1568 × 980" },
+    { key: "b", src: samplePicture(150), alt: "Image 2, 1200 × 800" },
+    { key: "c", src: samplePicture(20), alt: "Preparing image 3", preparing: true },
+  ]);
+  return (
+    <div style={{ width: "360px" }}>
+      <ImageTray
+        images={images}
+        removeLabel={(index) => `Remove image ${index + 1}`}
+        onRemove={(key) => setImages(images.filter((image) => image.key !== key))}
+        onOpen={() => undefined}
+      />
+    </div>
+  );
+}
+
+export function ImageViewerDemo() {
+  const [index, setIndex] = useState<number | null>(null);
+  const images = [
+    { src: samplePicture(220), alt: "Image 1 of 2, 1568 × 980" },
+    { src: samplePicture(150), alt: "Image 2 of 2, 1200 × 800" },
+  ];
+  return (
+    <span>
+      <Button variant="outlined" onClick={() => setIndex(0)}>
+        Open two images
+      </Button>
+      <Presence>
+        {index === null ? null : (
+          <ImageViewer
+            images={images}
+            index={index}
+            labels={{
+              dialog: "Image",
+              close: "Close",
+              previous: "Previous image",
+              next: "Next image",
+              count: `${index + 1} / ${images.length}`,
+            }}
+            onIndex={setIndex}
+            onClose={() => setIndex(null)}
+          />
+        )}
+      </Presence>
+    </span>
   );
 }

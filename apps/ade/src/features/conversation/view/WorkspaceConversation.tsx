@@ -1,3 +1,4 @@
+import type { ImageMark } from "@lervo/session-host-contract";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useShallow } from "zustand/react/shallow";
@@ -7,7 +8,7 @@ import { useHostIsCurrent } from "../../connection";
 import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
 import { ConversationController } from "../model/controller";
-import { sentImages } from "../model/images";
+import { remember, sentImages } from "../model/images";
 import type { ConversationSource } from "../model/source";
 import { StandInConversation } from "../model/stand-in-conversation";
 import { useConversationStore } from "../model/store";
@@ -31,6 +32,8 @@ export function WorkspaceConversation(props: {
   sessionId: string | null;
   /** The instruction that started the work, when the view continues the starting workspace. */
   firstMessage?: string | undefined;
+  /** The images pasted with that instruction. */
+  firstImages?: readonly ImageMark[] | undefined;
   /** Whether the session last ran in another mode and must reopen in the native conversation. */
   reopenNatively?: boolean;
   /** What the work just started without, when the core said so. */
@@ -38,18 +41,19 @@ export function WorkspaceConversation(props: {
 }) {
   const intl = useIntl();
   const host = useSessionHost();
-  const { workspaceId, sessionId, firstMessage, reopenNatively = false } = props;
+  const { workspaceId, sessionId, firstMessage, firstImages, reopenNatively = false } = props;
   const source = useMemo(
     () =>
       workspaceId === null || sessionId === null
-        ? new StandInConversation(firstMessage ?? "")
+        ? new StandInConversation(firstMessage ?? "", Date.now, firstImages)
         : new ConversationController(host, {
             workspaceId,
             sessionId,
             reopenNatively,
             ...(firstMessage === undefined ? {} : { firstMessage }),
+            ...(firstImages === undefined ? {} : { firstImages }),
           }),
-    [host, workspaceId, sessionId, firstMessage, reopenNatively],
+    [host, workspaceId, sessionId, firstMessage, firstImages, reopenNatively],
   );
   const working = useWorkspaceStore(
     (store) => sessionId !== null && visibleStatus(store.statuses[sessionId]) === "working",
@@ -75,9 +79,11 @@ export function WorkspaceConversation(props: {
     setQueuedSince(null);
     setQueuedFor(source);
   }
-  const send = (text: string, images: readonly PreparedImage[]) => {
+  const send = async (text: string, images: readonly PreparedImage[]) => {
     setQueuedSince(working ? Date.now() - QUEUED_SKEW_MS : null);
     setQueuedFor(source);
+    // The bubble draws the images it carries from the cache, without asking the session host.
+    await remember(images);
     return source.send(text, sentImages(images));
   };
   // Only a core that advertises `decoder.images` carries images, through a current session host.

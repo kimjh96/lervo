@@ -3,11 +3,19 @@ import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
 import { useApplicationCommands } from "../../../ports";
 import { IconButton } from "../../../ui/IconButton";
+import { ImageTray } from "../../../ui/ImageTray";
 import { ArrowUpIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { InputCard, InputField } from "../../../ui/InputCard";
 import { Select } from "../../../ui/Select";
 import { Presence } from "../../../ui/Presence";
+import { useHostIsCurrent } from "../../connection";
+import {
+  ConversationImagesProvider,
+  imageNoticeValues,
+  useOpenImages,
+  usePastedImages,
+} from "../../conversation";
 import { chooseProvider, useProviderStore } from "../../providers";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
@@ -23,9 +31,25 @@ const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
   workspace_start_failed: { id: "start.error.workspace_start_failed" },
 };
 
-/** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
+/** Work not started yet keeps no images in a session host; the tray shows its own. */
+const readNothing = () => Promise.reject(new Error("image_not_found"));
+
+/**
+ * The start screen: one instruction, the repository, and the agent; Lervo does the rest. Images
+ * pasted with the instruction wait above it and go with the first message (image mockup,
+ * "5").
+ */
 export function StartScreen() {
+  return (
+    <ConversationImagesProvider read={readNothing}>
+      <StartForm />
+    </ConversationImagesProvider>
+  );
+}
+
+function StartForm() {
   const intl = useIntl();
+  const open = useOpenImages();
   const commands = useApplicationCommands();
   const repositories = useWorkspaceStore((store) => store.repositories);
   const newWork = useWorkspaceStore((store) => store.newWorkRequests);
@@ -38,7 +62,23 @@ export function StartScreen() {
   const provider = chooseProvider(registry, draft.provider);
   // The registry holds only providers with the native conversation; one needs no choice.
   const offered = registry.status === "loaded" ? registry.providers : [];
-  const ready = canStart({ ...draft, repository });
+  // Images go only through a session host as current as this interface, to a core that carries
+  // them (Lervo ADE sessions, "Images in a message").
+  const hostIsCurrent = useHostIsCurrent();
+  const coreTakesImages = useWorkspaceStore(
+    (store) => store.advertisedCommands?.includes("decoder.images") === true,
+  );
+  const returned = useStartStore((store) => store.returnedImages);
+  const images = usePastedImages({
+    accepts: hostIsCurrent && coreTakesImages,
+    resetKey: "start",
+    initial: returned,
+  });
+  useEffect(() => {
+    if (returned.length > 0) useStartStore.setState({ returnedImages: [] });
+  }, [returned]);
+  const ready = canStart({ ...draft, repository }) && !images.preparing;
+  const tray = images.tray(intl);
 
   // The input takes focus when the screen opens and on each "New work".
   useEffect(() => input.current?.focus(), [newWork]);
@@ -47,16 +87,34 @@ export function StartScreen() {
     if (!ready) return;
     const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
     const chosen = { ...draft, repository, provider: provider?.provider ?? "" };
-    void startWork(commands, chosen, name);
+    void startWork(commands, chosen, name, images.take());
   };
 
   return (
     <div className={styles.start}>
-      <div className={styles.column}>
+      {/* Paste reaches the card from its field, where the person pastes. */}
+      <div className={styles.column} onPaste={images.paste}>
         <h1 className={styles.question}>
           <FormattedMessage id="start.question" />
         </h1>
-        <InputCard surface="input" layout="stacked" onSubmit={submit}>
+        <InputCard
+          surface="input"
+          layout="stacked"
+          onSubmit={submit}
+          attachments={
+            /* motion: Coming and going */
+            tray.length === 0 ? undefined : (
+              <ImageTray
+                images={tray}
+                removeLabel={(index) =>
+                  intl.formatMessage({ id: "conversation.images.remove" }, { number: index + 1 })
+                }
+                onRemove={images.remove}
+                onOpen={(index) => open(tray, index)}
+              />
+            )
+          }
+        >
           <InputField
             ref={input}
             size="input"
@@ -121,7 +179,12 @@ export function StartScreen() {
           ) : null}
         </Presence>
         <Presence className={styles.error}>
-          {error === null ? null : (
+          {/* motion: Inline errors */}
+          {images.notice !== null && error === null ? (
+            <InlineAlert size="note">
+              <FormattedMessage {...images.notice} values={imageNoticeValues} />
+            </InlineAlert>
+          ) : error === null ? null : (
             <InlineAlert size="note">
               <FormattedMessage
                 {...(Object.hasOwn(errorMessages, error.code)

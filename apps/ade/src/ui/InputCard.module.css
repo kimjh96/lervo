@@ -31,9 +31,16 @@
 }
 
 .card[data-layout="inline"] {
+  flex-wrap: wrap;
   align-items: flex-end;
   padding-block: var(--space-10);
   padding-inline: var(--space-16) var(--space-10);
+}
+
+/* What waits to go with the text takes the card's whole first line. */
+.attachments {
+  flex-basis: 100%;
+  min-width: 0;
 }
 
 /* The card shows the focus of its field, which draws no ring of its own. */

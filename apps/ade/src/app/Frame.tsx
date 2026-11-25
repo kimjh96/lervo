@@ -40,6 +40,7 @@ function Main(props: { surface: Surface }) {
         workspaceId={workspace?.workspaceId ?? null}
         sessionId={workspace?.sessionId ?? null}
         firstMessage={starting?.instruction}
+        firstImages={starting?.images}
         reopenNatively={workspace !== null && workspace.conversationMode !== "native"}
         baseNotice={starting?.baseNotice ?? null}
       />

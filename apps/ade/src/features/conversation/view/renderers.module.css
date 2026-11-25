@@ -23,19 +23,6 @@
   background: var(--color-surface-user-message);
 }
 
-/* The images a message carried: quiet lines under its text. */
-.images {
-  margin: 0;
-  padding: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--type-meta-size);
-  list-style: none;
-}
-
-.userText + .images {
-  margin-block-start: var(--space-6);
-}
-
 .agent,
 .question {
   display: flex;
