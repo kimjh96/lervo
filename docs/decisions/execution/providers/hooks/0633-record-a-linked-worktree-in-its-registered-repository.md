@@ -35,6 +35,7 @@ A session in a linked worktree of a registered repository runs in its own files 
   - the integration and handoff checks.
 - Hooks, `lervo workstream`, `lervo plan`, `lervo knowledge query`, `lervo terminal declare`, and owner-rule intake all resolve both roots. A knowledge query ranks against the repository's projection and hashes its selections from the checkout's files.
 - The commands an agent runs to check its work resolve both roots too: `lervo terminal status`, `coverage`, and `budget`, `lervo knowledge instruction capture`, and `lervo application attention`. They report the repository's evidence, captures, and attention, with the checkout's files and workstream.
+- A linked worktree's prompts are ranked against the repository's knowledge snapshot, which the resident keeps warm, and never scan the worktree's own knowledge. With none cached, the prompt degrades at once, and Stop's prefetch computes it for the next prompt.
 - When no branch bindings exist yet, the first workstream read in a linked worktree binds the worktree's own branch, never the default branch. The worktree's projection was made for its branch, and binding it to the default branch would leave that branch unbound and clear the projection.
 - A linked worktree's changed files are recorded on its turn, but it records no repository change. No knowledge job applies branch bytes to the main checkout.
 - `lervo workspace start` creates the ADE workspace's workstream in the repository, bound to the workspace branch.
@@ -54,6 +55,16 @@ The ADE 0.5.0 canary ran an agent in a workspace that checked its work with `ler
 - `lervo terminal status` opened a store in the checkout and read the workstream there. With no bindings in the checkout, the first read bound the workstream to `main`, found the workspace branch unbound, and cleared the checkout's projection. The agent's next workstream checkpoint restored it. Without that checkpoint, Stop would have found no workstream.
 
 Those commands, and the coverage, budget, and attention reports, now resolve both roots. The first binding in a linked worktree is its own branch, so a read that still treats the checkout as its own repository fails on the history its store lacks, and never clears the projection.
+
+## Amendment, 2026-11-25: the knowledge snapshot of a linked worktree
+
+The same canary ran Claude in a plain `git worktree` of Lervo's own repository (9,000 files). No turn recorded evidence:
+
+- Every prompt degraded: `corpus_preparation` scanned the worktree's knowledge for 8.5 s, and the hook ran into its 10 s deadline. Claude waited for the hook before every answer, 7.5 to 11.3 s.
+- The scan was never cached. The snapshot that confirms the revision before publication inherited the hook's expired snapshot deadline and failed at once.
+- ADE workspaces escaped only because `lervo workspace start` warms the worktree's knowledge snapshot.
+
+Candidate selection already belongs to the repository, so a worktree now takes the repository's cached knowledge snapshot and never scans its own. The confirming snapshot also ignores the hook's deadline, so a main checkout whose scan overran still caches it.
 
 ## Verification
 

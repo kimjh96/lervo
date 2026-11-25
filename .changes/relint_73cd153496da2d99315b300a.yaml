@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_73cd153496da2d99315b300a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A linked worktree's prompts use the registered repository's knowledge snapshot instead of scanning their own, so a plain git worktree of a large repository records its turns and no longer waits for the hook deadline on every prompt."

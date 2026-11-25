@@ -15,7 +15,10 @@ import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { terminalKnowledgeSnapshotId } from "../src/terminal-knowledge-snapshot.js";
-import { captureTerminalRepositorySnapshot } from "../src/terminal-repository-snapshot.js";
+import {
+  captureTerminalRepositorySnapshot,
+  withTerminalSnapshotDeadline,
+} from "../src/terminal-repository-snapshot.js";
 
 const roots: string[] = [];
 const cachePath = ".lervo/state/cache/terminal-knowledge-snapshot.json";
@@ -38,6 +41,19 @@ afterEach(async () => {
 });
 
 describe("terminal knowledge snapshot persistence", () => {
+  it("caches a scan that finished after the hook's snapshot deadline", async () => {
+    // A cold linked worktree of a large repository scanned past the deadline on every prompt:
+    // the confirming capture inherited the expired deadline, so the scan was never cached.
+    const { root, revision, target } = await repository();
+    const expired = performance.now() - 1;
+    await expect(
+      withTerminalSnapshotDeadline(expired, () => terminalKnowledgeSnapshotId(root, revision)),
+    ).resolves.toMatch(/^ksnap_[a-f0-9]{24}$/u);
+    expect(JSON.parse(await readFile(target, "utf8"))).toMatchObject({
+      repositoryRevision: revision,
+    });
+  });
+
   it("does not follow an existing temporary symlink into unrelated bytes", async () => {
     const { root, revision, target } = await repository();
     const unrelated = resolve(await temporaryRoot(), "user.txt");

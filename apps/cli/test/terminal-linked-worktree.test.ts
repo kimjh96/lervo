@@ -17,6 +17,10 @@ import { listQueuedInstructionCaptures } from "@lervo/repository-knowledge-runti
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runCli } from "../src/main.js";
+import {
+  prefetchTerminalPromptContext,
+  repositoryKnowledgeSnapshotId,
+} from "../src/terminal-knowledge-snapshot.js";
 import { inspectTerminalLifecycle } from "../src/terminal-lifecycle-inspection.js";
 import { verifiedCurrentWorkstream } from "../src/workstream-services.js";
 
@@ -45,8 +49,11 @@ async function cli(cwd: string, args: string[], stdin?: string): Promise<string>
   return out.join("");
 }
 
-/** A registered repository with Lervo's terminal integration, committed, and a linked worktree. */
-async function linkedWorktree() {
+/**
+ * A registered repository with Lervo's terminal integration, committed, and a linked worktree.
+ * Its knowledge snapshot is warm, as the resident keeps it, unless `warmRepository` is false.
+ */
+async function linkedWorktree(warmRepository = true) {
   const base = await realpath(await mkdtemp(resolve(tmpdir(), "lervo-linked-")));
   roots.push(base);
   const state = resolve(base, "state");
@@ -121,6 +128,7 @@ async function linkedWorktree() {
   );
   const worktree = resolve(base, "worktree");
   await git(main, "worktree", "add", "-q", "-b", "work", worktree);
+  if (warmRepository) await prefetchTerminalPromptContext(main);
   return { main, worktree };
 }
 
@@ -294,6 +302,48 @@ describe("a linked worktree of a registered repository", () => {
     ) as { bindings: Record<string, string> };
     expect(Object.keys(bindings.bindings)).toEqual(["work"]);
     expect(await events(worktree, ["terminal.context.prepared"])).toHaveLength(0);
+  }, 60_000);
+
+  it("ranks a worktree's prompts against the repository's knowledge and never scans its own", async () => {
+    const { main, worktree } = await linkedWorktree(false);
+    const knowledgeCache = (root: string) =>
+      resolve(root, ".lervo/state/cache/terminal-knowledge-snapshot.json");
+
+    // Cold: the prompt degrades at once instead of scanning the worktree until the deadline.
+    const started = performance.now();
+    const cold = JSON.parse(
+      await hook(worktree, {
+        hook_event_name: "UserPromptSubmit",
+        session_id: "cold-session",
+        turn_id: "turn-1",
+        prompt: "Check the login form.",
+      }),
+    ) as { hookSpecificOutput: { additionalContext: string } };
+    expect(cold.hookSpecificOutput.additionalContext).toContain(
+      "Lervo context degraded (knowledge_inspection_failed)",
+    );
+    expect(performance.now() - started).toBeLessThan(10_000);
+    expect(await exists(knowledgeCache(worktree))).toBe(false);
+
+    // Stop's prefetch warms the worktree's file hashes and the repository's knowledge snapshot.
+    await prefetchTerminalPromptContext(worktree);
+    expect(await exists(knowledgeCache(worktree))).toBe(false);
+    expect(
+      await exists(resolve(worktree, ".lervo/state/cache/terminal-repository-snapshot.json")),
+    ).toBe(true);
+    const repositorySnapshot = await repositoryKnowledgeSnapshotId(main);
+    expect(repositorySnapshot).toMatch(/^ksnap_[a-f0-9]{24}$/u);
+
+    // Warm: the next prompt records its context against the repository's snapshot.
+    await hook(worktree, {
+      hook_event_name: "UserPromptSubmit",
+      session_id: "warm-session",
+      turn_id: "turn-1",
+      prompt: "Check the login form.",
+    });
+    const [prepared] = await events(main, ["terminal.context.prepared"]);
+    expect(prepared?.payload).toMatchObject({ sourceSnapshotId: repositorySnapshot });
+    expect(await exists(knowledgeCache(worktree))).toBe(false);
   }, 60_000);
 
   it("binds a checkout's own branch first, so a single-root read keeps its projection", async () => {

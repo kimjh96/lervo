@@ -37,6 +37,18 @@ export function captureTerminalRepositorySnapshot(
   });
 }
 
+/**
+ * Captures outside the hook's snapshot deadline, to confirm what finished work saw before caching
+ * it. A hook that already ran out of time would otherwise fail the confirmation at once, so slow
+ * work that overran once, such as a cold checkout's knowledge scan, would never be cached and every
+ * later turn would overrun the same way.
+ */
+export function captureTerminalRepositorySnapshotWithoutDeadline(
+  root: string,
+): Promise<RepositorySnapshot> {
+  return hookSnapshotDeadline.exit(() => captureTerminalRepositorySnapshot(root));
+}
+
 /** Where a checkout keeps the stat-identity hashes its terminal hooks reuse. */
 export function terminalRepositorySnapshotCachePath(root: string): string {
   return resolve(root, ".lervo/state/cache/terminal-repository-snapshot.json");
