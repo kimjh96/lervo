@@ -675,7 +675,7 @@ describe("terminal integration CLI", () => {
     expect(errors).toEqual([]);
   });
 
-  it("fails closed on malformed hook input without echoing it", async () => {
+  it("passes malformed hook input through without blocking or echoing it (ADR-0635)", async () => {
     const root = await initializedRepository();
     const secret = "prompt-secret-fixture";
     const messages: string[] = [];
@@ -686,10 +686,12 @@ describe("terminal integration CLI", () => {
       stderr: (message: string) => errors.push(message),
       stdin: async () => `{${secret}`,
     };
+    // A nonzero exit would block the prompt; the failure is recorded instead.
     expect(await runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], io)).toBe(
-      2,
+      0,
     );
-    expect(messages).toEqual([]);
+    expect(messages).toEqual(["{}\n"]);
+    expect(errors.join("")).toBe("Lervo terminal integration failed (hook_input_invalid).\n");
     expect(errors.join("")).not.toContain(secret);
   });
 
