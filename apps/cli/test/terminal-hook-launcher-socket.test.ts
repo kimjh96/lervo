@@ -108,6 +108,8 @@ it("prints the server's answer without loading the runtime", async () => {
     "HOME",
     "LERVO_USER_CAPABILITY_ROOT",
     "LERVO_USER_STATE_DIRECTORY",
+    "LERVO_WORKSPACES_HOME",
+    "XDG_CONFIG_HOME",
     "XDG_STATE_HOME",
   ]);
 });

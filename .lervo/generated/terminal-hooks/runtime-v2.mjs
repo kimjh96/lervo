@@ -208,6 +208,8 @@ const environmentNames = [
   "HOME",
   "LERVO_USER_CAPABILITY_ROOT",
   "LERVO_USER_STATE_DIRECTORY",
+  "LERVO_WORKSPACES_HOME",
+  "XDG_CONFIG_HOME",
   "XDG_STATE_HOME",
 ];
 async function served() {

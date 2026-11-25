@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9aee4d121bbfe74dc6d99a03"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "The context server also compares LERVO_WORKSPACES_HOME and XDG_CONFIG_HOME, so a session that sets either is never answered with the server's value."

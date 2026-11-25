@@ -40,7 +40,7 @@ ADR-0562 sets the target: a prompt hook p95 under 200 milliseconds end to end. A
   - `runtime`: the content hash the store's pointer names, which is the runtime the launcher would load.
   - `cwd`: the realpath of the hook's working directory. The served hook resolves the repository, a linked worktree's execution and evidence roots, and everything else from it, as the in-process hook does.
   - `args`: the launcher's arguments, which carry the provider and the contract.
-  - `environment`: the values of every variable the hook path reads that can change what it prints or records: `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `HOME`, `LERVO_USER_CAPABILITY_ROOT`, `LERVO_USER_STATE_DIRECTORY`, and `XDG_STATE_HOME`. The list is closed; a test keeps the launcher's copy equal to the server's.
+  - `environment`: the values of every variable the hook path reads that can change what it prints or records: `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `HOME`, `LERVO_USER_CAPABILITY_ROOT`, `LERVO_USER_STATE_DIRECTORY`, `LERVO_WORKSPACES_HOME`, `XDG_CONFIG_HOME`, and `XDG_STATE_HOME`. The list is closed; a test keeps the launcher's copy equal to the server's.
   - `elapsed`: the client's time spent so far, in milliseconds. The served hook's budget and its recorded `total` include it.
   - `input`: the provider's hook input exactly as read from standard input, at most 200 KiB; a larger input stays in process.
 - **Response** (`terminal.context.response`, version 1):
