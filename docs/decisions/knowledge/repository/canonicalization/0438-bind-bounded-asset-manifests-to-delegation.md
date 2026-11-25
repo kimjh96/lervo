@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-09-28
 Amended by: [ADR-0479](../../semantics/0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md) (undeclared opaque assets are suite-bound at final verification)
+Amended by: [ADR-0448](0448-settle-unread-sensitive-sources-by-disposition.md)
 
 ## Context
 
