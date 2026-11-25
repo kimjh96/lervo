@@ -2,6 +2,7 @@
 
 Status: proposed
 Decision date: 2026-09-24
+Amended by: [ADR-0459](../../improvement/0459-measure-context-hits-and-usage-on-every-channel.md)
 
 ## Context
 

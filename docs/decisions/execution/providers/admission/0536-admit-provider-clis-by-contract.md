@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-31
 Amends: [ADR-0470](../../../operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) (service tool directories)
+Amended by: [ADR-0612](0612-choose-models-by-role-from-one-selection.md)
 
 ## Context
 

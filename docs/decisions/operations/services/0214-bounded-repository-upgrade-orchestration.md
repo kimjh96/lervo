@@ -13,6 +13,8 @@ Amended by:
 - [ADR-0578](../../distribution/0578-plan-the-upgrade-knowledge-stage-from-one-scan.md): each knowledge inspection plans every stage from one scan.
 - [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md): no stage waits for an owner approval. `--apply` alone plans and applies in one exclusive window; `--approval` and `--approve-role-binding` are removed.
 
+Amended by: [ADR-0475](0475-judge-node-replacement-readiness-by-regression.md)
+
 > **Amended (2026-11-02).** Under ADR-0561, `pending_authority` is gone. A reviewed knowledge plan is cross-checked by a fresh no-capability session and lands as a `Lervo Knowledge` commit; provider hook files are backed up, applied, verified, and restored on failure; repository role bindings refresh like built-in ones; Node and host services keep their backup, transaction, readiness check, and rollback. A stage Lervo cannot finish, such as a rejected plan or a plan no provider could check, is `lervo_debt`, never owner work. Each stage still plans again and compares before it writes, so the stale-plan guard is internal. The receipt's `notices` name each change and its undo.
 
 ## Context

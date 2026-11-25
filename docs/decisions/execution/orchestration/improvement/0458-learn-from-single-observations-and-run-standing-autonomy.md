@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0220](../../../knowledge/repository/0220-evidence-bound-development-pattern-promotion.md), [ADR-0345](0345-observe-reviewed-improvement-effects-without-self-learning-claims.md), [ADR-0365](../governed-work/0365-project-workstream-goals-over-the-assignment-dag.md), [ADR-0411](../../../coordination/conversations/agent-organization/0411-governed-agent-memory-and-autonomous-participation.md), [ADR-0417](../../applications/0417-own-discord-visible-reference-product.md)
+Amended by: [ADR-0461](../../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)
 Part of: [ADR-0452 open collaboration platform](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 
 Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the standing autonomy part no longer applies. ADR-0560 removed `lervo loop schedule` and the unattended scheduler that the standing autonomy loop was to extend; that loop was never built. The single-observation learning, progressive disclosure, Discord wiring, and conversation recall decisions stay.

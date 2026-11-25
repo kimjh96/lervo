@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-08-19
+Amended by: [ADR-0463](0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md), [ADR-0464](0464-report-document-drift-and-historical-documents.md)
 
 ## Context
 

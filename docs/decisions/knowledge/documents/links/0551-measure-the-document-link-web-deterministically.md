@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-01
 Amends: [ADR-0535](../../../execution/applications/0535-project-core-health-with-actor-owned-attention.md) (broken-links measure)
+Amended by: [ADR-0562](../../../foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md)
 Related: [ADR-0464](../0464-report-document-drift-and-historical-documents.md) (historical documents and link findings)
 
 ## Context

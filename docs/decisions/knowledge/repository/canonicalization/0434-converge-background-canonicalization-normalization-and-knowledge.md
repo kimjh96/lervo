@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-09-27
 Amended by: [ADR-0469](../../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (delegation continuity under an owner-installed host policy), [ADR-0530](../../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md) (divergent integration targets park their batch instead of holding later stages), and [ADR-0600](../../maintenance/0600-rewind-an-obligation-whose-own-commits-were-undone.md) (an obligation whose own commits were undone restarts from its baseline)
+Amended by: [ADR-0445](0445-scope-baseline-assessment-to-observed-obligations.md), [ADR-0446](0446-retain-integrated-dispositions-across-baseline-supersession.md), [ADR-0447](0447-close-historical-backlog-by-owner-acceptance.md), [ADR-0448](0448-settle-unread-sensitive-sources-by-disposition.md), [ADR-0449](0449-synchronize-integration-target-with-working-branch.md), [ADR-0450](0450-keep-background-knowledge-out-of-developer-flow.md), [ADR-0452](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0457](../../documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md), [ADR-0466](../../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)
 
 ## Context
 

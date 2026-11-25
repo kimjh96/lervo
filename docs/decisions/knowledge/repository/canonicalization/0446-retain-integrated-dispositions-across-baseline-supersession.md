@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-03
 Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md) and [ADR-0445](0445-scope-baseline-assessment-to-observed-obligations.md)
+Amended by: [ADR-0447](0447-close-historical-backlog-by-owner-acceptance.md)
 
 ## Context
 

@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-15
+- Amended by: [ADR-0513](owner-recovery/0513-supersede-unwritten-assignment-amendments.md)
 
 ## Context
 

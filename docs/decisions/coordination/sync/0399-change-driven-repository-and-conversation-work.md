@@ -1,6 +1,7 @@
 # ADR-0399: Change-driven repository and conversation work
 
 Status: accepted
+Amended by: [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)
 Date: 2026-09-11
 
 Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the unattended scheduler part is removed. Lervo no longer ships the explicit unattended scheduler or its event-database and kill-switch wake-ups. Change-driven repository reconciliation, conversation queue notifications, and workstream audits stay.

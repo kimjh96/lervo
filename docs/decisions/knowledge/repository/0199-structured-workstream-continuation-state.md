@@ -3,6 +3,7 @@
 - Status: accepted (amended 2026-08-24)
 - Decision date: 2026-08-24
 - Amended by: [ADR-0526](../../execution/orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md) (selection follows the checked-out branch), [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (independent cross-check replaces the content-bound approval)
+- Amended by: [ADR-0476](../documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md)
 
 > **Amended (2026-11-02).** Under [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), the continuation migration no longer takes a content-bound approval. `lervo migrate knowledge --apply <plan-id>` runs an independent cross-check of the exact plan first; the migration then lands as its own `Lervo Knowledge` commit that `lervo knowledge revert <commit>` undoes.
 

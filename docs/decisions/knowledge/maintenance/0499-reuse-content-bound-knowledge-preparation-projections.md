@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-09
 Amends: [ADR-0413](../../search/engines/0413-close-product-default-lexical-v2-surface-gaps.md)
+Amended by: [ADR-0500](0500-avoid-duplicate-knowledge-cache-representations.md)
 Related: [ADR-0495](0495-separate-fast-maintenance-status-from-expensive-verification.md), [ADR-0498](0498-prepare-fresh-knowledge-reads-in-order.md)
 
 ## Context

@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-01
 Amends: [ADR-0550](0550-measure-find-on-terminal-turns-and-replay-past-changes.md) (ranking judged by replay)
+Amended by: [ADR-0562](../../foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md)
 Related: [ADR-0552](0552-check-changes-against-the-canon-that-names-them.md) (governing index)
 
 ## Context

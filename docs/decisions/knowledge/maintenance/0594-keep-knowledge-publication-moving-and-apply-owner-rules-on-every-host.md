@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-11-19
 Amends: [ADR-0473](../documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md) (the default roots widen to an active delegation, skill files publish only from practice, and the repair counts Lervo's own repair commits as Lervo's), [ADR-0545](../documents/capture/0545-apply-owner-stated-rules-without-a-review-command.md) (the Node resident worker applies stored owner rules too, and apply failures are recorded)
 Amended by: [ADR-0596](0596-recover-knowledge-publication-from-failed-checks.md) (failed checks on an unchanged head), [ADR-0600](0600-rewind-an-obligation-whose-own-commits-were-undone.md) (an open obligation whose commits a reset undid)
+Amended by: [ADR-0603](0603-derive-knowledge-publication-from-repository-policy-and-judge-it-by-content.md)
 
 ## Context
 

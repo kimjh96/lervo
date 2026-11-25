@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-16
+- Amended by: [ADR-0453](0453-act-for-the-owner-through-a-principal-mandate.md)
 
 Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the executive action part is removed. Lervo no longer ships the `team.create` organization action, the `repository_organization_v1` effect adapter, the organization-executive command, or its product-host route. The CEO role's shell and `computer.use` capabilities stay.
 

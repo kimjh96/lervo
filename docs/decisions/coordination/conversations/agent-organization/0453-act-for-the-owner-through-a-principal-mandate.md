@@ -5,6 +5,7 @@ Decision date: 2026-10-04
 Amends: [ADR-0386](../0386-organization-teams-and-agent-identities.md), [ADR-0411](0411-governed-agent-memory-and-autonomous-participation.md), [ADR-0412](0412-expand-the-owner-proxy-ceo-through-installed-capabilities.md), [ADR-0398](../../../execution/orchestration/governed-work/0398-outcome-supervision-and-autonomous-team-allocation.md)
 Part of: [ADR-0452 open collaboration platform](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 Amended by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (past the escalation bound the proxy decides within the installed operating mandate or holds the item as Lervo debt; it never escalates to the owner)
+Amended by: [ADR-0463](../../../knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md)
 
 ## Context
 

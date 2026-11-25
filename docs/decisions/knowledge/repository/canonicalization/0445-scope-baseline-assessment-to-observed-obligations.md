@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-03
 Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md) and [ADR-0436](0436-reviewed-source-capture-and-bounded-canonical-worksets.md)
+Amended by: [ADR-0446](0446-retain-integrated-dispositions-across-baseline-supersession.md), [ADR-0447](0447-close-historical-backlog-by-owner-acceptance.md)
 
 ## Context
 

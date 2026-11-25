@@ -2,6 +2,7 @@
 
 - Status: `accepted`
 - Decision date: 2026-09-28
+- Amended by: [ADR-0450](../../knowledge/repository/canonicalization/0450-keep-background-knowledge-out-of-developer-flow.md)
 
 ## Context
 

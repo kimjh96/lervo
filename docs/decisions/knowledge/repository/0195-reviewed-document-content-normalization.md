@@ -3,6 +3,7 @@
 - Status: accepted
 - Decision date: 2026-08-24
 - Performance amendment: 2026-08-25
+- Amended by: [ADR-0457](../documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md), [ADR-0473](../documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md)
 
 ## Context
 

@@ -5,6 +5,8 @@
 
 Amended by: [ADR-0533](canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain. [ADR-0547](layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md). Only overflow a write creates or grows blocks it; existing overflow stays a lint error. [ADR-0583](layout/0583-hold-moves-that-overfill-a-directory-and-report-existing-overflow.md). A move or create into an over-limit directory also blocks; untouched overflow is a non-blocking advisory and a lint warning, and layout migration holds moves that would overfill a directory.
 
+- Amended by: [ADR-0476](../documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md)
+
 ## Context
 
 Lervo requires bounded growth and retention for every repository-authored collection. Existing controls bound profile-specific file sizes, normalization outputs to 12 per source, and decision-leaf capacity, but no single projected-capacity evaluation covers every document-bearing directory. Independently migrated bounded documents can therefore accumulate without bound in an ordinary route.

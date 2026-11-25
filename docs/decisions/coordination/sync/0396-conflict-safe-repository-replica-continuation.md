@@ -2,6 +2,7 @@
 
 - Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-10
+- Amended by: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0456](0456-hand-off-repositories-atomically-with-a-writer-lease.md)
 
 ## Context
 

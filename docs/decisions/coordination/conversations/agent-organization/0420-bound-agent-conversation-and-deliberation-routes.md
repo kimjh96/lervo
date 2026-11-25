@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-18
+- Amended by: [ADR-0454](0454-open-multi-responder-rooms-and-natural-staffing.md)
 
 ## Context
 

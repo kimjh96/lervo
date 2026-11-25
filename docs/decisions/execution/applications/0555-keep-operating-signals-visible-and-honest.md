@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-01
 Amends: [ADR-0535](0535-project-core-health-with-actor-owned-attention.md) (terminal display and refresh), [ADR-0462](0462-own-workstream-bookkeeping-and-stale-attention.md) (commit distance), [ADR-0553](../grounding/0553-bind-terminal-observations-to-the-provider-session-and-the-first-turn.md) (Codex query binding), [ADR-0532](../../knowledge/maintenance/0532-continue-background-review-past-capacity-and-optional-context-failures.md) (unclassified failure evidence)
+Amended by: [ADR-0595](../../knowledge/maintenance/0595-back-off-held-and-failing-residents-and-refresh-health-only-on-change.md)
 
 ## Context
 

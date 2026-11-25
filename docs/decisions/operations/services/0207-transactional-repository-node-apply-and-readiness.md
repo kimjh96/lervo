@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-25
+- Amended by: [ADR-0489](0489-migrate-node-configurations-only-inside-the-service-transition.md)
 
 ## Current replacement-readiness amendments
 

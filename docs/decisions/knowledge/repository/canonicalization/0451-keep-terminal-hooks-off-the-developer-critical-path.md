@@ -6,6 +6,7 @@ Amends: [ADR-0433](0433-own-background-knowledge-for-every-repository-change.md)
 Amended by: [ADR-0530](../../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md) (pending normalization is non-blocking attention, never a per-turn duty)
 
 Amended by: [ADR-0531](../../../execution/providers/hooks/0531-bound-terminal-hooks-and-retain-degraded-context.md)
+Amended by: [ADR-0452](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0457](../../documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md), [ADR-0459](../../../execution/orchestration/improvement/0459-measure-context-hits-and-usage-on-every-channel.md), [ADR-0462](../../../execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md), [ADR-0535](../../../execution/applications/0535-project-core-health-with-actor-owned-attention.md)
 
 ## Context
 

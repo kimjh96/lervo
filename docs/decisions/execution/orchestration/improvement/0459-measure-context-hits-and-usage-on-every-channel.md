@@ -6,6 +6,7 @@ Amends: [ADR-0451](../../../knowledge/repository/canonicalization/0451-keep-term
 Part of: [ADR-0452 open collaboration platform](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 
 Amended by: [ADR-0550](../../grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md) (a provider-free replay set over past changes), [ADR-0552](../../grounding/0552-check-changes-against-the-canon-that-names-them.md) (miss rate from the governing index)
+Amended by: [ADR-0538](../../grounding/0538-find-governing-context-through-exact-prompt-anchors.md), [ADR-0542](../../grounding/0542-observe-native-skill-use-instead-of-repeating-skill-disclosure.md)
 
 ## Context
 

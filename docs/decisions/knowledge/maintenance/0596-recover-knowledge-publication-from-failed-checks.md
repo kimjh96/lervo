@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-20
 Amends: [ADR-0466](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) (the publication settings gain `checks.ignore`, and the publication state gains `checksRetry`), [ADR-0594](0594-keep-knowledge-publication-moving-and-apply-owner-rules-on-every-host.md) (a failed check on an unchanged head is now recovered or backed off, not only a replay conflict)
+Amended by: [ADR-0603](0603-derive-knowledge-publication-from-repository-policy-and-judge-it-by-content.md)
 Related: [ADR-0473](../documents/0473-publish-knowledge-within-its-write-scope-and-never-rewrite-a-tool-generated-document.md), [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)
 
 ## Context
