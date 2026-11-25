@@ -17,6 +17,7 @@ import {
   type HostedSessionEventOutcome,
 } from "./hosted-session-events.js";
 import { settingsFileDigest } from "./hosted-session-settings.js";
+import { type HostedTerminalHookPlan, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
 import { workspacesHome } from "./workspaces-home.js";
 
@@ -59,6 +60,11 @@ export interface WorkspaceStartPorts {
    * `fallback` is the request's `baseCommit`, for a repository that names no default branch.
    */
   chooseBase?(fallback: string): Promise<WorkspaceBase>;
+  /**
+   * Lervo's terminal hooks for the events the new worktree's project settings lack, read once the
+   * worktree exists; absent, the launch carries only the request's hooks.
+   */
+  terminalHooks?(workspacePath: string): Promise<HostedTerminalHookPlan | undefined>;
   provisionWorkspace(placement: WorkspacePlacement): Promise<void>;
   /** Replays the placement's effect commits on its new branch; absent where none can exist. */
   replayEffects?(placement: WorkspacePlacement): Promise<EffectReplay>;
@@ -247,8 +253,18 @@ export async function startWorkspace(
       objective: objectiveFor(request.instruction),
     });
     stage = "launch";
-    const launch = ports.adapter.prepareLaunch(intent);
+    const terminal =
+      intent.hooks === undefined || ports.terminalHooks === undefined
+        ? undefined
+        : await ports.terminalHooks(placement.workspacePath);
+    const launch = ports.adapter.prepareLaunch(
+      terminal === undefined || intent.hooks === undefined
+        ? intent
+        : { ...intent, hooks: { ...intent.hooks, terminal } },
+    );
     if (launch.settingsFile !== null) await ports.writeSettings(launch.settingsFile);
+    const written =
+      terminal === undefined ? undefined : writtenTerminalHooks(terminal, launch.settingsFile);
     const record: HostedLaunchRecord = {
       schemaVersion: 1,
       workspaceId: placement.workspaceId,
@@ -261,6 +277,7 @@ export async function startWorkspace(
       settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
+      ...(written === undefined ? {} : { terminalHooks: written }),
       ...(base === undefined
         ? {}
         : {

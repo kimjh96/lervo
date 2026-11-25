@@ -1,3 +1,6 @@
+import { homedir } from "node:os";
+import { resolve } from "node:path";
+
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
 import { sha256 } from "./integrity.js";
 import { isObject } from "./terminal-integration-files.js";
@@ -211,4 +214,136 @@ export function mergeTarget(
     },
     content: output,
   };
+}
+
+/** The sources a Claude `SessionStart` answers; a matcher may limit a handler to some of them. */
+const SESSION_START_SOURCES = ["startup", "resume", "clear", "compact"] as const;
+
+/**
+ * Every settings file a provider merges into a session in `worktree`, from managed policy to the
+ * worktree's local file, so a hosted session can tell which events Lervo's hooks already cover.
+ */
+export function providerHookSettingsFiles(
+  provider: TerminalIntegrationProvider,
+  worktree: string,
+  environment: NodeJS.ProcessEnv = process.env,
+  home: string = homedir(),
+  platform: NodeJS.Platform = process.platform,
+): string[] {
+  if (provider === "codex")
+    return [resolve(home, ".codex/hooks.json"), resolve(worktree, configurationPath(provider))];
+  // Windows releases have used both places; reading a missing file costs nothing.
+  const managed =
+    platform === "darwin"
+      ? ["/Library/Application Support/ClaudeCode/managed-settings.json"]
+      : platform === "win32"
+        ? [
+            "C:\\Program Files\\ClaudeCode\\managed-settings.json",
+            "C:\\ProgramData\\ClaudeCode\\managed-settings.json",
+          ]
+        : ["/etc/claude-code/managed-settings.json"];
+  const user = environment.CLAUDE_CONFIG_DIR ?? resolve(home, ".claude");
+  return [
+    ...managed,
+    resolve(user, "settings.json"),
+    resolve(worktree, configurationPath(provider)),
+    resolve(worktree, ".claude/settings.local.json"),
+  ];
+}
+
+/**
+ * The sources a handler's matcher selects. Absent, empty, or `*` select every source; otherwise
+ * the matcher is a regular expression tested against each source, as the provider tests it. A
+ * matcher that is no valid expression counts as selecting every source, so Lervo never runs twice.
+ */
+function selectedSources(matcher: unknown): readonly string[] {
+  if (typeof matcher !== "string" || matcher.trim() === "" || matcher.trim() === "*")
+    return SESSION_START_SOURCES;
+  try {
+    const expression = new RegExp(matcher, "u");
+    return SESSION_START_SOURCES.filter((source) => expression.test(source));
+  } catch {
+    return SESSION_START_SOURCES;
+  }
+}
+
+/**
+ * Each hook handler in a provider settings file, as `{ event, matcher, command }`. A file that
+ * does not parse, comments and trailing commas allowed, has none: the provider ignores it.
+ */
+function settingsHandlers(
+  content: string,
+): { event: string; matcher: unknown; commands: string[] }[] {
+  const errors: ParseError[] = [];
+  const parsed = parse(content, errors, { allowTrailingComma: true, disallowComments: false });
+  if (errors.length > 0 || !isObject(parsed) || !isObject(parsed.hooks)) return [];
+  const handlers: { event: string; matcher: unknown; commands: string[] }[] = [];
+  for (const [event, entries] of Object.entries(parsed.hooks)) {
+    if (!Array.isArray(entries)) continue;
+    for (const entry of entries) {
+      if (!isObject(entry) || !Array.isArray(entry.hooks)) continue;
+      const commands = entry.hooks
+        .map((hook) => (isObject(hook) ? hook.command : undefined))
+        .filter((command): command is string => typeof command === "string");
+      handlers.push({ event, matcher: entry.matcher, commands });
+    }
+  }
+  return handlers;
+}
+
+/**
+ * The provider events Lervo's terminal hook is missing from across `settings`, the contents of
+ * the files a session merges. A handler counts when it runs `lervo terminal hook`, or the
+ * repository's launcher while `launcher` says the launcher is present. Settings are read as the
+ * installer reads them, comments and trailing commas allowed; a file that does not parse counts
+ * as absent, as the provider then ignores it. A `SessionStart` that covers only some sources
+ * leaves the rest, which the returned matcher names.
+ */
+export function missingTerminalHookEvents(
+  provider: TerminalIntegrationProvider,
+  settings: readonly string[],
+  launcher: boolean,
+): { name: string; matcher?: string }[] {
+  const covered = new Map<string, Set<string>>();
+  for (const handler of settings.flatMap(settingsHandlers)) {
+    const lervo = handler.commands.some(
+      (command) =>
+        lervoTerminalProvider(command) === provider &&
+        (launcher || /\blervo\s+terminal\s+hook\b/u.test(command)),
+    );
+    if (!lervo) continue;
+    const sources = covered.get(handler.event) ?? new Set<string>();
+    const selected = handler.event === "SessionStart" ? selectedSources(handler.matcher) : ["all"];
+    for (const source of selected) sources.add(source);
+    covered.set(handler.event, sources);
+  }
+  const missing: { name: string; matcher?: string }[] = [];
+  for (const event of terminalIntegrationEvents(provider)) {
+    const sources = covered.get(event);
+    if (event !== "SessionStart") {
+      if (sources === undefined) missing.push({ name: event });
+      continue;
+    }
+    const left = SESSION_START_SOURCES.filter((source) => !sources?.has(source));
+    if (left.length === SESSION_START_SOURCES.length) missing.push({ name: event });
+    else if (left.length > 0) missing.push({ name: event, matcher: left.join("|") });
+  }
+  return missing;
+}
+
+/**
+ * The events whose handlers in `content`, a settings file Lervo wrote for a hosted session, run
+ * exactly `command`, with the matcher written for each: what the file proves it added.
+ */
+export function terminalHookEventsRunning(
+  content: string,
+  command: string,
+): { name: string; matcher?: string }[] {
+  return settingsHandlers(content)
+    .filter((handler) => handler.commands.includes(command))
+    .map((handler) =>
+      typeof handler.matcher === "string" && handler.matcher !== ""
+        ? { name: handler.event, matcher: handler.matcher }
+        : { name: handler.event },
+    );
 }

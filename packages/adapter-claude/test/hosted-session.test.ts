@@ -75,6 +75,45 @@ describe("Claude Code hosted sessions", () => {
     expect(plain.arguments).not.toContain("--settings");
   });
 
+  it("adds Lervo's terminal hooks only for the events the project lacks", () => {
+    const launch = adapter.prepareLaunch({
+      sessionId,
+      mode: "native",
+      workingDirectory: "/work/repo",
+      start: { kind: "resume" },
+      hooks: {
+        settingsPath: "/state/hosted-settings/session.json",
+        command: "lervo workspace hook --provider claude",
+        terminal: {
+          command: "lervo terminal hook --provider claude --contract 2",
+          events: [
+            { name: "SessionStart", matcher: "resume|compact" },
+            { name: "UserPromptSubmit" },
+          ],
+        },
+      },
+    });
+    const settings = JSON.parse(launch.settingsFile?.content ?? "{}") as {
+      hooks: Record<string, { hooks: { command: string; timeout: number }[] }[]>;
+    };
+    const commands = (event: string) =>
+      (settings.hooks[event] ?? []).flatMap((entry) => entry.hooks.map((hook) => hook.command));
+    expect(Object.keys(settings.hooks)).toEqual(["SessionStart", "SessionEnd", "UserPromptSubmit"]);
+    expect(commands("SessionStart")).toEqual([
+      "lervo workspace hook --provider claude",
+      "lervo terminal hook --provider claude --contract 2",
+    ]);
+    expect(commands("UserPromptSubmit")).toEqual([
+      "lervo terminal hook --provider claude --contract 2",
+    ]);
+    expect(settings.hooks.UserPromptSubmit?.[0]?.hooks[0]?.timeout).toBe(30);
+    // The SessionStart handler answers only the sources the project's own hook leaves out.
+    expect((settings.hooks.SessionStart?.[1] as { matcher?: string }).matcher).toBe(
+      "resume|compact",
+    );
+    expect(settings.hooks.Stop).toBeUndefined();
+  });
+
   it("resumes the CLI conversation without permission overrides", () => {
     const launch = adapter.prepareLaunch({
       sessionId,

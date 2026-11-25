@@ -30,6 +30,12 @@ export interface HostedLaunchRecord {
   preparedAt: string;
   /** Where the workspace started; records from before Lervo 0.47.7 have none. */
   base?: HostedWorkspaceBase;
+  /**
+   * The Lervo terminal hooks the launch added for events the worktree's project settings lack,
+   * and whether they run the host launcher or, on an older install, the CLI (ADR-0632, S2a).
+   * Absent when the project hooks every event.
+   */
+  terminalHooks?: { events: string[]; via: "launcher" | "cli" };
 }
 
 /**

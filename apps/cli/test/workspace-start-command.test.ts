@@ -47,6 +47,8 @@ async function fixture(options: { uncommitted?: boolean } = {}) {
   await writeFile(resolve(bin, "claude"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   vi.stubEnv("LERVO_USER_STATE_DIRECTORY", state);
   vi.stubEnv("LERVO_WORKSPACES_HOME", resolve(root, "workspaces"));
+  // The user's own Claude settings must not decide which hooks a hosted launch adds here.
+  vi.stubEnv("CLAUDE_CONFIG_DIR", resolve(root, "claude"));
   vi.stubEnv("PATH", `${bin}${delimiter}${process.env.PATH ?? ""}`);
   await git(repository, "init", "--initial-branch", "main");
   await git(repository, "config", "user.email", "lervo-test@example.invalid");
@@ -292,7 +294,17 @@ describe("lervo workspace start and open", () => {
     const hooks = JSON.parse(await readFile(settings, "utf8")) as {
       hooks: Record<string, { hooks: { command: string }[] }[]>;
     };
-    expect(Object.keys(hooks.hooks)).toEqual(["SessionStart", "SessionEnd"]);
+    // The fixture commits no project hooks, so Lervo's terminal hooks join for every event.
+    expect(Object.keys(hooks.hooks)).toEqual([
+      "SessionStart",
+      "SessionEnd",
+      "UserPromptSubmit",
+      "Stop",
+    ]);
+    // The host launcher runs where the install has one, and the CLI's hook where it has none.
+    expect(hooks.hooks.UserPromptSubmit?.[0]?.hooks[0]?.command).toMatch(
+      /^(?:lervo terminal hook|node ".*\/launcher\.mjs") --provider claude --contract 2$/u,
+    );
     expect(hooks.hooks.SessionStart?.[0]?.hooks[0]?.command).toBe(
       "lervo workspace hook --provider claude",
     );
