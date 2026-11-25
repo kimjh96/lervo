@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6c487ea84fad8b4d4b35cc22"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A terminal repository snapshot that runs out of time keeps the hashes it computed, and workspace start warms a new worktree's snapshot, so ADE sessions in large repositories record turn evidence."
