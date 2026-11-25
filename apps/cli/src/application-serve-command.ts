@@ -14,6 +14,7 @@ import { recordHostedSessionExit } from "./hosted-session-exit.js";
 import { retireHostedWorkspace } from "./hosted-workspace-retire.js";
 import { hostedWorkspaceRetireEffects } from "./hosted-workspace-retire-effects.js";
 import { withLervoCall } from "./lervo-command-detail.js";
+import { summarizeWorkspaceTurns } from "./turn-summary-service.js";
 
 const transcripts = new WorkspaceTranscripts();
 
@@ -52,6 +53,7 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   retireWorkspace: (workspaceId) =>
     retireHostedWorkspace(workspaceId, hostedWorkspaceRetireEffects()),
   recordSessionExit: (sessionId, exitCode) => recordHostedSessionExit(sessionId, exitCode),
+  summarizeTurns: (arguments_) => summarizeWorkspaceTurns(arguments_),
   recordTurnUsage: (sessionId, accounting, usage) =>
     recordHostedTurnUsage(sessionId, accounting, usage),
 };

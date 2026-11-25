@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useShallow } from "zustand/react/shallow";
 
-import { useSessionHost } from "../../../ports";
+import { useApplicationCommands, useSessionHost } from "../../../ports";
 import { useHostIsCurrent } from "../../connection";
 import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
@@ -58,6 +58,21 @@ export function WorkspaceConversation(props: {
   const coreStops = useWorkspaceStore(
     (store) => store.advertisedCommands?.includes("decoder.interrupt") === true,
   );
+  // Only a core that advertises `turn.summary` keeps the records a turn summary reads.
+  const commands = useApplicationCommands();
+  const coreSummarizes = useWorkspaceStore(
+    (store) => store.advertisedCommands?.includes("turn.summary") === true,
+  );
+  const summarize = useMemo(
+    () =>
+      workspaceId === null || sessionId === null || !coreSummarizes
+        ? undefined
+        : async (window: { startedAtMs: number; endedAtMs?: number }) => {
+            const result = await commands.run("turn.summary", { workspaceId, turns: [window] });
+            return result.turns[0] ?? null;
+          },
+    [commands, workspaceId, sessionId, coreSummarizes],
+  );
   // The source asked to stop: the working line says so until the turn ends, which its notice
   // confirms. It resets during render when the turn ends or the conversation changes.
   const [stopped, setStopped] = useState<ConversationSource | null>(null);
@@ -88,6 +103,7 @@ export function WorkspaceConversation(props: {
       waiting={starting ? intl.formatMessage({ id: "conversation.reply.starting" }) : undefined}
       onStop={working && !starting && !stopping && hostIsCurrent && coreStops ? stop : undefined}
       continues={firstMessage !== undefined}
+      summarize={summarize}
       notice={
         /* motion: Lervo notices in the conversation */
         props.baseNotice === undefined || props.baseNotice === null ? null : (

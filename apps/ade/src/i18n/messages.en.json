@@ -159,6 +159,114 @@
     "defaultMessage": "{name}{calls, plural, =1 {} other { · # calls}}",
     "description": "A finished tool call; the count shows when the agent called the tool more than once."
   },
+  "conversation.turn.blocked": {
+    "defaultMessage": "Completion blocked",
+    "description": "Lervo's completion check stopped the turn's end, on the turn summary line."
+  },
+  "conversation.turn.card.blocked": {
+    "defaultMessage": "Blocked",
+    "description": "Lervo's completion check stopped the turn's end, in the turn summary card."
+  },
+  "conversation.turn.card.cited": {
+    "defaultMessage": "Cited",
+    "description": "The turn summary card's row of documents the agent's answer cited."
+  },
+  "conversation.turn.card.completion": {
+    "defaultMessage": "Completion",
+    "description": "The turn summary card's row of Lervo's completion check."
+  },
+  "conversation.turn.card.count": {
+    "defaultMessage": "{count, plural, =0 {None} other {#}}",
+    "description": "A count in the turn summary card; zero reads None."
+  },
+  "conversation.turn.card.documents": {
+    "defaultMessage": "Documents",
+    "description": "The turn summary card's row of documents Lervo selected for the agent."
+  },
+  "conversation.turn.card.files": {
+    "defaultMessage": "Files",
+    "description": "The turn summary card's row of repository changes."
+  },
+  "conversation.turn.card.filesChanged": {
+    "defaultMessage": "{known, select, yes {{count, plural, one {# file changed} other {# files changed}}} other {Changed}}",
+    "description": "How many files the turn changed, in the turn summary card; {known} is yes when the count is recorded."
+  },
+  "conversation.turn.card.found": {
+    "defaultMessage": "Found by search",
+    "description": "The turn summary card's row of documents the agent's Lervo searches found."
+  },
+  "conversation.turn.card.given": {
+    "defaultMessage": "Given to the agent",
+    "description": "The turn summary card's section of what Lervo gave the agent."
+  },
+  "conversation.turn.card.outcome": {
+    "defaultMessage": "Outcome",
+    "description": "The turn summary card's section of what the turn changed and how it ended."
+  },
+  "conversation.turn.card.revision": {
+    "defaultMessage": "Revision {revision}",
+    "description": "The workstream revision Lervo gave the agent, in the turn summary card."
+  },
+  "conversation.turn.card.tokens": {
+    "defaultMessage": "{input} input ({cached} cached) · {output} output{hasCost, select, yes { · ≈ {cost} (list price)} other {}}",
+    "description": "The turn's provider-reported tokens, and its cost at list price when every result reported one ({hasCost} is yes); the plan the person pays may differ."
+  },
+  "conversation.turn.card.unchecked": {
+    "defaultMessage": "Not checked",
+    "description": "The turn ended without Lervo's completion check, in the turn summary card."
+  },
+  "conversation.turn.card.updated": {
+    "defaultMessage": "Updated to revision {revision}",
+    "description": "The workstream revision the turn ended at, when it advanced, in the turn summary card."
+  },
+  "conversation.turn.card.usage": {
+    "defaultMessage": "Usage",
+    "description": "The turn summary card's section of the provider-reported usage."
+  },
+  "conversation.turn.card.used": {
+    "defaultMessage": "Used by the agent",
+    "description": "The turn summary card's section of what the agent's searches found and its answer cited."
+  },
+  "conversation.turn.card.workstream": {
+    "defaultMessage": "Workstream",
+    "description": "The turn summary card's workstream row."
+  },
+  "conversation.turn.changed": {
+    "defaultMessage": "Files changed",
+    "description": "The turn changed the repository and the count is not known, on the turn summary line."
+  },
+  "conversation.turn.cited": {
+    "defaultMessage": "{count} cited",
+    "description": "How many documents the agent's answer cited, on the turn summary line."
+  },
+  "conversation.turn.details": {
+    "defaultMessage": "Details",
+    "description": "The turn summary line when the turn did nothing beyond the usual; it opens to the card."
+  },
+  "conversation.turn.files": {
+    "defaultMessage": "{count, plural, one {# file changed} other {# files changed}}",
+    "description": "How many files the turn changed in the repository, on the turn summary line."
+  },
+  "conversation.turn.given": {
+    "defaultMessage": "{count, plural, one {# document given} other {# documents given}}",
+    "description": "How many documents Lervo selected for the agent in the turn, on the turn summary line."
+  },
+  "conversation.turn.searched": {
+    "defaultMessage": "{count, plural, one {# document found} other {# documents found}}",
+    "description": "How many documents the agent's Lervo searches found in the turn, on the turn summary line."
+  },
+  "conversation.turn.took": {
+    "defaultMessage": "{minutes, plural, =0 {{seconds}s} other {{minutes}m {seconds}s}}",
+    "description": "How long the turn took from the person's message to its last item, first on the turn summary line."
+  },
+  "conversation.turn.unchecked": {
+    "defaultMessage": "Not checked",
+    "description": "The turn ended without Lervo's completion check, such as one the user stopped, on the turn summary line."
+  },
+  "conversation.turn.workstream": {
+    "defaultMessage": "Workstream updated",
+    "description": "The turn advanced the workstream, on the turn summary line."
+  },
   "conversation.unavailable": {
     "defaultMessage": "The conversation could not open ({code}).",
     "description": "The session could not attach or start; the code names why."

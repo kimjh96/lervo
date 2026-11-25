@@ -1,9 +1,11 @@
+import type { ConversationItem } from "@lervo/session-host-contract";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   type CSSProperties,
   type ReactNode,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -15,6 +17,8 @@ import { useConversationStore } from "../model/store";
 import styles from "./Conversation.module.css";
 import { ConversationItemView } from "./renderers";
 import { useToolLineToggles } from "./ToolLinesProvider";
+import { type TurnWindow, useShowsTurnSummaries } from "./TurnSummariesProvider";
+import { TurnSummaryLine } from "./TurnSummaryLine";
 
 const NEAR_EDGE_PX = 48;
 /** The most frames a list stays hidden while its measured height settles. */
@@ -53,6 +57,8 @@ export function Conversation(props: {
    * the conversation, so it scrolls with it instead of floating over it.
    */
   lead?: ReactNode;
+  /** Whether the agent still works on the last turn, which then has no summary yet. */
+  turnOpen?: boolean | undefined;
 }) {
   const window = useConversationStore((store) => store.window);
   const arrived = useConversationStore((store) => store.arrived);
@@ -92,6 +98,33 @@ export function Conversation(props: {
   const firstItemId = window.items[0]?.itemId;
   const firstShown = useRef(firstItemId);
   const toggles = useToolLineToggles();
+  const showsSummaries = useShowsTurnSummaries();
+  const turnOpen = props.turnOpen === true;
+  // Each finished turn's last item carries the turn's summary: the turn starts at a message the
+  // user sent, and ends before the next one, or at the end once the agent stopped working.
+  const turnEnds = useMemo(() => {
+    const ends = new Map<number, { turn: string; window: TurnWindow; elapsedMs: number }>();
+    if (!showsSummaries) return ends;
+    let start: ConversationItem | undefined;
+    window.items.forEach((item, index) => {
+      if (item.kind === "user_message") {
+        start = item;
+        return;
+      }
+      const next = window.items[index + 1];
+      if (start === undefined || (next === undefined ? turnOpen : next.kind !== "user_message"))
+        return;
+      ends.set(index, {
+        turn: start.itemId,
+        elapsedMs: item.createdAtMs - start.createdAtMs,
+        window:
+          next === undefined
+            ? { startedAtMs: start.createdAtMs }
+            : { startedAtMs: start.createdAtMs, endedAtMs: next.createdAtMs },
+      });
+    });
+    return ends;
+  }, [window.items, turnOpen, showsSummaries]);
   /** The list's height when the user last opened or closed a tool line, until it is measured. */
   const toggledAt = useRef<number | null>(null);
 
@@ -261,6 +294,16 @@ export function Conversation(props: {
                 style={{ transform: `translateY(${row.start}px)` }}
               >
                 <ConversationItemView item={item} />
+                {/* motion: A message arrives live */}
+                {turnEnds.has(row.index) ? (
+                  <div className={styles.turnEnd}>
+                    <TurnSummaryLine
+                      turn={turnEnds.get(row.index)!.turn}
+                      window={turnEnds.get(row.index)!.window}
+                      elapsedMs={turnEnds.get(row.index)!.elapsedMs}
+                    />
+                  </div>
+                ) : null}
                 {/* motion: Lervo notices in the conversation */}
                 {row.index === 0 && !window.hasEarlier ? (
                   <Presence className={styles.lead}>{props.lead ?? null}</Presence>

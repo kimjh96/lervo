@@ -1,0 +1,136 @@
+/* The Lervo turn summary (approved mockup 3, B and C): one quiet line at a turn's end, its facts
+   apart by a middle dot, that opens at once to a card of what the core recorded. The card fades
+   in over `enter`; its height never animates (ADE motion, "Disclosure"). */
+.turn {
+  padding-block-start: var(--space-10);
+}
+
+.summary {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  min-width: 0;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  margin-inline: calc(var(--space-4) * -1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  font: inherit;
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+  text-align: start;
+  background: transparent;
+  cursor: pointer;
+}
+
+.line:hover {
+  background: var(--color-surface-hover);
+}
+
+.line:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-inset);
+}
+
+.caret {
+  display: inline-flex;
+  flex: none;
+  align-self: center;
+  width: var(--size-icon-sm);
+  transform: rotate(-90deg);
+  transition: transform var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.caret[data-open="true"] {
+  transform: none;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-6);
+}
+
+.fact + .fact::before {
+  margin-inline-end: var(--space-6);
+  content: "·";
+}
+
+.attention {
+  color: var(--color-status-needs-you);
+}
+
+/* Every section shares the card's label column, so the values line up down the card. */
+.card {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-12) var(--space-16);
+  margin-inline-start: calc(var(--size-icon-sm) + var(--space-8));
+  padding-block: var(--space-12);
+  padding-inline: var(--space-14);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+  background: var(--color-surface-floating);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.section {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  row-gap: var(--space-4);
+}
+
+.section + .section {
+  padding-block-start: var(--space-12);
+  border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.heading {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  font-weight: var(--font-weight-semibold);
+}
+
+.rows {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  row-gap: var(--space-4);
+  margin: 0;
+}
+
+.label {
+  color: var(--color-text-tertiary);
+}
+
+.value {
+  display: grid;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.path {
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-mono);
+  font-size: var(--type-mono-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-primary);
+}

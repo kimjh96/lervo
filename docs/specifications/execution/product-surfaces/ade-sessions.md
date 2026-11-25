@@ -130,6 +130,15 @@ The owner stops the agent's running turn without ending the session, as Escape d
 - **What the conversation shows.** A stopped turn ends with the `turn_stopped` notice instead of `provider_turn_failed`. A turn whose result says `completed` finished before the request arrived and shows no notice. A Claude Code without `terminal_reason` is taken at the request.
 - **Core records.** Claude Code runs no `Stop` hook for a stopped turn, in the terminal or the ADE, and the next prompt replaces the turn's open-turn marker. At event schema 12 the next prompt or session start of the same session settles the stopped turn instead: a detached worker records its `terminal.turn.observed` with `ending` and `completionResult: not_checked`, its repository change, and its skill assessment ([turn evidence](../events-and-privacy/terminal-observations/context-reference-and-turn-evidence.md#turns-that-end-without-a-stop-hook-schema-12)). Settling at `SessionEnd`, and from the decoder's own `provider_interrupt` signal, remain follow-ups.
 
+## The turn summary
+
+A finished turn ends with one quiet line of what the core recorded about it (approved mockup 3, "The Lervo turn summary"): how long the turn took, then only what it did beyond the usual, such as _48s · 2 documents found · 3 files changed · Workstream updated_. An ordinary turn reads as its time alone. The line opens to a card of the rows that have something to say, in four parts: what Lervo gave the agent (documents it selected, the workstream revision), what the agent used (documents its Lervo searches found, documents its answer cited), the outcome (files changed, the workstream revision it ended at, a completion check that blocked or did not run), and the provider-reported usage with a list-price cost.
+
+- The interface asks the core with `turn.summary` once a turn is over and its line comes into view, and keeps the answer for the conversation. Only a core that advertises the command is asked.
+- A hosted turn has no provider turn ID, so the core takes the session's first prepared prompt context from 5 seconds before the turn's message to 5 seconds before the next one. The rest follows from that context: its selections, the `terminal.turn.observed` that cites it, a `repository.change.completed` from that observation, and the session's `resource.usage.recorded` in the window.
+- It calls no model and reads only the repository's store: about 10 to 35 ms and 300 bytes a turn on 2026-11-25, in stores of 90 and 57,000 events.
+- What the core does not record does not show: the owner rules applied to a turn are not yet recorded per turn, so the card does not claim them (invariant 3).
+
 ## The CLI conversation in the interface
 
 The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md)). This section records how it worked, for when it returns.

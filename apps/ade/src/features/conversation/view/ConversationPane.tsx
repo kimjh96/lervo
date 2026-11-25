@@ -1,3 +1,4 @@
+import type { TurnSummary } from "@lervo/session-host-contract";
 import { type ReactNode, useLayoutEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -11,6 +12,7 @@ import { Composer } from "./Composer";
 import { Conversation } from "./Conversation";
 import styles from "./ConversationPane.module.css";
 import { ToolLinesProvider } from "./ToolLinesProvider";
+import { TurnSummariesProvider, type TurnWindow } from "./TurnSummariesProvider";
 
 /**
  * The conversation with its dock: the working line while the agent works, and the reply card.
@@ -31,6 +33,8 @@ export function ConversationPane(props: {
   continues: boolean;
   /** A Lervo notice under the first message, such as what the work started without. */
   notice?: ReactNode;
+  /** Asks the core what it recorded about a turn; without it, no turn summary shows. */
+  summarize?: ((window: TurnWindow) => Promise<TurnSummary | null>) | undefined;
 }) {
   const intl = useIntl();
   const { source } = props;
@@ -55,32 +59,35 @@ export function ConversationPane(props: {
           </InlineAlert>
         )}
       </Presence>
-      <ToolLinesProvider conversation={source}>
-        <Conversation
-          onLoadEarlier={() => void source.loadEarlier()}
-          onLoadLater={() => void source.loadLater()}
-          onJumpToLatest={() => void source.showLatest()}
-          continues={props.continues}
-          lead={props.notice}
-          dock={
-            <>
-              {/* The working line keeps its row, so the conversation never moves as work starts
+      <TurnSummariesProvider conversation={source} summarize={props.summarize}>
+        <ToolLinesProvider conversation={source}>
+          <Conversation
+            onLoadEarlier={() => void source.loadEarlier()}
+            onLoadLater={() => void source.loadLater()}
+            onJumpToLatest={() => void source.showLatest()}
+            continues={props.continues}
+            lead={props.notice}
+            turnOpen={props.working !== null}
+            dock={
+              <>
+                {/* The working line keeps its row, so the conversation never moves as work starts
                 or ends. */}
-              <div className={styles.working}>
-                <Presence>
-                  {props.working === null ? null : <WorkingLine label={props.working} />}
-                </Presence>
-              </div>
-              <Composer
-                draftKey={props.draftKey}
-                onSend={(text) => source.send(text)}
-                onStop={props.onStop}
-                waiting={props.waiting}
-              />
-            </>
-          }
-        />
-      </ToolLinesProvider>
+                <div className={styles.working}>
+                  <Presence>
+                    {props.working === null ? null : <WorkingLine label={props.working} />}
+                  </Presence>
+                </div>
+                <Composer
+                  draftKey={props.draftKey}
+                  onSend={(text) => source.send(text)}
+                  onStop={props.onStop}
+                  waiting={props.waiting}
+                />
+              </>
+            }
+          />
+        </ToolLinesProvider>
+      </TurnSummariesProvider>
     </div>
   );
 }

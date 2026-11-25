@@ -15,6 +15,7 @@ import {
 } from "@lervo/session-host-contract";
 
 import { CommandFailure, errorCode } from "./command-error-output.js";
+import { lines } from "./core-link-lines.js";
 import { TurnUsageQueue } from "./core-link-usage-queue.js";
 import { withoutShellOutput } from "./lervo-command-detail.js";
 import type { HostedProviderSummary } from "./hosted-session-adapters.js";
@@ -23,8 +24,6 @@ import type { RepositorySummary, WorkspaceSummary } from "./workspace-list-servi
 import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 
-/** Bytes in one request line. A `decoder.output` request carries at most 1 MiB as Base64. */
-export const MAX_REQUEST_LINE_BYTES = 2 * 1024 * 1024;
 /** Decoders open at once. Each belongs to one native session of the session host. */
 export const MAX_OPEN_DECODERS = 256;
 /**
@@ -51,6 +50,8 @@ export interface CoreLinkHandlers {
   ): Promise<{ items: HostedTranscriptItem[]; complete: boolean }>;
   /** Retires a hosted workspace without discarding work. */
   retireWorkspace(workspaceId: string): Promise<object>;
+  /** What the core recorded about turns of a workspace's hosted session. */
+  summarizeTurns?(arguments_: Record<string, unknown>): Promise<object>;
   /** Records a hosted session's process exit unless its own hook recorded the end. */
   recordSessionExit(sessionId: string, exitCode: number | null): Promise<{ status: string }>;
   /**
@@ -169,6 +170,15 @@ export class CoreLinkServer {
       case "provider.list":
         this.respond(request.id, () => this.handlers.listProviders());
         return;
+      case "turn.summary": {
+        const summarize = this.handlers.summarizeTurns;
+        this.respond(request.id, async () => {
+          if (summarize === undefined)
+            throw new CommandFailure("command_unsupported", "This core keeps no turn records.");
+          return summarize(request.arguments as Record<string, unknown>);
+        });
+        return;
+      }
       case "workspace.retire":
         // An invalid ID fails this request alone, never the link.
         this.respond(request.id, async () =>
@@ -360,28 +370,6 @@ export class CoreLinkServer {
   /** The item as the session host receives it: annotated, and never with a shell output. */
   private annotated(content: HostedDecodedContent): HostedDecodedContent {
     return withoutShellOutput(this.handlers.annotate?.(content) ?? content);
-  }
-}
-
-/**
- * Splits the input into lines without holding more than one bounded line. A line over the bound
- * yields `null`, which ends the link.
- */
-async function* lines(input: AsyncIterable<Uint8Array | string>): AsyncGenerator<string | null> {
-  const decoder = new TextDecoder();
-  let partial = "";
-  for await (const chunk of input) {
-    partial += typeof chunk === "string" ? chunk : decoder.decode(chunk, { stream: true });
-    let end = partial.indexOf("\n");
-    while (end !== -1) {
-      yield partial.slice(0, end);
-      partial = partial.slice(end + 1);
-      end = partial.indexOf("\n");
-    }
-    if (partial.length > MAX_REQUEST_LINE_BYTES) {
-      yield null;
-      return;
-    }
   }
 }
 
