@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ecc91b611e58e906d6603d16"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Run the resident context server from the host release follower, so every host, including one without a knowledge host service, serves prompts."
