@@ -1,7 +1,7 @@
 // The hook runtime's `context-server` mode: the host's context server process. It runs the same
 // verified runtime the launcher would load, so a served prompt and an in-process one run the same
 // code by construction.
-import { readFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import { TERMINAL_HOOK_BUDGET_MS } from "./terminal-hook-budget.js";
@@ -113,6 +113,36 @@ export async function runServedTerminalPrompt(
  * holds the host resident lock, restarts it when it exits, and replaces it when the installed
  * runtime changes.
  */
+/**
+ * The server's counts since it started, kept beside its socket so a canary can tell whether
+ * prompts were served, and why any were declined. It holds counts and times only.
+ */
+function contextStats(runtime: string) {
+  const stats = {
+    schemaVersion: 1,
+    runtime,
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+    served: 0,
+    declined: {} as Record<string, number>,
+    lastServedAt: null as string | null,
+  };
+  let writing = Promise.resolve();
+  return (outcome: string) => {
+    if (outcome === "served") {
+      stats.served += 1;
+      stats.lastServedAt = new Date().toISOString();
+    } else stats.declined[outcome] = (stats.declined[outcome] ?? 0) + 1;
+    const bytes = `${JSON.stringify(stats)}\n`;
+    writing = writing
+      .then(async () => {
+        await writeFile(`context-stats.json.${process.pid}.tmp`, bytes);
+        await rename(`context-stats.json.${process.pid}.tmp`, "context-stats.json");
+      })
+      .catch(() => undefined);
+  };
+}
+
 export async function serveTerminalContext(entry: string): Promise<void> {
   // The runtime lives at `<store>/<runtime directory>/runtime-v2.mjs`. Listening on a name
   // relative to the store keeps the socket path within the platform's limit (about a hundred
@@ -122,9 +152,11 @@ export async function serveTerminalContext(entry: string): Promise<void> {
   // The socket is created owner-only, with no window before its mode is set.
   process.umask(0o077);
   let release = () => undefined as void;
+  const hash = await runtimeHash(entry);
   const server = startTerminalContextServer({
     socketPath: TERMINAL_CONTEXT_SOCKET_NAME,
-    runtimeHash: await runtimeHash(entry),
+    runtimeHash: hash,
+    onOutcome: contextStats(hash),
     environment: process.env,
     run: runServedTerminalPrompt,
     // Exit so the host starts a fresh server: abandoned work must not reach the next request.
