@@ -38,6 +38,7 @@ import {
 } from "./hosted-session-settings.js";
 import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
 import { hostedTerminalHooks, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
+import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
 import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
@@ -127,6 +128,9 @@ export async function startWorkspaceFromInstruction(
         chooseWorkspaceBase(gitWorkspaceBase(repository.repositoryRoot), fallback),
       // Every hosted session is a Lervo session, even in a worktree without project hooks.
       terminalHooks: (workspacePath) => hostedTerminalHooks(adapter, workspacePath),
+      // Its first prompt must record turn evidence, which needs a repository snapshot in time.
+      warmRepositorySnapshot: (workspacePath) =>
+        captureTerminalRepositorySnapshot(workspacePath).then(() => undefined),
       ...gitWorkspaceEffects(),
       startWorkstream: startWorkstreamIn,
       recordLaunch,

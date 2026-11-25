@@ -257,6 +257,26 @@ describe("a worktree without project hooks", () => {
     expect(Object.keys(settings.hooks)).toEqual(["SessionStart", "SessionEnd", "Stop"]);
     expect(fake.records[0]?.terminalHooks).toEqual({ events: ["Stop"], via: "launcher" });
   });
+
+  it("warms the worktree's snapshot cache before the launch, and goes on when warming fails", async () => {
+    for (const fails of [false, true]) {
+      const fake = ports();
+      const order: string[] = [];
+      const result = await startWorkspace(request, {
+        ...fake.value,
+        async warmRepositorySnapshot(workspacePath) {
+          order.push(`warm ${workspacePath.endsWith("/fix-the-flaky-login-test-1a2b3c")}`);
+          if (fails) throw new Error("snapshot failed");
+        },
+        async recordLaunch(record) {
+          order.push("launch recorded");
+          await fake.value.recordLaunch(record);
+        },
+      });
+      expect(order).toEqual(["warm true", "launch recorded"]);
+      expect(result.workspaceId).toMatch(/^wsp_/u);
+    }
+  });
 });
 
 describe("the base's notices", () => {

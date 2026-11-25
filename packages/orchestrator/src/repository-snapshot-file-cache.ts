@@ -5,8 +5,10 @@ import { dirname } from "node:path";
 import {
   captureRepositorySnapshotIncrementally,
   defaultRepositorySnapshotPolicy,
+  partialRepositorySnapshotCache,
   type RepositorySnapshot,
   type RepositorySnapshotCacheState,
+  type RepositorySnapshotFileReader,
   type RepositorySnapshotPolicy,
 } from "./repository-snapshot.js";
 
@@ -38,11 +40,16 @@ function validCache(value: unknown): value is RepositorySnapshotCacheState {
  * Hook processes are short-lived, so the in-memory stat cache never survived between prompts.
  * Persisting it lets each capture rehash only files whose stat identity changed. A missing or
  * invalid cache yields an ordinary full capture; the cache never changes snapshot semantics.
+ *
+ * A capture that runs out of time still persists the hashes it computed. Without that, a cold
+ * cache in a checkout that cannot be hashed within one deadline, such as a fresh worktree of a
+ * large repository, would never warm, and every capture there would fail the same way.
  */
 export async function capturePersistentRepositorySnapshot(
   repositoryRoot: string,
   cachePath: string,
   policy: RepositorySnapshotPolicy = defaultRepositorySnapshotPolicy,
+  fileReader?: RepositorySnapshotFileReader,
 ): Promise<RepositorySnapshot> {
   let previous: RepositorySnapshotCacheState | undefined;
   try {
@@ -51,11 +58,24 @@ export async function capturePersistentRepositorySnapshot(
   } catch {
     previous = undefined;
   }
-  const { snapshot, cache } = await captureRepositorySnapshotIncrementally({
-    repositoryRoot,
-    policy,
-    ...(previous === undefined ? {} : { previous }),
-  });
+  let captured: { snapshot: RepositorySnapshot; cache: RepositorySnapshotCacheState };
+  try {
+    captured = await captureRepositorySnapshotIncrementally({
+      repositoryRoot,
+      policy,
+      ...(previous === undefined ? {} : { previous }),
+      ...(fileReader === undefined ? {} : { readFile: fileReader }),
+    });
+  } catch (error) {
+    const partial = partialRepositorySnapshotCache(error);
+    if (partial !== undefined) await persistCache(cachePath, partial);
+    throw error;
+  }
+  await persistCache(cachePath, captured.cache);
+  return captured.snapshot;
+}
+
+async function persistCache(cachePath: string, cache: RepositorySnapshotCacheState): Promise<void> {
   // Unique per write: two captures in one process, such as a resident's health refresh and its
   // detached knowledge scan, must not interleave into one temporary file.
   const temporary = `${cachePath}.${process.pid}.${randomUUID()}.tmp`;
@@ -67,5 +87,4 @@ export async function capturePersistentRepositorySnapshot(
     // The cache is an optimization; failing to persist it never fails the capture.
     await rm(temporary, { force: true }).catch(() => undefined);
   }
-  return snapshot;
 }
