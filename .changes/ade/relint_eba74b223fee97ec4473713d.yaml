@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_eba74b223fee97ec4473713d"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Show how many documents an agent's knowledge search found, and the documents when its line opens."

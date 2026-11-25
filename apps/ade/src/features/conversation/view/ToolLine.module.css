@@ -107,6 +107,43 @@ button.summary:focus-visible {
   color: var(--color-text-tertiary);
 }
 
+/* A search's documents, in the interface face under the command that found them. */
+.hits {
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  margin-block-start: var(--space-8);
+  padding: 0;
+  font-family: var(--font-family-interface);
+  font-size: var(--type-meta-size);
+  white-space: normal;
+  list-style: none;
+}
+
+/* Each document is its title over its path; a long path ends with an ellipsis. */
+.hit {
+  display: grid;
+  min-width: 0;
+}
+
+.hitTitle {
+  color: var(--color-text-primary);
+}
+
+.hitPath {
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-mono);
+  font-size: var(--type-mono-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stale {
+  margin-inline-start: var(--space-8);
+  color: var(--color-status-needs-you);
+}
+
 .result {
   display: inline-flex;
   flex: none;

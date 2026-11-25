@@ -10,7 +10,7 @@ import {
 import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 import { homedir } from "node:os";
 
-import { claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
+import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
 
 /** A line longer than this is dropped up to its end, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
@@ -211,15 +211,16 @@ export class ClaudeHostedStreamDecoder
       this.tools.delete(id);
       const failed = block.is_error === true;
       // The structured result belongs to the line's only result.
-      const detail = claudeToolDetail(
-        call,
-        {
-          content: block.content,
-          failed,
-          structured: results.length === 1 ? line.tool_use_result : undefined,
-        },
-        { workingDirectory: this.workingDirectory, home: this.home },
-      );
+      const result = {
+        content: block.content,
+        failed,
+        structured: results.length === 1 ? line.tool_use_result : undefined,
+      };
+      const detail = claudeToolDetail(call, result, {
+        workingDirectory: this.workingDirectory,
+        home: this.home,
+      });
+      const output = claudeShellOutput(detail, result);
       events.push(
         this.item({
           kind: "tool_activity",
@@ -227,6 +228,7 @@ export class ClaudeHostedStreamDecoder
           status: failed ? "failed" : "succeeded",
           calls: 1,
           ...(detail === undefined ? {} : { detail }),
+          ...(output === undefined ? {} : { output }),
         }),
       );
     }

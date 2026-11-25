@@ -4,6 +4,8 @@
 // and to transcript pages; provider adapters stay unaware of Lervo's commands.
 import type { HostedDecodedContent, HostedToolDetail } from "@lervo/adapter-contract";
 
+import { readKnowledgeQueryOutput } from "./knowledge-query-output.js";
+
 type LervoCall = NonNullable<HostedToolDetail["lervo"]>;
 
 interface Token {
@@ -21,6 +23,10 @@ const WORD = /^[a-z][a-z0-9-]*$/u;
 const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/u;
 const MAX_COMMAND_WORDS = 6;
 const MAX_SUBJECT_CHARACTERS = 512;
+/** A search's hits a line carries: the first in rank order, within the detail's bound. */
+const MAX_HITS = 10;
+const MAX_HIT_TITLE_CHARACTERS = 120;
+const MAX_HIT_PATH_CHARACTERS = 240;
 /** Commands that only move into a directory before the call. */
 const PRELUDE = new Set(["cd", "pushd"]);
 /** Commands after the call that keep the line Lervo's: another call, or a plain message. */
@@ -94,11 +100,11 @@ function program(segment: Segment): Token[] {
 const isLervo = (token: Token | undefined) =>
   token !== undefined && token.text.split("/").at(-1) === "lervo";
 
-function shortened(text: string): string {
+function shortened(text: string, characters = MAX_SUBJECT_CHARACTERS): string {
   const units = [...text.trim()];
-  return units.length <= MAX_SUBJECT_CHARACTERS
+  return units.length <= characters
     ? units.join("")
-    : `${units.slice(0, MAX_SUBJECT_CHARACTERS - 1).join("")}…`;
+    : `${units.slice(0, characters - 1).join("")}…`;
 }
 
 /** The call `arguments_` make: the longest command path the catalog knows, a flag, a subject. */
@@ -161,13 +167,43 @@ export function lervoInvocation(
   return found;
 }
 
-/** `content` with the Lervo call its shell command makes, when it makes one. */
+/** `content` without the shell output its adapter passed to the core. */
+export function withoutShellOutput(content: HostedDecodedContent): HostedDecodedContent {
+  if (content.kind !== "tool_activity" || content.output === undefined) return content;
+  const { output: _output, ...line } = content;
+  return line;
+}
+
+/**
+ * `content` with the Lervo call its shell command makes, when it makes one, and without its shell
+ * output. A knowledge search adds how many documents it found and the first of them; its list
+ * then stands in for the output's preview.
+ */
 export function withLervoCall(
   content: HostedDecodedContent,
   commands: ReadonlySet<string>,
 ): HostedDecodedContent {
-  if (content.kind !== "tool_activity" || content.detail?.subject.kind !== "command")
-    return content;
-  const lervo = lervoInvocation(content.detail.subject.text, commands);
-  return lervo === undefined ? content : { ...content, detail: { ...content.detail, lervo } };
+  const line = withoutShellOutput(content);
+  if (line.kind !== "tool_activity" || line.detail?.subject.kind !== "command") return line;
+  const lervo = lervoInvocation(line.detail.subject.text, commands);
+  if (lervo === undefined) return line;
+  const output = content.kind === "tool_activity" ? content.output : undefined;
+  const search =
+    lervo.command === "knowledge query" && lervo.flag === undefined && output !== undefined
+      ? readKnowledgeQueryOutput(output)
+      : undefined;
+  if (search === undefined) return { ...line, detail: { ...line.detail, lervo } };
+  const hits = search.hits.slice(0, MAX_HITS).map((hit) => ({
+    title: shortened(hit.title, MAX_HIT_TITLE_CHARACTERS),
+    path: shortened(hit.path, MAX_HIT_PATH_CHARACTERS),
+    freshness: hit.freshness,
+  }));
+  const { preview, ...detail } = line.detail;
+  return {
+    ...line,
+    detail: {
+      ...(hits.length > 0 || preview === undefined ? detail : { ...detail, preview }),
+      lervo: { ...lervo, found: search.found, ...(hits.length > 0 ? { hits } : {}) },
+    },
+  };
 }

@@ -13,6 +13,7 @@ import { collectInteractiveLocalKnowledgeSources } from "./knowledge-sources.js"
 import { knowledgeUsage } from "./knowledge-usage.js";
 import type { CliIo } from "./types.js";
 import { queryOpenTerminalTurn } from "./terminal-open-turns.js";
+import { knowledgeQueryHeadline, knowledgeQueryHitLine } from "./knowledge-query-output.js";
 import { recordKnowledgeQueryTurnSelection } from "./knowledge-query-turn-selection.js";
 import { governingPreference, repositoryPathsNamedIn } from "./governing-preference.js";
 import { resolveCommandRoots } from "./terminal-roots.js";
@@ -136,7 +137,7 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
       parsed.values.json
         ? `${JSON.stringify({ ...result, knowledgeBuild, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`
         : [
-            `Repository knowledge recommendations (${result.hits.length}; not evidence of loaded, injected, or used)`,
+            knowledgeQueryHeadline(result.hits.length),
             ...(knowledgeBuild === "built"
               ? []
               : [
@@ -148,10 +149,7 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
               : [
                   `Find gap (repository scanner): ${result.retention.observedOnly.count} observed-only sources, ${result.retention.observedOnly.bytes} bytes (${result.retention.observedOnly.classes.join(", ")}) are hashed and change-tracked but not searched by symbol or section.`,
                 ]),
-            ...result.hits.map(
-              (hit) =>
-                `  ${hit.score.toString().padStart(2)}  ${hit.title} · ${hit.path} · ${hit.freshness}`,
-            ),
+            ...result.hits.map(knowledgeQueryHitLine),
             `Applied owner instructions: ${instructions.report.status}; ${instructions.report.preparedCount} complete clauses prepared; ${instructions.report.omittedCount ?? "unknown"} omitted; provider delivery unobserved.`,
             ...(instructions.report.status === "complete"
               ? []

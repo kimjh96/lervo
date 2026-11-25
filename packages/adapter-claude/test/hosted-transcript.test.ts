@@ -90,6 +90,7 @@ describe("Claude Code transcripts", () => {
               subject: { kind: "command", text: "git status" },
               preview: { format: "output", lines: ["clean"], omittedLines: 0, omittedAt: 1 },
             },
+            output: "clean",
           },
           createdAtMs: Date.parse(at(4)),
         },

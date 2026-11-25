@@ -15,6 +15,11 @@ export type HostedDecodedContent =
       readonly status: "running" | "succeeded" | "failed";
       readonly calls: number;
       readonly detail?: HostedToolDetail;
+      /**
+       * A shell call's output, at most `MAX_TOOL_OUTPUT_CHARACTERS`, for the core within the
+       * resident process. The core link removes it before the session host receives the item.
+       */
+      readonly output?: string;
     }
   | {
       readonly kind: "lervo_notice";

@@ -385,6 +385,41 @@ describe("the core-link server", () => {
     });
   });
 
+  it("never passes a shell output on, even without an annotation", async () => {
+    const written: Record<string, unknown>[] = [];
+    await new CoreLinkServer(
+      {
+        ...handlers(),
+        createDecoder: () => ({
+          send: () => ({ input: new Uint8Array(), events: [] }),
+          output: () => [
+            {
+              kind: "item",
+              content: {
+                kind: "tool_activity",
+                name: "Bash",
+                status: "succeeded",
+                calls: 1,
+                detail: { subject: { kind: "command", text: "cat secret.txt" } },
+                output: "the file's text",
+              },
+              createdAtMs: 1,
+            },
+          ],
+        }),
+      },
+      (line) => written.push(JSON.parse(line) as Record<string, unknown>),
+    ).serve(
+      input([
+        { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+        { kind: "decoder.output", id: 2, decoderId: "dec_1", data: "" },
+      ]),
+    );
+    expect(JSON.stringify(written)).not.toContain("the file's text");
+    for (const response of written)
+      expect(validResponse(response), JSON.stringify(response)).toBe(true);
+  });
+
   it("records a named session's turn usage after answering its decoded events", async () => {
     recordedUsage.length = 0;
     const result = (uuid: string) =>

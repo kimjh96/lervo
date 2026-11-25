@@ -1107,6 +1107,42 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 512
+                    },
+                    "found": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "hits": {
+                      "type": "array",
+                      "maxItems": 10,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "title",
+                          "path",
+                          "freshness"
+                        ],
+                        "properties": {
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "path": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 240
+                          },
+                          "freshness": {
+                            "enum": [
+                              "current",
+                              "stale",
+                              "unknown"
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 },

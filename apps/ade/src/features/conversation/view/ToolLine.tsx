@@ -82,8 +82,46 @@ function Omitted({ count }: { count: number }) {
   );
 }
 
-/** What an opened line shows: the Lervo command it ran, if any, then its output or change. */
-function PreviewLines(props: { command: string | undefined; preview: Preview | undefined }) {
+type Hits = NonNullable<NonNullable<ToolDetail["lervo"]>["hits"]>;
+
+/** What a Lervo search found, in rank order: each document's title and path, and stale ones. */
+function SearchHits(props: { hits: Hits; found: number }) {
+  const more = props.found - props.hits.length;
+  return (
+    <ol className={styles.hits}>
+      {props.hits.map((hit) => (
+        <li key={hit.path} className={styles.hit}>
+          <span className={styles.hitTitle}>
+            {hit.title}
+            {/* motion: Disclosure: tool activity, details */}
+            {hit.freshness === "stale" ? (
+              <span className={styles.stale}>
+                <FormattedMessage id="conversation.lervo.stale" />
+              </span>
+            ) : null}
+          </span>
+          <span className={styles.hitPath}>{hit.path}</span>
+        </li>
+      ))}
+      {/* motion: Disclosure: tool activity, details */}
+      {more > 0 ? (
+        <li className={styles.omitted}>
+          <FormattedMessage id="conversation.lervo.more" values={{ count: more }} />
+        </li>
+      ) : null}
+    </ol>
+  );
+}
+
+/**
+ * What an opened line shows: the Lervo command it ran, if any, what a search found, and its
+ * output or change.
+ */
+function PreviewLines(props: {
+  command: string | undefined;
+  search: { hits: Hits; found: number } | undefined;
+  preview: Preview | undefined;
+}) {
   const preview = props.preview ?? { format: "output", lines: [], omittedLines: 0, omittedAt: 0 };
   const omitted = preview.omittedLines > 0;
   return (
@@ -92,6 +130,8 @@ function PreviewLines(props: { command: string | undefined; preview: Preview | u
       {props.command === undefined ? null : (
         <div className={styles.commandLine}>{props.command}</div>
       )}
+      {/* motion: Disclosure: tool activity, details */}
+      {props.search === undefined ? null : <SearchHits {...props.search} />}
       {preview.lines.map((line, index) => (
         // Lines have no identity beyond their order within one immutable item.
         <Fragment key={index}>
@@ -139,7 +179,15 @@ export function ToolLine({ item }: { item: ToolItem }) {
         <Result tool={tool} />
       </>
     ) : (
-      <LervoSentence lervo={lervo} failed={tool.status === "failed"} />
+      <>
+        <LervoSentence lervo={lervo} failed={tool.status === "failed"} />
+        {/* motion: A message arrives live */}
+        {lervo.found === undefined || tool.status === "failed" ? null : (
+          <span className={styles.result}>
+            <FormattedMessage id="conversation.lervo.found" values={{ count: lervo.found }} />
+          </span>
+        )}
+      </>
     );
   if (detail.preview === undefined && lervo === undefined)
     return (
@@ -162,6 +210,11 @@ export function ToolLine({ item }: { item: ToolItem }) {
       {opened ? (
         <PreviewLines
           command={lervo === undefined ? undefined : detail.subject.text}
+          search={
+            lervo?.hits === undefined
+              ? undefined
+              : { hits: lervo.hits, found: lervo.found ?? lervo.hits.length }
+          }
           preview={detail.preview}
         />
       ) : null}

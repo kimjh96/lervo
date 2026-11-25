@@ -3,6 +3,7 @@
 // and Claude Code's structured result, so a rebuilt conversation shows what the live one showed.
 import {
   displayPath,
+  MAX_TOOL_OUTPUT_CHARACTERS,
   type HostedToolCounts,
   type HostedToolDetail,
   textLines,
@@ -53,6 +54,18 @@ function resultText(content: unknown): string {
     .map((block) => text(fields(block)?.text))
     .filter((value): value is string => value !== undefined)
     .join("\n");
+}
+
+/**
+ * A shell call's output for the core within the resident process, bounded; other tools pass none.
+ * The core reads what a Lervo command printed from it.
+ */
+export function claudeShellOutput(
+  detail: HostedToolDetail | undefined,
+  result: ClaudeToolResult,
+): string | undefined {
+  if (detail?.subject.kind !== "command") return undefined;
+  return resultText(result.content).slice(0, MAX_TOOL_OUTPUT_CHARACTERS);
 }
 
 /** Lines with the workspace's path stripped where they start with it, as file lists do. */

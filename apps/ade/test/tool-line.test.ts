@@ -129,6 +129,39 @@ describe("tool lines", () => {
     );
   });
 
+  it("shows what a Lervo search found: its count on the line, its documents when opened", () => {
+    const search = tool({
+      name: "Bash",
+      detail: {
+        subject: { kind: "command", text: 'lervo knowledge query "login limits"' },
+        lervo: {
+          command: "knowledge query",
+          subject: "login limits",
+          found: 12,
+          hits: [
+            { title: "Login security", path: "docs/specs/security.md", freshness: "current" },
+            {
+              title: "Keep limits in one module",
+              path: "docs/decisions/0412.md",
+              freshness: "stale",
+            },
+          ],
+        },
+      },
+    });
+    const closed = render(search);
+    expect(closed).toContain("Searched for “login limits”");
+    expect(closed).toContain("12 found");
+    expect(closed).not.toContain("Login security");
+    const opened = render(search, ["i1"]);
+    expect(opened).toContain("lervo knowledge query &quot;login limits&quot;");
+    expect(opened).toContain("Login security");
+    expect(opened).toContain("docs/decisions/0412.md");
+    // Only a stale document says so, and the rest of the count shows as more.
+    expect(opened.match(/>stale</gu)).toHaveLength(1);
+    expect(opened).toContain("10 more");
+  });
+
   it("has a sentence for every Lervo command", () => {
     const missing: string[] = [];
     for (const command of lervoCommandIds) {

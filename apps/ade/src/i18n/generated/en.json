@@ -101,6 +101,16 @@
       "value": " failed"
     }
   ],
+  "conversation.lervo.found": [
+    {
+      "type": 1,
+      "value": "count"
+    },
+    {
+      "type": 0,
+      "value": " found"
+    }
+  ],
   "conversation.lervo.help": [
     {
       "type": 0,
@@ -115,6 +125,22 @@
     {
       "type": 0,
       "value": "Looked up Lervo's commands"
+    }
+  ],
+  "conversation.lervo.more": [
+    {
+      "type": 1,
+      "value": "count"
+    },
+    {
+      "type": 0,
+      "value": " more"
+    }
+  ],
+  "conversation.lervo.stale": [
+    {
+      "type": 0,
+      "value": "stale"
     }
   ],
   "conversation.lervo.unknown": [
