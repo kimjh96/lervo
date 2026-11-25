@@ -13,7 +13,7 @@ import { locateWorkspaceSession } from "./workspace-launch-service.js";
 /** Turns one request summarizes at most. */
 const MAX_TURNS = 20;
 /** How long before the interface's message time a prompt's context may be recorded: clock skew. */
-const SLACK_MS = 5_000;
+const CLOCK_SKEW_MS = 5_000;
 const PAGE = 500;
 const MAX_SEARCHED_PATHS = 10;
 const WORKSPACE = /^[A-Za-z0-9_-]{1,64}$/u;
@@ -161,7 +161,7 @@ export function summarizeSessionTurns(
     (event) =>
       event.type === "terminal.context.prepared" &&
       payload(event).providerSessionDigest === digest &&
-      timeOf(event) >= windows[0]!.startedAtMs - SLACK_MS,
+      timeOf(event) >= windows[0]!.startedAtMs - CLOCK_SKEW_MS,
   );
   const first = contexts[0];
   const later = (events: readonly EventEnvelope[]) =>
@@ -175,7 +175,7 @@ export function summarizeSessionTurns(
     // A turn ends where the next one starts, as the interface or the request's order says.
     const next = window.endedAtMs ?? windows[index + 1]?.startedAtMs;
     const within = (time: number) =>
-      time >= start - SLACK_MS && (next === undefined || time < next - SLACK_MS);
+      time >= start - CLOCK_SKEW_MS && (next === undefined || time < next - CLOCK_SKEW_MS);
     const context = contexts.find((event) => within(timeOf(event)));
     if (context === undefined) return null;
     const observed = records.session.find(
@@ -191,7 +191,7 @@ export function summarizeSessionTurns(
       observed === undefined
         ? undefined
         : changes.find((event) => payload(event).sourceEventId === observed.eventId);
-    const end = next === undefined ? Number.POSITIVE_INFINITY : next - SLACK_MS;
+    const end = next === undefined ? Number.POSITIVE_INFINITY : next - CLOCK_SKEW_MS;
     const used = usage.filter((event) => timeOf(event) >= timeOf(context) && timeOf(event) < end);
     return summary(context, observed, selected, change, used);
   });
@@ -224,7 +224,7 @@ export async function summarizeWorkspaceTurns(
     const first = session.find(
       (event) =>
         event.type === "terminal.context.prepared" &&
-        timeOf(event) >= windows[0]!.startedAtMs - SLACK_MS,
+        timeOf(event) >= windows[0]!.startedAtMs - CLOCK_SKEW_MS,
     );
     const after = first === undefined ? undefined : first.seq - 1;
     return summarizeSessionTurns(

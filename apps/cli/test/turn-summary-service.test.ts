@@ -133,7 +133,7 @@ describe("turn summaries from a session's records", () => {
       digest,
       [{ startedAtMs: 1_000, endedAtMs: 13_000 }],
     ).turns;
-    // The turn ends 5 s before the next message, for the clock slack the context may have.
+    // The turn ends 5 s before the next message, for the clock skew the context may have.
     expect(turn?.usage?.costUsd).toBeCloseTo(0.1);
   });
 });
