@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-03
 Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md) and [ADR-0435](0435-continue-normalization-after-canonical-rejection.md)
 Amended by: [ADR-0482](../../semantics/0482-absorb-squash-merged-semantic-candidates-and-type-verification-source-changes.md) (squash-absorbed integration refs move to `HEAD`) and [ADR-0530](../../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md) (a ref ahead of `HEAD` returns discarded integrated drafts to committed bytes)
+Amended by: [ADR-0450](0450-keep-background-knowledge-out-of-developer-flow.md), [ADR-0472](../../documents/0472-start-absent-integration-refs-and-bound-untyped-stage-failures.md)
 
 ## Context
 
