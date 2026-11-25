@@ -32,6 +32,14 @@ export function terminalWriterSessionId(
     .slice(0, 24)}`;
 }
 
+/**
+ * The same writer session ID from the provider session's digest, `sha256(provider\0id)`, which
+ * repository state keeps instead of the raw ID.
+ */
+export function terminalWriterSessionIdForDigest(providerSessionDigest: string): string {
+  return `ses_terminal_${providerSessionDigest.slice("sha256:".length, "sha256:".length + 24)}`;
+}
+
 export function terminalWorkspaceMarker(workspace: AgentWorkspace): WorkspaceOwnershipMarker {
   return {
     schemaVersion: 1,

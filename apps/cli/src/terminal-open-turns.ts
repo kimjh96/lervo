@@ -30,6 +30,11 @@ export interface OpenTerminalTurn {
   transcript?: TranscriptPosition | null;
   /** The transcript path when the provider had not created it yet at this prompt. */
   transcriptAbsent?: string;
+  /**
+   * The digest of the checkout the turn works in, so only the same checkout settles the turn when
+   * no Stop hook ran. Markers written before it existed lack it.
+   */
+  executionRootDigest?: string;
 }
 
 async function markerDirectory(root: string, create: boolean): Promise<string> {
@@ -63,6 +68,7 @@ function isMarker(value: unknown): value is OpenTerminalTurn {
         isAbsolute(item.transcriptAbsent) &&
         item.transcriptAbsent.length <= 4096 &&
         !item.transcriptAbsent.includes("\0"))) &&
+    (item.executionRootDigest === undefined || HASH.test(item.executionRootDigest)) &&
     Number.isFinite(Date.parse(item.openedAt))
   );
 }

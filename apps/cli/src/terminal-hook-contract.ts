@@ -42,6 +42,8 @@ export interface PreparedTerminalTurnExpectation {
   observationId: string;
   provider: TerminalIntegrationProvider;
   providerSessionId: string;
+  /** When set, the workspace check uses it instead of `providerSessionId`, which a settlement lacks. */
+  providerSessionDigest?: string;
   workstreamId: string | null;
   revision: number | null;
   repositoryRevision: string;

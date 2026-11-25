@@ -9,6 +9,7 @@ import { runKnowledgeBootstrap } from "./knowledge-bootstrap.js";
 import { runTerminalHookCommand } from "./terminal-hook-command.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
 import { prefetchTerminalPromptContext } from "./terminal-compact-context.js";
+import { settleTerminalTurns } from "./terminal-turn-settlement-worker.js";
 
 if (
   !consumeTerminalRuntimeLaunchReceipt(fileURLToPath(import.meta.url)) &&
@@ -19,6 +20,9 @@ if (
 } else if (process.argv[2] === "prefetch-context") {
   // Detached after Stop; a failure only means the next prompt computes the snapshot itself.
   await prefetchTerminalPromptContext(process.cwd()).catch(() => undefined);
+} else if (process.argv[2] === "settle-turns") {
+  // Schema 12: records the turns that ended without a Stop hook, from their settlement requests.
+  await settleTerminalTurns(process.cwd()).catch(() => 0);
 } else if (process.argv[2] === "knowledge-bootstrap") {
   // Detached from the first prompt of a checkout without built knowledge; it records its outcome.
   await runKnowledgeBootstrap({ root: process.cwd() });

@@ -2,12 +2,16 @@ import { formatDegradedTerminalContext } from "./terminal-compact-format.js";
 import { withTerminalSnapshotDeadline } from "./terminal-repository-snapshot.js";
 import { parseArgs } from "node:util";
 
+import { turnEndingEventSchemaVersion } from "@lervo/event-contract";
+import { inspectEventWriterCoordinate } from "@lervo/project";
+
 import { type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 
 import {
   newTerminalIdentifier,
   TERMINAL_HOOK_BUILD_DIGEST,
   TERMINAL_OBSERVATION_POLICY_VERSION,
+  terminalProviderSessionDigest,
   unmanagedTerminalCoordinates,
 } from "./terminal-event-coordinates.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
@@ -31,6 +35,8 @@ import {
 } from "./terminal-workspace-lifecycle.js";
 import type { CliIo, CliServices } from "./types.js";
 import { resolveTerminalRoots } from "./terminal-roots.js";
+import { requestOpenTerminalTurnSettlement } from "./terminal-turn-settlement.js";
+import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
 
 export function runTerminalHookCommand(
   args: string[],
@@ -99,6 +105,8 @@ async function executeTerminalHookCommand(
           ? "{}\n"
           : `${JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext } })}\n`,
       );
+      // Schema 12: a resumed session whose last turn no Stop closed settles that turn now.
+      await settleOnSessionStart(io.cwd, provider, input).catch(() => false);
       return 0;
     }
     if (input.event === "Stop" && input.stopHookActive) {
@@ -248,4 +256,31 @@ async function executeTerminalHookCommand(
     io.stderr(`Lervo terminal integration failed (${failureReason}).\n`);
     return 2;
   }
+}
+
+/**
+ * At a session start, requests the settlement of the session's turn that no Stop closed, with
+ * the checkout's snapshot taken when the worker runs, and starts the worker for every pending
+ * request. Below writer schema 12 nothing can be recorded, so no request is written.
+ */
+async function settleOnSessionStart(
+  cwd: string,
+  provider: TerminalIntegrationProvider,
+  input: { providerSessionId: string },
+): Promise<boolean> {
+  const { evidenceRoot, executionRoot } = await resolveTerminalRoots(cwd);
+  const writer = (await inspectEventWriterCoordinate(evidenceRoot)).coordinate
+    .selectedEventSchemaVersion;
+  if (writer >= turnEndingEventSchemaVersion)
+    await requestOpenTerminalTurnSettlement({
+      root: evidenceRoot,
+      executionRoot,
+      provider,
+      providerSessionDigest: terminalProviderSessionDigest(provider, input.providerSessionId),
+      ending: "session_start",
+      afterObservationId: null,
+      transcriptEnd: null,
+      now: new Date(),
+    });
+  return launchTerminalTurnSettlements(evidenceRoot, executionRoot);
 }
