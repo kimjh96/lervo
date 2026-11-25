@@ -165,6 +165,12 @@
       "value": "Opening the conversation"
     }
   ],
+  "conversation.queued": [
+    {
+      "type": 0,
+      "value": "Queued · the agent reads it at its next step"
+    }
+  ],
   "conversation.reply.failed": [
     {
       "type": 0,
@@ -1765,6 +1771,30 @@
     {
       "type": 0,
       "value": "Updated the workstream"
+    }
+  ],
+  "notice.context_compacted": [
+    {
+      "type": 5,
+      "value": "trigger",
+      "options": {
+        "manual": {
+          "value": [
+            {
+              "type": 0,
+              "value": "You compacted the context"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Context compacted"
+            }
+          ]
+        }
+      }
     }
   ],
   "notice.conversation_item_invalid": [

@@ -197,4 +197,25 @@ describe("Claude Code stream decoding", () => {
       ClaudeHostedStreamDecoder,
     );
   });
+
+  it("adds the compaction notice where Claude Code compacts the conversation", () => {
+    const decoder = new ClaudeHostedStreamDecoder(() => 3);
+    expect(
+      decoder.output(
+        bytes([
+          { type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "manual" } },
+        ]),
+      ),
+    ).toEqual([
+      {
+        kind: "item",
+        content: {
+          kind: "lervo_notice",
+          code: "context_compacted",
+          parameters: { trigger: "manual" },
+        },
+        createdAtMs: 3,
+      },
+    ]);
+  });
 });

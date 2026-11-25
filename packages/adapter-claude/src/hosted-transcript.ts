@@ -5,6 +5,7 @@ import { createInterface } from "node:readline";
 
 import type { HostedDecodedContent, HostedTranscriptItem } from "@lervo/adapter-contract";
 
+import { compacted } from "./hosted-stream.js";
 import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
 
 /** A line longer than this is skipped, so one bad line cannot grow memory. */
@@ -40,8 +41,9 @@ export function claudeTranscriptPath(
 /**
  * Decodes Claude Code's transcript into the items the native conversation shows, as the stream
  * decoder does for a live session: the person's messages, the agent's text, and one tool-activity
- * item per tool result with the same detail. Subagent lines, meta lines, and thinking are not part
- * of the conversation.
+ * item per tool result with the same detail, and the `context_compacted` notice where Claude Code
+ * compacted the conversation. Subagent lines, meta lines, thinking, and the compaction's summary
+ * for the model are not part of the conversation.
  */
 export class ClaudeTranscriptDecoder {
   /** Calls whose result has not been read, by tool use ID. */
@@ -57,7 +59,15 @@ export class ClaudeTranscriptDecoder {
     } catch {
       return [];
     }
-    if (line === undefined || line.isSidechain === true || line.isMeta === true) return [];
+    // The summary Claude Code writes after a compaction is for the model, not the conversation.
+    if (
+      line === undefined ||
+      line.isSidechain === true ||
+      line.isMeta === true ||
+      line.isCompactSummary === true ||
+      line.isVisibleInTranscriptOnly === true
+    )
+      return [];
     const createdAtMs = Date.parse(text(line.timestamp) ?? "");
     if (Number.isNaN(createdAtMs)) return [];
     const message = record(line.message);
@@ -68,6 +78,8 @@ export class ClaudeTranscriptDecoder {
         structured: line.toolUseResult,
       });
     if (line.type === "assistant") return this.assistant(content, createdAtMs);
+    if (line.type === "system" && line.subtype === "compact_boundary")
+      return [item(compacted(record(line.compactMetadata)?.trigger), createdAtMs)];
     return [];
   }
 
