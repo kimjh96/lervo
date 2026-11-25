@@ -1085,6 +1085,31 @@
                     }
                   }
                 },
+                "lervo": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "command"
+                  ],
+                  "properties": {
+                    "command": {
+                      "type": "string",
+                      "maxLength": 96,
+                      "pattern": "^(?:[a-z][a-z0-9-]*(?: [a-z][a-z0-9-]*){0,5})?$"
+                    },
+                    "flag": {
+                      "enum": [
+                        "help",
+                        "version"
+                      ]
+                    },
+                    "subject": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    }
+                  }
+                },
                 "preview": {
                   "type": "object",
                   "additionalProperties": false,

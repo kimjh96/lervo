@@ -341,6 +341,50 @@ describe("the core-link server", () => {
     });
   });
 
+  it("annotates decoded items and transcript pages before the session host receives them", async () => {
+    const tool = {
+      kind: "tool_activity" as const,
+      name: "Bash",
+      status: "succeeded" as const,
+      calls: 1,
+      detail: { subject: { kind: "command" as const, text: 'lervo knowledge query "x"' } },
+    };
+    const written: Record<string, unknown>[] = [];
+    await new CoreLinkServer(
+      {
+        ...handlers(),
+        createDecoder: () => ({
+          send: () => ({ input: new Uint8Array(), events: [] }),
+          output: () => [{ kind: "item", content: tool, createdAtMs: 1 }],
+        }),
+        readTranscript: async () => ({
+          items: [{ content: tool, createdAtMs: 1 }],
+          complete: true,
+        }),
+        annotate: (content) =>
+          content.kind === "tool_activity" && content.detail !== undefined
+            ? { ...content, detail: { ...content.detail, lervo: { command: "knowledge query" } } }
+            : content,
+      },
+      (line) => written.push(JSON.parse(line) as Record<string, unknown>),
+    ).serve(
+      input([
+        { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+        { kind: "decoder.output", id: 2, decoderId: "dec_1", data: "" },
+        { kind: "transcript.read", id: 3, workspaceId: started.workspaceId, offset: 0, limit: 500 },
+      ]),
+    );
+    for (const response of written)
+      expect(validResponse(response), JSON.stringify(response)).toBe(true);
+    const lervo = { command: "knowledge query" };
+    expect(written.find((response) => response.id === 2)).toMatchObject({
+      events: [{ content: { detail: { lervo } } }],
+    });
+    expect(written.find((response) => response.id === 3)).toMatchObject({
+      items: [{ content: { detail: { lervo } } }],
+    });
+  });
+
   it("records a named session's turn usage after answering its decoded events", async () => {
     recordedUsage.length = 0;
     const result = (uuid: string) =>

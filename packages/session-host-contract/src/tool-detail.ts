@@ -34,6 +34,25 @@ export const toolDetailSchema = {
       },
     },
     /**
+     * The Lervo command a shell call ran, which the core recognizes from its own command catalog:
+     * its command path without `lervo` (empty for `lervo --version` or `lervo --help`), a `help`
+     * or `version` flag, and its first quoted argument, such as a search's query.
+     */
+    lervo: {
+      type: "object",
+      additionalProperties: false,
+      required: ["command"],
+      properties: {
+        command: {
+          type: "string",
+          maxLength: 96,
+          pattern: "^(?:[a-z][a-z0-9-]*(?: [a-z][a-z0-9-]*){0,5})?$",
+        },
+        flag: { enum: ["help", "version"] },
+        subject: { type: "string", minLength: 1, maxLength: 512 },
+      },
+    },
+    /**
      * The first and last lines of the output or the change. `omittedLines` lines were left out
      * before the line at index `omittedAt`.
      */
