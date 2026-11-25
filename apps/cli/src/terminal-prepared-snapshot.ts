@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, open, readFile, readdir, rename, rm } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, readdir, rename, rm, utimes } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { RepositorySnapshot } from "@lervo/orchestrator";
@@ -125,15 +125,36 @@ export async function writePreparedRepositorySnapshot(
     throw new Error("The prepared repository snapshot exceeds its storage limit.");
   const contentHash = sha256(bytes);
   const stored = contentPath(directory, contentHash);
-  const existing = await lstat(stored).catch(() => null);
-  if (existing === null || !existing.isFile() || existing.isSymbolicLink())
+  // Reused content is touched, so another writer's retention, which spares content modified in the
+  // last minute, cannot remove it before this pointer names it.
+  // Content that changed on disk, or vanished while being touched, is written again, so a bad file
+  // never stays shared by every later prompt with the same files.
+  const storeContent = async () => {
+    const existing = await lstat(stored).catch(() => null);
+    if (existing?.isFile() === true && !existing.isSymbolicLink()) {
+      const current = await readFile(stored, "utf8").catch(() => null);
+      const now = new Date();
+      if (
+        current === bytes &&
+        (await utimes(stored, now, now).then(
+          () => true,
+          () => false,
+        ))
+      )
+        return;
+    }
     await replaceFile(directory, stored, bytes);
+  };
+  await storeContent();
   const pointer: PreparedSnapshotPointer = {
     schemaVersion: 2,
     observationId: snapshot.observationId,
     contentHash,
   };
   await replaceFile(directory, pointerPath, `${JSON.stringify(pointer)}\n`);
+  // Content removed between the check and the pointer, by a retention that saw neither, is written
+  // again, so a written pointer never names missing content.
+  await storeContent();
   await retainPreparedSnapshots(directory, `${snapshot.observationId}.json`, contentHash);
 }
 

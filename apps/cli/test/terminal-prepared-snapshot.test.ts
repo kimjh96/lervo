@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, utimes, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
@@ -94,5 +94,30 @@ it("removes content no retained pointer names, once it is old enough", async () 
     await writePreparedRepositorySnapshot(root, snapshot("tobs_third000", "e"));
     expect(await readdir(resolve(directory, "contents"))).not.toContain(orphan);
     expect(await readdir(resolve(directory, "contents"))).toHaveLength(1);
+  });
+});
+
+it("keeps reused content safe from another writer's retention", async () => {
+  await withRoot(async (root, directory) => {
+    await writePreparedRepositorySnapshot(root, snapshot("tobs_first000"));
+    const [name] = await readdir(resolve(directory, "contents"));
+    const path = resolve(directory, "contents", name!);
+    await utimes(path, 1, 1);
+    await writePreparedRepositorySnapshot(root, snapshot("tobs_second00"));
+    // Reuse refreshed it, so it is young again for the next writer's retention.
+    expect((await stat(path)).mtimeMs).toBeGreaterThan(Date.now() - 60_000);
+  });
+});
+
+it("repairs stored content that changed on disk when the same snapshot is prepared again", async () => {
+  await withRoot(async (root, directory) => {
+    await writePreparedRepositorySnapshot(root, snapshot("tobs_first000"));
+    const [name] = await readdir(resolve(directory, "contents"));
+    const path = resolve(directory, "contents", name!);
+    await writeFile(path, (await readFile(path, "utf8")).replace("b".repeat(64), "d".repeat(64)));
+    await writePreparedRepositorySnapshot(root, snapshot("tobs_second00"));
+    expect(await readPreparedRepositorySnapshot(root, "tobs_first000")).toEqual(
+      snapshot("tobs_first000"),
+    );
   });
 });

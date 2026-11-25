@@ -19,9 +19,11 @@ A pointer requires a matching observation ID and a SHA-256 content hash, and its
 
 ## Writes and retention
 
-Writes create the state and content directories with requested mode 0700 and reject a final directory that is a symlink or not a directory. Serialized JSON plus a newline must fit within 8 MiB. The content file is written only when no regular file with its name exists. Each file is written through a unique temporary file, exclusively created with requested mode 0600 and O_NOFOLLOW where available, then written, synchronized, closed, and renamed. Rename may replace an existing pointer for that observation. Temporary cleanup runs in finally. The writer does not invoke the reader's structural validator before serialization.
+Writes create the state and content directories with requested mode 0700 and reject a final directory that is a symlink or not a directory. Serialized JSON plus a newline must fit within 8 MiB. The content file is written unless a regular file with its name already holds exactly its bytes; reused content has its modification time refreshed, so another writer's retention spares it, and the writer checks again after writing the pointer, so a written pointer never names missing content. Each file is written through a unique temporary file, exclusively created with requested mode 0600 and O_NOFOLLOW where available, then written, synchronized, closed, and renamed. Rename may replace an existing pointer for that observation. Temporary cleanup runs in finally. The writer does not invoke the reader's structural validator before serialization.
 
 After the pointer is written, retention considers pointer and schema-version-1 files, orders them by older modification time first with filename tie-breaking, prioritizes retaining the just-written filename, and removes excess entries above 64. It then removes content files that no retained pointer names and that were last modified at least a minute ago; a younger one may belong to a concurrent writer whose pointer is not yet written. Retention failure may propagate after the pointer has been written. This sequential procedure does not prove a concurrent global capacity bound.
+
+A CLI from before schema version 2 cannot read a pointer: after a rollback, reading the prepared snapshot of a turn whose prompt ran on the newer CLI fails, and its retention leaves `contents/` behind until the next upgrade.
 
 ## Safety and evidence boundaries
 
