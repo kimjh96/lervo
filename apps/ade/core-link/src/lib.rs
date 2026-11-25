@@ -40,6 +40,9 @@ const BASE_COMMANDS: [&str; 3] = ["workspace.start", "workspace.list", "reposito
 /// The session host's exit report, a core-link request that a resident process advertises in
 /// `workspace.list` beside its application commands.
 const SESSION_EXITED: &str = "session.exited";
+/// `decoder.open`'s `sessionId`, which a resident process advertises the same way. With it, the
+/// process records the usage of the session's turns.
+const DECODER_SESSION: &str = "decoder.session";
 
 /// The commands a resident process named in its last workspace list.
 struct Advertised {
@@ -170,6 +173,7 @@ impl Core for CoreLink {
             self.clone(),
             format!("dec_{number}"),
             launch.provider.clone(),
+            launch.session_id.clone(),
         )
     }
 

@@ -8,7 +8,7 @@ use lervo_session_core::transcript::{Content, Input};
 use lervo_session_protocol::core_link::CoreLinkResponse;
 use serde_json::{Value, json};
 
-use crate::{CoreLink, DECODE_DEADLINE, OUTPUT_CHUNK_BYTES, events, failures};
+use crate::{CoreLink, DECODE_DEADLINE, DECODER_SESSION, OUTPUT_CHUNK_BYTES, events, failures};
 
 /// One native session's decoder in the resident process. It opens there on first use and again
 /// after the resident process restarted; a restart loses only a partial line.
@@ -16,6 +16,8 @@ pub struct LinkDecoder {
     core: CoreLink,
     decoder_id: String,
     provider: String,
+    /// The hosted session the decoder serves, named to a resident process that records usage.
+    session_id: String,
     open: bool,
     /// Between a turn's start and its finish, as the decoded status events say.
     in_turn: bool,
@@ -34,11 +36,17 @@ impl Drop for LinkDecoder {
 }
 
 impl LinkDecoder {
-    pub(crate) fn new(core: CoreLink, decoder_id: String, provider: String) -> Self {
+    pub(crate) fn new(
+        core: CoreLink,
+        decoder_id: String,
+        provider: String,
+        session_id: String,
+    ) -> Self {
         Self {
             core,
             decoder_id,
             provider,
+            session_id,
             open: false,
             in_turn: false,
             mid_line: false,
@@ -70,17 +78,36 @@ impl LinkDecoder {
         }
     }
 
+    /// Opens the decoder in the resident process. Only a process that advertised
+    /// `decoder.session` hears the session's ID, because an older one ends the link on a field it
+    /// cannot validate; when that process was replaced meanwhile, the decoder opens without it
+    /// and the new process records no usage for it.
+    async fn open_decoder(&self) -> Result<CoreLinkResponse, Failure> {
+        let opened = json!({
+            "kind": "decoder.open",
+            "decoderId": self.decoder_id,
+            "provider": self.provider,
+        });
+        if let Some(generation) = self.core.advertiser_of(DECODER_SESSION) {
+            let mut named = opened.clone();
+            named["sessionId"] = Value::from(self.session_id.as_str());
+            if let Ok((response, _)) = self
+                .core
+                .ask_on(named, DECODE_DEADLINE, Some(generation), false)
+                .await
+            {
+                return Ok(response);
+            }
+        }
+        self.core.ask(opened, DECODE_DEADLINE).await
+    }
+
     /// Sends `request` for this decoder, opening it first if needed and once more if the resident
     /// process no longer knows it.
     async fn decode(&mut self, request: Value) -> Result<(Vec<Decoded>, Option<String>), Failure> {
         for _ in 0..2 {
             if !self.open {
-                let opened = json!({
-                    "kind": "decoder.open",
-                    "decoderId": self.decoder_id,
-                    "provider": self.provider,
-                });
-                match self.core.ask(opened, DECODE_DEADLINE).await? {
+                match self.open_decoder().await? {
                     CoreLinkResponse::DecoderDecodedResponse(_) => self.open = true,
                     CoreLinkResponse::CoreFailedResponse(response) => {
                         return Err(failures::from_core(&response.code, None));
