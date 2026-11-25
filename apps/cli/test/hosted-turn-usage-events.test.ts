@@ -206,4 +206,28 @@ describe("a hosted turn's usage", () => {
     });
     expect(usageEvents(failing)).toHaveLength(0);
   });
+
+  it("stops at a store failure that is not a refusal, so the batch can be retried", async () => {
+    const store = await storage(11);
+    const busy = Object.create(store.events) as typeof store.events;
+    let appends = 0;
+    busy.append = ((draft: Parameters<typeof store.events.append>[0]) => {
+      appends += 1;
+      if (appends === 2)
+        throw Object.assign(new Error("database is locked"), { code: "SQLITE_BUSY" });
+      return store.events.append(draft);
+    }) as typeof store.events.append;
+    const batch = [turn(), turn({ turnKey: "second" }), turn({ turnKey: "third" })];
+    expect(
+      await appendTurnUsage({ ...store, events: busy }, record, accounting, batch, at),
+    ).toEqual({ status: "storage_failed", recorded: 1, duplicates: 0, dropped: 0 });
+    // The retry records the rest and finds the first already recorded.
+    expect(await appendTurnUsage(store, record, accounting, batch, at)).toEqual({
+      status: "recorded",
+      recorded: 2,
+      duplicates: 1,
+      dropped: 0,
+    });
+    expect(usageEvents(store)).toHaveLength(3);
+  });
 });

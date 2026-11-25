@@ -1,7 +1,7 @@
 // What a hosted session's turns cost, as the provider reported them (ADR-0632, S2b; Lervo ADE
 // sessions, "Usage records"). Counts and amounts only: never the turn's text. The core records
 // them as `resource.usage.recorded` with a hosted-session attribution.
-import type { ResourceAccountingDescriptor } from "@lervo/schemas";
+import { hostedModelIdPattern, type ResourceAccountingDescriptor } from "@lervo/schemas";
 
 /** One model's usage in one turn, as the provider counted it. */
 export interface HostedTurnUsage {
@@ -48,8 +48,8 @@ export function reportsUsage(decoder: object): decoder is HostedUsageReporting {
   );
 }
 
-/** The model identifier hosted usage records accept, a bracketed tier included. */
-const HOSTED_MODEL = /^[A-Za-z0-9][A-Za-z0-9._:@/[\]-]{0,127}$/u;
+/** The model identifier hosted usage records accept, a bracketed tier included: the schema's own. */
+const HOSTED_MODEL = new RegExp(hostedModelIdPattern, "u");
 
 /**
  * The model name a usage record may carry: the provider's own, such as `claude-opus-5-5[1m]`,

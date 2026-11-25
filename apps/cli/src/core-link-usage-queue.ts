@@ -11,6 +11,10 @@ import type { HostedTurnUsageOutcome } from "./hosted-turn-usage-events.js";
  */
 export const MAX_QUEUED_TURN_USAGE = 1024;
 
+/** Tries of one batch: a busy or briefly failing store gets two retries, a second apart. */
+export const TURN_USAGE_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1_000;
+
 /** Records each session's turn usage in order, without blocking the caller. */
 export class TurnUsageQueue {
   private readonly batches: {
@@ -29,6 +33,7 @@ export class TurnUsageQueue {
       accounting: ResourceAccountingDescriptor,
       usage: readonly HostedTurnUsage[],
     ) => Promise<HostedTurnUsageOutcome>,
+    private readonly retryDelayMs: number = RETRY_DELAY_MS,
   ) {}
 
   push(
@@ -51,15 +56,43 @@ export class TurnUsageQueue {
     while (this.draining !== null) await this.draining;
   }
 
+  /**
+   * Records one batch. A store failure, thrown or reported, retries the whole batch; records it
+   * already holds count as duplicates, so nothing is recorded twice. After the last try the
+   * batch's unrecorded records count as dropped.
+   */
+  private async recordWithRetries(batch: {
+    sessionId: string;
+    accounting: ResourceAccountingDescriptor;
+    usage: readonly HostedTurnUsage[];
+  }): Promise<void> {
+    for (let attempt = 1; attempt <= TURN_USAGE_ATTEMPTS; attempt += 1) {
+      // A thrown failure, such as a store that cannot open, retries like a reported one.
+      const outcome: HostedTurnUsageOutcome | null = await this.record(
+        batch.sessionId,
+        batch.accounting,
+        batch.usage,
+      ).catch(() => null);
+      if (outcome?.status === "recorded") {
+        this.dropped += outcome.dropped;
+        return;
+      }
+      if (outcome !== null && outcome.status !== "storage_failed") {
+        if (outcome.status === "descriptor_unavailable") this.dropped += batch.usage.length;
+        return;
+      }
+      if (attempt === TURN_USAGE_ATTEMPTS) {
+        const settled = outcome === null ? 0 : outcome.recorded + outcome.duplicates;
+        this.dropped += batch.usage.length - settled;
+        return;
+      }
+      await new Promise((done) => setTimeout(done, this.retryDelayMs * attempt));
+    }
+  }
+
   private async drain(): Promise<void> {
     for (let batch = this.batches.shift(); batch !== undefined; batch = this.batches.shift()) {
-      try {
-        const outcome = await this.record(batch.sessionId, batch.accounting, batch.usage);
-        if (outcome.status === "recorded") this.dropped += outcome.dropped;
-        else if (outcome.status === "descriptor_unavailable") this.dropped += batch.usage.length;
-      } catch {
-        this.dropped += batch.usage.length;
-      }
+      await this.recordWithRetries(batch);
       // The batch being recorded still counts toward the bound until it settles.
       this.queued -= batch.usage.length;
     }

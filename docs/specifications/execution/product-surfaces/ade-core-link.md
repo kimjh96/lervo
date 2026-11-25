@@ -78,7 +78,7 @@ Every request carries a positive integer `id`, and the resident process answers 
 - Commands run concurrently. Decoder requests are answered at once and in arrival order, so a decoder's state follows its provider's stream exactly while a command waits on Git.
 - A request line holds at most 2 MiB; a longer line ends the link. A `decoder.output` request carries at most 1 MiB of output, and the session host splits larger reads.
 - At most 256 decoders are open at once; `decoder.open` beyond that fails with `decoder_limit_reached`.
-- Turn usage waits in one queue and is recorded a batch at a time, so a decoder request never waits on the event store. At most 1,024 usage records wait or are being recorded at once. Records beyond that, or whose recording fails, are dropped and counted, and the resident process writes `core_link_turn_usage_dropped <count>` to standard error when it ends. It ends only after the queue drains.
+- Turn usage waits in one queue and is recorded a batch at a time, so a decoder request never waits on the event store. At most 1,024 usage records wait or are being recorded at once. A batch the store fails to record, such as on a busy database, is tried up to three times, a second apart; records it already holds count once, because their IDs are deterministic. Records beyond the bound, or still unrecorded after the last try, are dropped and counted, and the resident process writes `core_link_turn_usage_dropped <count>` to standard error when it ends. It ends only after the queue drains.
 - The session host waits 120 seconds for a command and 30 seconds for a decoder request.
 
 ## Failure meaning

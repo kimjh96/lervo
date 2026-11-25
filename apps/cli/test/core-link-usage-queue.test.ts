@@ -73,4 +73,25 @@ describe("the resident's turn usage queue", () => {
     await queue.idle();
     expect(queue.dropped).toBe(2);
   });
+
+  it("retries a batch the store failed, and drops only what never settled", async () => {
+    let tries = 0;
+    const queue = new TurnUsageQueue(async (_sessionId, _accounting, usage) => {
+      tries += 1;
+      if (tries < 3) return { status: "storage_failed", recorded: 0, duplicates: 0, dropped: 0 };
+      return { status: "recorded", recorded: usage.length, duplicates: 0, dropped: 0 };
+    }, 1);
+    queue.push("s1", accounting, [turn("a"), turn("b")]);
+    await queue.idle();
+    expect(tries).toBe(3);
+    expect(queue.dropped).toBe(0);
+
+    const failing = new TurnUsageQueue(
+      async () => ({ status: "storage_failed", recorded: 1, duplicates: 0, dropped: 0 }),
+      1,
+    );
+    failing.push("s1", accounting, [turn("a"), turn("b"), turn("c")]);
+    await failing.idle();
+    expect(failing.dropped).toBe(2);
+  });
 });

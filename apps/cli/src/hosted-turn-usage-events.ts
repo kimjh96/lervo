@@ -4,7 +4,7 @@
 import { createHash } from "node:crypto";
 
 import type { HostedTurnUsage } from "@lervo/adapter-contract";
-import { hostedSessionUsageEventSchemaVersion } from "@lervo/event-contract";
+import { hostedSessionUsageEventSchemaVersion, RedactionError } from "@lervo/event-contract";
 import {
   resourceAccountingDescriptorBytes,
   resourceAccountingDescriptorHash,
@@ -37,7 +37,9 @@ export type HostedTurnUsageStore = Pick<
 
 /**
  * What recording did with a batch: how many records it added, found already recorded, or
- * dropped because the event screen refused them.
+ * dropped because the event screen refused them. `storage_failed` means the store failed for
+ * another reason, such as a busy database or a full disk, before every record was tried; the
+ * records are deterministic, so the caller retries the batch.
  * - `inactive`: the repository's writer selects a schema below 11, so nothing is recorded and the
  *   session goes on.
  * - `descriptor_unavailable`: the accounting descriptor could not be stored and read back, so no
@@ -46,11 +48,21 @@ export type HostedTurnUsageStore = Pick<
 export type HostedTurnUsageOutcome =
   | { readonly status: "inactive" | "unknown_session" | "descriptor_unavailable" }
   | {
-      readonly status: "recorded";
+      readonly status: "recorded" | "storage_failed";
       readonly recorded: number;
       readonly duplicates: number;
       readonly dropped: number;
     };
+
+/** Whether an append failed because the event screen or the envelope refused the record. */
+function refusedByScreen(error: unknown): boolean {
+  return (
+    error instanceof RedactionError ||
+    (error instanceof Error &&
+      error.name === "EventStoreError" &&
+      (error as { code?: unknown }).code === "invalid_event")
+  );
+}
 
 /**
  * The coordinate of one model's usage in one result, from the session, the provider's result ID,
@@ -173,9 +185,11 @@ export async function appendTurnUsage(
         payload: usagePayload(record, digest, coordinate, accounting, descriptorHash, turn),
       });
       recorded += 1;
-    } catch {
-      // The screen refused the payload, such as reasoning above output: it is never recorded in
-      // part, and the caller counts it.
+    } catch (error) {
+      // A refused payload, such as reasoning above output, is never recorded in part and is
+      // counted. Any other failure stops the batch so the caller can retry it.
+      if (!refusedByScreen(error))
+        return { status: "storage_failed", recorded, duplicates, dropped };
       dropped += 1;
     }
   }
