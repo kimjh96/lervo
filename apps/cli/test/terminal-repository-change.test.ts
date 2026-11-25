@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { captureRepositorySnapshot } from "@lervo/orchestrator";
 import { afterEach, expect, it } from "vitest";
 
+import { rememberLifecycleRepositorySnapshot } from "../src/terminal-lifecycle-inspection.js";
 import { writePreparedRepositorySnapshot } from "../src/terminal-prepared-snapshot.js";
 import { plannedTerminalRepositoryChange } from "../src/terminal-repository-change.js";
 import type { TerminalLifecycleInspection } from "../src/terminal-hook-contract.js";
@@ -42,7 +43,7 @@ async function changedTurn() {
       changed: true,
     },
   } as TerminalLifecycleInspection;
-  return { root, lifecycle };
+  return { root, lifecycle, after };
 }
 
 it("plans one background knowledge job for a changed terminal turn with a v3 writer", async () => {
@@ -89,6 +90,35 @@ it("plans nothing without a v3 writer, a matching prepared snapshot, or a change
       lifecycle: {
         repositoryChange: { ...lifecycle.repositoryChange, changed: false },
       } as TerminalLifecycleInspection,
+    }),
+  ).toBeNull();
+});
+
+it("records the change from the snapshot lifecycle inspection captured, without walking again", async () => {
+  const { root, lifecycle, after } = await changedTurn();
+  rememberLifecycleRepositorySnapshot(lifecycle, root, after);
+  // A later edit would fail a fresh walk's revision check; the inspected snapshot is used instead.
+  await writeFile(resolve(root, "src/c.ts"), "export const c = 1;\n");
+  const planned = await plannedTerminalRepositoryChange({
+    root,
+    storage: storage(3),
+    contextPayload: { observationId },
+    lifecycle,
+    turnEventId: "evt_0123456789abcdef0123456789abcdef",
+    occurredAt: "2026-09-25T09:00:00.000Z",
+  });
+  expect(planned?.payload.changedPaths).toEqual(["src/a.ts", "src/b.ts"]);
+  // A snapshot of another root is never used.
+  const other = { ...lifecycle } as TerminalLifecycleInspection;
+  rememberLifecycleRepositorySnapshot(other, `${root}-elsewhere`, after);
+  expect(
+    await plannedTerminalRepositoryChange({
+      root,
+      storage: storage(3),
+      contextPayload: { observationId },
+      lifecycle: other,
+      turnEventId: "evt_0123456789abcdef0123456789abcdef",
+      occurredAt: "2026-09-25T09:00:00.000Z",
     }),
   ).toBeNull();
 });
