@@ -1,4 +1,5 @@
 import {
+  interruptsTurns,
   reportsUsage,
   type HostedStreamDecoder,
   type HostedTranscriptItem,
@@ -272,6 +273,15 @@ export class CoreLinkServer {
     if (request.kind === "decoder.send") {
       const sent = decoder.send(request.text as string);
       this.decoded(request.id, sent.events, Buffer.from(sent.input).toString("base64"));
+      return;
+    }
+    if (request.kind === "decoder.interrupt") {
+      if (!interruptsTurns(decoder)) {
+        this.fail(request.id, { code: "interrupt_unsupported" });
+        return;
+      }
+      const stopping = decoder.interrupt();
+      this.decoded(request.id, stopping.events, Buffer.from(stopping.input).toString("base64"));
       return;
     }
     this.decoded(request.id, decoder.output(Buffer.from(request.data as string, "base64")));
