@@ -1,6 +1,7 @@
 # ADR-0413: Close product-default Lexical v2 surface gaps
 
 Status: `accepted`  
+Amended by: [ADR-0459](../../execution/orchestration/improvement/0459-measure-context-hits-and-usage-on-every-channel.md), [ADR-0497](../../operations/storage/0497-reuse-exact-event-page-verification.md), [ADR-0498](../../knowledge/maintenance/0498-prepare-fresh-knowledge-reads-in-order.md), [ADR-0499](../../knowledge/maintenance/0499-reuse-content-bound-knowledge-preparation-projections.md)
 Date: 2026-09-16
 
 ## Context
