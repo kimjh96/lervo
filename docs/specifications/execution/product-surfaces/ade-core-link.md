@@ -82,7 +82,9 @@ Every request carries a positive integer `id`, and the resident process answers 
 ## Failure meaning
 
 - `core.failed` carries the core's code and, for `workspace.start`, the failed `stage`. The session host maps the code to a `request.failed` code of the session-host protocol and passes the core's code and stage as the `coreCode` and `stage` parameters. A code it has no name for becomes `application_failed`.
-- A process that cannot start, exits, times out, or sends a message that fails validation fails every waiting request with `application_unavailable`. The next request starts the process again.
+- A process that cannot start, exits, or sends a message that fails validation fails every waiting request with `application_unavailable`. The next request starts the process again.
+- A request that gets no answer within its deadline fails alone with `application_timeout`. It leaves the table of waiting requests, so a late answer finds no entry and is dropped. Other waiting requests keep waiting, and the process keeps running.
+- A request meant for the resident process that advertised its command fails with `application_unavailable` and `reason: command_unsupported` once that process has ended, because its successor may not know the command.
 - A decoder that the restarted process no longer knows fails with `decoder_not_found`. The session host opens it again and retries once, so a restart loses at most a partial line of the provider's output.
 - When decoding fails, the session host shows the Lervo notice `core_link_unavailable` or `core_decoding_failed` in the conversation instead of the lost events. The provider process keeps running.
 - A malformed request makes the resident process print `core_link_message_invalid` on standard error and exit with status 1.
