@@ -17,7 +17,7 @@ import {
 import { createHash } from "node:crypto";
 import type { BigIntStats } from "node:fs";
 import { lstat, readdir, readlink } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { resolve, sep } from "node:path";
 
 import { readRepositoryFile } from "@lervo/context";
 
@@ -83,9 +83,8 @@ function boundedConcurrency(limit: number) {
   };
 }
 
-function portablePath(root: string, absolutePath: string): string {
-  return relative(root, absolutePath).split(sep).join("/");
-}
+/** `localeCompare`'s order, from one collator instead of one per comparison (ECMA-402). */
+const nameOrder = new Intl.Collator();
 
 export async function captureRepositorySnapshot(
   repositoryRoot: string,
@@ -179,7 +178,12 @@ async function captureRepositorySnapshotWithCache(input: {
    * order a depth-first walk in sorted name order records them, so a capture's result does not
    * depend on which stat finished first.
    */
-  async function visit(directory: string): Promise<[string, string][]> {
+  /**
+   * `directory` is absolute and `prefix` its repository path ("" at the root). Paths are joined as
+   * strings: resolving and relativizing every entry cost about 30 ms per capture of this
+   * repository, a fifth of the walk.
+   */
+  async function visit(directory: string, prefix: string): Promise<[string, string][]> {
     live();
     let entries;
     try {
@@ -191,15 +195,15 @@ async function captureRepositorySnapshotWithCache(input: {
     live();
     // A nested `.git` marks another checkout, such as a linked worktree, with its own snapshot.
     if (directory !== root && entries.some((entry) => entry.name === ".git")) return [];
-    entries.sort((left, right) => left.name.localeCompare(right.name));
+    entries.sort((left, right) => nameOrder.compare(left.name, right.name));
     const visitEntry = async (entry: (typeof entries)[number]): Promise<[string, string][]> => {
       live();
-      const absolutePath = resolve(directory, entry.name);
-      const path = portablePath(root, absolutePath);
+      const absolutePath = `${directory}${sep}${entry.name}`;
+      const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
       if (excludedPaths.has(path) || ignoredPaths.has(path) || ignoredPaths.has(`${path}/`))
         return [];
       if (entry.isDirectory())
-        return excludedDirectories.has(entry.name) ? [] : visit(absolutePath);
+        return excludedDirectories.has(entry.name) ? [] : visit(absolutePath, path);
       fileCount += 1;
       if (fileCount > resolvedPolicy.maxEntries) {
         throw new RepositorySnapshotError(
@@ -283,7 +287,7 @@ async function captureRepositorySnapshotWithCache(input: {
 
   const files: Record<string, string> = Object.create(null) as Record<string, string>;
   try {
-    for (const [path, hash] of await visit(root)) files[path] = hash;
+    for (const [path, hash] of await visit(root, "")) files[path] = hash;
   } catch (error) {
     if (
       error instanceof RepositorySnapshotError &&
