@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-24
+- Amended by: [ADR-0476](../documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md)
 
 ## Context
 
