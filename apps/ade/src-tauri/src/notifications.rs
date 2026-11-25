@@ -33,8 +33,21 @@ mod apple {
         UNUserNotificationCenter,
     };
 
-    /// Notifications shown since launch, which names each one so none replaces another.
+    /// Notifications shown since launch. With the launch's time, it names each one so none
+    /// replaces another: a request whose identifier Notification Center still holds, such as one
+    /// an earlier launch delivered, only updates that notification, without a banner.
     static SHOWN: AtomicU64 = AtomicU64::new(0);
+
+    /// The identifier of the next notification: unique across launches.
+    fn identifier() -> String {
+        static LAUNCH: std::sync::OnceLock<u128> = std::sync::OnceLock::new();
+        let launch = LAUNCH.get_or_init(|| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |since| since.as_millis())
+        });
+        format!("lervo-{launch}-{}", SHOWN.fetch_add(1, Ordering::Relaxed))
+    }
 
     /// Asks for permission, which the system shows once and then answers at once with the user's
     /// choice, and shows the notification when it is granted. While Lervo is the active app the
@@ -58,9 +71,8 @@ mod apple {
         let content = UNMutableNotificationContent::new();
         content.setTitle(&NSString::from_str(title));
         content.setBody(&NSString::from_str(body));
-        let identifier = format!("lervo-{}", SHOWN.fetch_add(1, Ordering::Relaxed));
         let request = UNNotificationRequest::requestWithIdentifier_content_trigger(
-            &NSString::from_str(&identifier),
+            &NSString::from_str(&identifier()),
             &content,
             None,
         );

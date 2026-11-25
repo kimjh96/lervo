@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_875a7aeea7343e0780a760ea"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Show a banner for every turn notification: each notification now has its own identifier across launches, so Notification Center no longer updates an older one silently."
