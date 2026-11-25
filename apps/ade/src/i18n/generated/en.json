@@ -429,6 +429,402 @@
       "pluralType": "cardinal"
     }
   ],
+  "conversation.turn.blocked": [
+    {
+      "type": 0,
+      "value": "Completion blocked"
+    }
+  ],
+  "conversation.turn.card.blocked": [
+    {
+      "type": 0,
+      "value": "Blocked"
+    }
+  ],
+  "conversation.turn.card.cited": [
+    {
+      "type": 0,
+      "value": "Cited"
+    }
+  ],
+  "conversation.turn.card.completion": [
+    {
+      "type": 0,
+      "value": "Completion"
+    }
+  ],
+  "conversation.turn.card.count": [
+    {
+      "type": 6,
+      "value": "count",
+      "options": {
+        "=0": {
+          "value": [
+            {
+              "type": 0,
+              "value": "None"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 7
+            }
+          ]
+        }
+      },
+      "offset": 0,
+      "pluralType": "cardinal"
+    }
+  ],
+  "conversation.turn.card.documents": [
+    {
+      "type": 0,
+      "value": "Documents"
+    }
+  ],
+  "conversation.turn.card.files": [
+    {
+      "type": 0,
+      "value": "Files"
+    }
+  ],
+  "conversation.turn.card.filesChanged": [
+    {
+      "type": 5,
+      "value": "known",
+      "options": {
+        "yes": {
+          "value": [
+            {
+              "type": 6,
+              "value": "count",
+              "options": {
+                "one": {
+                  "value": [
+                    {
+                      "type": 7
+                    },
+                    {
+                      "type": 0,
+                      "value": " file changed"
+                    }
+                  ]
+                },
+                "other": {
+                  "value": [
+                    {
+                      "type": 7
+                    },
+                    {
+                      "type": 0,
+                      "value": " files changed"
+                    }
+                  ]
+                }
+              },
+              "offset": 0,
+              "pluralType": "cardinal"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Changed"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "conversation.turn.card.found": [
+    {
+      "type": 0,
+      "value": "Found by search"
+    }
+  ],
+  "conversation.turn.card.given": [
+    {
+      "type": 0,
+      "value": "Given to the agent"
+    }
+  ],
+  "conversation.turn.card.outcome": [
+    {
+      "type": 0,
+      "value": "Outcome"
+    }
+  ],
+  "conversation.turn.card.revision": [
+    {
+      "type": 0,
+      "value": "Revision "
+    },
+    {
+      "type": 1,
+      "value": "revision"
+    }
+  ],
+  "conversation.turn.card.tokens": [
+    {
+      "type": 1,
+      "value": "input"
+    },
+    {
+      "type": 0,
+      "value": " input ("
+    },
+    {
+      "type": 1,
+      "value": "cached"
+    },
+    {
+      "type": 0,
+      "value": " cached) · "
+    },
+    {
+      "type": 1,
+      "value": "output"
+    },
+    {
+      "type": 0,
+      "value": " output"
+    },
+    {
+      "type": 5,
+      "value": "hasCost",
+      "options": {
+        "yes": {
+          "value": [
+            {
+              "type": 0,
+              "value": " · ≈ "
+            },
+            {
+              "type": 1,
+              "value": "cost"
+            },
+            {
+              "type": 0,
+              "value": " (list price)"
+            }
+          ]
+        },
+        "other": {
+          "value": []
+        }
+      }
+    }
+  ],
+  "conversation.turn.card.unchecked": [
+    {
+      "type": 0,
+      "value": "Not checked"
+    }
+  ],
+  "conversation.turn.card.updated": [
+    {
+      "type": 0,
+      "value": "Updated to revision "
+    },
+    {
+      "type": 1,
+      "value": "revision"
+    }
+  ],
+  "conversation.turn.card.usage": [
+    {
+      "type": 0,
+      "value": "Usage"
+    }
+  ],
+  "conversation.turn.card.used": [
+    {
+      "type": 0,
+      "value": "Used by the agent"
+    }
+  ],
+  "conversation.turn.card.workstream": [
+    {
+      "type": 0,
+      "value": "Workstream"
+    }
+  ],
+  "conversation.turn.changed": [
+    {
+      "type": 0,
+      "value": "Files changed"
+    }
+  ],
+  "conversation.turn.cited": [
+    {
+      "type": 1,
+      "value": "count"
+    },
+    {
+      "type": 0,
+      "value": " cited"
+    }
+  ],
+  "conversation.turn.details": [
+    {
+      "type": 0,
+      "value": "Details"
+    }
+  ],
+  "conversation.turn.files": [
+    {
+      "type": 6,
+      "value": "count",
+      "options": {
+        "one": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " file changed"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " files changed"
+            }
+          ]
+        }
+      },
+      "offset": 0,
+      "pluralType": "cardinal"
+    }
+  ],
+  "conversation.turn.given": [
+    {
+      "type": 6,
+      "value": "count",
+      "options": {
+        "one": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " document given"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " documents given"
+            }
+          ]
+        }
+      },
+      "offset": 0,
+      "pluralType": "cardinal"
+    }
+  ],
+  "conversation.turn.searched": [
+    {
+      "type": 6,
+      "value": "count",
+      "options": {
+        "one": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " document found"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " documents found"
+            }
+          ]
+        }
+      },
+      "offset": 0,
+      "pluralType": "cardinal"
+    }
+  ],
+  "conversation.turn.took": [
+    {
+      "type": 6,
+      "value": "minutes",
+      "options": {
+        "=0": {
+          "value": [
+            {
+              "type": 1,
+              "value": "seconds"
+            },
+            {
+              "type": 0,
+              "value": "s"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 1,
+              "value": "minutes"
+            },
+            {
+              "type": 0,
+              "value": "m "
+            },
+            {
+              "type": 1,
+              "value": "seconds"
+            },
+            {
+              "type": 0,
+              "value": "s"
+            }
+          ]
+        }
+      },
+      "offset": 0,
+      "pluralType": "cardinal"
+    }
+  ],
+  "conversation.turn.unchecked": [
+    {
+      "type": 0,
+      "value": "Not checked"
+    }
+  ],
+  "conversation.turn.workstream": [
+    {
+      "type": 0,
+      "value": "Workstream updated"
+    }
+  ],
   "conversation.unavailable": [
     {
       "type": 0,

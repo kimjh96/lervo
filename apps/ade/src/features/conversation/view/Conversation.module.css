@@ -67,6 +67,12 @@
   padding-block-end: var(--space-6);
 }
 
+/* A finished turn's summary keeps one line's room while the core answers, so it never moves the
+   conversation when it arrives. */
+.turnEnd {
+  min-height: calc(var(--type-meta-size) * var(--type-meta-line-height) + var(--space-14));
+}
+
 /* A Lervo notice about how the work started sits under the first message. */
 .lead {
   padding-block-start: var(--space-14);

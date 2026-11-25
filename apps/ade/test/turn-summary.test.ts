@@ -1,0 +1,103 @@
+import type { TurnSummary } from "@lervo/session-host-contract";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { IntlProvider } from "react-intl";
+import { describe, expect, it, vi } from "vitest";
+
+import {
+  createTurnSummariesStore,
+  TurnSummariesProvider,
+} from "../src/features/conversation/view/TurnSummariesProvider";
+import { TurnSummaryLine } from "../src/features/conversation/view/TurnSummaryLine";
+import { messagesFor } from "../src/i18n/catalog";
+
+const summary: TurnSummary = {
+  given: { documents: 1, workstreamRevision: 5 },
+  searched: { documents: 2, paths: ["docs/a.md", "docs/b.md"] },
+  cited: 1,
+  outcome: {
+    repositoryChanged: true,
+    changedPaths: 3,
+    workstreamRevision: 6,
+    completion: "allowed",
+  },
+  usage: { inputTokens: 518808, cachedInputTokens: 481145, outputTokens: 6846, costUsd: 0.97 },
+};
+
+const render = (value: TurnSummary | null, opened: string[] = [], elapsedMs?: number) =>
+  renderToStaticMarkup(
+    createElement(
+      IntlProvider,
+      { locale: "en", messages: messagesFor("en") },
+      createElement(
+        TurnSummariesProvider,
+        { conversation: {}, summarize: async () => value, ready: { t1: value }, opened },
+        createElement(TurnSummaryLine, { turn: "t1", window: { startedAtMs: 1 }, elapsedMs }),
+      ),
+    ),
+  );
+
+describe("the Lervo turn summary", () => {
+  it("shows what the turn did beyond the usual on one line, closed", () => {
+    const closed = render(summary);
+    for (const fact of [
+      "2 documents found",
+      "1 document given",
+      "1 cited",
+      "3 files changed",
+      "Workstream updated",
+    ])
+      expect(closed).toContain(fact);
+    expect(closed).toContain('aria-expanded="false"');
+    // Usage waits in the card.
+    expect(closed).not.toContain("list price");
+  });
+
+  it("opens to the card of what was given, used, changed, and spent", () => {
+    const opened = render(summary, ["t1"]);
+    for (const text of [
+      "Given to the agent",
+      "Revision 5",
+      "Found by search",
+      "docs/b.md",
+      "Updated to revision 6",
+      "518.8K input (481.1K cached) · 6.8K output · ≈ $0.97 (list price)",
+    ])
+      expect(opened).toContain(text);
+  });
+
+  it("reads an ordinary turn as its time alone, and shows nothing for a turn the core did not record", () => {
+    const ordinary: TurnSummary = {
+      given: { documents: 0 },
+      searched: { documents: 0, paths: [] },
+      cited: 0,
+      outcome: { repositoryChanged: false, completion: "allowed" },
+    };
+    expect(render(ordinary, [], 12_400)).toContain(">12s<");
+    expect(render(ordinary, [], 185_000)).toContain(">3m 5s<");
+    expect(render(summary, [], 48_000)).toMatch(/>48s<.*2 documents found/u);
+    // Without a time, the line still opens to the card, which shows only what it has.
+    expect(render(ordinary)).toContain("Details");
+    const card = render(ordinary, ["t1"]);
+    expect(card).not.toContain("Used by the agent");
+    expect(card).not.toContain("Outcome");
+    expect(card).not.toContain("None");
+    expect(render(null)).not.toContain("<button");
+  });
+
+  it("asks the core once per turn and again after a failure", async () => {
+    const summarize = vi
+      .fn<() => Promise<TurnSummary | null>>()
+      .mockRejectedValueOnce(new Error("down"));
+    summarize.mockResolvedValue(summary);
+    const store = createTurnSummariesStore(summarize);
+    store.getState().load("t1", { startedAtMs: 1 });
+    await vi.waitFor(() => expect(store.getState().entries.t1).toBeUndefined());
+    store.getState().load("t1", { startedAtMs: 1 });
+    store.getState().load("t1", { startedAtMs: 1 });
+    await vi.waitFor(() =>
+      expect(store.getState().entries.t1).toEqual({ state: "ready", summary }),
+    );
+    expect(summarize).toHaveBeenCalledTimes(2);
+  });
+});
