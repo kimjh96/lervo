@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.48.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.49.0" schema="1" -->
 
 ## What's changed
 
-- Every ADE session is a Lervo session: a hosted launch adds Lervo's terminal hooks, run through a host launcher beside the runtime store, for each event the settings a session merges leave uncovered, so a repository without committed hooks still gives the agent Lervo's context.
+- Read event schema 11 in the CLI, the Node, and the Hub. resource.usage.recorded can carry a hosted ADE session's usage, with cache-creation tokens and a list-price cost; older envelopes refuse that shape. Writer activation stays at schema 10 until every reader has it.
