@@ -11,6 +11,8 @@ Amended by:
 - [ADR-0491](0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md): tool-generated opaque files are not canonical assets.
 - [ADR-0530](../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md): sources whose approved drafts meet divergent integration targets park as `target_diverged`.
 
+Amended by: [ADR-0604](0604-share-one-review-contract-per-candidate-and-cache-only-accepted-answers.md)
+
 ## Context
 
 On 2026-10-06, background convergence on the WSL owner host stopped in `attention_required` in five repositories. In each, one item blocked every other stage of its obligation:
