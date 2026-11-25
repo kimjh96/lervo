@@ -35,6 +35,7 @@ A served prompt is answered once its context is prepared, and the context server
 - A served prompt's response no longer includes its records.
 - A context can be delivered without being recorded, when recording fails or the server exits mid-record. Such a turn has no turn evidence, exactly as a turn whose prompt failed to record had before; the difference is that the owner received full context instead of the degraded base.
 - The settlement worker started after an answer runs under the service's process tree, not the session's, as it did before slice 3's hand-off.
+- Nothing enforces that a Stop arrives after the records. A Stop, or a quickly queued next prompt, that arrives while the server still records is declined as `busy` and runs in its own process. If the records have not committed by then, that Stop finds no prepared turn and records nothing, and a next prompt can show a governance or learned-notice line again whose cursor is not yet written. A model reply takes far longer than the records do, so this needs a stalled store.
 
 ## Verification
 

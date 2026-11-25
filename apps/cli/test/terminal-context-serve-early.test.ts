@@ -5,7 +5,7 @@ import { expect, it, vi } from "vitest";
 const gate = vi.hoisted(() => {
   let release!: () => void;
   const released = new Promise<void>((done) => (release = done));
-  return { released, release, launched: [] as boolean[] };
+  return { released, release, launched: [] as boolean[], root: "", entry: "", marker: "" };
 });
 vi.mock("../src/terminal-hook-command.js", () => ({
   runTerminalHookCommand: vi.fn(
@@ -16,9 +16,12 @@ vi.mock("../src/terminal-hook-command.js", () => ({
       const { launchDetachedKnowledgeWorker } = await import("../src/detached-knowledge-worker.js");
       io.answer?.('{"hookSpecificOutput":{"additionalContext":"prepared"}}\n');
       await gate.released;
-      // `/work` does not exist, so a launch started here fails to spawn and reports false.
       gate.launched.push(
-        await launchDetachedKnowledgeWorker({ root: "/work", entry: "/cli/bin.js", args: ["s"] }),
+        await launchDetachedKnowledgeWorker({
+          root: gate.root,
+          entry: gate.entry,
+          args: [gate.marker],
+        }),
       );
       return 0;
     },
@@ -26,13 +29,24 @@ vi.mock("../src/terminal-hook-command.js", () => ({
 }));
 
 const { runServedTerminalHook } = await import("../src/terminal-context-serve.js");
+const { mkdtemp, readFile, rm, writeFile } = await import("node:fs/promises");
+const { tmpdir } = await import("node:os");
+const { resolve } = await import("node:path");
 
 it("answers once the context is prepared and stays busy until the records finish (ADR-0636)", async () => {
+  gate.root = await mkdtemp(resolve(tmpdir(), "lvearly-"));
+  gate.entry = resolve(gate.root, "worker.mjs");
+  gate.marker = resolve(gate.root, "started");
+  // A launch that really starts writes its marker; one handed to an absent client never would.
+  await writeFile(
+    gate.entry,
+    'import { writeFileSync } from "node:fs";\nwriteFileSync(process.argv[2], "started");\n',
+  );
   const answer = await runServedTerminalHook({
     version: 1,
     kind: "prompt",
     runtime: `sha256:${"a".repeat(64)}`,
-    cwd: "/work",
+    cwd: "/tmp",
     args: ["--provider", "claude", "--contract", "2"],
     environment: {} as never,
     elapsed: 2,
@@ -55,6 +69,13 @@ it("answers once the context is prepared and stays busy until the records finish
   gate.release();
   expect(await draining).toBe(true);
   // A launch the records ask for starts in the server, not handed to a client already gone.
-  expect(gate.launched).toEqual([false]);
+  expect(gate.launched).toEqual([true]);
   expect(answer.launches).toEqual([]);
+  let started: string | null = null;
+  for (let attempt = 0; attempt < 100 && started === null; attempt++) {
+    started = await readFile(gate.marker, "utf8").catch(() => null);
+    if (started === null) await new Promise((done) => setTimeout(done, 20));
+  }
+  expect(started).toBe("started");
+  await rm(gate.root, { recursive: true, force: true });
 });

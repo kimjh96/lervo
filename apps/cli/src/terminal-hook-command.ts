@@ -224,8 +224,9 @@ async function executeTerminalHookCommand(
       });
     } catch (error) {
       const failureReason = terminalHookFailureReason(error);
+      // A delivered prompt needs no fallback, so its base context is never prepared.
       const baseContext =
-        input.event === "UserPromptSubmit" && repositoryRoot !== undefined
+        !answered && input.event === "UserPromptSubmit" && repositoryRoot !== undefined
           ? prepareTerminalBaseContext(
               repositoryRoot,
               startedAt + TERMINAL_HOOK_BUDGET_MS,
