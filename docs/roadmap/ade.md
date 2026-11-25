@@ -265,10 +265,21 @@ That run timed each page figure at the second frame after the change, so first p
 
 The page now bundles both modules with the main script and checks the permission at the first notification. The start screen then waited for the session host connection, its handshake, and the core's first `workspace.list`, although the performance rules say it renders from cached workspace state. It now shows the lists the core answered last, kept in the webview's local storage, and the core's answer replaces them. The kept copy holds workspace titles, branches, and repository names, at most 512 Ki code units. While the first connection takes under a second, the frame no longer says it is connecting. The harness now splits the cold start into three parts: launch to the shell's `main`, `main` to navigation, and the page's own steps. The page's steps are its script loads and the marks `main`, `host-connected`, and `launched`. No run has measured the effect yet.
 
-**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. The order is:
+**Third run (2026-11-25).** The owner allowed a short run of five scenarios. The Mac was busy, with a load average near 10, so CPU figures may read high.
 
-1. a full run of the harness on an otherwise idle Mac, with the new figures, the cold-start split, the first-paint change on branch `ade-first-paint`, and the hidden window sampled for 120 seconds;
-2. the first paint and cold start, by what that run shows.
+| Scenario                                           | Result                                         | Target                    |
+| -------------------------------------------------- | ---------------------------------------------- | ------------------------- |
+| Cold start to the start screen (three warm starts) | 432, 443, 422 ms                               | 500 ms                    |
+| Launch to the shell's `main`                       | 4–6 ms                                         |                           |
+| `main` to navigation                               | 216–307 ms                                     |                           |
+| Navigation to the start screen                     | 119–201 ms                                     |                           |
+| Idle with one focused field, window material       | 1.53% (shell 0.53, GPU 0.50, web content 0.50) | Revised: no field focused |
+| Idle with one focused field, opaque window         | 1.57% (shell 0.53, GPU 0.50, web content 0.50) | Revised: no field focused |
+
+- **Cold start** now meets its target. The two fixes above cut the page's part from 250–330 ms to 119–201 ms. The shell's part before navigation, 216–307 ms, is now the larger one; it covers the application, window, and webview setup.
+- **Idle CPU with a focused field.** The window material adds nothing, so the caret's cost is WebKit's own and splits evenly across the three processes. This WebKit does not support `caret-animation`, the CSS property that would stop the blink. The revised target stands.
+
+**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. What is left is a full run of the harness on an otherwise idle Mac: first paint with the change on branch `ade-first-paint`, streaming, keystroke echo, and the hidden window sampled for 120 seconds.
 
 ### S1.6c measurements
 
