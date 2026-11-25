@@ -2,6 +2,7 @@
    line, the agent's replies as plain paragraphs, and Lervo notices as quiet meta text. Tool lines
    have their own module. */
 .user,
+.userText,
 .agent p,
 .question p,
 .notice {
@@ -20,6 +21,19 @@
   font-size: var(--type-body-size);
   line-height: var(--type-note-line-height);
   background: var(--color-surface-user-message);
+}
+
+/* The images a message carried: quiet lines under its text. */
+.images {
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-meta-size);
+  list-style: none;
+}
+
+.userText + .images {
+  margin-block-start: var(--space-6);
 }
 
 .agent,

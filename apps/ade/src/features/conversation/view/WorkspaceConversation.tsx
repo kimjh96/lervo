@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useShallow } from "zustand/react/shallow";
 
-import { useApplicationCommands, useSessionHost } from "../../../ports";
+import { type PreparedImage, useApplicationCommands, useSessionHost } from "../../../ports";
 import { useHostIsCurrent } from "../../connection";
 import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
 import { ConversationController } from "../model/controller";
+import { sentImages } from "../model/images";
 import type { ConversationSource } from "../model/source";
 import { StandInConversation } from "../model/stand-in-conversation";
 import { useConversationStore } from "../model/store";
@@ -74,11 +75,15 @@ export function WorkspaceConversation(props: {
     setQueuedSince(null);
     setQueuedFor(source);
   }
-  const send = (text: string) => {
+  const send = (text: string, images: readonly PreparedImage[]) => {
     setQueuedSince(working ? Date.now() - QUEUED_SKEW_MS : null);
     setQueuedFor(source);
-    return source.send(text);
+    return source.send(text, sentImages(images));
   };
+  // Only a core that advertises `decoder.images` carries images, through a current session host.
+  const coreTakesImages = useWorkspaceStore(
+    (store) => store.advertisedCommands?.includes("decoder.images") === true,
+  );
   const summarize = useMemo(
     () =>
       workspaceId === null || sessionId === null || !coreSummarizes
@@ -121,6 +126,7 @@ export function WorkspaceConversation(props: {
       continues={firstMessage !== undefined}
       summarize={summarize}
       onSend={send}
+      acceptsImages={hostIsCurrent && coreTakesImages}
       queuedSince={queuedSince}
       notice={
         /* motion: Lervo notices in the conversation */

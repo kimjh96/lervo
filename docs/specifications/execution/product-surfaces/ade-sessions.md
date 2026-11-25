@@ -153,6 +153,15 @@ A finished turn ends with one quiet line of what the core recorded about it (app
 
 Claude Code reads a reply sent during a turn between the turn's steps, in the same turn, and its stream has no line for the moment it does (checked on 2026-11-26). A reply the person sends while the agent works says _Queued · the agent reads it at its next step_ under its bubble until the agent's next item arrives, then fades. The prompt hook still runs for such a reply, so the core records it as a new prompt and settles the one before it as ended by the next prompt; the conversation shows the same split, with that earlier part's summary line.
 
+## Images in a message
+
+The owner pastes images and screenshots into the reply card of a native conversation.
+
+- **In the interface.** A pasted image waits above the reply card as a quiet line with its number, its size, and a remove button. A reply carries at most three images and may be images alone. The card offers images only when the session host is as current as the interface and the core advertises `decoder.images`; otherwise a paste says the session cannot take images yet, and nothing is added. Pending images belong to the open conversation and are dropped when another one opens; the draft keeps text only.
+- **Size.** The interface scales a pasted image so its longest side is at most 1,568 pixels, the size Claude reads images at, and sends it as PNG when that fits 240,000 Base64 characters, otherwise as JPEG at 85% quality, in smaller steps down to 384 pixels. Three images and the longest text then fit one protocol frame. An image the system cannot read, or one still too large at the smallest step, is refused with its own line under the card.
+- **Path.** `session.send` carries the images; the session host passes them to the core's decoder with `decoder.send`, and Claude's decoder writes them as image blocks after the text in one stream-json user line. Images sent alone carry Claude Code's own placeholders as their text, such as `[Image #1]`, as its terminal does, so prompt hooks and Lervo's retrieval read a prompt; the conversation still shows the images alone, and a transcript read back drops the placeholders.
+- **What the conversation keeps.** The user message keeps a mark per image, its format and size, never its bytes, so the conversation index stays small. The bubble shows each mark as a quiet line under the text. A conversation read back from Claude Code's transcript shows the same marks, read from each image's header.
+
 ## The CLI conversation in the interface
 
 The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md)). This section records how it worked, for when it returns.

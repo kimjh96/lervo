@@ -75,6 +75,30 @@ describe("replies and resynchronization", () => {
     controller.close();
   });
 
+  it("sends the images a reply carries, and only when it carries some", async () => {
+    const sent: unknown[] = [];
+    const session = await host((message) => {
+      if (message.kind === "conversation.range") return page(message.requestId);
+      if (message.kind !== "session.send") return undefined;
+      sent.push(message);
+      return { kind: "session.sent", requestId: message.requestId, sessionId: "ses_1" };
+    });
+    const controller = new ConversationController(
+      session.client,
+      { workspaceId: "wks_1", sessionId: "ses_1" },
+      (run) => run(),
+    );
+    await controller.open();
+    await controller.send("", [{ mediaType: "image/png", data: "iVBORw0KGgo=" }]);
+    await controller.send("thanks");
+    expect(sent).toMatchObject([
+      { text: "", images: [{ mediaType: "image/png", data: "iVBORw0KGgo=" }] },
+      { text: "thanks" },
+    ]);
+    expect(sent[1]).not.toHaveProperty("images");
+    controller.close();
+  });
+
   it("stops the running turn and rejects with the session host's refusal", async () => {
     let refuse = false;
     const session = await host((message) => {
