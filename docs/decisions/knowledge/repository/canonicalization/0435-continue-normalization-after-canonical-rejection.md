@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-09-28
 Amended by: [ADR-0479](../../semantics/0479-park-rejected-semantic-candidates-and-settle-opaque-assets-by-the-delegation-suite.md) (rejected canonical worksets are isolated and parked instead of handed off)
+Amended by: [ADR-0449](0449-synchronize-integration-target-with-working-branch.md)
 
 ## Context
 
