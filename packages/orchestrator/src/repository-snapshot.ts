@@ -41,6 +41,12 @@ export interface CachedSnapshotEntry {
   byteLength: number;
 }
 
+/**
+ * The entries a capture had hashed when its deadline ran out, with any earlier entries it had not
+ * reached yet, so a persisted cache keeps warming across captures that each stop at a deadline.
+ */
+const partialStates = new WeakMap<RepositorySnapshotError, SnapshotCaptureState>();
+
 interface SnapshotCaptureState {
   cacheKey: string;
   entries: ReadonlyMap<string, CachedSnapshotEntry>;
@@ -220,7 +226,19 @@ async function captureRepositorySnapshotWithCache(input: {
     }
   }
 
-  await visit(root);
+  try {
+    await visit(root);
+  } catch (error) {
+    if (
+      error instanceof RepositorySnapshotError &&
+      error.code === "repository_snapshot_deadline_exceeded"
+    )
+      partialStates.set(error, {
+        cacheKey,
+        entries: new Map([...previousEntries, ...nextEntries]),
+      });
+    throw error;
+  }
   checkDeadline();
   if (head !== (await repositorySnapshotGitHead(input.repositoryRoot, resolvedPolicy.deadlineMs)))
     throw new RepositorySnapshotError("The Git coordinate changed during snapshot capture.");
@@ -247,10 +265,21 @@ export interface RepositorySnapshotCacheState {
   entries: [string, CachedSnapshotEntry][];
 }
 
+/** The cache a capture that ran out of time had built, so its caller can keep the progress. */
+export function partialRepositorySnapshotCache(
+  error: unknown,
+): RepositorySnapshotCacheState | undefined {
+  const state = error instanceof RepositorySnapshotError ? partialStates.get(error) : undefined;
+  return state === undefined
+    ? undefined
+    : { schemaVersion: 1, cacheKey: state.cacheKey, entries: [...state.entries] };
+}
+
 export async function captureRepositorySnapshotIncrementally(input: {
   repositoryRoot: string;
   previous?: RepositorySnapshotCacheState;
   policy?: RepositorySnapshotPolicy;
+  readFile?: RepositorySnapshotFileReader;
 }): Promise<{ snapshot: RepositorySnapshot; cache: RepositorySnapshotCacheState }> {
   const result = await captureRepositorySnapshotWithCache({
     repositoryRoot: input.repositoryRoot,
@@ -259,7 +288,7 @@ export async function captureRepositorySnapshotIncrementally(input: {
       input.previous === undefined
         ? undefined
         : { cacheKey: input.previous.cacheKey, entries: new Map(input.previous.entries) },
-    readFile: readRepositoryFile,
+    readFile: input.readFile ?? readRepositoryFile,
   });
   return {
     snapshot: result.snapshot,

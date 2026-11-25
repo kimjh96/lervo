@@ -65,6 +65,12 @@ export interface WorkspaceStartPorts {
    * worktree exists; absent, the launch carries only the request's hooks.
    */
   terminalHooks?(workspacePath: string): Promise<HostedTerminalHookPlan | undefined>;
+  /**
+   * Hashes the new worktree once, so its terminal hooks start from a warm repository snapshot
+   * cache. Without it, a large repository's first prompts cannot snapshot within the hook's
+   * deadline and record no turn evidence. A failure leaves the hooks to warm the cache.
+   */
+  warmRepositorySnapshot?(workspacePath: string): Promise<void>;
   provisionWorkspace(placement: WorkspacePlacement): Promise<void>;
   /** Replays the placement's effect commits on its new branch; absent where none can exist. */
   replayEffects?(placement: WorkspacePlacement): Promise<EffectReplay>;
@@ -247,11 +253,13 @@ export async function startWorkspace(
   }
   let stage: WorkspaceStartStage = "workstream";
   try {
+    const warming = ports.warmRepositorySnapshot?.(placement.workspacePath).catch(() => undefined);
     const workstreamId = await ports.startWorkstream({
       root: placement.workspacePath,
       title,
       objective: objectiveFor(request.instruction),
     });
+    await warming;
     stage = "launch";
     const terminal =
       intent.hooks === undefined || ports.terminalHooks === undefined
