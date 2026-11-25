@@ -1186,6 +1186,10 @@ export const eventPayloadAllowlists = {
     "channel",
     "turnEventId",
     "stage",
+    "hostedSession",
+    "cacheCreationInputTokens",
+    "costUsd",
+    "costBasis",
   ],
   "execution.stages.observed": [
     "executionMode",
@@ -1215,7 +1219,9 @@ const sensitiveFragments = [
 ] as const;
 
 const unsafeObjectKeys = new Set(["__proto__", "constructor", "prototype"]);
+/** Count paths whose names contain "token"; a top-level one is kept only where allowlisted. */
 const safeSensitiveCoordinatePaths = new Set([
+  "$.cacheCreationInputTokens",
   "$.queryProjectionReceipt.usage.inputTokens",
   "$.queryProjectionReceipt.usage.cachedInputTokens",
   "$.queryProjectionReceipt.usage.outputTokens",
@@ -1346,7 +1352,7 @@ export function sanitizeEventPayload(
       redactions.push({ path, reason: "unsafe_key" });
       continue;
     }
-    if (isSensitivePayloadKey(key)) {
+    if (isSensitivePayloadKey(key) && !safeSensitiveCoordinatePaths.has(path)) {
       redactions.push({ path, reason: "sensitive_key" });
       continue;
     }
@@ -1684,7 +1690,8 @@ function assignmentCompletionReconciledCoordinateMatches(
 function resourceUsageCoordinateMatches(payload: ResourceUsageRecordedEventPayload): boolean {
   return (
     payload.usage === null ||
-    (payload.usage.cachedInputTokens <= payload.usage.inputTokens &&
+    (payload.usage.cachedInputTokens + (payload.cacheCreationInputTokens ?? 0) <=
+      payload.usage.inputTokens &&
       payload.usage.reasoningOutputTokens <= payload.usage.outputTokens &&
       payload.usage.totalTokens === payload.usage.inputTokens + payload.usage.outputTokens)
   );

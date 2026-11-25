@@ -14,6 +14,7 @@ import { documentFreshnessEventTypes } from "./document-freshness-event.js";
 import { instructionCaptureEventTypes } from "./instruction-capture-event.js";
 import { hostedSessionEventTypes } from "./hosted-session-event.js";
 import { planLedgerEventTypes } from "./plan-ledger-event.js";
+import { resourceUsageBeforeV11 } from "./resource-usage-event.js";
 
 export const eventTypesV1 = [
   "run.requested",
@@ -186,7 +187,12 @@ export const eventTypesV8 = [
 export const eventTypesV9 = [...eventTypesV8, ...planLedgerEventTypes] as const;
 /** ADR-0613: the ADE's hosted sessions. */
 export const eventTypesV10 = [...eventTypesV9, ...hostedSessionEventTypes] as const;
-export const eventTypes = eventTypesV10;
+/**
+ * ADR-0632: no new type. `resource.usage.recorded` may carry a hosted session's usage, which
+ * `resourceUsageBeforeV11` keeps out of the envelope versions older readers accept.
+ */
+export const eventTypesV11 = eventTypesV10;
+export const eventTypes = eventTypesV11;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -252,6 +258,7 @@ const eventEnvelopeInvariants = [
       },
     },
   },
+  resourceUsageBeforeV11,
 ] as const;
 
 export const eventEnvelopeV1Schema = {
@@ -332,6 +339,7 @@ export const eventEnvelopeSchema = {
     { properties: { type: { enum: eventTypesV8 }, schemaVersion: { const: 8 } } },
     { properties: { type: { enum: eventTypesV9 }, schemaVersion: { const: 9 } } },
     { properties: { type: { enum: eventTypesV10 }, schemaVersion: { const: 10 } } },
+    { properties: { type: { enum: eventTypesV11 }, schemaVersion: { const: 11 } } },
   ],
 } as const;
 
@@ -369,7 +377,11 @@ export type EventEnvelopeV10 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> &
   schemaVersion: 10;
   type: (typeof eventTypesV10)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV10, "schemaVersion"> & {
+export type EventEnvelopeV11 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 11;
+  type: (typeof eventTypesV11)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV11, "schemaVersion"> & {
   schemaVersion:
     | EventEnvelopeV1["schemaVersion"]
     | EventEnvelopeV2["schemaVersion"]
@@ -380,7 +392,8 @@ export type EventEnvelope = Omit<EventEnvelopeV10, "schemaVersion"> & {
     | 7
     | 8
     | 9
-    | 10;
+    | 10
+    | 11;
 };
 /**
  * `T` with its `events` typed as non-empty `EventEnvelope`s, keeping every other property and any
@@ -392,4 +405,4 @@ export type WithEnvelopeEvents<T> = {
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV10)[number];
+export type EventType = (typeof eventTypesV11)[number];

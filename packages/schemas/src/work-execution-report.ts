@@ -1,7 +1,8 @@
 import type { FromSchema } from "json-schema-to-ts";
 
 import { projectIdSchema, runIdSchema, sessionIdSchema, sha256Schema } from "./common.js";
-import { resourceUsageSchema, workIdSchema } from "./execution-observability-event.js";
+import { workIdSchema } from "./execution-observability-event.js";
+import { resourceUsageSchema } from "./resource-usage-event.js";
 import { executionStageObservationSchema } from "./execution-observability-event.js";
 import { repositoryPerformanceProfileSchema } from "./execution-environment-profile.js";
 import { resourceAccountingModeSchema } from "./resource-accounting.js";

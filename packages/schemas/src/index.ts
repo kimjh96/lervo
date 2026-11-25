@@ -46,6 +46,7 @@ export * from "./event.js";
 export * from "./event-reader-capabilities.js";
 export * from "./event-writer-coordinate.js";
 export * from "./execution-observability-event.js";
+export * from "./resource-usage-event.js";
 export * from "./execution-environment-profile.js";
 export * from "./hub-sync.js";
 export * from "./hub-policy.js";

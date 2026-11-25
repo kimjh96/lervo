@@ -161,9 +161,9 @@ import {
 } from "./event-writer-coordinate.js";
 import {
   executionStagesObservedEventPayloadSchema,
-  resourceUsageRecordedEventPayloadSchema,
   workCausalityRecordedEventPayloadSchema,
 } from "./execution-observability-event.js";
+import { resourceUsageRecordedEventPayloadSchema } from "./resource-usage-event.js";
 import { executionEnvironmentProfileSchema } from "./execution-environment-profile.js";
 import { resourceAccountingDescriptorSchema } from "./resource-accounting.js";
 import { workExecutionReportSchema } from "./work-execution-report.js";
