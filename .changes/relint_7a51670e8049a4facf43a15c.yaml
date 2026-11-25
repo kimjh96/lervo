@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7a51670e8049a4facf43a15c"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "A terminal turn that ended without a Stop hook, such as one the owner interrupted in the terminal or the ADE, is recorded at the session's next prompt or start with how it ended, its repository change, and its skill assessment, once the writer selects event schema 12."
