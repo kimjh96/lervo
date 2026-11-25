@@ -7,6 +7,7 @@ import {
   type HostedSessionAdapter,
   type HostedSessionHooks,
 } from "@lervo/adapter-contract";
+import { workspaceTitle } from "@lervo/session-host-contract";
 
 import { CommandFailure, errorCode } from "./command-error-output.js";
 import { type HostedLaunchRecord, launchArgumentDigest } from "./hosted-launch-records.js";
@@ -21,7 +22,6 @@ import { type HostedTerminalHookPlan, writtenTerminalHooks } from "./hosted-term
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
 import { workspacesHome } from "./workspaces-home.js";
 
-const TITLE_CHARACTERS = 80;
 const OBJECTIVE_CHARACTERS = 8192;
 const SLUG_CHARACTERS = 40;
 
@@ -136,18 +136,8 @@ export interface WorkspaceStartBase {
   carried: number;
 }
 
-/** The workstream title: the instruction's first line, shortened at a word. */
-export function titleFor(instruction: string): string {
-  const line =
-    instruction
-      .split(/\r?\n/u)
-      .map((item) => item.replace(/\s+/gu, " ").trim())
-      .find((item) => item.length > 0) ?? "";
-  if ([...line].length <= TITLE_CHARACTERS) return line;
-  const cut = [...line].slice(0, TITLE_CHARACTERS - 1).join("");
-  const word = cut.lastIndexOf(" ");
-  return `${(word > TITLE_CHARACTERS / 2 ? cut.slice(0, word) : cut).trimEnd()}…`;
-}
+/** The workstream title: the workspace title the interface also shows while the workspace starts. */
+export const titleFor = workspaceTitle;
 
 /** The workstream objective: the instruction within the workstream's limit. */
 export function objectiveFor(instruction: string): string {
