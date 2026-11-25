@@ -36,7 +36,6 @@ afterEach(async () => rm(root, { recursive: true, force: true }));
 
 async function sessionStart(source: unknown) {
   const output: string[] = [];
-  const projectSearchQueries = vi.fn().mockRejectedValue(new Error("must not call a provider"));
   const code = await runTerminalHookCommand(
     ["--provider", "claude", "--contract", "2"],
     {
@@ -48,10 +47,8 @@ async function sessionStart(source: unknown) {
     },
     {
       createTerminalStageObservation: () => new DisabledTerminalStageObservation(),
-      projectSearchQueries,
     },
   );
-  expect(projectSearchQueries).not.toHaveBeenCalled();
   return { code, output: JSON.parse(output.join("")) as Record<string, unknown> };
 }
 

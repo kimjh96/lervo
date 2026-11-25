@@ -14,7 +14,7 @@ import {
   createTerminalIntegrationPlan,
 } from "@lervo/repository-knowledge";
 import { listQueuedInstructionCaptures } from "@lervo/repository-knowledge-runtime";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runCli } from "../src/main.js";
 import { inspectTerminalLifecycle } from "../src/terminal-lifecycle-inspection.js";
@@ -22,18 +22,7 @@ import { inspectTerminalLifecycle } from "../src/terminal-lifecycle-inspection.j
 const run = promisify(execFile);
 const roots: string[] = [];
 const runtimeContent = "#!/usr/bin/env node\nprocess.stdout.write('{}\\n');\n";
-const noProjection = {
-  projectSearchQueries: async () => {
-    throw new Error("Compact prompts must not invoke a provider query projector.");
-  },
-};
 
-beforeAll(() => {
-  process.env.LERVO_TERMINAL_CONTEXT = "compact";
-});
-afterAll(() => {
-  process.env.LERVO_TERMINAL_CONTEXT = "retrieval";
-});
 afterEach(async () => {
   vi.unstubAllEnvs();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -45,16 +34,12 @@ const git = (cwd: string, ...args: string[]) =>
 async function cli(cwd: string, args: string[], stdin?: string): Promise<string> {
   const out: string[] = [];
   const err: string[] = [];
-  const code = await runCli(
-    args,
-    {
-      cwd,
-      stdout: (message) => out.push(message),
-      stderr: (message) => err.push(message),
-      ...(stdin === undefined ? {} : { stdin: async () => stdin }),
-    },
-    noProjection,
-  );
+  const code = await runCli(args, {
+    cwd,
+    stdout: (message) => out.push(message),
+    stderr: (message) => err.push(message),
+    ...(stdin === undefined ? {} : { stdin: async () => stdin }),
+  });
   expect(code, err.join("")).toBe(0);
   return out.join("");
 }

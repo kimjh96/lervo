@@ -5,7 +5,7 @@ import {
   productDefaultSearchEngine,
   productDefaultSearchRetrievalPlan,
 } from "../src/product-default-search.js";
-import { productionSearchQueryProjectorIdentity } from "../src/provider-query-projector.js";
+import { productionSearchQueryProjectorIdentity } from "@lervo/repository-context";
 
 describe("product-default search", () => {
   it("binds the qualified Lexical v2 engine and complete provider-neutral plan", () => {

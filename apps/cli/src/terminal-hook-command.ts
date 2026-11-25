@@ -35,7 +35,7 @@ import { resolveTerminalRoots } from "./terminal-roots.js";
 export function runTerminalHookCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "createTerminalStageObservation" | "projectSearchQueries">,
+  services: Pick<CliServices, "createTerminalStageObservation">,
 ): Promise<number> {
   const startedAt = performance.now();
   return withTerminalSnapshotDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS / 2, () =>
@@ -46,7 +46,7 @@ export function runTerminalHookCommand(
 async function executeTerminalHookCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "createTerminalStageObservation" | "projectSearchQueries">,
+  services: Pick<CliServices, "createTerminalStageObservation">,
   startedAt: number,
 ): Promise<number> {
   const timing = budgetTerminalStages(
@@ -172,7 +172,6 @@ async function executeTerminalHookCommand(
           contractId,
           occurredAt,
           deadlineMs: startedAt + TERMINAL_HOOK_BUDGET_MS,
-          services,
         });
         io.stdout(
           `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } })}\n`,

@@ -13,10 +13,6 @@ import type { CrossCheckPlan } from "./plan-cross-check.js";
 import type { GroundProductionRequest } from "./semantic-grounding.js";
 import type { CreateTerminalStageObservation } from "./terminal-stage-observation.js";
 import type { InspectOperatingAttention } from "./operating-attention-inspection.js";
-import type {
-  PrepareProductionSearchQueries,
-  ProjectProductionSearchQueries,
-} from "./provider-query-projector.js";
 import type { KnowledgeMaterializationWaitTiming } from "./knowledge-materialization-wait.js";
 import type { UpgradeResidentExclusionOptions } from "./upgrade-resident-exclusion.js";
 import type { UpgradeHostOptions } from "./upgrade-host.js";
@@ -48,10 +44,8 @@ export interface CliServices {
   crossCheckPlan: CrossCheckPlan;
   /** ADR-0561 one session of the stronger check a capability install needs. */
   crossCheckCapability?: CrossCheckCapability | undefined;
-  projectSearchQueries: ProjectProductionSearchQueries;
   createTerminalStageObservation: CreateTerminalStageObservation;
   inspectOperatingAttention: InspectOperatingAttention;
-  prepareSearchQueries?: PrepareProductionSearchQueries | undefined;
   /** Test seam for foreground waits on a live knowledge materialization owner. */
   knowledgeMaterializationWait?: KnowledgeMaterializationWaitTiming | undefined;
   /** Test seam for the upgrade's hold on the background resident's full-cycle admission. */

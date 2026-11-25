@@ -65,7 +65,7 @@ async function runCoverage(args: string[], io: CliIo): Promise<number> {
 export async function runTerminalCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "createTerminalStageObservation" | "projectSearchQueries">,
+  services: Pick<CliServices, "createTerminalStageObservation">,
 ): Promise<number> {
   if (args[0] === "hook") return runTerminalHookCommand(args.slice(1), io, services);
   if (args[0] === "declare") return runTerminalDeclareCommand(args.slice(1), io);

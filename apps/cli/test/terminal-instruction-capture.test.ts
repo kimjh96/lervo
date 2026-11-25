@@ -19,7 +19,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { listQueuedInstructionCaptures } from "@lervo/repository-knowledge-runtime";
 import { openProjectStorage } from "@lervo/project-storage";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { applyStoredInstructionCandidates } from "../src/durable-instruction-auto-apply.js";
 import { inspectInstructionCatalog } from "../src/instruction-catalog.js";
@@ -30,18 +30,7 @@ import { queueTerminalOwnerTurn } from "../src/terminal-instruction-capture.js";
 const roots: string[] = [];
 const runtimeContent = "#!/usr/bin/env node\nprocess.stdout.write('{}\\n');\n";
 const quiet = (root: string) => ({ cwd: root, stdout: () => undefined, stderr: () => undefined });
-const noProjection = {
-  projectSearchQueries: async () => {
-    throw new Error("Compact prompts must not invoke a provider query projector.");
-  },
-};
 
-beforeAll(() => {
-  process.env.LERVO_TERMINAL_CONTEXT = "compact";
-});
-afterAll(() => {
-  process.env.LERVO_TERMINAL_CONTEXT = "retrieval";
-});
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -90,15 +79,11 @@ async function hook(
 ): Promise<string> {
   const messages: string[] = [];
   expect(
-    await runCli(
-      ["terminal", "hook", "--provider", provider, "--contract", "2"],
-      {
-        ...quiet(root),
-        stdout: (message) => messages.push(message),
-        stdin: async () => JSON.stringify(input),
-      },
-      noProjection,
-    ),
+    await runCli(["terminal", "hook", "--provider", provider, "--contract", "2"], {
+      ...quiet(root),
+      stdout: (message) => messages.push(message),
+      stdin: async () => JSON.stringify(input),
+    }),
   ).toBe(0);
   return messages.join("");
 }

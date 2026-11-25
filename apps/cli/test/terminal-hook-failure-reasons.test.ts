@@ -65,7 +65,6 @@ afterEach(() => vi.useRealTimers());
 
 async function hook(provider: "codex" | "claude", event = "UserPromptSubmit") {
   const output: string[] = [];
-  const projectSearchQueries = vi.fn().mockRejectedValue(new Error("must not call a provider"));
   const code = await runTerminalHookCommand(
     ["--provider", provider, "--contract", "2"],
     {
@@ -77,10 +76,8 @@ async function hook(provider: "codex" | "claude", event = "UserPromptSubmit") {
     },
     {
       createTerminalStageObservation: () => new DisabledTerminalStageObservation(),
-      projectSearchQueries,
     },
   );
-  expect(projectSearchQueries).not.toHaveBeenCalled();
   return { code, output: JSON.parse(output.join("")) };
 }
 

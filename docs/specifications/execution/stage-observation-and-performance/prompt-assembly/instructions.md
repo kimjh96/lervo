@@ -1,18 +1,6 @@
 # Emitted instructions and compatibility limits
 
-In retrieval mode, `apps/cli/src/terminal-prompt-context.ts` selects worker or root instructions from the workspace binding.
-
-## Worker instructions
-
-The worker branch restricts changes to assignment-scoped paths. It describes Stop checks for ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, followed by a workspace checkpoint. The function emits but neither performs nor verifies these checks.
-
-Worker instructions prohibit advancing the repository-wide workstream or repairing another workspace's knowledge movement. They direct commits only when required by the task or sealing flow and keep the repository-wide workstream informational.
-
-## Repository-long instructions
-
-For an explicit repository-long instruction, the preamble directs the agent to submit the exact request through `lervo knowledge instruction intake --provider <provider> --stdin`. Under [ADR-0561](../../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), Lervo stores and applies the rule itself, reports it afterward, and `lervo knowledge instruction retire <rule-id>` undoes it.
-
-It prohibits inferred durability and never asks the owner to run the commands or approve the rule. Prompt assembly performs no intake and materializes no rule.
+Compact context carries the root declaration instruction from `apps/cli/src/terminal-declaration-instruction.ts`. Worker attachment and assignment scope come from the compact helper ([compact assembly](../compact-terminal-context/compact-assembly.md)). The retrieval preamble's worker and repository-long instruction text went with retrieval mode ([ADR-0634](../../../../decisions/execution/providers/hooks/0634-remove-the-retrieval-terminal-context-mode.md)); AGENTS.md carries owner-rule intake.
 
 ## Root completion instructions
 

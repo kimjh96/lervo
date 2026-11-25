@@ -47,7 +47,6 @@ vi.mock("@lervo/repository-context", () => ({
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("LERVO_TERMINAL_HOOK_RUNTIME", undefined);
-  vi.stubEnv("LERVO_TERMINAL_CONTEXT", undefined);
   ports.capture.mockResolvedValue({ capturePending: false });
   ports.checkpoint.mockResolvedValue({ eventId: "evt_checkpoint" });
   ports.launch.mockResolvedValue(true);
@@ -172,16 +171,14 @@ describe("Stop failure versus isolation rejection", () => {
     },
   );
 
-  it.each(["retrieval", "compact", "other"])("selects Stop prefetch for %s mode", async (mode) => {
+  it("prefetches the next prompt's knowledge snapshot after Stop", async () => {
     vi.stubEnv("LERVO_TERMINAL_HOOK_RUNTIME", "/runtime.js");
-    vi.stubEnv("LERVO_TERMINAL_CONTEXT", mode);
     const { pending } = invoke();
     expect(await pending).toBe(0);
-    expect(ports.launch).toHaveBeenCalledTimes(mode === "retrieval" ? 0 : 1);
-    if (mode !== "retrieval")
-      expect(ports.launch).toHaveBeenCalledWith(
-        expect.objectContaining({ args: ["prefetch-context"] }),
-      );
+    expect(ports.launch).toHaveBeenCalledTimes(1);
+    expect(ports.launch).toHaveBeenCalledWith(
+      expect.objectContaining({ args: ["prefetch-context"] }),
+    );
   });
 
   it("retains blocking for an observed worker ownership violation", async () => {

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_849c0822f463614d81a50586"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Every terminal prompt takes compact context; the unused opt-in retrieval mode and its hidden provider query call are removed."
