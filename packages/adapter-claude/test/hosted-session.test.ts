@@ -29,7 +29,7 @@ describe("Claude Code hosted sessions", () => {
       "stream-json",
       "--include-partial-messages",
       "--permission-mode",
-      "auto",
+      "bypassPermissions",
       "--session-id",
       sessionId,
       "--model",

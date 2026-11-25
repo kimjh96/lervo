@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_947f7ea4d85dc9a0cc27031b"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Run native hosted Claude sessions in bypass permission mode, so the owner's other sessions can message them."
