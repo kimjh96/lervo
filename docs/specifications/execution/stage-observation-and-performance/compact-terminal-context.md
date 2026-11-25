@@ -5,5 +5,6 @@ This specification describes compact-context implementation and auxiliary runtim
 - [Knowledge snapshot identity cache](compact-terminal-context/knowledge-snapshot-cache.md): validation, reuse, publication, and evidence limits.
 - [Compact assembly](compact-terminal-context/compact-assembly.md): preparation, delivered context, bounds, and owner-turn capture.
 - [Detached prefetch and runtime dispatch](compact-terminal-context/runtime-dispatch.md): Stop handling, prefetch, integrity checks, and dispatch.
+- [Resident context socket](compact-terminal-context/resident-context-socket.md): the thin hook client's channel to the resident host, its fallback, and the slices that land it.
 
 These source facts establish control flow and cache behavior, not installed latency, a passing performance cohort, successful detached execution, packed-consumer smoke, or publication.
