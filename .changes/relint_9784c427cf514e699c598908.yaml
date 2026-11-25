@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9784c427cf514e699c598908"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Recognize the Lervo commands a hosted agent runs, so the ADE shows them as what Lervo did."

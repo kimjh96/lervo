@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_91f3c3c3e25b4aa46a3b1d42"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "The context server now serves prompts on the Mac: unset variables compare as their defaults, so the service's explicit state directory matches. It starts only runtimes with the server mode and counts outcomes in context-stats.json."

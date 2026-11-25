@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_997a0df9c26f006e40340362"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Answer turn.summary with what the core recorded about each turn of a hosted session."
