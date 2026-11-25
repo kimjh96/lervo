@@ -24,6 +24,11 @@ import { readWakeChannelAttention } from "./wake-channel-attention.js";
 
 export interface InspectOperatingAttentionInput {
   repositoryRoot: string;
+  /**
+   * The checkout whose workstream and files count; a linked worktree passes its own root while
+   * `repositoryRoot` is its registered repository (ADR-0633). Defaults to `repositoryRoot`.
+   */
+  checkoutRoot?: string;
   observedAt?: Date;
   /** Background projection reads only existing lifecycle evidence; it never runs lint. */
   cachedSourcesOnly?: boolean;
@@ -38,6 +43,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
     input.repositoryRoot,
   );
   try {
+    const checkoutRoot = input.checkoutRoot ?? input.repositoryRoot;
     const observedAt = input.observedAt ?? new Date();
     const snapshot = await captureTerminalRepositorySnapshot(input.repositoryRoot);
     const [
@@ -53,7 +59,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
     ] = await Promise.all([
       input.cachedSourcesOnly
         ? readHealthWorkstream(storage)
-        : verifiedCurrentWorkstream(storage).then((snapshot) => ({
+        : verifiedCurrentWorkstream(storage, checkoutRoot).then((snapshot) => ({
             snapshot,
             coverage: snapshot === null ? ("missing" as const) : ("current" as const),
           })),
@@ -70,7 +76,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
             if (cached === null) throw new Error("Lifecycle cache unavailable.");
             return { issues: cached.issues, knowledgeAdvisories: cached.advisories };
           })
-        : inspectTerminalLifecycle(input.repositoryRoot)
+        : inspectTerminalLifecycle(input.repositoryRoot, undefined, undefined, checkoutRoot)
       ).then(
         (inspection) => ({
           coverage: input.cachedSourcesOnly ? ("cached" as const) : ("complete" as const),
@@ -96,7 +102,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       workstream === null
         ? null
         : await observeWorkstreamFreshness({
-            root: input.repositoryRoot,
+            root: checkoutRoot,
             snapshot: workstream,
             policy: await loadRepositoryKnowledgePolicy(input.repositoryRoot).then(
               workstreamFreshnessPolicy,

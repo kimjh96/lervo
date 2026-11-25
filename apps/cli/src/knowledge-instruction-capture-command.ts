@@ -10,6 +10,7 @@ import {
   readInstructionCaptureState,
 } from "@lervo/repository-knowledge-runtime";
 
+import { resolveCommandRoots } from "./terminal-roots.js";
 import type { CliIo } from "./types.js";
 
 /**
@@ -24,7 +25,9 @@ export async function runKnowledgeInstructionCapture(args: string[], io: CliIo):
     allowPositionals: false,
     options: { root: { type: "string" }, dismiss: { type: "string" }, json: { type: "boolean" } },
   });
-  const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+  // A linked worktree's captures queue in its registered repository (ADR-0633).
+  const repositoryRoot = (await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? ".")))
+    .evidenceRoot;
   const now = new Date();
   if (parsed.values.dismiss !== undefined) {
     if (!/^kcap_[a-f0-9]{24}$/u.test(parsed.values.dismiss))
