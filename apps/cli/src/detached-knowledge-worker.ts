@@ -9,8 +9,11 @@ export interface DetachedLaunch {
   env: Record<string, string>;
 }
 
-/** Takes a launch for the hook's client; false when it can no longer reach the client. */
-type DetachedLaunchHandOff = (launch: DetachedLaunch) => boolean;
+/**
+ * Takes a launch for the hook's client: true when taken, false when the launch fails because it
+ * can no longer reach the client, null when it should start here instead.
+ */
+type DetachedLaunchHandOff = (launch: DetachedLaunch) => boolean | null;
 
 let handOff: DetachedLaunchHandOff | null = null;
 
@@ -35,12 +38,13 @@ export async function launchDetachedKnowledgeWorker(input: {
 }): Promise<boolean> {
   if (handOff !== null) {
     const runtime = process.env.LERVO_TERMINAL_HOOK_RUNTIME;
-    return handOff({
+    const taken = handOff({
       entry: input.entry,
       args: [...input.args],
       cwd: input.root,
       env: runtime === undefined ? {} : { LERVO_TERMINAL_HOOK_RUNTIME: runtime },
     });
+    if (taken !== null) return taken;
   }
   try {
     const child = spawn(process.execPath, [input.entry, ...input.args], {

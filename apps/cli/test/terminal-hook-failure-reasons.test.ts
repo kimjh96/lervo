@@ -81,6 +81,45 @@ async function hook(provider: "codex" | "claude", event = "UserPromptSubmit") {
   return { code, output: JSON.parse(output.join("")) };
 }
 
+describe("a served prompt answered before its records (ADR-0636)", () => {
+  it("delivers the prepared context early and keeps it when recording fails afterwards", async () => {
+    ports.prepare.mockResolvedValue({
+      additionalContext: "Prepared context",
+      documents: [],
+      grounding: { queryProjectionReceipt: { receiptId: "qpr_1" } },
+      sourceSnapshotId: "snap",
+      preparationQuality: "complete",
+      recommendationCount: 0,
+      repositoryRevision: "rev",
+    });
+    // Recording fails after the answer went out.
+    ports.record.mockRejectedValue(new Error("storage unavailable"));
+    const answers: string[] = [];
+    const output: string[] = [];
+    const code = await runTerminalHookCommand(
+      ["--provider", "claude", "--contract", "2"],
+      {
+        cwd: "/repository",
+        stdout: (value) => output.push(value),
+        stderr: () => undefined,
+        stdin: async () =>
+          JSON.stringify({
+            hook_event_name: "UserPromptSubmit",
+            session_id: "s",
+            prompt: "fix it",
+          }),
+        answer: (value) => answers.push(value),
+      },
+      { createTerminalStageObservation: () => new DisabledTerminalStageObservation() },
+    );
+    expect(code).toBe(0);
+    expect(answers).toHaveLength(1);
+    expect(JSON.parse(answers[0]!).hookSpecificOutput.additionalContext).toBe("Prepared context");
+    // No second, degraded answer follows the delivered one.
+    expect(output).toEqual([]);
+  });
+});
+
 describe("rejected hook input (ADR-0635)", () => {
   it.each([
     ["unreadable JSON", "{not json"],
