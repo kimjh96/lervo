@@ -86,10 +86,23 @@ it("starts one server when checks overlap", async () => {
 it("starts no server once stopped, even from a check already running", async () => {
   const store = await storeWith("a");
   const { start, started } = fakeStart();
-  const supervisor = superviseTerminalContextServer({ store, start, supports: async () => true });
+  let answer!: (supported: boolean) => void;
+  let asked!: () => void;
+  const askedSupport = new Promise<void>((done) => (asked = done));
+  const supervisor = superviseTerminalContextServer({
+    store,
+    start,
+    // The check is inside its last await when the follower stops.
+    supports: () => {
+      asked();
+      return new Promise<boolean>((done) => (answer = done));
+    },
+  });
   const running = supervisor.ensure();
-  await supervisor.stop();
-  await running;
+  await askedSupport;
+  const stopping = supervisor.stop();
+  answer(true);
+  await Promise.all([running, stopping]);
   expect(started).toHaveLength(0);
 });
 

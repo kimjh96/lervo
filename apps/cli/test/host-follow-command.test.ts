@@ -371,36 +371,77 @@ describe("runFollowLoop", () => {
     await expect(withFollowLock(harness.layout, async () => "free")).resolves.toBe("free");
   });
 
-  it("supervises the host's context server for as long as the service loop runs", async () => {
-    const harness = await followHarness();
+  /** Runs the follower loop until its first wait and records what it asks of the supervisor. */
+  async function superviseRun(harness: FollowHarness, args: string[]) {
     const controller = new AbortController();
     const calls: string[] = [];
     const base = overrides(harness);
+    const config = resolve(harness.home, "follow.json");
+    await writeFile(
+      config,
+      JSON.stringify({
+        schemaVersion: 1,
+        repository: null,
+        binDirectory: harness.layout.binDirectory,
+        searchPath: "/usr/bin",
+      }),
+    );
     const { io } = capture();
-    const code = await runHostCommand(["upgrade", "--follow", "--apply"], io, {
-      ...base,
-      follow: {
-        ...base.follow,
-        signal: controller.signal,
-        log: () => undefined,
-        // The first wait ends the loop, as a stop request from the service manager does.
-        sleep: async () => {
-          controller.abort();
-        },
-        contextServer: {
-          ensure: async () => {
-            calls.push("ensure");
+    const code = await runHostCommand(
+      ["upgrade", "--follow", "--apply", ...args.map((arg) => (arg === "@config" ? config : arg))],
+      io,
+      {
+        ...base,
+        follow: {
+          ...base.follow,
+          signal: controller.signal,
+          log: () => undefined,
+          restoreSearchPath: () => undefined,
+          // The first wait ends the loop, as a stop request from the service manager does.
+          sleep: async () => {
+            controller.abort();
           },
-          stop: async () => {
-            calls.push("stop");
+          superviseContextServer: (store) => {
+            calls.push(`supervise ${store}`);
+            return {
+              ensure: async () => {
+                calls.push("ensure");
+              },
+              stop: async () => {
+                calls.push("stop");
+              },
+            };
           },
         },
       },
-    });
+    );
+    return { code, calls };
+  }
+
+  it("supervises the host's context server for as long as the service loop runs", async () => {
+    const harness = await followHarness();
+    const { code, calls } = await superviseRun(harness, ["--config", "@config"]);
     expect(code).toBe(0);
-    expect(calls[0]).toBe("ensure");
+    expect(calls[0]).toBe(`supervise ${resolve(harness.home, ".lervo", "terminal-hooks")}`);
+    expect(calls[1]).toBe("ensure");
     expect(calls.filter((call) => call === "ensure").length).toBeGreaterThanOrEqual(2);
     expect(calls.at(-1)).toBe("stop");
+  });
+
+  it("runs no context server from a follow run without the service configuration", async () => {
+    const harness = await followHarness();
+    const { code, calls } = await superviseRun(harness, []);
+    expect(code).toBe(0);
+    expect(calls).toEqual([]);
+  });
+
+  it("starts no context server in a follower that loses the host lock", async () => {
+    const harness = await followHarness();
+    await mkdir(harness.layout.cliDirectory, { recursive: true });
+    await writeFile(harness.layout.follow.lockPath, `${process.pid}\n`);
+    const { code, calls } = await superviseRun(harness, ["--config", "@config"]);
+    expect(code).toBe(1);
+    expect(calls.filter((call) => !call.startsWith("supervise "))).toEqual([]);
   });
 
   it("stops cleanly when the service manager stops it", async () => {

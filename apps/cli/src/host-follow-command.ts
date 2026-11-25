@@ -60,8 +60,8 @@ export interface HostFollowOverrides {
   log?: (line: string) => void;
   /** Receives the PATH a service configuration restores; the default sets `process.env.PATH`. */
   restoreSearchPath?: (searchPath: string) => void;
-  /** The context server the service supervises; null runs none. */
-  contextServer?: TerminalContextSupervisor | null;
+  /** Test seam: starts supervising the context server in the given runtime store. */
+  superviseContextServer?: (store: string) => TerminalContextSupervisor;
 }
 
 export interface HostFollowContext {
@@ -188,28 +188,30 @@ export async function runHostFollowCommand(
     context.platform === "darwin" && follow.log === undefined
       ? keepServiceLogBounded(hostFollowLogPath(context.homeDirectory))
       : () => undefined;
-  // Resident context socket: every host runs exactly one follower service, so it supervises the
-  // host's context server, whatever serves the host's repositories.
+  // Resident context socket: every host runs one follower service, so the service (the run with
+  // `--config`) supervises the host's context server, whatever serves the host's repositories.
   const contextServer =
-    follow.contextServer !== undefined
-      ? follow.contextServer
-      : config === null || context.platform === "win32"
-        ? null
-        : superviseTerminalContextServer({
-            store: terminalHookRuntimeStorePath(
-              process.env,
-              context.platform,
-              context.homeDirectory,
-            ),
-          });
+    config === null || context.platform === "win32"
+      ? null
+      : (follow.superviseContextServer ?? ((store) => superviseTerminalContextServer({ store })))(
+          terminalHookRuntimeStorePath(process.env, context.platform, context.homeDirectory),
+        );
   const ensureContextServer = () => void contextServer?.ensure().catch(() => undefined);
-  ensureContextServer();
-  // A runtime installed outside a follower cycle is picked up within a minute.
-  const watchRuntime = setInterval(ensureContextServer, 60_000);
-  watchRuntime.unref();
   try {
     return await runFollowLoop({
       layout,
+      // Only the lock holder serves: a second follower that loses the lock must never start a
+      // server, which would take the socket from the one already serving.
+      whileLocked: () => {
+        ensureContextServer();
+        // A runtime installed outside a follower cycle is picked up within a minute.
+        const watchRuntime = setInterval(ensureContextServer, 60_000);
+        watchRuntime.unref();
+        return async () => {
+          clearInterval(watchRuntime);
+          await contextServer?.stop();
+        };
+      },
       runCycle: async () => {
         try {
           return await runFollowCycle(cycle);
@@ -224,8 +226,6 @@ export async function runHostFollowCommand(
       signal: signal as AbortSignal,
     });
   } finally {
-    clearInterval(watchRuntime);
-    await contextServer?.stop();
     stopBounding();
   }
 }
