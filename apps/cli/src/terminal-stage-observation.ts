@@ -16,6 +16,11 @@ export interface TerminalStageObservationPort {
   readonly deadlineMs?: number;
   readonly observationDeadlineMs?: number;
   settle?(): Promise<void>;
+  /**
+   * Receives each stage's own work as it starts. A stage's deadline settles its measurement, not
+   * its work, so a long-lived caller can wait for the work before it reuses its process.
+   */
+  trackWork?(work: Promise<unknown>): void;
   measure<T>(stageId: ExecutionStageId, operation: () => Promise<T>): Promise<T>;
   measureChild<T>(
     stageId: ExecutionStageId,

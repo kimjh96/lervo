@@ -76,7 +76,9 @@ export function budgetTerminalStages(
             Promise.resolve()
               .then(() => {
                 if (cancelled.signal.aborted) throw cancelled.signal.reason;
-                return operation();
+                const work = operation();
+                timing.trackWork?.(work);
+                return work;
               })
               .then(resolve, reject)
               .finally(() => cancelled.signal.removeEventListener("abort", abort));
