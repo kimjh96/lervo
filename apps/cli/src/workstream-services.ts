@@ -37,7 +37,7 @@ export function* workstreamSnapshotEvents(storage: Pick<ProjectStorage, "events"
  * The newest snapshot event of the workstream, or of any workstream. Every prompt asks, so it reads
  * newest first and stops at the first match instead of decoding the whole snapshot history.
  */
-function latestWorkstreamEvent(storage: ProjectStorage, workstreamId?: string) {
+export function latestWorkstreamEvent(storage: ProjectStorage, workstreamId?: string) {
   const matches = (event: ReturnType<ProjectStorage["events"]["list"]>[number]) =>
     event.type === WORKSTREAM_SNAPSHOT_TYPES[0] &&
     (workstreamId === undefined || event.payload.workstreamId === workstreamId);
@@ -47,16 +47,18 @@ function latestWorkstreamEvent(storage: ProjectStorage, workstreamId?: string) {
     for (const event of workstreamSnapshotEvents(storage)) if (matches(event)) latest = event;
     return latest;
   }
+  // Every returned event is decoded and checked against its neighbours, and the match is almost
+  // always the newest, so the first page is small.
   let beforeSeq: number | undefined;
-  for (;;) {
+  for (let limit = 4; ; limit = 100) {
     const page = newestFirst({
       types: WORKSTREAM_SNAPSHOT_TYPES,
-      limit: 100,
+      limit,
       ...(beforeSeq === undefined ? {} : { beforeSeq }),
     });
     const match = page.find(matches);
     if (match !== undefined) return match;
-    if (page.length < 100) return null;
+    if (page.length < limit) return null;
     beforeSeq = page.at(-1)!.seq;
   }
 }

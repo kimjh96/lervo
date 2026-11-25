@@ -27,18 +27,27 @@ function command(file: string, args: string[]): string {
   });
 }
 
+/**
+ * The current boot's identity, read once per process: it cannot change while this process runs,
+ * and reading it spawned `sysctl` on every observation, blocking a long-lived process's event loop.
+ */
+let bootIdentity: string | undefined;
+function currentBoot(): string {
+  bootIdentity ??=
+    process.platform === "darwin"
+      ? command("/usr/sbin/sysctl", ["-n", "kern.bootsessionuuid"])
+      : readFileSync("/proc/sys/kernel/random/boot_id", "utf8");
+  return bootIdentity;
+}
+
 function birth(pid: number): string | null {
   switch (process.platform) {
     case "linux":
-      return linuxBirthIdentity(
-        pid,
-        readFileSync("/proc/sys/kernel/random/boot_id", "utf8"),
-        readFileSync(`/proc/${pid}/stat`, "utf8"),
-      );
+      return linuxBirthIdentity(pid, currentBoot(), readFileSync(`/proc/${pid}/stat`, "utf8"));
     case "darwin":
       return darwinBirthIdentity(
         pid,
-        command("/usr/sbin/sysctl", ["-n", "kern.bootsessionuuid"]),
+        currentBoot(),
         command("/bin/ps", ["-p", String(pid), "-o", "lstart="]),
       );
     case "win32": {
