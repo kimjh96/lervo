@@ -22,6 +22,7 @@ import { observeRepositoryHead } from "./workstream-repository-head.js";
 import { defaultBranchOf } from "./workspace-base.js";
 import { runGit } from "./workspace-base-git.js";
 import type { EffectReplay, WorkspacePlacement } from "./workspace-start.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 
 const execute = promisify(execFile);
 
@@ -187,13 +188,18 @@ export function gitWorkspaceEffects() {
   };
 }
 
-/** Starts the workstream in the new worktree, as `lervo workstream start --apply-now` would. */
+/**
+ * Starts the workstream of the new worktree, as `lervo workstream start --apply-now` would run
+ * there: its events go to the registered repository the worktree records into, bound to the
+ * worktree's branch, and the worktree keeps its own current projection.
+ */
 export async function startWorkstreamIn(input: {
   root: string;
   title: string;
   objective: string;
 }): Promise<string> {
-  const storage = await openProjectStorage(input.root);
+  const roots = await resolveCommandRoots(input.root);
+  const storage = await openProjectStorage(roots.evidenceRoot);
   try {
     const now = new Date();
     const plan = await createWorkstreamStartPlan({
@@ -227,7 +233,7 @@ export async function startWorkstreamIn(input: {
       actor: actor.kind,
       recordApplied: workstreamSnapshotRecorder({ storage, actor, operation: "start" }),
     });
-    await bindCheckedOutBranch(input.root, receipt.workstreamId);
+    await bindCheckedOutBranch(input.root, receipt.workstreamId, roots.evidenceRoot);
     return receipt.workstreamId;
   } finally {
     await storage.close();

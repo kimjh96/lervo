@@ -27,6 +27,7 @@ import { workstreamSnapshotRecorder } from "./workstream-recording.js";
 import { observeRepositoryHead, observeWorkstreamFreshness } from "./workstream-repository-head.js";
 import { bindCheckedOutBranch } from "./workstream-branch-selection.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 import { runWorkstreamHubCommand, workstreamHubUsage } from "./workstream-hub-command.js";
 
 const currentUsage = "  lervo workstream current [--root <path>] [--context|--json]";
@@ -93,11 +94,13 @@ async function runCurrent(args: string[], io: CliIo): Promise<number> {
   });
   if (parsed.values.context && parsed.values.json)
     throw new Error("Choose either --context or --json.");
-  const root = resolve(io.cwd, parsed.values.root ?? ".");
-  const storage = await openProjectStorage(root);
+  // A linked worktree's workstream lives in its registered repository, bound to its branch.
+  const roots = await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? "."));
+  const root = roots.executionRoot;
+  const storage = await openProjectStorage(roots.evidenceRoot);
   let snapshot;
   try {
-    snapshot = await verifiedCurrentWorkstream(storage);
+    snapshot = await verifiedCurrentWorkstream(storage, root);
   } finally {
     await storage.close();
   }
@@ -136,10 +139,11 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
   const actor = parseWorkstreamActor(parsed.values);
   const mode = parseWorkstreamApplyMode(parsed.values);
   const draft = await readWorkstreamDocument(parsed.values, io);
-  const root = resolve(io.cwd, parsed.values.root ?? ".");
-  const storage = await openProjectStorage(root);
+  const roots = await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? "."));
+  const root = roots.executionRoot;
+  const storage = await openProjectStorage(roots.evidenceRoot);
   try {
-    await verifiedCurrentWorkstream(storage);
+    await verifiedCurrentWorkstream(storage, root);
     const plan = await createWorkstreamStartPlan({
       repositoryRoot: root,
       projectId: storage.manifest.projectId,
@@ -164,7 +168,7 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
       recordApplied: workstreamSnapshotRecorder({ storage, actor, operation: "start" }),
     });
     // The new workstream continues on this branch; other branches keep their own selection.
-    await bindCheckedOutBranch(root, receipt.workstreamId);
+    await bindCheckedOutBranch(root, receipt.workstreamId, roots.evidenceRoot);
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(receipt, null, 2)}\n`
@@ -190,10 +194,11 @@ async function runUpdate(args: string[], io: CliIo): Promise<number> {
   const actor = parseWorkstreamActor(parsed.values);
   const mode = parseWorkstreamApplyMode(parsed.values);
   const change = await readWorkstreamChange(parsed.values, io);
-  const root = resolve(io.cwd, parsed.values.root ?? ".");
-  const storage = await openProjectStorage(root);
+  const roots = await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? "."));
+  const root = roots.executionRoot;
+  const storage = await openProjectStorage(roots.evidenceRoot);
   try {
-    await verifiedCurrentWorkstream(storage);
+    await verifiedCurrentWorkstream(storage, root);
     const plan = await createWorkstreamRevisionPlan({
       repositoryRoot: root,
       projectId: storage.manifest.projectId,

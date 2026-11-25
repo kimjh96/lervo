@@ -52,6 +52,8 @@ const compactQueryProjector = {
  */
 export async function prepareCompactTerminalPromptContext(input: {
   root: string;
+  /** The checkout whose bytes the context describes; defaults to `root`. */
+  executionRoot?: string;
   prompt: string;
   provider: TerminalIntegrationProvider;
   workspaceBinding: TerminalWorkspaceBinding | null;
@@ -60,26 +62,29 @@ export async function prepareCompactTerminalPromptContext(input: {
 }): Promise<PreparedTerminalPromptContext> {
   const requestDigest = sha256(input.prompt);
   const observedAt = new Date();
+  // The checkout's own bytes: its snapshot, knowledge snapshot, policy, and pointers. Everything
+  // shared, from the store to health and owner rules, comes from the repository at `root`.
+  const checkout = input.executionRoot ?? input.root;
   const repositorySnapshot = await input.timing.measure("repository_snapshot", () =>
-    captureTerminalRepositorySnapshot(input.root, input.timing.deadlineMs),
+    captureTerminalRepositorySnapshot(checkout, input.timing.deadlineMs),
   );
   const [sourceSnapshotId, query, canonicalization, health, repositoryHealth, learned, governance] =
     await Promise.all([
       input.timing.measure("corpus_preparation", () =>
-        terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision),
+        terminalKnowledgeSnapshotId(checkout, repositorySnapshot.revision),
       ),
       input.timing.measure("query_projection", async () => {
         const storage = await openProjectStorage(input.root);
         try {
           const [policy, currentWorkstream] = await Promise.all([
-            loadRepositoryKnowledgePolicy(input.root),
-            verifiedCurrentWorkstream(storage),
+            loadRepositoryKnowledgePolicy(checkout),
+            verifiedCurrentWorkstream(storage, checkout),
           ]);
           const workstreamFreshness =
             currentWorkstream === null
               ? null
               : await observeWorkstreamFreshness({
-                  root: input.root,
+                  root: checkout,
                   snapshot: currentWorkstream,
                   policy: workstreamFreshnessPolicy(policy),
                   observedAt,

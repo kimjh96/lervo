@@ -3,7 +3,7 @@
 // files but records into the registered repository, as managed runs already do: the worktree's
 // own store has no writer contract, no resident, and is deleted with the worktree.
 import { execFile } from "node:child_process";
-import { realpath } from "node:fs/promises";
+import { lstat, realpath } from "node:fs/promises";
 import { basename, dirname, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
@@ -56,6 +56,13 @@ export interface TerminalRootsPorts {
   registeredRoots(): Promise<readonly string[]>;
   /** Whether a live workforce workspace claims the checkout at `root`. */
   workerCheckout(root: string): Promise<boolean>;
+}
+
+async function isDirectory(path: string): Promise<boolean> {
+  return lstat(path).then(
+    (found) => found.isDirectory(),
+    () => false,
+  );
 }
 
 async function realOrNull(path: string): Promise<string | null> {
@@ -123,6 +130,8 @@ export async function resolveTerminalRoots(
     evidenceRoot: executionRoot,
     reason,
   });
+  // A main checkout keeps `.git` as a directory, so the common case spawns no Git.
+  if (await isDirectory(resolve(executionRoot, ".git"))) return local("checkout");
   const git = await ports.gitCoordinates(executionRoot);
   if (git === null) return local("checkout");
   if (git.gitDirectory === git.commonDirectory) return local("checkout");
@@ -138,4 +147,20 @@ export async function resolveTerminalRoots(
     return local("linked_worktree_unregistered");
   if (await ports.workerCheckout(executionRoot)) return local("worker_workspace");
   return { executionRoot, evidenceRoot: candidate, reason: "linked_worktree" };
+}
+
+/**
+ * The roots of a CLI command aimed at `root`, its `--root` or working directory. A command run
+ * in a linked worktree records into the registered repository like the worktree's hooks do. A
+ * path in no initialized project keeps the single root the command always had.
+ */
+export async function resolveCommandRoots(
+  root: string,
+  ports: TerminalRootsPorts = defaultTerminalRootsPorts,
+): Promise<TerminalRoots> {
+  try {
+    return await resolveTerminalRoots(root, ports);
+  } catch {
+    return { executionRoot: root, evidenceRoot: root, reason: "checkout" };
+  }
 }

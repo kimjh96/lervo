@@ -9,6 +9,11 @@ import {
   type RepositoryQualityInput,
 } from "@lervo/repository-context";
 
+/**
+ * Prepares the query's quality context and, when asked, verifies an artifact. The artifact, its
+ * baseline, and its definition are files of `checkoutRoot`, the checkout the session works in,
+ * which a linked worktree passes while its observations record into the registered repository.
+ */
 export function observeKnowledgeQueryArtifact(
   preparation: RepositoryQualityInput,
   verification: {
@@ -17,6 +22,7 @@ export function observeKnowledgeQueryArtifact(
     baselinePath?: string;
     definitionPath?: string;
   } | null,
+  checkoutRoot: string = preparation.repositoryRoot,
 ): Promise<{
   preparation: Awaited<ReturnType<typeof prepareRepositoryQualityContext>>;
   value: {
@@ -26,7 +32,10 @@ export function observeKnowledgeQueryArtifact(
 }> {
   return withRepositoryQualityObservation(preparation, async (quality) => {
     const observation = verification
-      ? await verifyKnowledgeQueryArtifact({ preparation, ...verification })
+      ? await verifyKnowledgeQueryArtifact({
+          preparation: { ...preparation, repositoryRoot: checkoutRoot },
+          ...verification,
+        })
       : null;
     const recording =
       observation && quality.observationBindings

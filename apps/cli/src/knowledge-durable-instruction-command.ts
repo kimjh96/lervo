@@ -13,6 +13,7 @@ import {
 } from "./durable-instruction-intake.js";
 import { retireDurableInstruction } from "./durable-instruction-retire.js";
 import type { CliIo, CliServices } from "./types.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 
 async function intakeRequest(
   from: string | undefined,
@@ -93,7 +94,9 @@ export async function runKnowledgeDurableInstruction(
       throw new Error("Instruction intake requires --provider codex or --provider claude.");
     if (services === undefined)
       throw new Error("The durable-instruction grounding service is unavailable.");
-    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    // An owner rule is repository-wide: from a linked worktree it goes to the registered repository.
+    const repositoryRoot = (await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? ".")))
+      .evidenceRoot;
     const result = await intakeDurableInstruction({
       repositoryRoot,
       provider: parsed.values.provider,
@@ -113,7 +116,9 @@ export async function runKnowledgeDurableInstruction(
     });
     if (parsed.positionals.length > 1)
       throw new Error("Instruction status accepts at most one candidate ID.");
-    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    // An owner rule is repository-wide: from a linked worktree it goes to the registered repository.
+    const repositoryRoot = (await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? ".")))
+      .evidenceRoot;
     const candidates =
       parsed.positionals.length === 1
         ? [
@@ -142,7 +147,8 @@ export async function runKnowledgeDurableInstruction(
     if (parsed.positionals.length !== 1)
       throw new Error("Instruction retire requires one rule ID.");
     const result = await retireDurableInstruction({
-      repositoryRoot: resolve(io.cwd, parsed.values.root ?? "."),
+      repositoryRoot: (await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? ".")))
+        .evidenceRoot,
       ruleId: parsed.positionals[0]!,
     });
     io.stdout(

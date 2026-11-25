@@ -40,6 +40,8 @@ const BOOKKEEPING_LINE = "If this turn changes repository-authored bytes";
  */
 export async function prepareTerminalSessionStart(input: {
   root: string;
+  /** The checkout the session runs in; its branch selects the workstream. Defaults to `root`. */
+  executionRoot?: string;
   provider: TerminalIntegrationProvider;
   session: ParsedSessionStartInput;
   deadline: number;
@@ -57,6 +59,7 @@ export async function prepareTerminalSessionStart(input: {
     input.root,
     input.deadline,
     BASE_RULE_BYTES,
+    input.executionRoot ?? input.root,
   );
   const base = capContextBytes(
     [

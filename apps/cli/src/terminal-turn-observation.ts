@@ -66,6 +66,8 @@ export function terminalDeliberationDeclarationMatches(
 
 export async function recordPreparedTerminalContext(input: {
   root: string;
+  /** The checkout whose prepared snapshot Stop compares; defaults to `root`. */
+  executionRoot?: string;
   provider: TerminalIntegrationProvider;
   coordinates: UnmanagedTerminalCoordinates;
   observationId: string;
@@ -80,7 +82,7 @@ export async function recordPreparedTerminalContext(input: {
   input.context.documents.forEach((document) =>
     assertTerminalRepositoryRelativePath(document.path),
   );
-  await writePreparedRepositorySnapshot(input.root, {
+  await writePreparedRepositorySnapshot(input.executionRoot ?? input.root, {
     schemaVersion: 1,
     observationId: input.observationId,
     revision: input.context.repositoryRevision,
