@@ -9,7 +9,6 @@ import {
 import { useIntl } from "react-intl";
 
 import { ImageViewer, type ViewedImage } from "../../../ui/ImageViewer";
-import { Presence } from "../../../ui/Presence";
 import { imageCache } from "../model/images";
 
 interface Images {
@@ -27,38 +26,46 @@ export function ConversationImagesProvider(
   props: PropsWithChildren<{ read: (imageId: string) => Promise<string> }>,
 ) {
   const intl = useIntl();
-  const [viewing, setViewing] = useState<{ images: readonly ViewedImage[]; index: number } | null>(
-    null,
-  );
+  const [viewing, setViewing] = useState<{
+    images: readonly ViewedImage[];
+    index: number;
+    /** Each opening mounts a fresh viewer, so one opened while another closes starts open. */
+    opened: number;
+  } | null>(null);
   const { read } = props;
   const images = useMemo<Images>(
-    () => ({ read, open: (shown, index) => setViewing({ images: shown, index }) }),
+    () => ({
+      read,
+      open: (shown, index) =>
+        setViewing((current) => ({ images: shown, index, opened: (current?.opened ?? 0) + 1 })),
+    }),
     [read],
   );
   return (
     <ImagesContext value={images}>
       {props.children}
-      <Presence>
-        {/* motion: Overlays: command palette, menus, popovers */}
-        {viewing === null ? null : (
-          <ImageViewer
-            images={viewing.images}
-            index={viewing.index}
-            labels={{
-              dialog: intl.formatMessage({ id: "images.viewer.label" }),
-              close: intl.formatMessage({ id: "images.viewer.close" }),
-              previous: intl.formatMessage({ id: "images.viewer.previous" }),
-              next: intl.formatMessage({ id: "images.viewer.next" }),
-              count: intl.formatMessage(
-                { id: "images.viewer.count" },
-                { index: viewing.index + 1, count: viewing.images.length },
-              ),
-            }}
-            onIndex={(index) => setViewing({ ...viewing, index })}
-            onClose={() => setViewing(null)}
-          />
-        )}
-      </Presence>
+      {/* The viewer plays its own opening and closing; a presence around it would fade it as a
+          whole, and WebKit draws no backdrop blur under a fading element. */}
+      {/* motion: Overlays: command palette, menus, popovers */}
+      {viewing === null ? null : (
+        <ImageViewer
+          key={viewing.opened}
+          images={viewing.images}
+          index={viewing.index}
+          labels={{
+            dialog: intl.formatMessage({ id: "images.viewer.label" }),
+            close: intl.formatMessage({ id: "images.viewer.close" }),
+            previous: intl.formatMessage({ id: "images.viewer.previous" }),
+            next: intl.formatMessage({ id: "images.viewer.next" }),
+            count: intl.formatMessage(
+              { id: "images.viewer.count" },
+              { index: viewing.index + 1, count: viewing.images.length },
+            ),
+          }}
+          onIndex={(index) => setViewing({ ...viewing, index })}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </ImagesContext>
   );
 }

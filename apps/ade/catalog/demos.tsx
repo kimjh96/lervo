@@ -138,23 +138,21 @@ export function ImageViewerDemo() {
       <Button variant="outlined" onClick={() => setIndex(0)}>
         Open two images
       </Button>
-      <Presence>
-        {index === null ? null : (
-          <ImageViewer
-            images={images}
-            index={index}
-            labels={{
-              dialog: "Image",
-              close: "Close",
-              previous: "Previous image",
-              next: "Next image",
-              count: `${index + 1} / ${images.length}`,
-            }}
-            onIndex={setIndex}
-            onClose={() => setIndex(null)}
-          />
-        )}
-      </Presence>
+      {index === null ? null : (
+        <ImageViewer
+          images={images}
+          index={index}
+          labels={{
+            dialog: "Image",
+            close: "Close",
+            previous: "Previous image",
+            next: "Next image",
+            count: `${index + 1} / ${images.length}`,
+          }}
+          onIndex={setIndex}
+          onClose={() => setIndex(null)}
+        />
+      )}
     </span>
   );
 }

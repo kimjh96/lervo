@@ -1,17 +1,43 @@
-/* An image at full size over the dimmed window. It opens and closes as overlays do (ADE motion,
-   "Overlays"). */
+/* An image at full size over the blurred window, opening and closing as overlays do (ADE motion,
+   "Overlays"). It renders into the document's body, so no clipped ancestor holds it in the main
+   area, and it is a flex box of the window's size, so the image's percentage bounds resolve and a
+   tall image fits the window instead of running past it.
+
+   The viewer itself never fades: WebKit draws no backdrop blur under or on an element whose
+   opacity animates, and switches it on at the end, so the blur snapped in, the sidebar most of
+   all. The blur eases in and out by its own radius, and the tint, image, and controls fade. */
 .viewer {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-48);
-  animation: open var(--motion-duration-change) var(--motion-easing-standard);
 }
 
-@keyframes open {
+/* A blur shows most in its first pixels of radius, so it eases in and out slowly at both ends,
+   over the time of an arrival and a leaving. */
+.blur {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
+  pointer-events: none;
+  animation: blur-in var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+@keyframes blur-in {
   from {
-    opacity: 0;
+    backdrop-filter: blur(0) saturate(1);
+  }
+}
+
+.viewer[data-closing] .blur {
+  animation: blur-out var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+@keyframes blur-out {
+  to {
+    backdrop-filter: blur(0) saturate(1);
   }
 }
 
@@ -20,18 +46,22 @@
   inset: 0;
   padding: 0;
   border: 0;
-  background: color-mix(in srgb, var(--glass-tint-color) 80%, transparent);
-  backdrop-filter: blur(var(--glass-overlay-blur));
+  background-color: color-mix(in srgb, var(--glass-tint-color) 55%, transparent);
   cursor: zoom-out;
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
 .image {
   position: relative;
+  flex: none;
   max-width: 100%;
   max-height: 100%;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-window);
-  animation: grow var(--motion-duration-change) var(--motion-easing-standard);
+  object-fit: contain;
+  animation:
+    global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade),
+    grow var(--motion-duration-change) var(--motion-easing-standard);
 }
 
 @keyframes grow {
@@ -50,6 +80,15 @@
   color: var(--color-text-secondary);
   background: transparent;
   cursor: pointer;
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.viewer[data-closing] .veil,
+.viewer[data-closing] .image,
+.viewer[data-closing] .close,
+.viewer[data-closing] .arrow,
+.viewer[data-closing] .count {
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
 }
 
 .close {
@@ -98,11 +137,22 @@
   margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--type-meta-size);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .viewer,
-  .image {
+  .blur,
+  .viewer[data-closing] .blur,
+  .veil,
+  .image,
+  .close,
+  .arrow,
+  .count,
+  .viewer[data-closing] .veil,
+  .viewer[data-closing] .image,
+  .viewer[data-closing] .close,
+  .viewer[data-closing] .arrow,
+  .viewer[data-closing] .count {
     animation: none;
   }
 }
