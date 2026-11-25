@@ -24,6 +24,7 @@ import type {
 import type { PreparedTerminalDocument } from "./terminal-prompt-context.js";
 import {
   appendTerminalRepositoryChange,
+  changedTerminalPaths,
   plannedTerminalRepositoryChange,
 } from "./terminal-repository-change.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
@@ -42,6 +43,8 @@ import {
 
 export async function recordObservedTerminalTurn(input: {
   root: string;
+  /** The checkout the turn worked on; a linked worktree differs from `root`. */
+  executionRoot?: string;
   provider: TerminalIntegrationProvider;
   coordinates: UnmanagedTerminalCoordinates;
   hookInput: ParsedTerminalHookInput;
@@ -96,25 +99,31 @@ export async function recordObservedTerminalTurn(input: {
     const pathMentionCount = references.filter(
       (reference) => reference.referenceKind === "path_mention",
     ).length;
-    const finalWorkstream = await verifiedCurrentWorkstream(storage);
+    const checkout = input.executionRoot ?? input.root;
+    // A linked worktree's branch changes are not the repository's: they record the turn's changed
+    // paths but no repository change, so no knowledge job applies branch bytes to the main checkout.
+    const linked = checkout !== input.root;
+    const finalWorkstream = await verifiedCurrentWorkstream(storage, checkout);
     const referenceEventIds = references.map(() => newTerminalIdentifier("evt"));
     const turnEventId = newTerminalIdentifier("evt");
     const transcriptEnd = await terminalTranscriptPosition(
       input.provider,
       input.hookInput.transcriptPath,
     );
-    const repositoryRevision = await gitHeadRevision(input.root);
+    const repositoryRevision = await gitHeadRevision(checkout);
     // ADR-0605: only a host that runs knowledge jobs receives one.
     const admission = await readRepositoryKnowledgeJobAdmission(input.root);
     let knowledgeJobQueued = false;
-    const change = await plannedTerminalRepositoryChange({
-      root: input.root,
-      storage,
-      contextPayload: payload,
-      lifecycle: input.lifecycle,
-      turnEventId,
-      occurredAt: input.occurredAt,
-    });
+    const change = linked
+      ? null
+      : await plannedTerminalRepositoryChange({
+          root: input.root,
+          storage,
+          contextPayload: payload,
+          lifecycle: input.lifecycle,
+          turnEventId,
+          occurredAt: input.occurredAt,
+        });
     storage.events.transact((transaction) => {
       references.forEach((document, index) =>
         transaction.append(
@@ -212,11 +221,13 @@ export async function recordObservedTerminalTurn(input: {
       consultedPaths: [
         ...new Set([...selected.map((item) => item.path), ...documents.map((item) => item.path)]),
       ],
-      changedPaths: change
-        ? (JSON.parse(change.manifestContent) as { paths: { path: string }[] }).paths.map(
-            (item) => item.path,
-          )
-        : [],
+      changedPaths: linked
+        ? await changedTerminalPaths(checkout, payload, input.lifecycle)
+        : change
+          ? (JSON.parse(change.manifestContent) as { paths: { path: string }[] }).paths.map(
+              (item) => item.path,
+            )
+          : [],
     };
   } finally {
     if (contextEventId !== null)

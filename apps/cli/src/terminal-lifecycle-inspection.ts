@@ -36,13 +36,19 @@ export async function terminalTurnDeclarationRequired(root: string): Promise<boo
   return (await inspectKnowledgeResidentHealth(root)).status !== "healthy";
 }
 
+/**
+ * Inspects a turn's lifecycle. `root` holds the turn's store, workstream events, and activation
+ * receipts; `checkoutRoot`, a linked worktree when it differs, holds the files, branch, and
+ * integration the turn worked on.
+ */
 export async function inspectTerminalLifecycle(
   root: string,
   expected?: PreparedTerminalTurnExpectation,
   materialization?: KnowledgeMaterializationSettlement,
+  checkoutRoot: string = root,
 ): Promise<TerminalLifecycleInspection> {
   // Execution-evidence sources scan the whole event log; only knowledge inspection needs them.
-  const currentRepository = await captureTerminalRepositorySnapshot(root);
+  const currentRepository = await captureTerminalRepositorySnapshot(checkoutRoot);
   const repositoryChange = {
     beforeRevision: expected?.repositoryRevision ?? currentRepository.revision,
     afterRevision: currentRepository.revision,
@@ -76,7 +82,7 @@ export async function inspectTerminalLifecycle(
     }
   }
   try {
-    const handoff = await lstat(resolve(root, "HANDOFF.md"));
+    const handoff = await lstat(resolve(checkoutRoot, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
@@ -91,7 +97,7 @@ export async function inspectTerminalLifecycle(
   issues.push(...replicaService.issues);
   const workstreamStorage = await openProjectStorage(root);
   try {
-    const current = await verifiedCurrentWorkstream(workstreamStorage);
+    const current = await verifiedCurrentWorkstream(workstreamStorage, checkoutRoot);
     const checkpointRequired = expected === undefined || repositoryChange.changed;
     if (checkpointRequired && current === null) {
       issues.push({ code: "workstream_missing", command: "lervo workstream start --stdin" });
@@ -111,7 +117,7 @@ export async function inspectTerminalLifecycle(
     if (
       expected !== undefined &&
       repositoryChange.changed &&
-      (await terminalTurnDeclarationRequired(root))
+      (await terminalTurnDeclarationRequired(checkoutRoot))
     ) {
       const declaration = latestTerminalTurnDeclaration(
         workstreamStorage.events,
@@ -170,7 +176,7 @@ export async function inspectTerminalLifecycle(
   } finally {
     await workstreamStorage.close();
   }
-  const terminal = await inspectTerminalIntegration(root);
+  const terminal = await inspectTerminalIntegration(checkoutRoot);
   if (terminal.status !== "current")
     issues.push({
       code:
@@ -182,9 +188,9 @@ export async function inspectTerminalLifecycle(
   let knowledgeAdvisories: TerminalLifecycleInspection["issues"] = [];
   if ((expected === undefined || issues.length === 0) && repositoryKnowledgeInspectionRequired) {
     const knowledge = await inspectTerminalRepositoryKnowledge({
-      root,
+      root: checkoutRoot,
       repositoryRevision: currentRepository.revision,
-      supplementalSources: await collectLocalKnowledgeSources(root),
+      supplementalSources: await collectLocalKnowledgeSources(checkoutRoot),
       materialization,
     });
     issues.push(...knowledge.issues);

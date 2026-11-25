@@ -52,6 +52,7 @@ function hasReplicatedWorkstreamOrigin(storage: ProjectStorage, workstreamId: st
 async function restoreRecordedWorkstream(
   storage: ProjectStorage,
   event: NonNullable<ReturnType<typeof latestWorkstreamEvent>>,
+  checkoutRoot: string = storage.paths.repositoryRoot,
 ) {
   const payload = event.payload as Record<string, unknown>;
   if (typeof payload.snapshotContentHash !== "string")
@@ -60,11 +61,11 @@ async function restoreRecordedWorkstream(
   if (!(await storage.artifacts.has(uri)))
     throw new Error("The recorded workstream snapshot artifact is missing.");
   await restoreCurrentWorkstreamState({
-    repositoryRoot: storage.paths.repositoryRoot,
+    repositoryRoot: checkoutRoot,
     content: await storage.artifacts.get(uri),
     expectedHash: payload.snapshotContentHash,
   });
-  const state = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
+  const state = await readCurrentWorkstreamState(checkoutRoot);
   if (state === null)
     throw new Error("The recorded current workstream state could not be rebuilt.");
   return state;
@@ -73,14 +74,21 @@ async function restoreRecordedWorkstream(
 /**
  * Verifies the workstream the checked-out branch continues. Switching branches re-projects that
  * branch's workstream from its recorded history; a branch that continues none selects nothing.
+ *
+ * `checkoutRoot` is the checkout whose branch counts and which keeps the current projection; it
+ * defaults to the store's own repository. A linked worktree passes its own root while its events
+ * and branch bindings stay in the registered repository's store, so it never reads or clears the
+ * main checkout's projection.
  */
 export async function verifiedCurrentWorkstream(
   storage: ProjectStorage,
+  checkoutRoot: string = storage.paths.repositoryRoot,
 ): Promise<WorkstreamSnapshot | null> {
-  const root = storage.paths.repositoryRoot;
+  const root = checkoutRoot;
   let state = await readCurrentWorkstreamState(root);
   const selection = await selectBranchWorkstream({
     root,
+    bindingsRoot: storage.paths.repositoryRoot,
     projected: state?.snapshot ?? null,
   });
   if (selection.kind === "unbound") {
@@ -94,12 +102,12 @@ export async function verifiedCurrentWorkstream(
       if (state !== null) await clearCurrentWorkstreamProjection(root);
       return null;
     }
-    state = await restoreRecordedWorkstream(storage, bound);
+    state = await restoreRecordedWorkstream(storage, bound, root);
   }
   const event = latestWorkstreamEvent(storage, state?.snapshot.workstreamId);
   if (state === null) {
     if (event === null) return null;
-    state = await restoreRecordedWorkstream(storage, event);
+    state = await restoreRecordedWorkstream(storage, event, root);
   }
   if (event === null) throw new Error("The current workstream has no committed snapshot event.");
   const payload = event.payload as Record<string, unknown>;

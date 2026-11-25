@@ -22,7 +22,6 @@ import {
 } from "./terminal-hook-budget.js";
 import { prepareTerminalBaseContext } from "./terminal-degraded-context.js";
 import { prepareTerminalSessionStart } from "./terminal-session-start.js";
-import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
 import { preparedTerminalTurnExpectation } from "./terminal-turn-observation.js";
 import {
@@ -31,6 +30,7 @@ import {
   type TerminalWorkspaceBinding,
 } from "./terminal-workspace-lifecycle.js";
 import type { CliIo, CliServices } from "./types.js";
+import { resolveTerminalRoots } from "./terminal-roots.js";
 
 export function runTerminalHookCommand(
   args: string[],
@@ -83,7 +83,11 @@ async function executeTerminalHookCommand(
         startedAt + TERMINAL_HOOK_BUDGET_MS,
         async () =>
           prepareTerminalSessionStart({
-            root: await resolveTerminalRepositoryRoot(io.cwd),
+            // The base block, its rules, and the session's epoch belong to the repository.
+            ...(await resolveTerminalRoots(io.cwd).then(({ evidenceRoot, executionRoot }) => ({
+              root: evidenceRoot,
+              executionRoot,
+            }))),
             provider,
             session: input,
             deadline: startedAt + TERMINAL_HOOK_BUDGET_MS,
@@ -112,20 +116,24 @@ async function executeTerminalHookCommand(
       observationId: newTerminalIdentifier("tobs"),
     };
     let repositoryRoot: string | undefined;
+    let checkoutRoot: string | undefined;
     let workspaceBinding: TerminalWorkspaceBinding | null = null;
     try {
-      const root = await timing.measure("repository_discovery", () =>
-        resolveTerminalRepositoryRoot(io.cwd),
+      // A linked worktree runs in its own files and records into its registered repository.
+      const { evidenceRoot: root, executionRoot } = await timing.measure(
+        "repository_discovery",
+        () => resolveTerminalRoots(io.cwd),
       );
       stageContext.root = root;
       repositoryRoot = root;
+      checkoutRoot = executionRoot;
       const occurredAt = new Date().toISOString();
       if (input.event === "UserPromptSubmit") {
         const observationId = stageContext.observationId;
         try {
           workspaceBinding = await timing.measure("lifecycle_inspection", () =>
             attachTerminalWorkspace({
-              root,
+              root: executionRoot,
               provider,
               providerSessionId: input.providerSessionId,
               now: new Date(occurredAt),
@@ -152,6 +160,7 @@ async function executeTerminalHookCommand(
         }
         const additionalContext = await prepareAndRecordTerminalPrompt({
           root,
+          executionRoot,
           prompt: input.prompt!,
           providerSessionId: input.providerSessionId,
           transcriptPath: input.transcriptPath,
@@ -180,6 +189,7 @@ async function executeTerminalHookCommand(
       stageContext.observationId = expectation.observationId;
       return await completeTerminalHookTurn({
         root,
+        executionRoot,
         coordinates,
         input,
         provider,
@@ -193,7 +203,11 @@ async function executeTerminalHookCommand(
       const failureReason = terminalHookFailureReason(error);
       const baseContext =
         input.event === "UserPromptSubmit" && repositoryRoot !== undefined
-          ? prepareTerminalBaseContext(repositoryRoot, startedAt + TERMINAL_HOOK_BUDGET_MS)
+          ? prepareTerminalBaseContext(
+              repositoryRoot,
+              startedAt + TERMINAL_HOOK_BUDGET_MS,
+              checkoutRoot,
+            )
           : Promise.resolve([]);
       await withinTerminalDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS, () =>
         recordTerminalStageObservation({
@@ -218,7 +232,7 @@ async function executeTerminalHookCommand(
     const observationId = newTerminalIdentifier("tobs");
     // Rejected ingress has no trustworthy provider session or hook event. Keep it unattributed.
     await withinTerminalDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS, async () => {
-      const root = await resolveTerminalRepositoryRoot(io.cwd);
+      const root = (await resolveTerminalRoots(io.cwd)).evidenceRoot;
       await recordTerminalStageObservation({
         root,
         coordinates: {

@@ -18,6 +18,7 @@ import {
 
 import { writeCommandError } from "./command-error-output.js";
 import type { CliIo } from "./types.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 
 export const planUsage = [
   "  lervo plan list [--all] [--root <path>] [--json]",
@@ -74,8 +75,10 @@ export async function runPlanCommand(args: string[], io: CliIo): Promise<number>
     io.stderr(`Specify a plan action.\n${planUsage}\n`);
     return 1;
   }
-  const repositoryRoot = resolve(io.cwd, values.root ?? ".");
-  const storage = await openProjectStorage(repositoryRoot);
+  // A linked worktree's plan items belong to its registered repository, where its hooks read them.
+  const roots = await resolveCommandRoots(resolve(io.cwd, values.root ?? "."));
+  const repositoryRoot = roots.executionRoot;
+  const storage = await openProjectStorage(roots.evidenceRoot);
   try {
     if (action === "list") {
       const ledger = readPlanLedger(storage);

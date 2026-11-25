@@ -29,6 +29,7 @@ import type { CliServices } from "./types.js";
 
 export async function prepareAndRecordTerminalPrompt({
   root,
+  executionRoot = root,
   prompt,
   providerSessionId,
   transcriptPath,
@@ -42,7 +43,10 @@ export async function prepareAndRecordTerminalPrompt({
   deadlineMs,
   services,
 }: {
+  /** The repository the turn's evidence, queues, and shared state belong to. */
   root: string;
+  /** The checkout the session works in; a linked worktree differs from `root`. */
+  executionRoot?: string;
   prompt: string;
   providerSessionId: string;
   transcriptPath?: string | undefined;
@@ -63,6 +67,7 @@ export async function prepareAndRecordTerminalPrompt({
   const prepared = await timing.measure("context_assembly", () =>
     prepareTerminalPromptContext({
       root,
+      executionRoot,
       prompt: prompt,
       provider,
       workspaceBinding,
@@ -87,6 +92,7 @@ export async function prepareAndRecordTerminalPrompt({
     await timing.measure("event_commit", async () => {
       await recordPreparedTerminalContext({
         root,
+        executionRoot,
         provider,
         coordinates,
         observationId,

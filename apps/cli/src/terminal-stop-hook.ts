@@ -51,6 +51,7 @@ function lifecycleFailureReason(
 
 export async function completeTerminalHookTurn({
   root,
+  executionRoot = root,
   coordinates,
   input,
   provider,
@@ -60,7 +61,10 @@ export async function completeTerminalHookTurn({
   timing,
   io,
 }: {
+  /** The repository the turn's evidence, queues, and shared state belong to. */
   root: string;
+  /** The checkout the session works in; a linked worktree differs from `root`. */
+  executionRoot?: string;
   coordinates: UnmanagedTerminalCoordinates;
   input: ParsedTerminalHookInput;
   provider: TerminalIntegrationProvider;
@@ -71,7 +75,7 @@ export async function completeTerminalHookTurn({
   io: CliIo;
 }): Promise<number> {
   const lifecycle = await timing.measure("lifecycle_inspection", () =>
-    inspectTerminalLifecycle(root, expectation),
+    inspectTerminalLifecycle(root, expectation, undefined, executionRoot),
   );
   let failureReason: TerminalHookFailureReason | undefined = lifecycleFailureReason(
     lifecycle.issues,
@@ -110,6 +114,7 @@ export async function completeTerminalHookTurn({
   const observation = await timing.measure("event_commit", () =>
     recordObservedTerminalTurn({
       root,
+      executionRoot,
       provider,
       coordinates,
       hookInput: input,
@@ -130,8 +135,10 @@ export async function completeTerminalHookTurn({
     }).catch(() => undefined),
   );
   await timing.measure("lifecycle_inspection", () =>
+    // Outcomes read the changed files, so they observe the checkout. A linked worktree's own store
+    // selects no writer, so its outcomes stay unobserved until they can record into `root`.
     observeHostContextOutcomes({
-      repositoryRoot: root,
+      repositoryRoot: executionRoot,
       origin: "terminal",
       effects: "read_only",
       coordinates,
@@ -170,7 +177,11 @@ export async function completeTerminalHookTurn({
   // Prepare the next compact prompt's knowledge snapshot after this turn's final bytes.
   if (hookRuntime !== undefined && process.env.LERVO_TERMINAL_CONTEXT !== "retrieval")
     await withinTerminalDeadline(timing.observationDeadlineMs ?? performance.now() + 1000, () =>
-      launchDetachedKnowledgeWorker({ root, entry: hookRuntime, args: ["prefetch-context"] }),
+      launchDetachedKnowledgeWorker({
+        root: executionRoot,
+        entry: hookRuntime,
+        args: ["prefetch-context"],
+      }),
     ).catch(() => false);
   if (
     expectation.workspaceBinding?.executionKind === "worker" &&

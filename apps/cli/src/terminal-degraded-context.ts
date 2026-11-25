@@ -13,15 +13,21 @@ import { verifiedCurrentWorkstream } from "./workstream-services.js";
 export async function prepareTerminalBaseContext(
   root: string,
   remainingBudgetDeadline = performance.now() + TERMINAL_HOOK_BUDGET_MS,
+  checkoutRoot: string = root,
 ): Promise<string[]> {
-  return (await prepareTerminalBaseParts(root, remainingBudgetDeadline, 2048)).lines;
+  return (await prepareTerminalBaseParts(root, remainingBudgetDeadline, 2048, checkoutRoot)).lines;
 }
 
-/** The base lines and the owner-rule sections packed into them, within `ruleBytes`. */
+/**
+ * The base lines and the owner-rule sections packed into them, within `ruleBytes`. Owner rules and
+ * the store come from the repository at `root`; the workstream is the one `checkoutRoot`'s branch
+ * continues, which a linked worktree passes.
+ */
 export async function prepareTerminalBaseParts(
   root: string,
   remainingBudgetDeadline: number,
   ruleBytes: number,
+  checkoutRoot: string = root,
 ): Promise<{ lines: string[]; rules: PackedInstructionSection[] }> {
   const deadline = Math.min(
     remainingBudgetDeadline,
@@ -43,7 +49,7 @@ export async function prepareTerminalBaseParts(
     withinTerminalDeadline(deadline, async () => {
       const storage = await openProjectStorage(root);
       try {
-        return await verifiedCurrentWorkstream(storage);
+        return await verifiedCurrentWorkstream(storage, checkoutRoot);
       } finally {
         await storage.close();
       }

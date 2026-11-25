@@ -53,14 +53,19 @@ export type WorkstreamBranchSelection =
  * Resolves which workstream the checked-out branch continues. The first call in a repository that
  * already has a workstream binds it to the default branch, where it continues as the repository-wide
  * workstream; every other branch starts its own.
+ *
+ * `root` is the checkout whose branch counts. The bindings belong to the repository, so a linked
+ * worktree passes its registered repository as `bindingsRoot` and shares them with every checkout.
  */
 export async function selectBranchWorkstream(input: {
   root: string;
+  bindingsRoot?: string;
   projected: Pick<WorkstreamSnapshot, "workstreamId" | "origin"> | null;
 }): Promise<WorkstreamBranchSelection> {
+  const bindingsRoot = input.bindingsRoot ?? input.root;
   const branch = await observeCheckedOutBranch(input.root);
   if (branch === null) return { kind: "unscoped" };
-  let bindings = await readWorkstreamBranchBindings(input.root);
+  let bindings = await readWorkstreamBranchBindings(bindingsRoot);
   if (bindings === null) {
     if (input.projected === null) return { kind: "unscoped" };
     const defaultBranch = await resolveDefaultBranch(input.root, branch);
@@ -69,7 +74,7 @@ export async function selectBranchWorkstream(input: {
       defaultBranch,
       bindings: { [defaultBranch]: input.projected.workstreamId },
     };
-    await writeWorkstreamBranchBindings(input.root, bindings);
+    await writeWorkstreamBranchBindings(bindingsRoot, bindings);
   }
   let workstreamId = bindings.bindings[branch];
   const projected = input.projected;
@@ -83,7 +88,7 @@ export async function selectBranchWorkstream(input: {
     // A successor started for this branch's settled goal continues the branch.
     workstreamId = projected.workstreamId;
     bindings = { ...bindings, bindings: { ...bindings.bindings, [branch]: workstreamId } };
-    await writeWorkstreamBranchBindings(input.root, bindings);
+    await writeWorkstreamBranchBindings(bindingsRoot, bindings);
   }
   return workstreamId === undefined
     ? { kind: "unbound", branch, bindings }
@@ -91,15 +96,19 @@ export async function selectBranchWorkstream(input: {
 }
 
 /** Binds the checked-out branch to a workstream it just started; a no-op outside a branch. */
-export async function bindCheckedOutBranch(root: string, workstreamId: string): Promise<void> {
+export async function bindCheckedOutBranch(
+  root: string,
+  workstreamId: string,
+  bindingsRoot: string = root,
+): Promise<void> {
   const branch = await observeCheckedOutBranch(root);
   if (branch === null) return;
-  const bindings = (await readWorkstreamBranchBindings(root)) ?? {
+  const bindings = (await readWorkstreamBranchBindings(bindingsRoot)) ?? {
     schemaVersion: 1 as const,
     defaultBranch: await resolveDefaultBranch(root, branch),
     bindings: {},
   };
-  await writeWorkstreamBranchBindings(root, {
+  await writeWorkstreamBranchBindings(bindingsRoot, {
     ...bindings,
     bindings: { ...bindings.bindings, [branch]: workstreamId },
   });

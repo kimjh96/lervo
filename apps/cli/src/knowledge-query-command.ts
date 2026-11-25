@@ -15,6 +15,7 @@ import type { CliIo } from "./types.js";
 import { queryOpenTerminalTurn } from "./terminal-open-turns.js";
 import { recordKnowledgeQueryTurnSelection } from "./knowledge-query-turn-selection.js";
 import { governingPreference, repositoryPathsNamedIn } from "./governing-preference.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 
 export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<number> {
   try {
@@ -50,7 +51,10 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
       throw new Error(
         "Artifact verification requires --verify-artifact and --expected-plan together.",
       );
-    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    // In a linked worktree the query ranks against the registered repository's projection and
+    // binds to the session's turn there; selections still name the worktree's own bytes.
+    const roots = await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? "."));
+    const repositoryRoot = roots.evidenceRoot;
     const turn = await queryOpenTerminalTurn(repositoryRoot);
     const supplementalSources = await collectInteractiveLocalKnowledgeSources(repositoryRoot);
     const projection = projectTaskQuery({
@@ -108,6 +112,7 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
               : {}),
           }
         : null,
+      roots.executionRoot,
     );
     const instructions =
       quality.instructions ??
@@ -121,7 +126,12 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
         },
       }));
     const knowledgeBuild = (await repositoryKnowledgeBuilt(repositoryRoot)) ? "built" : "not_built";
-    await recordKnowledgeQueryTurnSelection({ root: repositoryRoot, turn, hits: result.hits });
+    await recordKnowledgeQueryTurnSelection({
+      root: repositoryRoot,
+      executionRoot: roots.executionRoot,
+      turn,
+      hits: result.hits,
+    });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify({ ...result, knowledgeBuild, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`

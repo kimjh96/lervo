@@ -114,6 +114,8 @@ function truncateUtf8(value: string, maximumBytes: number): string {
 
 export async function prepareTerminalPromptContext(input: {
   root: string;
+  /** The checkout whose files the context describes; defaults to `root`. */
+  executionRoot?: string;
   prompt: string;
   provider: TerminalIntegrationProvider;
   observationId: string;
@@ -121,7 +123,10 @@ export async function prepareTerminalPromptContext(input: {
   services: Pick<CliServices, "projectSearchQueries">;
   timing: TerminalStageObservationPort;
 }): Promise<PreparedTerminalPromptContext> {
-  if (terminalPromptContextMode() === "compact")
+  // A linked worktree takes compact context: retrieval scans and loads a checkout's whole corpus
+  // and has no split between the checkout's bytes and the repository's store yet.
+  const linked = input.executionRoot !== undefined && input.executionRoot !== input.root;
+  if (linked || terminalPromptContextMode() === "compact")
     return prepareCompactTerminalPromptContext({
       ...input,
       declarationInstruction: terminalDeclarationInstruction(input.provider, input.observationId),

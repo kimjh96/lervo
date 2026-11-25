@@ -19,7 +19,7 @@ import {
 } from "./terminal-event-coordinates.js";
 import { inspectTerminalRepositoryKnowledgeLifecycle } from "./terminal-knowledge-lifecycle-inspection.js";
 import { readPreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js";
-import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
+import { resolveTerminalRoots } from "./terminal-roots.js";
 import { terminalDeliberationDeclarationMatches } from "./terminal-turn-observation.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
@@ -129,8 +129,11 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
     if (!parsed.values.stdin || io.stdin === undefined)
       throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root = await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? "."));
-    storage = await openProjectStorage(root);
+    // The declaration binds the checkout's bytes and records into the repository's store, where a
+    // linked worktree's prepared turn lives.
+    const roots = await resolveTerminalRoots(resolve(io.cwd, parsed.values.root ?? "."));
+    const root = roots.executionRoot;
+    storage = await openProjectStorage(roots.evidenceRoot);
     const context = latestTerminalEventOfType(
       storage.events,
       "terminal.context.prepared",

@@ -62,6 +62,25 @@ export async function plannedTerminalRepositoryChange(input: {
   return planned;
 }
 
+/**
+ * The paths a turn changed in `root`, from the snapshot prepared at its prompt to the checkout's
+ * bytes now: added, removed, or rehashed files. Empty when nothing changed or the prepared
+ * snapshot is gone.
+ */
+export async function changedTerminalPaths(
+  root: string,
+  contextPayload: Record<string, unknown>,
+  lifecycle: TerminalLifecycleInspection,
+): Promise<string[]> {
+  if (!lifecycle.repositoryChange.changed || typeof contextPayload.observationId !== "string")
+    return [];
+  const before = await readPreparedRepositorySnapshot(root, contextPayload.observationId);
+  if (before === null) return [];
+  const after = await captureTerminalRepositorySnapshot(root);
+  const paths = new Set([...Object.keys(before.files), ...Object.keys(after.files)]);
+  return [...paths].filter((path) => before.files[path] !== after.files[path]).sort();
+}
+
 /** Appends the planned change with the observed turn's coordinates in the Stop transaction. */
 export function appendTerminalRepositoryChange(
   transaction: OutboxTransaction,
