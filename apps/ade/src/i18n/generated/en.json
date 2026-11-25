@@ -165,6 +165,16 @@
       "value": "Opening the conversation"
     }
   ],
+  "conversation.peer.from": [
+    {
+      "type": 0,
+      "value": "From "
+    },
+    {
+      "type": 1,
+      "value": "name"
+    }
+  ],
   "conversation.queued": [
     {
       "type": 0,

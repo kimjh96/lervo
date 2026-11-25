@@ -91,6 +91,10 @@
     "defaultMessage": "Opening the conversation",
     "description": "Where the conversation will appear, while the session host attaches and loads its newest page, or starts the session again."
   },
+  "conversation.peer.from": {
+    "defaultMessage": "From {name}",
+    "description": "Above a message another agent session sent this one; {name} is that session's name, such as lervo-b9."
+  },
   "conversation.queued": {
     "defaultMessage": "Queued · the agent reads it at its next step",
     "description": "Under a reply sent while the agent worked: the agent reads it between steps of its running turn; it fades when the agent's next item arrives."

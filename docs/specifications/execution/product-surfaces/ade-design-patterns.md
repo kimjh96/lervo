@@ -117,6 +117,7 @@ These patterns are defined with the features that need them:
 - **Waiting** names the activity: "Writing a reply", "Creating the workspace", "Stopping the session". "Waiting" in the patterns defines where it shows.
 - **Failure** states what failed, its code, and the next step.
 - **A notice** states the condition and what continues.
+- **Another session's message** sits at the start of the line in a hairline frame, under _From lervo-b9_, so it never reads as the person's message or the agent's own.
 - **A compaction** is a thin divider across the column: _Context compacted_, or _You compacted the context_ after /compact. It claims nothing about what Lervo sent again, which the stream does not show.
 - **A reply sent while the agent works** says _Queued · the agent reads it at its next step_ under its bubble until the agent's next item arrives.
 - **A turn's summary** leads with how long the turn took and adds only what it did beyond the usual; its card shows only rows with something to say. "None", "Unchanged", and a passed check stay out.

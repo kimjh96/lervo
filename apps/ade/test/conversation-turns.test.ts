@@ -74,4 +74,25 @@ describe("turns in the conversation", () => {
     expect(html).toContain("Context compacted");
     expect(html).not.toContain("Lervo");
   });
+
+  it("frames and names a message another session sent", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: messagesFor("en") },
+        createElement(ConversationItemView, {
+          item: {
+            kind: "peer_message",
+            itemId: "p1",
+            createdAtMs: 1,
+            state: "complete",
+            from: "lervo-b9",
+            text: "v0.53.0 released.",
+          },
+        }),
+      ),
+    );
+    expect(html).toContain("From lervo-b9");
+    expect(html).toContain("v0.53.0 released.");
+  });
 });
