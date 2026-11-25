@@ -3,6 +3,8 @@
 // The launcher is the client. Nothing here runs before the client commits with `G`, so a prompt is
 // recorded once: either here, or by the client's in-process fallback, never both.
 import { createServer, type Server, type Socket } from "node:net";
+import { homedir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import { rmSync, statSync } from "node:fs";
 import { chmod, rm, stat } from "node:fs/promises";
 
@@ -98,6 +100,36 @@ export function parseTerminalContextRequest(line: string): TerminalContextReques
   return value as TerminalContextRequest;
 }
 
+/**
+ * What each variable means for the hook path: an unset variable stands for its default, so a
+ * service that sets `LERVO_USER_STATE_DIRECTORY` to the default path matches a session that leaves
+ * it unset.
+ */
+export function effectiveTerminalContextEnvironment(
+  environment: TerminalContextRequest["environment"],
+  platform: NodeJS.Platform = process.platform,
+): TerminalContextRequest["environment"] {
+  const home = environment.HOME ?? homedir();
+  const stateHome = environment.XDG_STATE_HOME ?? join(home, ".local", "state");
+  const userState =
+    environment.LERVO_USER_STATE_DIRECTORY !== null &&
+    isAbsolute(environment.LERVO_USER_STATE_DIRECTORY)
+      ? environment.LERVO_USER_STATE_DIRECTORY
+      : platform === "darwin"
+        ? join(home, "Library", "Application Support", "Lervo")
+        : join(stateHome, "lervo");
+  return {
+    CLAUDE_CONFIG_DIR: environment.CLAUDE_CONFIG_DIR ?? join(home, ".claude"),
+    CODEX_HOME: environment.CODEX_HOME ?? join(home, ".codex"),
+    HOME: home,
+    LERVO_USER_CAPABILITY_ROOT: environment.LERVO_USER_CAPABILITY_ROOT,
+    LERVO_USER_STATE_DIRECTORY: userState,
+    LERVO_WORKSPACES_HOME: environment.LERVO_WORKSPACES_HOME ?? join(home, ".lervo", "workspaces"),
+    XDG_CONFIG_HOME: environment.XDG_CONFIG_HOME ?? join(home, ".config"),
+    XDG_STATE_HOME: stateHome,
+  };
+}
+
 export function terminalContextEnvironment(
   environment: NodeJS.ProcessEnv,
 ): TerminalContextRequest["environment"] {
@@ -126,9 +158,11 @@ export function startTerminalContextServer(input: {
   run: (request: TerminalContextRequest) => Promise<TerminalContextAnswer>;
   onOverrun?: () => void;
   runLimitMs?: number;
+  /** Notes each request's outcome, so a canary can read whether prompts were served. */
+  onOutcome?: (outcome: "served" | TerminalContextDecline) => void;
 }): TerminalContextServer {
   let bound: { dev: number; ino: number } | null = null;
-  const own = terminalContextEnvironment(input.environment);
+  const own = effectiveTerminalContextEnvironment(terminalContextEnvironment(input.environment));
   let busy = false;
   const connections = new Set<Socket>();
   const server: Server = createServer((socket) => {
@@ -138,6 +172,7 @@ export function startTerminalContextServer(input: {
   });
 
   function decline(socket: Socket, reason: TerminalContextDecline) {
+    input.onOutcome?.(reason);
     socket.end(`${JSON.stringify({ declined: reason })}\n`);
   }
 
@@ -171,7 +206,8 @@ export function startTerminalContextServer(input: {
         const rest = buffered.subarray(end + 1);
         if (parsed === null) return decline(socket, "invalid_request");
         if (parsed.runtime !== input.runtimeHash) return decline(socket, "runtime_mismatch");
-        if (TERMINAL_CONTEXT_ENVIRONMENT.some((name) => parsed.environment[name] !== own[name]))
+        const theirs = effectiveTerminalContextEnvironment(parsed.environment);
+        if (TERMINAL_CONTEXT_ENVIRONMENT.some((name) => theirs[name] !== own[name]))
           return decline(socket, "environment_mismatch");
         if (busy) return decline(socket, "busy");
         busy = true;
@@ -188,6 +224,7 @@ export function startTerminalContextServer(input: {
       if (chunk[0] !== 0x47 /* G */) return socket.destroy();
       committed = true;
       if (commitTimer !== undefined) clearTimeout(commitTimer);
+      input.onOutcome?.("served");
       const current = request!;
       // A run that never settles would keep the server busy forever; the caller exits instead.
       const watchdog = setTimeout(() => input.onOverrun?.(), input.runLimitMs ?? 30_000);

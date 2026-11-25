@@ -57,7 +57,7 @@ function fakeStart() {
 it("runs one server from the store's runtime and replaces it when the runtime changes", async () => {
   const store = await storeWith("a");
   const { start, started } = fakeStart();
-  const supervisor = superviseTerminalContextServer({ store, start });
+  const supervisor = superviseTerminalContextServer({ store, start, supports: async () => true });
   await supervisor.ensure();
   await supervisor.ensure();
   expect(started).toHaveLength(1);
@@ -79,7 +79,12 @@ it("restarts a server that exits, backing off while it keeps failing", async () 
   const store = await storeWith("a");
   const { start, started } = fakeStart();
   let clock = 0;
-  const supervisor = superviseTerminalContextServer({ store, start, now: () => clock });
+  const supervisor = superviseTerminalContextServer({
+    store,
+    start,
+    now: () => clock,
+    supports: async () => true,
+  });
   await supervisor.ensure();
   started[0]!.child.emit("close", 1);
   await vi.advanceTimersByTimeAsync(399);
@@ -97,7 +102,7 @@ it("restarts a server that exits, backing off while it keeps failing", async () 
 it("starts nothing without a runtime, and nothing after it stopped", async () => {
   const store = await storeWith(null);
   const { start, started } = fakeStart();
-  const supervisor = superviseTerminalContextServer({ store, start });
+  const supervisor = superviseTerminalContextServer({ store, start, supports: async () => true });
   await supervisor.ensure();
   expect(started).toHaveLength(0);
   await point(store, "a");
@@ -110,11 +115,24 @@ it("keeps restarting after a spawn that failed, which emits no exit", async () =
   vi.useFakeTimers();
   const store = await storeWith("a");
   const { start, started } = fakeStart();
-  const supervisor = superviseTerminalContextServer({ store, start });
+  const supervisor = superviseTerminalContextServer({ store, start, supports: async () => true });
   await supervisor.ensure();
   started[0]!.child.emit("error", Object.assign(new Error("spawn"), { code: "ENOENT" }));
   started[0]!.child.emit("close", -2);
   await vi.advanceTimersByTimeAsync(400);
   await vi.waitFor(() => expect(started).toHaveLength(2));
+  await supervisor.stop();
+});
+
+it("starts no runtime that lacks the server mode", async () => {
+  const store = await storeWith("a");
+  const { start, started } = fakeStart();
+  const supports = vi.fn(async () => false);
+  const supervisor = superviseTerminalContextServer({ store, start, supports });
+  await supervisor.ensure();
+  await supervisor.ensure();
+  expect(started).toHaveLength(0);
+  // Asked once per runtime, not on every scan.
+  expect(supports).toHaveBeenCalledTimes(1);
   await supervisor.stop();
 });

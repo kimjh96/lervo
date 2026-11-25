@@ -43,6 +43,18 @@ export async function currentTerminalContextRuntime(
   }
 }
 
+/**
+ * Whether the runtime has the server mode. A runtime from before it treats `context-server` as hook
+ * arguments and exits at once, as happens for a moment while an upgrade moves the pointer.
+ */
+async function servesContext(runtime: TerminalContextRuntime): Promise<boolean> {
+  try {
+    return (await readFile(runtime.entry, "utf8")).includes('"context-server"');
+  } catch {
+    return false;
+  }
+}
+
 export interface TerminalContextSupervisor {
   /** Starts the server, or replaces it when the store names another runtime. */
   ensure(): Promise<void>;
@@ -54,7 +66,11 @@ export function superviseTerminalContextServer(input: {
   /** Test seam: starts the server process for `runtime`. */
   start?: (runtime: TerminalContextRuntime, store: string) => ChildProcess;
   now?: () => number;
+  /** Test seam: whether a runtime has the server mode. */
+  supports?: (runtime: TerminalContextRuntime) => Promise<boolean>;
 }): TerminalContextSupervisor {
+  const supports = input.supports ?? servesContext;
+  const supported = new Map<string, boolean>();
   const now = input.now ?? (() => Date.now());
   const start =
     input.start ??
@@ -115,6 +131,9 @@ export function superviseTerminalContextServer(input: {
       if (child !== null && runtime?.contentHash === child.runtime.contentHash) return;
       await terminate();
       if (runtime === null || stopped || restart !== null) return;
+      if (!supported.has(runtime.contentHash))
+        supported.set(runtime.contentHash, await supports(runtime));
+      if (supported.get(runtime.contentHash) !== true) return;
       launch(runtime);
     },
     async stop() {

@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 
 import {
+  effectiveTerminalContextEnvironment,
   startTerminalContextServer,
   terminalContextEnvironment,
   type TerminalContextAnswer,
@@ -211,4 +212,56 @@ it("waits for work a prompt left running before the next one, and exits if it ne
   await exchange(socketPath, JSON.stringify(request()));
   settle(false);
   await vi.waitFor(() => expect(onOverrun).toHaveBeenCalledTimes(1));
+});
+
+it("compares what each variable means, so a service's explicit defaults still match", () => {
+  const unset = terminalContextEnvironment({ HOME: "/Users/owner" });
+  const explicit = terminalContextEnvironment({
+    HOME: "/Users/owner",
+    LERVO_USER_STATE_DIRECTORY: "/Users/owner/Library/Application Support/Lervo",
+    CODEX_HOME: "/Users/owner/.codex",
+  });
+  expect(effectiveTerminalContextEnvironment(unset, "darwin")).toEqual(
+    effectiveTerminalContextEnvironment(explicit, "darwin"),
+  );
+  const elsewhere = terminalContextEnvironment({
+    HOME: "/Users/owner",
+    LERVO_USER_STATE_DIRECTORY: "/Volumes/other/Lervo",
+  });
+  expect(effectiveTerminalContextEnvironment(elsewhere, "darwin")).not.toEqual(
+    effectiveTerminalContextEnvironment(unset, "darwin"),
+  );
+  // On Linux the default follows XDG_STATE_HOME.
+  expect(
+    effectiveTerminalContextEnvironment(
+      terminalContextEnvironment({
+        HOME: "/home/owner",
+        XDG_STATE_HOME: "/home/owner/.local/state",
+      }),
+      "linux",
+    ).LERVO_USER_STATE_DIRECTORY,
+  ).toBe("/home/owner/.local/state/lervo");
+});
+
+it("reports each outcome", async () => {
+  const outcomes: string[] = [];
+  const directory = await mkdtemp(resolve(tmpdir(), "lvctx-"));
+  const socketPath = resolve(directory, "context.s");
+  const server = startTerminalContextServer({
+    socketPath,
+    runtimeHash,
+    environment,
+    run: async () => answer,
+    onOutcome: (outcome) => outcomes.push(outcome),
+  });
+  await server.ready;
+  await exchange(socketPath, JSON.stringify(request()));
+  await exchange(
+    socketPath,
+    JSON.stringify(request({ runtime: `sha256:${"c".repeat(64)}` })),
+    false,
+  );
+  expect(outcomes).toEqual(["served", "runtime_mismatch"]);
+  await server.close();
+  await rm(directory, { recursive: true, force: true });
 });
