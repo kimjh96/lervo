@@ -1,7 +1,7 @@
 import { createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
 import { createCodexHostedSessionAdapter } from "@lervo/adapter-codex";
 import { workspaceStartBaseSchema } from "@lervo/session-host-contract";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CommandFailure } from "../src/command-error-output.js";
 import type { HostedLaunchRecord } from "../src/hosted-launch-records.js";
@@ -16,6 +16,10 @@ import {
   type WorkspaceStartPorts,
   workspacePathFor,
 } from "../src/workspace-start.js";
+
+beforeEach(() => {
+  vi.stubEnv("LERVO_WORKSPACES_HOME", "/lervo/workspaces");
+});
 
 const request = {
   instruction: "Fix the flaky login test\nIt fails on CI about once a day.",
@@ -88,7 +92,9 @@ describe("workspace names", () => {
     );
     expect(branchFor("로그인 테스트 고쳐줘", "1a2b3c")).toBe("lervo/work-1a2b3c");
     expect(branchFor("a ".repeat(40) + "z".repeat(50), "1a2b3c").length).toBeLessThan(60);
-    expect(workspacePathFor("/work/lervo", "lervo/fix-1a2b3c")).toBe("/work/lervo-wt/fix-1a2b3c");
+    expect(workspacePathFor("/work/lervo", "lervo/fix-1a2b3c", "/home/me/lervo/workspaces")).toBe(
+      "/home/me/lervo/workspaces/lervo/fix-1a2b3c",
+    );
   });
 });
 
@@ -97,7 +103,7 @@ describe("workspace start", () => {
     const fake = ports();
     const result = await startWorkspace(request, fake.value);
     expect(fake.effects).toEqual([
-      "provision lervo/fix-the-flaky-login-test-1a2b3c at /work/lervo-wt/fix-the-flaky-login-test-1a2b3c",
+      "provision lervo/fix-the-flaky-login-test-1a2b3c at /lervo/workspaces/lervo/fix-the-flaky-login-test-1a2b3c",
       "workstream Fix the flaky login test",
     ]);
     expect(result).toMatchObject({

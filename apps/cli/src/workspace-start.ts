@@ -1,4 +1,5 @@
-import { basename, dirname, resolve } from "node:path";
+import { homedir } from "node:os";
+import { basename, isAbsolute, resolve } from "node:path";
 
 import {
   HostedLaunchError,
@@ -160,10 +161,25 @@ export function branchFor(title: string, suffix: string): string {
   return `lervo/${slug.length === 0 ? "work" : slug}-${suffix}`;
 }
 
-/** The worktree path: beside the repository, in `<name>-wt/`, named after the branch. */
-export function workspacePathFor(repositoryRoot: string, branch: string): string {
+/**
+ * Where hosted workspaces live: `~/lervo/workspaces`, apart from the owner's projects, so starting
+ * work never adds a folder beside a repository. `LERVO_WORKSPACES_HOME` moves it, as tests do.
+ */
+export function workspacesHome(environment: NodeJS.ProcessEnv = process.env): string {
+  const override = environment.LERVO_WORKSPACES_HOME;
+  if (override !== undefined && isAbsolute(override) && !/[\0\r\n]/u.test(override))
+    return resolve(override);
+  return resolve(homedir(), "lervo", "workspaces");
+}
+
+/** The worktree path: `<workspaces home>/<repository name>/<branch leaf>`. */
+export function workspacePathFor(
+  repositoryRoot: string,
+  branch: string,
+  home: string = workspacesHome(),
+): string {
   const leaf = branch.slice(branch.lastIndexOf("/") + 1);
-  return resolve(dirname(repositoryRoot), `${basename(repositoryRoot)}-wt`, leaf);
+  return resolve(home, basename(repositoryRoot), leaf);
 }
 
 function stageFailure(

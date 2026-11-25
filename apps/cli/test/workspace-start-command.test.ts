@@ -46,6 +46,7 @@ async function fixture(options: { uncommitted?: boolean } = {}) {
   await mkdir(bin);
   await writeFile(resolve(bin, "claude"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   vi.stubEnv("LERVO_USER_STATE_DIRECTORY", state);
+  vi.stubEnv("LERVO_WORKSPACES_HOME", resolve(root, "workspaces"));
   vi.stubEnv("PATH", `${bin}${delimiter}${process.env.PATH ?? ""}`);
   await git(repository, "init", "--initial-branch", "main");
   await git(repository, "config", "user.email", "lervo-test@example.invalid");
@@ -148,7 +149,10 @@ describe("lervo workspace start and open", () => {
     );
     expect(result.launch.initialInput).toBe(instruction);
     const worktree = result.launch.workingDirectory;
-    expect(worktree).toBe(resolve(app.root, "app-wt", result.branch.slice("lervo/".length)));
+    // Workspaces live apart from the project, never in a folder beside it.
+    expect(worktree).toBe(
+      resolve(app.root, "workspaces", "app", result.branch.slice("lervo/".length)),
+    );
     expect(await git(worktree, "branch", "--show-current")).toBe(result.branch);
     const current = JSON.parse(
       await readFile(resolve(worktree, ".lervo/state/workstreams/current.json"), "utf8"),
