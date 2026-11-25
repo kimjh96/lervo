@@ -331,6 +331,11 @@ export class SQLiteEventStore implements OutboxStore {
     return this.events.list(options);
   }
 
+  listNewestFirst(options: { types: readonly string[]; beforeSeq?: number; limit?: number }) {
+    this.assertOpen();
+    return this.events.listNewestFirst(options);
+  }
+
   listOutbox(options: ListOutboxOptions = {}): OutboxDelivery[] {
     this.assertOpen();
     return this.outbox.list(options);

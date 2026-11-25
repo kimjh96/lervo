@@ -293,17 +293,66 @@ export class SQLiteEventRepository {
     }
     conditions.push("seq > ?");
     parameters.push(afterSeq, limit);
-    const rows = sqliteRows(
-      this.database
-        .prepare(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`)
-        .all(...parameters),
-    );
+    // SQLite answers `type IN (two or more)` through the (project, seq) index and filters every
+    // later row, a scan of the whole history; one query per type uses the type index instead.
+    const rows =
+      types !== undefined && types.length > 1 && options.runId === undefined
+        ? types
+            .flatMap((type) =>
+              sqliteRows(
+                preparedStatement(
+                  this.database,
+                  "SELECT * FROM events WHERE project_id = ? AND type = ? AND seq > ? ORDER BY seq LIMIT ?",
+                ).all(this.projectId, type, afterSeq, limit),
+              ),
+            )
+            .sort((left, right) => Number(left.seq) - Number(right.seq))
+            .slice(0, limit)
+        : sqliteRows(
+            this.database
+              .prepare(
+                `SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`,
+              )
+              .all(...parameters),
+          );
     const events = linkedEvents(rows.map(rowToEvent));
     // A filtered page skips sequences, so each returned run of adjacent events is checked at its
     // edges; an unfiltered page is one run.
     if (events.length > 0 && options.runId === undefined && types === undefined)
       this.linkedToNeighbours(events[0]!, events.at(-1)!);
     else for (const event of events) this.linkedToNeighbours(event);
+    return events;
+  }
+
+  listNewestFirst(options: {
+    types: readonly string[];
+    beforeSeq?: number;
+    limit?: number;
+  }): EventEnvelope[] {
+    const types = [...new Set(options.types)];
+    const limit = options.limit ?? 100;
+    const beforeSeq = options.beforeSeq ?? Number.MAX_SAFE_INTEGER;
+    if (types.length < 1 || types.length > maximumListedTypes || types.some((type) => !type))
+      throw new RangeError(
+        `types must name between 1 and ${maximumListedTypes} non-empty event types.`,
+      );
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000)
+      throw new RangeError("limit must be a safe integer between 1 and 1000.");
+    if (!Number.isSafeInteger(beforeSeq) || beforeSeq < 1)
+      throw new RangeError("beforeSeq must be a safe integer of at least 1.");
+    const rows = types
+      .flatMap((type) =>
+        sqliteRows(
+          preparedStatement(
+            this.database,
+            "SELECT * FROM events WHERE project_id = ? AND type = ? AND seq < ? ORDER BY seq DESC LIMIT ?",
+          ).all(this.projectId, type, beforeSeq, limit),
+        ),
+      )
+      .sort((left, right) => Number(right.seq) - Number(left.seq))
+      .slice(0, limit);
+    const events = rows.map(rowToEvent);
+    for (const event of events) this.linkedToNeighbours(event);
     return events;
   }
 

@@ -238,3 +238,43 @@ describe("SQLite type-filtered event pages", () => {
     readOnly.close();
   });
 });
+
+describe("SQLite newest-first type pages", () => {
+  it("returns the filtered walk in reverse, page by page, for every page size", async () => {
+    const store = await SQLiteEventStore.open({
+      path: await databasePath(),
+      projectId,
+      writableEventSchemaVersion: 2,
+    });
+    for (let index = 1; index <= 40; index += 1)
+      store.append(index % 3 === 0 ? causal(index) : requested(index));
+    for (const types of [
+      ["work.causality.recorded"],
+      ["run.requested", "work.causality.recorded"],
+      ["absent.type"],
+    ]) {
+      const expected = filteredWalk(store, types).reverse();
+      for (const limit of [1, 5, 1000]) {
+        const all: EventEnvelope[] = [];
+        let beforeSeq: number | undefined;
+        for (;;) {
+          const page = store.listNewestFirst({
+            types,
+            limit,
+            ...(beforeSeq === undefined ? {} : { beforeSeq }),
+          });
+          all.push(...page);
+          if (page.length < limit) break;
+          beforeSeq = page.at(-1)!.seq;
+        }
+        expect(all).toEqual(expected);
+      }
+    }
+    expect(() => store.listNewestFirst({ types: [] })).toThrow(RangeError);
+    expect(() => store.listNewestFirst({ types: ["run.requested"], limit: 0 })).toThrow(RangeError);
+    expect(() => store.listNewestFirst({ types: ["run.requested"], beforeSeq: 0 })).toThrow(
+      RangeError,
+    );
+    store.close();
+  });
+});
