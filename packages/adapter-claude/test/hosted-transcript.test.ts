@@ -57,6 +57,20 @@ const lines = [
     timestamp: at(8),
     message: { content: [{ type: "text", text: "Terminal에서 보낸 메시지" }] },
   },
+  {
+    type: "system",
+    subtype: "compact_boundary",
+    timestamp: at(9),
+    content: "Conversation compacted",
+    compactMetadata: { trigger: "auto", preTokens: 968011 },
+  },
+  {
+    type: "user",
+    timestamp: at(10),
+    isCompactSummary: true,
+    isVisibleInTranscriptOnly: true,
+    message: { content: "This session is being continued from a previous conversation." },
+  },
 ];
 
 describe("Claude Code transcripts", () => {
@@ -101,6 +115,15 @@ describe("Claude Code transcripts", () => {
         {
           content: { kind: "user_message", text: "Terminal에서 보낸 메시지" },
           createdAtMs: Date.parse(at(8)),
+        },
+        // A compaction shows as its notice; the summary it wrote for the model does not show.
+        {
+          content: {
+            kind: "lervo_notice",
+            code: "context_compacted",
+            parameters: { trigger: "auto" },
+          },
+          createdAtMs: Date.parse(at(9)),
         },
       ]);
     } finally {

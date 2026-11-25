@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_18e52424818325b211ea3a66"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Decode a Claude Code compaction as a notice, and keep its summary for the model out of rebuilt conversations."
