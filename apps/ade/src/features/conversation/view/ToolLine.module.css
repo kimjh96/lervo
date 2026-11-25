@@ -1,0 +1,139 @@
+/* A tool call as a quiet meta line (approved mockup 3, "A turn as it runs"): the tool's name, what
+   it acted on in the mono face, and its result at the end. A call with output or a change opens
+   at once to its preview, which fades in over `enter`; its height never animates (ADE motion,
+   "Disclosure"). */
+.tool {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.plain,
+.summary {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
+.plain {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.plain[data-status="failed"] {
+  color: var(--color-status-failed);
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  min-width: 0;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  margin-inline: calc(var(--space-4) * -1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--type-meta-size);
+  text-align: start;
+  background: transparent;
+}
+
+button.summary {
+  cursor: pointer;
+}
+
+button.summary:hover {
+  background: var(--color-surface-hover);
+}
+
+button.summary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-inset);
+}
+
+.caret {
+  display: inline-flex;
+  flex: none;
+  align-self: center;
+  width: var(--size-icon-sm);
+  transform: rotate(-90deg);
+  transition: transform var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.caret[data-open="true"] {
+  transform: none;
+}
+
+.name {
+  flex: none;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.subject {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subject[data-mono="true"] {
+  font-family: var(--font-family-mono);
+  font-size: var(--type-mono-size);
+}
+
+.result {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-6);
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+
+.result[data-status="failed"] {
+  color: var(--color-status-failed);
+}
+
+.added {
+  color: var(--color-diff-added);
+}
+
+.removed {
+  color: var(--color-diff-removed);
+}
+
+.preview {
+  margin-inline-start: calc(var(--size-icon-sm) + var(--space-8));
+  padding-block: var(--space-10);
+  padding-inline: var(--space-12);
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-mono);
+  font-size: var(--type-mono-size);
+  line-height: var(--type-meta-line-height);
+  white-space: pre;
+  background: var(--color-surface-code);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.line[data-change="added"] {
+  color: var(--color-diff-added);
+}
+
+.line[data-change="removed"] {
+  color: var(--color-diff-removed);
+}
+
+.line[data-change="hunk"],
+.omitted {
+  color: var(--color-text-tertiary);
+}
+
+.omitted {
+  font-family: var(--font-family-interface);
+  font-size: var(--type-meta-size);
+}

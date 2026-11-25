@@ -16,9 +16,24 @@
       "createdAtMs": 1795356061000,
       "state": "complete",
       "tool": {
-        "name": "Read",
+        "name": "Edit",
         "status": "succeeded",
-        "calls": 6
+        "calls": 1,
+        "detail": {
+          "subject": { "kind": "path", "text": "src/login.ts" },
+          "counts": { "added": 2, "removed": 1 },
+          "preview": {
+            "format": "diff",
+            "lines": [
+              "@@ -3,1 +3,2 @@",
+              "-export const maximum = 64;",
+              "+/** Every password limit lives here. */",
+              "+export const maximum = 1024;"
+            ],
+            "omittedLines": 0,
+            "omittedAt": 4
+          }
+        }
       }
     },
     {

@@ -75,20 +75,61 @@ fn item(position: u64, sequence: &mut Sequence) -> Result<ConversationItem, serd
             "kind": "user_message", "itemId": id, "createdAtMs": created, "state": "complete",
             "text": REQUESTS[sequence.next(REQUESTS.len())],
         }),
-        1 => json!({
-            "kind": "tool_activity", "itemId": id, "createdAtMs": created, "state": "complete",
-            "tool": {
-                "name": TOOLS[sequence.next(TOOLS.len())],
-                "status": "succeeded",
-                "calls": sequence.next(6) + 1,
-            },
-        }),
+        1 => {
+            let name = TOOLS[sequence.next(TOOLS.len())];
+            // The draw for the old call count keeps the rest of the sequence as it was.
+            let _ = sequence.next(6);
+            json!({
+                "kind": "tool_activity", "itemId": id, "createdAtMs": created, "state": "complete",
+                "tool": { "name": name, "status": "succeeded", "calls": 1, "detail": detail(name) },
+            })
+        }
         _ => json!({
             "kind": "agent_message", "itemId": id, "createdAtMs": created, "state": "complete",
             "text": reply(sequence),
         }),
     };
     serde_json::from_value(value)
+}
+
+/// What each seeded tool call acted on and showed.
+fn detail(name: &str) -> serde_json::Value {
+    match name {
+        "Read" => {
+            json!({ "subject": { "kind": "path", "text": "src/session/index.ts" }, "counts": { "lines": 42 } })
+        }
+        "Grep" => json!({
+            "subject": { "kind": "pattern", "text": "maximum" },
+            "counts": { "files": 3 },
+            "preview": {
+                "format": "output",
+                "lines": ["src/login.ts", "src/limits.ts", "docs/limits.md"],
+                "omittedLines": 0, "omittedAt": 3,
+            },
+        }),
+        "Bash" => json!({
+            "subject": { "kind": "command", "text": "pnpm test login" },
+            "preview": {
+                "format": "output",
+                "lines": [" ✓ login.test.ts (4 tests) 12ms", "", " Test Files  1 passed (1)", "      Tests  4 passed (4)"],
+                "omittedLines": 0, "omittedAt": 4,
+            },
+        }),
+        _ => json!({
+            "subject": { "kind": "path", "text": "src/login.ts" },
+            "counts": { "added": 2, "removed": 1 },
+            "preview": {
+                "format": "diff",
+                "lines": [
+                    "@@ -3,1 +3,2 @@",
+                    "-export const maximum = 64;",
+                    "+/** Every password limit lives here. */",
+                    "+export const maximum = 1024;",
+                ],
+                "omittedLines": 0, "omittedAt": 4,
+            },
+        }),
+    }
 }
 
 /// One to three paragraphs of one to three sentences.

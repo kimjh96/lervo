@@ -13,6 +13,7 @@ import {
   parametersSchema,
 } from "./primitives.js";
 import { conversationModeSchema } from "./session.js";
+import { toolDetailSchema } from "./tool-detail.js";
 
 const requestIdSchema = { type: "integer", minimum: 1 } as const;
 const textSchema = { type: "string", maxLength: 262144 } as const;
@@ -218,6 +219,7 @@ export const decodedContentSchemas = [
       name: { type: "string", minLength: 1, maxLength: 64 },
       status: { type: "string", enum: ["running", "succeeded", "failed"] },
       calls: { type: "integer", minimum: 1 },
+      detail: toolDetailSchema,
     },
   },
   {

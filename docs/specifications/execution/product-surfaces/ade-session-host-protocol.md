@@ -109,15 +109,30 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 
 A conversation item has an opaque `itemId`, a `kind`, a creation time, and a `state` of `streaming` or `complete`. A streaming item becomes complete when `conversation.appended` repeats it with the state `complete`.
 
-| Kind            | Content                                                                  |
-| --------------- | ------------------------------------------------------------------------ |
-| `user_message`  | The user's text                                                          |
-| `agent_message` | The agent's text, streamed through `conversation.delta`                  |
-| `tool_activity` | The tool name, a status, and a count of calls, without inputs or outputs |
-| `question`      | The agent's question to the user                                         |
-| `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`            |
+| Kind            | Content                                                                |
+| --------------- | ---------------------------------------------------------------------- |
+| `user_message`  | The user's text                                                        |
+| `agent_message` | The agent's text, streamed through `conversation.delta`                |
+| `tool_activity` | The tool name, a status, a count of calls, and an optional tool detail |
+| `question`      | The agent's question to the user                                       |
+| `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`          |
 
 A Lervo notice carries a code, never a sentence, and the interface renders it from its message catalog. Conversation text from the user and the agent passes through unchanged.
+
+### Tool detail
+
+A tool call's `detail` says what the call acted on and what it showed, bounded so a page of tool lines stays well within one frame. The provider's transcript keeps the full input and output.
+
+| Field     | Content                                                                                                                                                                                 |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `subject` | What the call acted on: a `path` relative to the workspace or `~/…`, a `command`, a `pattern`, a `query`, a `url`, or `text`; at most 512 characters                                    |
+| `counts`  | Optional `lines`, `matches`, `files`, `added`, and `removed`                                                                                                                            |
+| `preview` | The `output` or `diff` lines the line opens to: at most 24 lines of 240 characters and 1,536 characters in all. `omittedLines` lines were left out before the line at index `omittedAt` |
+
+- An output keeps its first six lines and as many of its last as fit, where errors and summaries appear. A diff keeps its start.
+- A failed call previews its error. A call whose input names nothing to show, such as a task list, has no detail.
+- The adapter builds the detail; the session host drops one that is not valid or that exceeds 6 KiB, and the line still shows the call. A line stored before details existed shows the tool and its status.
+- The conversation index stores what the provider's transcript already holds, under the same owner-only state directory. Logs and Lervo events never hold tool inputs or outputs.
 
 ## Limits
 

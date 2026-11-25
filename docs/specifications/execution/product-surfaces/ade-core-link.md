@@ -101,4 +101,4 @@ Every request carries a positive integer `id`, and the resident process answers 
 ## Privacy
 
 - Conversation text crosses only the pipes between the session host and its child. Neither side logs message bodies.
-- Decoders never put tool inputs or tool outputs into events; tool activity carries the tool's name, status, and call count only.
+- Decoded tool activity carries the tool's name, status, and call count, and a bounded [tool detail](ade-session-host-protocol.md#tool-detail), never a full input or output. The session host drops a detail beyond 6 KiB and keeps the line. Lervo's event store receives no tool input or output from a decoder.

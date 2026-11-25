@@ -81,7 +81,16 @@ describe("Claude Code transcripts", () => {
       expect(items).toEqual([
         { content: { kind: "user_message", text: "테스트" }, createdAtMs: Date.parse(at(1)) },
         {
-          content: { kind: "tool_activity", name: "Bash", status: "succeeded", calls: 1 },
+          content: {
+            kind: "tool_activity",
+            name: "Bash",
+            status: "succeeded",
+            calls: 1,
+            detail: {
+              subject: { kind: "command", text: "git status" },
+              preview: { format: "output", lines: ["clean"], omittedLines: 0, omittedAt: 1 },
+            },
+          },
           createdAtMs: Date.parse(at(4)),
         },
         {

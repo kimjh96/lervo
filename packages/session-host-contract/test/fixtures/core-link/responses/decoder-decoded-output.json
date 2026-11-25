@@ -7,7 +7,21 @@
     { "kind": "finish" },
     {
       "kind": "item",
-      "content": { "kind": "tool_activity", "name": "Edit", "status": "succeeded", "calls": 1 },
+      "content": {
+        "kind": "tool_activity",
+        "name": "Bash",
+        "status": "failed",
+        "calls": 1,
+        "detail": {
+          "subject": { "kind": "command", "text": "pnpm test login" },
+          "preview": {
+            "format": "output",
+            "lines": ["FAIL login.test.ts", "Tests  1 failed (4)"],
+            "omittedLines": 12,
+            "omittedAt": 1
+          }
+        }
+      },
       "createdAtMs": 3
     },
     {

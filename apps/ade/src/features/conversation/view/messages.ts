@@ -14,6 +14,13 @@ export const activityMessages: Readonly<
   tool: { id: "conversation.tool.running" },
 };
 
+/** A tool line's count at its end, by the count it shows; the first present one wins. */
+export const toolCountMessages = [
+  ["matches", { id: "conversation.tool.matches" }],
+  ["files", { id: "conversation.tool.files" }],
+  ["lines", { id: "conversation.tool.lines" }],
+] as const satisfies readonly (readonly [string, MessageDescriptor])[];
+
 /** A tool line's text for each status. */
 export const toolMessages: Readonly<
   Record<Extract<ConversationItem, { kind: "tool_activity" }>["tool"]["status"], MessageDescriptor>

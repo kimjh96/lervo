@@ -5,6 +5,8 @@ import { createInterface } from "node:readline";
 
 import type { HostedDecodedContent, HostedTranscriptItem } from "@lervo/adapter-contract";
 
+import { claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
+
 /** A line longer than this is skipped, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
 const MAX_TOOL_NAME_CHARACTERS = 64;
@@ -38,11 +40,14 @@ export function claudeTranscriptPath(
 /**
  * Decodes Claude Code's transcript into the items the native conversation shows, as the stream
  * decoder does for a live session: the person's messages, the agent's text, and one tool-activity
- * item per tool result. Subagent lines, meta lines, thinking, and tool inputs and outputs are not
- * part of the conversation.
+ * item per tool result with the same detail. Subagent lines, meta lines, and thinking are not part
+ * of the conversation.
  */
 export class ClaudeTranscriptDecoder {
-  private readonly toolNames = new Map<string, string>();
+  /** Calls whose result has not been read, by tool use ID. */
+  private readonly tools = new Map<string, ClaudeToolCall>();
+
+  constructor(private readonly home: string | undefined = homedir()) {}
 
   line(source: string): HostedTranscriptItem[] {
     if (source.length > MAX_LINE_CHARACTERS) return [];
@@ -57,12 +62,20 @@ export class ClaudeTranscriptDecoder {
     if (Number.isNaN(createdAtMs)) return [];
     const message = record(line.message);
     const content = message?.content;
-    if (line.type === "user") return this.user(content, createdAtMs);
+    if (line.type === "user")
+      return this.user(content, createdAtMs, {
+        workingDirectory: text(line.cwd),
+        structured: line.toolUseResult,
+      });
     if (line.type === "assistant") return this.assistant(content, createdAtMs);
     return [];
   }
 
-  private user(content: unknown, createdAtMs: number): HostedTranscriptItem[] {
+  private user(
+    content: unknown,
+    createdAtMs: number,
+    context: { readonly workingDirectory: string | undefined; readonly structured: unknown },
+  ): HostedTranscriptItem[] {
     if (typeof content === "string")
       return content.trim().length === 0
         ? []
@@ -70,22 +83,35 @@ export class ClaudeTranscriptDecoder {
     if (!Array.isArray(content)) return [];
     const items: HostedTranscriptItem[] = [];
     const words: string[] = [];
-    for (const block of content.map(record)) {
-      if (block === undefined) continue;
+    const blocks = content.map(record).filter((block): block is Line => block !== undefined);
+    const results = blocks.filter((block) => block.type === "tool_result").length;
+    for (const block of blocks) {
       const value = text(block.text);
       if (block.type === "text" && value !== undefined) words.push(value);
       if (block.type !== "tool_result") continue;
       const id = text(block.tool_use_id);
-      const name = id === undefined ? undefined : this.toolNames.get(id);
-      if (id === undefined || name === undefined) continue;
-      this.toolNames.delete(id);
+      const call = id === undefined ? undefined : this.tools.get(id);
+      if (id === undefined || call === undefined) continue;
+      this.tools.delete(id);
+      const failed = block.is_error === true;
+      // The structured result belongs to the line's only result.
+      const detail = claudeToolDetail(
+        call,
+        {
+          content: block.content,
+          failed,
+          structured: results === 1 ? context.structured : undefined,
+        },
+        { workingDirectory: context.workingDirectory, home: this.home },
+      );
       items.push(
         item(
           {
             kind: "tool_activity",
-            name: name.slice(0, MAX_TOOL_NAME_CHARACTERS),
-            status: block.is_error === true ? "failed" : "succeeded",
+            name: call.name.slice(0, MAX_TOOL_NAME_CHARACTERS),
+            status: failed ? "failed" : "succeeded",
             calls: 1,
+            ...(detail === undefined ? {} : { detail }),
           },
           createdAtMs,
         ),
@@ -105,7 +131,8 @@ export class ClaudeTranscriptDecoder {
       if (block.type === "tool_use") {
         const id = text(block.id);
         const name = text(block.name);
-        if (id !== undefined && name !== undefined) this.toolNames.set(id, name);
+        if (id !== undefined && name !== undefined)
+          this.tools.set(id, { name, input: block.input });
       }
       const value = text(block.text);
       if (block.type === "text" && value !== undefined && value.trim().length > 0)

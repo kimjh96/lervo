@@ -2,9 +2,9 @@ import type { ConversationItem } from "@lervo/session-host-contract";
 import { type ComponentType, lazy, Suspense } from "react";
 import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
-import { toolMessages } from "./messages";
 import { usePacedText } from "./paced";
 import styles from "./renderers.module.css";
+import { ToolLine } from "./ToolLine";
 
 type Renderer<Kind extends ConversationItem["kind"]> = ComponentType<{
   item: Extract<ConversationItem, { kind: Kind }>;
@@ -52,17 +52,6 @@ function Question({ item }: { item: Extract<ConversationItem, { kind: "question"
   return <AgentText text={item.text} className={styles.question} />;
 }
 
-function ToolActivity({ item }: { item: Extract<ConversationItem, { kind: "tool_activity" }> }) {
-  return (
-    <p className={styles.tool} data-status={item.tool.status}>
-      <FormattedMessage
-        {...toolMessages[item.tool.status]}
-        values={{ name: item.tool.name, calls: item.tool.calls }}
-      />
-    </p>
-  );
-}
-
 /**
  * The text of each Lervo notice code the interface knows. The core's codes are an open set, so
  * an unknown code shows the generic notice with the code.
@@ -97,7 +86,7 @@ const renderers: { [Kind in ConversationItem["kind"]]: Renderer<Kind> } = {
   user_message: UserMessage,
   agent_message: AgentMessage,
   question: Question,
-  tool_activity: ToolActivity,
+  tool_activity: ToolLine,
   lervo_notice: LervoNotice,
 };
 

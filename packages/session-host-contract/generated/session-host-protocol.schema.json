@@ -1025,6 +1025,102 @@
             "calls": {
               "type": "integer",
               "minimum": 1
+            },
+            "detail": {
+              "title": "ToolDetail",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "subject"
+              ],
+              "properties": {
+                "subject": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "text"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "path",
+                        "command",
+                        "pattern",
+                        "query",
+                        "url",
+                        "text"
+                      ]
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    }
+                  }
+                },
+                "counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "lines": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "matches": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "files": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "added": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "removed": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "preview": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "format",
+                    "lines",
+                    "omittedLines",
+                    "omittedAt"
+                  ],
+                  "properties": {
+                    "format": {
+                      "enum": [
+                        "output",
+                        "diff"
+                      ]
+                    },
+                    "lines": {
+                      "type": "array",
+                      "maxItems": 24,
+                      "items": {
+                        "type": "string",
+                        "maxLength": 240
+                      }
+                    },
+                    "omittedLines": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "omittedAt": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 24
+                    }
+                  }
+                }
+              }
             }
           }
         }

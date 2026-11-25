@@ -1,10 +1,9 @@
 /* Conversation items (approved mockup "2a"): the user's messages in a bubble at the end of the
-   line, the agent's replies as plain paragraphs, and tool lines and Lervo notices as quiet meta
-   text. */
+   line, the agent's replies as plain paragraphs, and Lervo notices as quiet meta text. Tool lines
+   have their own module. */
 .user,
 .agent p,
 .question p,
-.tool,
 .notice {
   margin: 0;
   white-space: pre-wrap;
@@ -38,15 +37,10 @@
   border-inline-start: var(--border-width-strong) solid var(--color-status-needs-you);
 }
 
-.tool,
 .notice {
   color: var(--color-text-tertiary);
   font-size: var(--type-meta-size);
   line-height: var(--type-meta-line-height);
-}
-
-.tool[data-status="failed"] {
-  color: var(--color-status-failed);
 }
 
 .notice {

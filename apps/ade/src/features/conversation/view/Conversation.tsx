@@ -14,6 +14,7 @@ import { Presence } from "../../../ui/Presence";
 import { useConversationStore } from "../model/store";
 import styles from "./Conversation.module.css";
 import { ConversationItemView } from "./renderers";
+import { useToolLineToggles } from "./ToolLinesProvider";
 
 const NEAR_EDGE_PX = 48;
 /** The most frames a list stays hidden while its measured height settles. */
@@ -85,6 +86,9 @@ export function Conversation(props: {
   const totalSize = virtualizer.getTotalSize();
   const firstItemId = window.items[0]?.itemId;
   const firstShown = useRef(firstItemId);
+  const toggles = useToolLineToggles();
+  /** The list's height when the user last opened or closed a tool line, until it is measured. */
+  const toggledAt = useRef<number | null>(null);
 
   // The list keeps room below its last item for the dock, whose height follows the reply's text.
   useLayoutEffect(() => {
@@ -95,10 +99,25 @@ export function Conversation(props: {
     return () => observer.disconnect();
   }, []);
 
+  // A tool line the user opens or closes stays under the pointer, so the next measured height
+  // does not move the view to the end.
+  useLayoutEffect(() => {
+    if (toggles > 0) toggledAt.current = virtualizer.getTotalSize();
+  }, [toggles, virtualizer]);
+
   // While following, the newest text stays in view as items arrive and heights are measured.
   useLayoutEffect(() => {
     const element = scroller.current;
     if (!live || element === null) return;
+    if (toggledAt.current !== null) {
+      if (totalSize === toggledAt.current) return;
+      toggledAt.current = null;
+      // The opened line leaves the end below the view: the user is reading, and the view stops
+      // following until they return to the end. A line closed at the end stays at the end.
+      if (element.scrollHeight - element.scrollTop - element.clientHeight > LIVE_END_PX)
+        setFollowing(false);
+      return;
+    }
     element.scrollTop = element.scrollHeight;
     selfScrolled.current = element.scrollTop;
   }, [live, window.items.length, lastLength, totalSize, dockHeight]);
@@ -231,6 +250,7 @@ export function Conversation(props: {
                 ref={virtualizer.measureElement}
                 data-index={row.index}
                 data-kind={item.kind}
+                data-follows={window.items[row.index - 1]?.kind}
                 className={styles.row}
                 data-arrived={arrived.has(item.itemId) ? "true" : undefined}
                 style={{ transform: `translateY(${row.start}px)` }}
