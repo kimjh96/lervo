@@ -21,6 +21,8 @@ import { resolve, sep } from "node:path";
 
 import { readRepositoryFile } from "@lervo/context";
 
+import { boundedConcurrency, type BoundedConcurrency } from "./bounded-concurrency.js";
+
 export interface RepositorySnapshot {
   revision: string;
   files: Readonly<Record<string, string>>;
@@ -63,25 +65,6 @@ function sha256(value: string | Uint8Array): string {
 const SNAPSHOT_READ_CONCURRENCY = 8;
 /** Stats, link reads, and directory reads a capture runs at once. */
 const SNAPSHOT_STAT_CONCURRENCY = 64;
-
-/** Runs at most `limit` of the given operations at a time, in the order they were asked for. */
-function boundedConcurrency(limit: number) {
-  let running = 0;
-  const waiting: (() => void)[] = [];
-  return async <T>(operation: () => Promise<T>): Promise<T> => {
-    // A finishing operation hands its slot straight to the next waiter, so a new caller arriving
-    // in between never finds a slot that is already promised.
-    if (running >= limit) await new Promise<void>((proceed) => waiting.push(proceed));
-    else running += 1;
-    try {
-      return await operation();
-    } finally {
-      const next = waiting.shift();
-      if (next === undefined) running -= 1;
-      else next();
-    }
-  };
-}
 
 /**
  * `localeCompare`'s order, from one collator instead of one per comparison (ECMA-402). A Node built
@@ -170,7 +153,7 @@ async function captureRepositorySnapshotWithCache(input: {
   // thousands of files must not open them all at once. An operation that waited for a slot checks
   // again before it starts.
   const limited =
-    (limit: ReturnType<typeof boundedConcurrency>) =>
+    (limit: BoundedConcurrency) =>
     <T>(operation: () => Promise<T>) =>
       limit(async () => {
         live();
