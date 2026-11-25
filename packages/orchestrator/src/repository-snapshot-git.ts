@@ -35,6 +35,14 @@ export async function repositorySnapshotGitIgnoredPaths(
   root: string,
   deadlineMs?: number,
 ): Promise<RepositorySnapshotIgnoredPaths> {
+  // Both start at once: the listing is only used once the probe confirmed a work tree, and a
+  // listing that fails outside one is ignored. Sequential, the probe added its whole run time.
+  const listing = execute(
+    "git",
+    ["-C", root, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory"],
+    { timeout: gitTimeout(10_000, deadlineMs), maxBuffer: 64 * 1024 * 1024 },
+  );
+  listing.catch(() => undefined);
   try {
     // A plain directory is supported, but an unreadable Git repository must not look empty.
     const probe = await execute("git", ["-C", root, "rev-parse", "--is-inside-work-tree"], {
@@ -55,11 +63,7 @@ export async function repositorySnapshotGitIgnoredPaths(
     });
     if (probe === null) return { status: "available", paths: new Set() };
     if (probe.stdout.trim() !== "true") return { status: "unavailable" };
-    const { stdout } = await execute(
-      "git",
-      ["-C", root, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory"],
-      { timeout: gitTimeout(10_000, deadlineMs), maxBuffer: 64 * 1024 * 1024 },
-    );
+    const { stdout } = await listing;
     return {
       status: "available",
       paths: new Set(stdout.split("\0").filter((path) => path.length > 0)),
