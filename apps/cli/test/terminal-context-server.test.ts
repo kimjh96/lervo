@@ -181,3 +181,34 @@ it("removes only the socket it bound, never a newer server's", async () => {
   await expect(stat(socketPath)).rejects.toThrow();
   await rm(directory, { recursive: true, force: true });
 });
+
+it("waits for work a prompt left running before the next one, and exits if it never settles", async () => {
+  let settle: (value: boolean) => void = () => undefined;
+  const onOverrun = vi.fn();
+  const socketPath = await serverWith(
+    async () => ({
+      ...answer,
+      drain: () =>
+        new Promise<boolean>((done) => {
+          settle = done;
+        }),
+    }),
+    onOverrun,
+  );
+  expect(
+    JSON.parse((await exchange(socketPath, JSON.stringify(request()))).slice(1)),
+  ).toMatchObject({ ok: true });
+  // The answer went out; the work it left running still holds the server.
+  expect(JSON.parse(await exchange(socketPath, JSON.stringify(request()), false))).toEqual({
+    declined: "busy",
+  });
+  settle(true);
+  await vi.waitFor(async () =>
+    expect((await exchange(socketPath, JSON.stringify(request()), false)).slice(0, 1)).toBe("A"),
+  );
+  expect(onOverrun).not.toHaveBeenCalled();
+  // The next prompt's work never settles in time: the server exits instead of serving on.
+  await exchange(socketPath, JSON.stringify(request()));
+  settle(false);
+  await vi.waitFor(() => expect(onOverrun).toHaveBeenCalledTimes(1));
+});

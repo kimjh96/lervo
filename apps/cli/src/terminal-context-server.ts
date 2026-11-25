@@ -57,6 +57,11 @@ export interface TerminalContextAnswer {
   exitCode: number;
   /** The hook reached a deadline: work it abandoned may still be running in this process. */
   overran: boolean;
+  /**
+   * Waits, after the answer went out, for work the hook left running; false when some did not
+   * settle in time. The server serves no other request meanwhile.
+   */
+  drain?: () => Promise<boolean>;
 }
 
 export function parseTerminalContextRequest(line: string): TerminalContextRequest | null {
@@ -189,7 +194,7 @@ export function startTerminalContextServer(input: {
       void input
         .run(current)
         .then(
-          (answer) => {
+          async (answer) => {
             if (!socket.destroyed)
               socket.end(
                 `${JSON.stringify({
@@ -199,7 +204,8 @@ export function startTerminalContextServer(input: {
                   exitCode: answer.exitCode,
                 })}\n`,
               );
-            return answer.overran;
+            const drained = (await answer.drain?.()) ?? true;
+            return answer.overran || !drained;
           },
           () => {
             // The in-process hook answers an internal failure with an empty context.

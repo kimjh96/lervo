@@ -22,35 +22,43 @@ import {
 const OVERRUN_MILLISECONDS = TERMINAL_HOOK_BUDGET_MS / 2;
 
 /**
- * The stage observation the in-process hook uses, noting whether any stage failed or timed out.
- * A stage's failure rejects only its wrapper; its work may still run, as in a degraded answer that
- * abandoned a sibling stage, so such a request ends the server too.
+ * The stage observation the in-process hook uses, also collecting each stage's own work. A stage
+ * that fails or reaches its deadline settles its measurement, and a degraded answer goes out, while
+ * sibling stages' work may still run; the server waits for that work before the next request.
  */
-function observingAbandonedStages(): {
+function trackingStageWork(): {
   create: CreateTerminalStageObservation;
-  abandoned: () => boolean;
+  /** Whether all of it settled within `milliseconds`. */
+  drain: (milliseconds: number) => Promise<boolean>;
 } {
-  let abandoned = false;
-  const note = <T>(pending: Promise<T>) =>
-    pending.catch((error: unknown) => {
-      abandoned = true;
-      throw error;
-    });
+  const work = new Set<Promise<unknown>>();
   return {
-    abandoned: () => abandoned,
+    drain: async (milliseconds) => {
+      let timer: NodeJS.Timeout | undefined;
+      const timeout = new Promise<false>((done) => {
+        timer = setTimeout(() => done(false), milliseconds);
+      });
+      const settled = (async () => {
+        while (work.size > 0) await Promise.allSettled([...work]);
+        return true as const;
+      })();
+      try {
+        return await Promise.race([settled, timeout]);
+      } finally {
+        clearTimeout(timer);
+      }
+    },
     create: (digest) => {
       const port = createTerminalStageObservation(digest);
       // Everything else, deadlines and settling included, comes from the hook's own observation.
       const observed = Object.create(port) as TerminalStageObservationPort;
-      Object.assign(observed, {
-        measure: (stageId, operation) => note(port.measure(stageId, operation)),
-        measureChild: (stageId, parentStageId, operation) =>
-          note(port.measureChild(stageId, parentStageId, operation)),
-        finalize: (observationId, hook, outcome) => {
-          if (outcome !== "completed") abandoned = true;
-          return port.finalize(observationId, hook, outcome);
-        },
-      } satisfies Pick<TerminalStageObservationPort, "measure" | "measureChild" | "finalize">);
+      observed.trackWork = (pending) => {
+        work.add(pending);
+        void pending.then(
+          () => work.delete(pending),
+          () => work.delete(pending),
+        );
+      };
       return observed;
     },
   };
@@ -70,7 +78,7 @@ export async function runServedTerminalPrompt(
   request: TerminalContextRequest,
 ): Promise<TerminalContextAnswer> {
   const startedAt = performance.now() - request.elapsed;
-  const observation = observingAbandonedStages();
+  const observation = trackingStageWork();
   let stdout = "";
   let stderr = "";
   const exitCode = await runTerminalHookCommand(
@@ -92,7 +100,11 @@ export async function runServedTerminalPrompt(
     stdout,
     stderr,
     exitCode,
-    overran: observation.abandoned() || performance.now() - startedAt > OVERRUN_MILLISECONDS,
+    overran: performance.now() - startedAt > OVERRUN_MILLISECONDS,
+    // Work a failed or late stage left running settles before the next request, within the rest
+    // of the hook's budget; otherwise the server exits.
+    drain: () =>
+      observation.drain(Math.max(0, startedAt + TERMINAL_HOOK_BUDGET_MS - performance.now())),
   };
 }
 

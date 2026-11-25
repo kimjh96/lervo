@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_67e3351e580d96644856baa8"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "The context server keeps serving after a degraded prompt: it waits for the work a failed or late stage left running instead of restarting, and restarts only when that work does not settle."
