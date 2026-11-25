@@ -1,9 +1,10 @@
 // The hook runtime's `context-server` mode: the host's context server process. It runs the same
-// verified runtime the launcher would load, so a served prompt and an in-process one run the same
-// code by construction.
+// verified runtime the launcher would load, so a served hook and an in-process one run the same code
+// by construction.
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
+import { handOffDetachedLaunches, type DetachedLaunch } from "./detached-knowledge-worker.js";
 import { TERMINAL_HOOK_BUDGET_MS } from "./terminal-hook-budget.js";
 import { runTerminalHookCommand } from "./terminal-hook-command.js";
 import {
@@ -12,6 +13,7 @@ import {
   type TerminalContextAnswer,
   type TerminalContextRequest,
 } from "./terminal-context-server.js";
+import { applyTerminalContextSessionEnvironment } from "./terminal-context-session.js";
 import {
   createTerminalStageObservation,
   type CreateTerminalStageObservation,
@@ -77,37 +79,71 @@ async function runtimeHash(entry: string): Promise<string> {
   return manifest.contentHash;
 }
 
-export async function runServedTerminalPrompt(
+export async function runServedTerminalHook(
   request: TerminalContextRequest,
 ): Promise<TerminalContextAnswer> {
   const startedAt = performance.now() - request.elapsed;
   const observation = trackingStageWork();
   let stdout = "";
   let stderr = "";
-  const exitCode = await runTerminalHookCommand(
-    request.args,
-    {
-      cwd: request.cwd,
-      stdout: (message) => {
-        stdout += message;
+  const launches: DetachedLaunch[] = [];
+  // Both last until the hook's leftover work drained: the server serves nothing else meanwhile.
+  const restoreEnvironment = applyTerminalContextSessionEnvironment(request.session);
+  // The server's own mask keeps its socket private; the hook's files get the session's mode.
+  const ownMask = request.umask === undefined ? null : process.umask(request.umask);
+  // Only a client that sends its session starts launches; an older one ignores them, so its
+  // hook starts them here, as before. A launch asked for after the answer went out cannot reach
+  // the client and fails, as a failed launch does; its queued work waits for the next hook.
+  let answered = false;
+  if (request.session !== undefined)
+    handOffDetachedLaunches((launch) => {
+      if (answered) return false;
+      launches.push(launch);
+      return true;
+    });
+  const settle = () => {
+    handOffDetachedLaunches(null);
+    if (ownMask !== null) process.umask(ownMask);
+    restoreEnvironment();
+  };
+  let exitCode: number;
+  try {
+    exitCode = await runTerminalHookCommand(
+      request.args,
+      {
+        cwd: request.cwd,
+        stdout: (message) => {
+          stdout += message;
+        },
+        stderr: (message) => {
+          stderr += message;
+        },
+        stdin: async () => request.input,
       },
-      stderr: (message) => {
-        stderr += message;
-      },
-      stdin: async () => request.input,
-    },
-    { createTerminalStageObservation: observation.create },
-    startedAt,
-  );
+      { createTerminalStageObservation: observation.create },
+      startedAt,
+    );
+  } catch (error) {
+    settle();
+    throw error;
+  }
+  answered = true;
   return {
     stdout,
     stderr,
     exitCode,
     overran: performance.now() - startedAt > OVERRUN_MILLISECONDS,
+    launches: [...launches],
     // Work a failed or late stage left running gets a moment to settle. A server held busy for
-    // longer would turn later prompts away; exiting instead lets the host start a fresh one,
-    // which it does within a fraction of a second.
-    drain: () => observation.drain(DRAIN_MILLISECONDS),
+    // longer would turn later hooks away; exiting instead lets the host start a fresh one, which it
+    // does within a fraction of a second.
+    drain: async () => {
+      try {
+        return await observation.drain(DRAIN_MILLISECONDS);
+      } finally {
+        settle();
+      }
+    },
   };
 }
 
@@ -122,23 +158,28 @@ function contextStats(runtime: string) {
     pid: process.pid,
     startedAt: new Date().toISOString(),
     served: 0,
-    /** Served prompts by the launcher that sent them: the host's or a repository's copy. */
+    /** Served hooks by the launcher that sent them: the host's or a repository's copy. */
     servedBy: {} as Record<string, number>,
+    /** Served hooks by kind: `prompt` or `stop`. */
+    servedKinds: {} as Record<string, number>,
     declined: {} as Record<string, number>,
     lastServedAt: null as string | null,
   };
   let writing = Promise.resolve();
-  return (outcome: string, launcher?: string) => {
+  return (outcome: string, request?: { kind: string; launcher?: string | undefined }) => {
     if (outcome === "served") {
       stats.served += 1;
-      const by = launcher ?? "unknown";
+      const by = request?.launcher ?? "unknown";
       stats.servedBy[by] = (stats.servedBy[by] ?? 0) + 1;
+      const kind = request?.kind ?? "prompt";
+      stats.servedKinds[kind] = (stats.servedKinds[kind] ?? 0) + 1;
       stats.lastServedAt = new Date().toISOString();
     } else stats.declined[outcome] = (stats.declined[outcome] ?? 0) + 1;
     const bytes = `${JSON.stringify(stats)}\n`;
     writing = writing
       .then(async () => {
-        await writeFile(`context-stats.json.${process.pid}.tmp`, bytes);
+        // Owner-only whatever mask a served hook applied meanwhile.
+        await writeFile(`context-stats.json.${process.pid}.tmp`, bytes, { mode: 0o600 });
         await rename(`context-stats.json.${process.pid}.tmp`, "context-stats.json");
       })
       .catch(() => undefined);
@@ -165,7 +206,7 @@ export async function serveTerminalContext(entry: string): Promise<void> {
     runtimeHash: hash,
     onOutcome: contextStats(hash),
     environment: process.env,
-    run: runServedTerminalPrompt,
+    run: runServedTerminalHook,
     // Exit so the host starts a fresh server: abandoned work must not reach the next request.
     onOverrun: () => {
       release();
@@ -175,13 +216,18 @@ export async function serveTerminalContext(entry: string): Promise<void> {
   });
   await server.ready;
   release = () => server.releaseSocket();
-  // Stop at once, without waiting for a request in flight; its client prints an empty context.
+  // Stop accepting at once, and exit once the hook in flight answered and drained; the watchdog
+  // above still bounds a hook that never settles.
+  // A service manager signals the server and its follower together, and the follower then signals
+  // it again: every later signal must leave the first one's finish running, never kill the hook.
+  let stopping = false;
   const stop = () => {
-    server.releaseSocket();
-    process.exit(0);
+    if (stopping) return;
+    stopping = true;
+    void server.finish().then(() => process.exit(0));
   };
-  process.once("SIGTERM", stop);
-  process.once("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  process.on("SIGINT", stop);
   // A server whose host died must not outlive it and serve beside the next host's server.
   if (process.send !== undefined) process.once("disconnect", stop);
   // Keep serving: the listening socket holds the event loop open.

@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process";
 import { createServer, type Server, type Socket } from "node:net";
-import { chmod, mkdir, mkdtemp, readFile, realpath, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { TERMINAL_CONTEXT_ENVIRONMENT } from "../src/terminal-context-server.js";
+import { TERMINAL_CONTEXT_SESSION_NAMES } from "../src/terminal-context-session.js";
 import {
   materializeHostTerminalRuntime,
   terminalHookRuntimeStorePath,
@@ -120,7 +121,52 @@ it("falls back with the same input when the server declines", async () => {
   expect(await launch(f, prompt)).toEqual({ code: 0, stdout: prompt, stderr: "" });
 });
 
-it("sends only prompts, and nothing when the socket is switched off", async () => {
+it("sends a Stop with the session's values, and starts the launches the answer names", async () => {
+  const f = await fixture();
+  // A launch writes its argument and two of its variables, showing it ran in this session.
+  const worker = resolve(f.home, "worker.mjs");
+  await writeFile(
+    worker,
+    'import { writeFileSync } from "node:fs";\n' +
+      "writeFileSync(process.argv[2], JSON.stringify({ runtime: process.env.LERVO_TERMINAL_HOOK_RUNTIME, marker: process.env.LERVO_TEST_SESSION_MARKER }));\n",
+  );
+  const written = resolve(f.home, "launched.json");
+  const server = await listen(
+    f.store,
+    commitThen({
+      ok: true,
+      stdout: '{"decision":"block","reason":"verify first"}\n',
+      stderr: "",
+      exitCode: 0,
+      launches: [
+        {
+          entry: worker,
+          args: [written],
+          cwd: f.cwd,
+          env: { LERVO_TERMINAL_HOOK_RUNTIME: "/runtime" },
+        },
+      ],
+    }),
+  );
+  const stop = JSON.stringify({ hook_event_name: "Stop", session_id: "s" });
+  expect(
+    await launch(f, stop, { GIT_DIR: "/elsewhere/.git", LERVO_TEST_SESSION_MARKER: "session" }),
+  ).toEqual({ code: 0, stdout: '{"decision":"block","reason":"verify first"}\n', stderr: "" });
+  expect(server.requests[0]).toMatchObject({ kind: "stop", input: stop, umask: process.umask() });
+  const session = server.requests[0]!.session as Record<string, string | null>;
+  for (const name of TERMINAL_CONTEXT_SESSION_NAMES) expect(session).toHaveProperty(name);
+  expect(session.PATH).toBe(f.environment.PATH ?? null);
+  expect(session.GIT_DIR).toBe("/elsewhere/.git");
+  // A detached child: wait for its file.
+  let launched: unknown = null;
+  for (let attempt = 0; attempt < 100 && launched === null; attempt++) {
+    launched = await readFile(written, "utf8").then(JSON.parse, () => null);
+    if (launched === null) await new Promise((done) => setTimeout(done, 20));
+  }
+  expect(launched).toEqual({ runtime: "/runtime", marker: "session" });
+});
+
+it("sends only prompts and Stops, and nothing when the socket is switched off", async () => {
   const f = await fixture();
   const server = await listen(
     f.store,

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import {
   chmod,
@@ -102,6 +103,23 @@ it("ships a dependency-free version-independent launcher within 16 KiB", async (
   expect(content).not.toContain(metadata.version);
   expect(content).not.toMatch(/from ["'](?!node:)/u);
 });
+it("commits this repository's launcher copy exactly as lervo upgrade writes it", async () => {
+  // A copy or manifest that differs by a byte makes every host's upgrade commit a refresh.
+  const content = await readFile(source, "utf8");
+  const committed = new URL("../../../.lervo/generated/terminal-hooks/", import.meta.url);
+  expect(await readFile(new URL("runtime-v2.mjs", committed), "utf8")).toBe(content);
+  expect(await readFile(new URL("runtime-v2.json", committed), "utf8")).toBe(
+    `${JSON.stringify({
+      byteCount: Buffer.byteLength(content),
+      contentHash: `sha256:${createHash("sha256").update(content).digest("hex")}`,
+      contractId: "lervo_terminal_hooks_v2",
+      kind: "lervo_terminal_hook_launcher",
+      runtimePath: ".lervo/generated/terminal-hooks/runtime-v2.mjs",
+      schemaVersion: 4,
+    })}\n`,
+  );
+});
+
 it("streams stdin and preserves arguments, cwd, host runtime identity and exit code", async () => {
   const f = await fixture();
   const runtimeContent =

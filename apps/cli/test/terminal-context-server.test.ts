@@ -10,11 +10,13 @@ import {
   terminalContextEnvironment,
   type TerminalContextAnswer,
   type TerminalContextRequest,
+  type TerminalContextServer,
 } from "../src/terminal-context-server.js";
 
 const runtimeHash = `sha256:${"a".repeat(64)}`;
 const environment = { HOME: "/home/owner", CODEX_HOME: undefined } as NodeJS.ProcessEnv;
 const cleanups: (() => Promise<void>)[] = [];
+let current: TerminalContextServer;
 
 afterEach(async () => {
   await Promise.all(cleanups.splice(0).map((cleanup) => cleanup()));
@@ -37,6 +39,7 @@ async function serverWith(
     ...(runLimitMs === undefined ? {} : { runLimitMs }),
   });
   await server.ready;
+  current = server;
   cleanups.push(async () => {
     await server.close();
     await rm(directory, { recursive: true, force: true });
@@ -95,6 +98,7 @@ it("answers a committed prompt with what the hook printed, over an owner-only so
     stdout: answer.stdout,
     stderr: "",
     exitCode: 0,
+    launches: [],
   });
   expect(run).toHaveBeenCalledWith(request());
   // A client may send the request and its commit in one write.
@@ -264,4 +268,103 @@ it("reports each outcome", async () => {
   expect(outcomes).toEqual(["served", "runtime_mismatch"]);
   await server.close();
   await rm(directory, { recursive: true, force: true });
+});
+
+const stopInput = '{"hook_event_name":"Stop","session_id":"s"}';
+
+it("serves a Stop as it serves a prompt, and runs only the hook a request's kind names", async () => {
+  const run = vi.fn(async () => ({
+    ...answer,
+    launches: [{ entry: "/cli/bin.js", args: ["settle-turns"], cwd: "/work", env: {} }],
+  }));
+  const socketPath = await serverWith(run);
+  const stop = request({ kind: "stop", input: stopInput });
+  const received = await exchange(socketPath, JSON.stringify(stop));
+  // The client, not the server, starts what the hook asked for.
+  expect(JSON.parse(received.slice(1))).toMatchObject({
+    ok: true,
+    launches: [{ entry: "/cli/bin.js", args: ["settle-turns"], cwd: "/work", env: {} }],
+  });
+  expect(run).toHaveBeenCalledWith(stop);
+  for (const mismatched of [
+    request({ kind: "stop" }),
+    request({ input: stopInput }),
+    { ...request(), kind: "session" },
+    request({ input: "not json" }),
+  ])
+    expect(await exchange(socketPath, JSON.stringify(mismatched))).toBe(
+      `${JSON.stringify({ declined: "invalid_request" })}\n`,
+    );
+  expect(run).toHaveBeenCalledTimes(1);
+});
+
+it("accepts only a well-formed session environment and umask", async () => {
+  const run = vi.fn(async () => answer);
+  const socketPath = await serverWith(run);
+  const session = { PATH: "/usr/bin", XDG_RUNTIME_DIR: null, DBUS_SESSION_BUS_ADDRESS: null };
+  expect(
+    (await exchange(socketPath, JSON.stringify(request({ session, umask: 0o022 })))).slice(0, 1),
+  ).toBe("A");
+  for (const malformed of [
+    { session: { PATH: "/usr/bin" } },
+    { session: { ...session, SECRET_TOKEN: "x" } },
+    { session: { ...session, GIT_DIR: 7 } },
+    { umask: 0o1000 },
+    { umask: 1.5 },
+  ])
+    expect(await exchange(socketPath, JSON.stringify({ ...request(), ...malformed }))).toBe(
+      `${JSON.stringify({ declined: "invalid_request" })}\n`,
+    );
+  expect(run).toHaveBeenCalledTimes(1);
+});
+
+it("finishes the hook in flight before it stops, and accepts nothing meanwhile", async () => {
+  let release!: () => void;
+  const run = vi.fn(
+    () => new Promise<TerminalContextAnswer>((done) => (release = () => done(answer))),
+  );
+  const socketPath = await serverWith(run);
+  const inFlight = exchange(
+    socketPath,
+    JSON.stringify(request({ kind: "stop", input: stopInput })),
+  );
+  await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+  let finished = false;
+  const finishing = current.finish().then(() => (finished = true));
+  // The socket is gone at once, so the next hook runs in its own process.
+  await expect(stat(socketPath)).rejects.toMatchObject({ code: "ENOENT" });
+  await new Promise((done) => setTimeout(done, 50));
+  expect(finished).toBe(false);
+  release();
+  expect(JSON.parse((await inFlight).slice(1))).toMatchObject({ ok: true, stdout: answer.stdout });
+  await finishing;
+  expect(finished).toBe(true);
+});
+
+it("finishes at once when nothing is in flight", async () => {
+  await serverWith(vi.fn(async () => answer));
+  await current.finish();
+});
+
+it("still runs a hook whose client read A but had not sent G when the server began to stop", async () => {
+  const run = vi.fn(async () => answer);
+  const socketPath = await serverWith(run);
+  const received = await new Promise<string>((done) => {
+    const socket = connect(socketPath);
+    let text = "";
+    socket.on("connect", () =>
+      socket.write(`${JSON.stringify(request({ kind: "stop", input: stopInput }))}\n`),
+    );
+    socket.on("data", (chunk) => {
+      text += chunk.toString();
+      if (text === "A") {
+        // The client already counts as committed and will never fall back.
+        void current.finish();
+        setTimeout(() => socket.write("G"), 20);
+      }
+    });
+    socket.on("close", () => done(text));
+  });
+  expect(JSON.parse(received.slice(1))).toMatchObject({ ok: true, stdout: answer.stdout });
+  expect(run).toHaveBeenCalledTimes(1);
 });

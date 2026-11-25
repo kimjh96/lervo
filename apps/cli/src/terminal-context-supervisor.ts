@@ -10,8 +10,12 @@ const FIRST_RESTART_MILLISECONDS = 200;
 const LAST_RESTART_MILLISECONDS = 60_000;
 /** A server that ran this long before exiting restarts at the first delay again. */
 const STABLE_MILLISECONDS = 60_000;
-/** A server that ignores SIGTERM this long is killed. */
-const TERMINATE_MILLISECONDS = 3000;
+/**
+ * A server that has not exited this long after SIGTERM is killed. On SIGTERM it stops accepting at
+ * once and finishes the hook in flight, which ends within the hook budget unless the hook overran.
+ * This stays below launchd's default 20-second exit timeout for the follower service.
+ */
+const TERMINATE_MILLISECONDS = 15_000;
 
 export interface TerminalContextRuntime {
   entry: string;
