@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_dbdc2977fc4ff9b55e44bc06"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Every ADE session is a Lervo session: a hosted launch adds Lervo's terminal hooks for each event the worktree's project settings lack, so a repository without committed hooks still gives the agent Lervo's context."

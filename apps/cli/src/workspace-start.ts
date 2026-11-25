@@ -277,7 +277,12 @@ export async function startWorkspace(
       preparedAt: ports.now().toISOString(),
       ...(terminal === undefined
         ? {}
-        : { terminalHooks: { events: [...terminal.events], via: terminal.via } }),
+        : {
+            terminalHooks: {
+              events: terminal.events.map((event) => event.name),
+              via: terminal.via,
+            },
+          }),
       ...(base === undefined
         ? {}
         : {

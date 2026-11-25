@@ -41,9 +41,12 @@ export {
   TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES,
   TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES,
   RUNTIME_PATH as TERMINAL_HOOK_RUNTIME_PATH,
+  PROVIDERS,
   terminalIntegrationEvents,
 } from "./terminal-integration-contract.js";
 export {
+  missingTerminalHookEvents,
+  providerHookSettingsFiles,
   terminalHookCommand,
   terminalHookWindowsCommand,
 } from "./terminal-integration-provider.js";

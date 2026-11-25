@@ -244,7 +244,7 @@ describe("a worktree without project hooks", () => {
         return {
           command:
             "node /home/me/.lervo/terminal-hooks/launcher.mjs --provider claude --contract 2",
-          events: ["Stop"],
+          events: [{ name: "Stop" }],
           via: "launcher",
         };
       },

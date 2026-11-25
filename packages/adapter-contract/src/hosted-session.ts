@@ -7,6 +7,8 @@
 
 import { isAbsolute } from "node:path";
 
+import { type HostedSessionHooks, hostedSessionHooksProblem } from "./hosted-session-hooks.js";
+
 /** How the user sees a hosted session. */
 export type HostedConversationMode = "native" | "cli";
 
@@ -45,29 +47,6 @@ export function hostedConversationModes(
   capabilities: HostedSessionCapabilities,
 ): HostedConversationMode[] {
   return capabilities.nativeConversation ? ["native", "cli"] : ["cli"];
-}
-
-/**
- * Lervo's hook handler for a hosted session. Lervo passes it only to an adapter that declares
- * `hooks`, and writes the adapter's settings file before the launch returns.
- */
-export interface HostedSessionHooks {
-  /** Where Lervo writes the session-scoped settings file: an absolute path. */
-  readonly settingsPath: string;
-  /** The command line the provider runs at each session event, such as the session's start. */
-  readonly command: string;
-  /**
-   * Lervo's terminal hooks for the provider events the worktree's project settings lack, so
-   * every hosted session is a Lervo session (ADR-0632). Events the project already hooks are
-   * left out, so no event runs Lervo twice. An adapter without these events ignores them.
-   */
-  readonly terminal?: HostedTerminalHooks;
-}
-
-/** The terminal hook command and the provider events it answers, such as `UserPromptSubmit`. */
-export interface HostedTerminalHooks {
-  readonly command: string;
-  readonly events: readonly string[];
 }
 
 /** What Lervo asks for. The session ID is a lowercase UUID that Lervo generated. */
@@ -139,7 +118,6 @@ export class HostedLaunchError extends Error {
 
 const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const MAX_INSTRUCTION_CHARACTERS = 65_536;
-const MAX_HOOK_COMMAND_CHARACTERS = 1024;
 
 /** Rejects an intent no adapter may run. Adapters call it before they build a launch. */
 export function assertHostedLaunchIntent(
@@ -178,21 +156,8 @@ export function assertHostedLaunchIntent(
         "launch_intent_invalid",
         "This provider cannot add Lervo's hook handlers.",
       );
-    if (!isAbsolute(intent.hooks.settingsPath))
-      throw new HostedLaunchError(
-        "launch_intent_invalid",
-        "The settings file must be an absolute path.",
-      );
-    const command = intent.hooks.command;
-    if (
-      command.trim().length === 0 ||
-      command.length > MAX_HOOK_COMMAND_CHARACTERS ||
-      /[\r\n]/u.test(command)
-    )
-      throw new HostedLaunchError(
-        "launch_intent_invalid",
-        "The hook command must be one line of 1 to 1,024 characters.",
-      );
+    const problem = hostedSessionHooksProblem(intent.hooks);
+    if (problem !== null) throw new HostedLaunchError("launch_intent_invalid", problem);
   }
 }
 
@@ -327,6 +292,19 @@ function hookViolations(
       violations.push(`${where}: the settings file does not run the hook command`);
     if (!launch.arguments.includes(hooks.settingsPath))
       violations.push(`${where}: the launch does not pass the settings file`);
+    // Terminal hooks: a handler for every listed event, or none at all.
+    const terminal = {
+      command: "lervo terminal",
+      events: [{ name: "UserPromptSubmit" as const }, { name: "Stop" as const }],
+    };
+    const content =
+      adapter.prepareLaunch({ ...intent, mode, hooks: { ...hooks, terminal } }).settingsFile
+        ?.content ?? "";
+    if (
+      content.includes(JSON.stringify(terminal.command)) &&
+      !terminal.events.every((event) => content.includes(JSON.stringify(event.name)))
+    )
+      violations.push(`${where}: the settings file answers only some terminal hook events`);
   }
   return violations;
 }

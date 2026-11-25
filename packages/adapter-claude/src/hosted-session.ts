@@ -70,13 +70,15 @@ const TERMINAL_HOOK_TIMEOUT_SECONDS = 30;
 export function claudeSessionSettings(command: string, terminal?: HostedTerminalHooks): string {
   const recording = { hooks: [{ type: "command", command, timeout: HOOK_TIMEOUT_SECONDS }] };
   const hooks: Record<string, unknown[]> = { SessionStart: [recording], SessionEnd: [recording] };
-  if (terminal !== undefined) {
+  const terminalCommand = terminal?.command ?? "";
+  for (const event of terminal?.events ?? []) {
     const handler = {
+      ...(event.matcher === undefined ? {} : { matcher: event.matcher }),
       hooks: [
-        { type: "command", command: terminal.command, timeout: TERMINAL_HOOK_TIMEOUT_SECONDS },
+        { type: "command", command: terminalCommand, timeout: TERMINAL_HOOK_TIMEOUT_SECONDS },
       ],
     };
-    for (const event of terminal.events) hooks[event] = [...(hooks[event] ?? []), handler];
+    hooks[event.name] = [...(hooks[event.name] ?? []), handler];
   }
   return `${JSON.stringify({ hooks }, null, 2)}\n`;
 }

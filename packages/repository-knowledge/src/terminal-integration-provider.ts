@@ -1,3 +1,6 @@
+import { homedir } from "node:os";
+import { resolve } from "node:path";
+
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
 import { sha256 } from "./integrity.js";
 import { isObject } from "./terminal-integration-files.js";
@@ -211,4 +214,94 @@ export function mergeTarget(
     },
     content: output,
   };
+}
+
+/** The sources a Claude `SessionStart` answers; a matcher may limit a handler to some of them. */
+const SESSION_START_SOURCES = ["startup", "resume", "clear", "compact"] as const;
+
+/**
+ * Every settings file a provider merges into a session in `worktree`, from managed policy to the
+ * worktree's local file, so a hosted session can tell which events Lervo's hooks already cover.
+ */
+export function providerHookSettingsFiles(
+  provider: TerminalIntegrationProvider,
+  worktree: string,
+  environment: NodeJS.ProcessEnv = process.env,
+  home: string = homedir(),
+  platform: NodeJS.Platform = process.platform,
+): string[] {
+  if (provider === "codex")
+    return [resolve(home, ".codex/hooks.json"), resolve(worktree, configurationPath(provider))];
+  const managed =
+    platform === "darwin"
+      ? "/Library/Application Support/ClaudeCode/managed-settings.json"
+      : platform === "win32"
+        ? "C:\\ProgramData\\ClaudeCode\\managed-settings.json"
+        : "/etc/claude-code/managed-settings.json";
+  const user = environment.CLAUDE_CONFIG_DIR ?? resolve(home, ".claude");
+  return [
+    managed,
+    resolve(user, "settings.json"),
+    resolve(worktree, configurationPath(provider)),
+    resolve(worktree, ".claude/settings.local.json"),
+  ];
+}
+
+/** The sources a handler's matcher selects; absent, empty, or `*` select every source. */
+function selectedSources(matcher: unknown): readonly string[] {
+  if (typeof matcher !== "string" || matcher.trim() === "" || matcher.trim() === "*")
+    return SESSION_START_SOURCES;
+  const named = matcher.split("|").map((part) => part.trim());
+  return SESSION_START_SOURCES.filter((source) => named.includes(source));
+}
+
+/**
+ * The provider events Lervo's terminal hook is missing from across `settings`, the contents of
+ * the files a session merges. A handler counts when it runs `lervo terminal hook`, or the
+ * repository's launcher while `launcher` says the launcher is present. Settings are read as the
+ * installer reads them, comments and trailing commas allowed; an unreadable file counts as
+ * absent, as the provider then ignores it. A `SessionStart` that covers only some sources leaves
+ * the rest, which the returned matcher names.
+ */
+export function missingTerminalHookEvents(
+  provider: TerminalIntegrationProvider,
+  settings: readonly string[],
+  launcher: boolean,
+): { name: string; matcher?: string }[] {
+  const covered = new Map<string, Set<string>>();
+  for (const content of settings) {
+    const parsed = parse(content, [], { allowTrailingComma: true, disallowComments: false });
+    if (!isObject(parsed) || !isObject(parsed.hooks)) continue;
+    for (const [event, entries] of Object.entries(parsed.hooks)) {
+      if (!Array.isArray(entries)) continue;
+      for (const entry of entries) {
+        if (!isObject(entry) || !Array.isArray(entry.hooks)) continue;
+        const lervo = entry.hooks.some((hook) => {
+          const command = isObject(hook) ? hook.command : undefined;
+          return (
+            typeof command === "string" &&
+            lervoTerminalProvider(command) === provider &&
+            (launcher || /\blervo\s+terminal\s+hook\b/u.test(command))
+          );
+        });
+        if (!lervo) continue;
+        const sources = covered.get(event) ?? new Set<string>();
+        for (const source of event === "SessionStart" ? selectedSources(entry.matcher) : ["all"])
+          sources.add(source);
+        covered.set(event, sources);
+      }
+    }
+  }
+  const missing: { name: string; matcher?: string }[] = [];
+  for (const event of terminalIntegrationEvents(provider)) {
+    const sources = covered.get(event);
+    if (event !== "SessionStart") {
+      if (sources === undefined) missing.push({ name: event });
+      continue;
+    }
+    const left = SESSION_START_SOURCES.filter((source) => !sources?.has(source));
+    if (left.length === SESSION_START_SOURCES.length) missing.push({ name: event });
+    else if (left.length > 0) missing.push({ name: event, matcher: left.join("|") });
+  }
+  return missing;
 }

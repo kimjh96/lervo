@@ -47,6 +47,8 @@ async function fixture(options: { uncommitted?: boolean } = {}) {
   await writeFile(resolve(bin, "claude"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   vi.stubEnv("LERVO_USER_STATE_DIRECTORY", state);
   vi.stubEnv("LERVO_WORKSPACES_HOME", resolve(root, "workspaces"));
+  // The user's own Claude settings must not decide which hooks a hosted launch adds here.
+  vi.stubEnv("CLAUDE_CONFIG_DIR", resolve(root, "claude"));
   vi.stubEnv("PATH", `${bin}${delimiter}${process.env.PATH ?? ""}`);
   await git(repository, "init", "--initial-branch", "main");
   await git(repository, "config", "user.email", "lervo-test@example.invalid");

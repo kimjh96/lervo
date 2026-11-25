@@ -86,7 +86,10 @@ describe("Claude Code hosted sessions", () => {
         command: "lervo workspace hook --provider claude",
         terminal: {
           command: "lervo terminal hook --provider claude --contract 2",
-          events: ["SessionStart", "UserPromptSubmit"],
+          events: [
+            { name: "SessionStart", matcher: "resume|compact" },
+            { name: "UserPromptSubmit" },
+          ],
         },
       },
     });
@@ -104,6 +107,10 @@ describe("Claude Code hosted sessions", () => {
       "lervo terminal hook --provider claude --contract 2",
     ]);
     expect(settings.hooks.UserPromptSubmit?.[0]?.hooks[0]?.timeout).toBe(30);
+    // The SessionStart handler answers only the sources the project's own hook leaves out.
+    expect((settings.hooks.SessionStart?.[1] as { matcher?: string }).matcher).toBe(
+      "resume|compact",
+    );
     expect(settings.hooks.Stop).toBeUndefined();
   });
 

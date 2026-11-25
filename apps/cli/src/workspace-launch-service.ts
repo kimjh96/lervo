@@ -198,7 +198,12 @@ export async function openWorkspace(
     ...kept,
     ...(terminal === undefined
       ? {}
-      : { terminalHooks: { events: [...terminal.events], via: terminal.via } }),
+      : {
+          terminalHooks: {
+            events: terminal.events.map((event) => event.name),
+            via: terminal.via,
+          },
+        }),
     sessionId,
     conversationMode: mode,
     argumentDigest: launchArgumentDigest(launch),
