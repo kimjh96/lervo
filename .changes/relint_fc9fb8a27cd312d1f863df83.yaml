@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fc9fb8a27cd312d1f863df83"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Read a slash command in a Claude Code transcript as typed, so a reopened ADE conversation shows the command instead of its markup."
