@@ -11,6 +11,22 @@ import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./host
 /** A line longer than this is skipped, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
 const MAX_TOOL_NAME_CHARACTERS = 64;
+const COMMAND_NAME = /<command-name>\/?([^<]{1,200})<\/command-name>/u;
+const COMMAND_ARGS = /<command-args>([\s\S]*?)<\/command-args>/u;
+const COMMAND_OUTPUT = /^\s*<local-command-(?:stdout|stderr)>/u;
+
+/**
+ * What the person typed, for a line Claude Code records for a slash command: the command and its
+ * arguments, as the live conversation shows the message sent. A command's local output is for
+ * the terminal and is no message, so it reads as nothing; any other text stays as it is.
+ */
+export function typedText(value: string): string | undefined {
+  if (COMMAND_OUTPUT.test(value)) return undefined;
+  const name = COMMAND_NAME.exec(value)?.[1]?.trim();
+  if (name === undefined) return value;
+  const args = COMMAND_ARGS.exec(value)?.[1]?.trim() ?? "";
+  return args.length === 0 ? `/${name}` : `/${name} ${args}`;
+}
 
 type Line = Record<string, unknown>;
 
@@ -94,10 +110,12 @@ export class ClaudeTranscriptDecoder {
     createdAtMs: number,
     context: { readonly workingDirectory: string | undefined; readonly structured: unknown },
   ): HostedTranscriptItem[] {
-    if (typeof content === "string")
-      return content.trim().length === 0
+    if (typeof content === "string") {
+      const typed = typedText(content);
+      return typed === undefined || typed.trim().length === 0
         ? []
-        : [item({ kind: "user_message", text: content }, createdAtMs)];
+        : [item({ kind: "user_message", text: typed }, createdAtMs)];
+    }
     if (!Array.isArray(content)) return [];
     const items: HostedTranscriptItem[] = [];
     const words: string[] = [];
@@ -105,7 +123,8 @@ export class ClaudeTranscriptDecoder {
     const results = blocks.filter((block) => block.type === "tool_result").length;
     for (const block of blocks) {
       const value = text(block.text);
-      if (block.type === "text" && value !== undefined) words.push(value);
+      const typed = value === undefined ? undefined : typedText(value);
+      if (block.type === "text" && typed !== undefined) words.push(typed);
       if (block.type !== "tool_result") continue;
       const id = text(block.tool_use_id);
       const call = id === undefined ? undefined : this.tools.get(id);

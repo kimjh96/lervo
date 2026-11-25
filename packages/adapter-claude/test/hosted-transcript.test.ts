@@ -71,6 +71,35 @@ const lines = [
     content: "Conversation compacted",
     compactMetadata: { trigger: "auto", preTokens: 968011 },
   },
+  // A slash command, as Claude Code records it: the command, the skill it loaded, and the local
+  // output of a built-in command.
+  {
+    type: "user",
+    timestamp: at(11),
+    message: {
+      content:
+        "<command-message>dataviz</command-message>\n<command-name>/dataviz</command-name>\n<command-args>Which file holds the palette?</command-args>",
+    },
+  },
+  {
+    type: "user",
+    timestamp: at(11),
+    isMeta: true,
+    message: { content: [{ type: "text", text: "Base directory for this skill: …" }] },
+  },
+  {
+    type: "user",
+    timestamp: at(12),
+    message: {
+      content:
+        "<command-name>/compact</command-name>\n            <command-message>compact</command-message>\n            <command-args></command-args>",
+    },
+  },
+  {
+    type: "user",
+    timestamp: at(12),
+    message: { content: "<local-command-stdout>Compacted </local-command-stdout>" },
+  },
   {
     type: "user",
     timestamp: at(10),
@@ -137,6 +166,12 @@ describe("Claude Code transcripts", () => {
           },
           createdAtMs: Date.parse(at(9)),
         },
+        // A slash command reads as typed; what it loaded and printed does not show.
+        {
+          content: { kind: "user_message", text: "/dataviz Which file holds the palette?" },
+          createdAtMs: Date.parse(at(11)),
+        },
+        { content: { kind: "user_message", text: "/compact" }, createdAtMs: Date.parse(at(12)) },
       ]);
     } finally {
       await rm(configuration, { recursive: true, force: true });
