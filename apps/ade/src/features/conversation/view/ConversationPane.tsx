@@ -24,6 +24,8 @@ export function ConversationPane(props: {
   draftKey?: string | undefined;
   /** Shown in place of the reply card's placeholder while replies cannot be sent yet. */
   waiting?: string | undefined;
+  /** Stops the agent's running turn, while it can be stopped. */
+  onStop?: (() => Promise<void>) | undefined;
   /** Shows the first items at once, when the view continues one already on screen. */
   continues: boolean;
   /** A Lervo notice above the working line, such as what the work started without. */
@@ -60,12 +62,17 @@ export function ConversationPane(props: {
         dock={
           <>
             <Presence className={styles.notice}>{props.notice ?? null}</Presence>
-            <Presence className={styles.working}>
-              {props.working === null ? null : <WorkingLine label={props.working} />}
-            </Presence>
+            {/* The working line keeps its row, so the conversation never moves as work starts
+                or ends. */}
+            <div className={styles.working}>
+              <Presence>
+                {props.working === null ? null : <WorkingLine label={props.working} />}
+              </Presence>
+            </div>
             <Composer
               draftKey={props.draftKey}
               onSend={(text) => source.send(text)}
+              onStop={props.onStop}
               waiting={props.waiting}
             />
           </>

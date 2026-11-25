@@ -365,6 +365,19 @@ On 2026-11-24 the owner made the ADE the platform that combines the strengths of
 
 The same day a hosted session in print mode received the `UserPromptSubmit` context through the project hooks, which every registered repository tracks. Each core release that changes the hook or context path gets the same check, starting with the context assembler's `SessionStart` block (core-loop item 9).
 
+### The daily conversation first
+
+On 2026-11-25 the owner, who uses Orca only for conversations with Claude Code, set the order for leaving Orca. The bar is not parity with Orca: every feature is built on the core and checked against the core's records, so the ADE gives what the terminal gives and more. Agent identity, agent-to-agent conversation, and a product-owner agent that hires and coordinates its team wait until after the day of use, with their interface designed first.
+
+| Step                 | Done when                                                                                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hosted checks        | After the S2a and S2b release, a hosted session is checked for messaging between Claude sessions, slash commands and skills, answering the agent's questions, and the notification when a turn finishes.                                       |
+| Stopping a turn      | The owner stops a running turn and the session continues ([Lervo ADE sessions](../specifications/execution/product-surfaces/ade-sessions.md#stopping-a-turn)), and the core records the stopped turn, which today no turn records (in review). |
+| Tool runs            | The conversation shows what each tool run did: commands, file changes, and outputs, within the core's privacy rules.                                                                                                                           |
+| An existing checkout | A conversation opens in an existing checkout without creating a workspace.                                                                                                                                                                     |
+| Images               | The owner pastes images and screenshots into a conversation.                                                                                                                                                                                   |
+| The day of use       | The owner uses the ADE instead of Orca for a day, and what they hit is fixed before Orca retires, its hooks included.                                                                                                                          |
+
 S3 (distribution) is defined when S2 completes.
 
 ## Open items

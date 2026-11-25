@@ -71,6 +71,23 @@ export const sessionSendMessageSchema = {
   },
 } as const;
 
+/**
+ * Stops the native conversation's running turn and keeps the session: the provider ends the turn
+ * where it is and waits for the next message. A session host from before it does not know it, so
+ * the interface sends it only to a session host that offers it (see `sessionHostOffersInterrupt`).
+ */
+export const sessionInterruptMessageSchema = {
+  title: "SessionInterruptMessage",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "requestId", "sessionId"],
+  properties: {
+    kind: { type: "string", enum: ["session.interrupt"] },
+    requestId: identifierSchema,
+    sessionId: identifierSchema,
+  },
+} as const;
+
 export const sessionResizeMessageSchema = {
   title: "SessionResizeMessage",
   type: "object",
@@ -138,6 +155,22 @@ export const sessionSentMessageSchema = {
   },
 } as const;
 
+/**
+ * The provider received a `session.interrupt`. The turn's own end follows as status; failures
+ * answer with `request.failed`, such as `interrupt_unsupported` for a provider or core that cannot.
+ */
+export const sessionInterruptedMessageSchema = {
+  title: "SessionInterruptedMessage",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "requestId", "sessionId"],
+  properties: {
+    kind: { type: "string", enum: ["session.interrupted"] },
+    requestId: identifierSchema,
+    sessionId: identifierSchema,
+  },
+} as const;
+
 export const sessionResyncRequiredMessageSchema = {
   title: "SessionResyncRequiredMessage",
   type: "object",
@@ -154,6 +187,8 @@ export type SessionOpenMessage = FromSchema<typeof sessionOpenMessageSchema>;
 export type SessionAttachMessage = FromSchema<typeof sessionAttachMessageSchema>;
 export type SessionDetachMessage = FromSchema<typeof sessionDetachMessageSchema>;
 export type SessionSendMessage = FromSchema<typeof sessionSendMessageSchema>;
+export type SessionInterruptMessage = FromSchema<typeof sessionInterruptMessageSchema>;
+export type SessionInterruptedMessage = FromSchema<typeof sessionInterruptedMessageSchema>;
 export type SessionResizeMessage = FromSchema<typeof sessionResizeMessageSchema>;
 export type SessionStopMessage = FromSchema<typeof sessionStopMessageSchema>;
 export type SessionOpenedMessage = FromSchema<typeof sessionOpenedMessageSchema>;

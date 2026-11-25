@@ -28,3 +28,9 @@
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
   padding-block-end: var(--space-12);
 }
+
+/* The working line's row stays while no work runs: the conversation runs under the dock, so a
+   row that closed would move every message down at the end of each turn. */
+.working {
+  min-height: calc(var(--type-meta-size) * var(--type-meta-line-height) + var(--space-12));
+}

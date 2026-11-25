@@ -11,6 +11,12 @@
   color: var(--color-on-accent);
   background: var(--color-accent);
   cursor: pointer;
+  /* Enabling and disabling is a control color change (ADE motion, `change`), so a send that
+     clears the field and a turn that turns the button into Stop never blink. */
+  transition: opacity var(--motion-duration-change) var(--motion-easing-standard);
+  /* Its own layer from the start: WebKit otherwise applies the change late and at once while
+     the icon inside crossfades. */
+  will-change: opacity;
 }
 
 .button:disabled {

@@ -43,6 +43,9 @@ const SESSION_EXITED: &str = "session.exited";
 /// `decoder.open`'s `sessionId`, which a resident process advertises the same way. With it, the
 /// process records the usage of the session's turns.
 const DECODER_SESSION: &str = "decoder.session";
+/// `decoder.interrupt`, which stops a native session's running turn. An older resident process
+/// ends the link on a request it cannot validate, so only one that advertised it hears it.
+const DECODER_INTERRUPT: &str = "decoder.interrupt";
 
 /// The commands a resident process named in its last workspace list.
 struct Advertised {

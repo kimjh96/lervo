@@ -72,6 +72,7 @@ const noticeMessages: Readonly<Record<string, MessageDescriptor>> = {
   core_decoding_failed: { id: "notice.core_decoding_failed" },
   core_link_unavailable: { id: "notice.core_link_unavailable" },
   provider_turn_failed: { id: "notice.provider_turn_failed" },
+  turn_stopped: { id: "notice.turn_stopped" },
 };
 
 function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {

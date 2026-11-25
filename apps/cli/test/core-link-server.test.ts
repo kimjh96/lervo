@@ -265,6 +265,49 @@ describe("the core-link server", () => {
     });
   });
 
+  it("answers decoder.interrupt with the bytes that stop the turn, or interrupt_unsupported", async () => {
+    const { written } = await serve([
+      { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+      { kind: "decoder.interrupt", id: 2, decoderId: "dec_1" },
+      { kind: "decoder.send", id: 3, decoderId: "dec_1", text: "Count to 300." },
+      { kind: "decoder.interrupt", id: 4, decoderId: "dec_1" },
+      { kind: "decoder.interrupt", id: 5, decoderId: "dec_missing" },
+    ]);
+    const sentInput = (id: number) =>
+      Buffer.from(String(written.find((response) => response.id === id)?.input), "base64").toString(
+        "utf8",
+      );
+    // With no turn running there is nothing to send.
+    expect(sentInput(2)).toBe("");
+    expect(JSON.parse(sentInput(4))).toMatchObject({
+      type: "control_request",
+      request: { subtype: "interrupt" },
+    });
+    expect(written.find((response) => response.id === 5)).toMatchObject({
+      kind: "core.failed",
+      code: "decoder_not_found",
+    });
+
+    // A provider whose decoder cannot stop a turn says so.
+    const refused: Record<string, unknown>[] = [];
+    await new CoreLinkServer(
+      {
+        ...handlers(),
+        createDecoder: () => ({
+          send: () => ({ input: new Uint8Array(), events: [] }),
+          output: () => [],
+        }),
+      },
+      (line) => refused.push(JSON.parse(line) as Record<string, unknown>),
+    ).serve(
+      input([
+        { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+        { kind: "decoder.interrupt", id: 2, decoderId: "dec_1" },
+      ]),
+    );
+    expect(refused[1]).toMatchObject({ kind: "core.failed", id: 2, code: "interrupt_unsupported" });
+  });
+
   it("ends the link on a line that breaks the protocol", async () => {
     const { end, written } = await serve([
       { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
@@ -319,6 +362,7 @@ describe("the core-link server", () => {
     ]);
     const list = written.find((response) => response.id === 1)?.result as { commands: string[] };
     expect(list.commands).toContain("decoder.session");
+    expect(list.commands).toContain("decoder.interrupt");
     expect(written.find((response) => response.id === 3)).toMatchObject({
       kind: "decoder.decoded",
     });

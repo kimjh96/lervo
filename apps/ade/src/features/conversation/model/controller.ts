@@ -86,6 +86,10 @@ export class ConversationController implements ConversationSource {
     await this.client.request({ kind: "session.send", sessionId: this.sessionId, text });
   }
 
+  async interrupt(): Promise<void> {
+    await this.client.request({ kind: "session.interrupt", sessionId: this.sessionId });
+  }
+
   async loadEarlier(): Promise<void> {
     const state = useConversationStore.getState();
     const first = state.window.items[0];

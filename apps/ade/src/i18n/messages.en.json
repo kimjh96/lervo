@@ -39,6 +39,10 @@
     "defaultMessage": "Creating the workspace",
     "description": "The working line while the core creates the workspace for work just sent."
   },
+  "conversation.activity.stopping": {
+    "defaultMessage": "Stopping",
+    "description": "The working line after the person stopped the agent's turn, until the turn ends."
+  },
   "conversation.activity.thinking": {
     "defaultMessage": "Thinking",
     "description": "The working line while the agent works between replies and tools."
@@ -75,6 +79,14 @@
     "defaultMessage": "The agent starts in a moment",
     "description": "The reply card placeholder while the agent of work just sent has not started."
   },
+  "conversation.stop": {
+    "defaultMessage": "Stop",
+    "description": "The reply card's button while the agent works, and its accessible name: stops the agent's turn and keeps the conversation."
+  },
+  "conversation.stop.failed": {
+    "defaultMessage": "The agent did not stop ({code}). It keeps working.",
+    "description": "Stopping the agent's turn failed; {code} is the protocol code."
+  },
   "conversation.tool.failed": {
     "defaultMessage": "{name} failed",
     "description": "A tool call that failed."
@@ -110,6 +122,10 @@
   "notice.provider_turn_failed": {
     "defaultMessage": "The agent's turn ended without finishing ({subtype}).",
     "description": "Claude Code's result did not succeed."
+  },
+  "notice.turn_stopped": {
+    "defaultMessage": "You stopped the agent's turn. Send a message to continue.",
+    "description": "The person stopped the agent's turn; the conversation goes on."
   },
   "notice.workspace_base.base_unresolved": {
     "defaultMessage": "This work started from the checked-out commit, because the repository names no default branch.",

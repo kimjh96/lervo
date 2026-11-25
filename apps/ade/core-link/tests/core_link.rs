@@ -269,6 +269,60 @@ async fn names_the_session_on_decoder_open_only_to_a_process_that_advertised_it(
     }
 }
 
+#[tokio::test]
+async fn stops_a_turn_only_through_a_process_that_advertised_it() {
+    for (release, supported) in [("current", true), ("older", false)] {
+        let reports = std::env::temp_dir().join(format!(
+            "lervo-decoder-interrupts-{release}-{}.log",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&reports);
+        let core = reporting(release, &reports);
+        core.command("workspace.list", none()).await.unwrap();
+        let launch = core
+            .command("workspace.start", arguments("go"))
+            .await
+            .unwrap()
+            .launch
+            .unwrap();
+        let mut decoder = core.decoder(&launch);
+        // Before a turn there is nothing to stop, and nothing is asked.
+        let idle = decoder.interrupt().await;
+        assert_eq!(idle.is_ok(), supported, "{release}: {idle:?}");
+        if let Ok((bytes, decoded)) = idle {
+            assert!(bytes.is_empty() && decoded.is_empty());
+        }
+        let (input, _) = decoder.send("hi").await;
+        assert_eq!(input, b"hi\n");
+        match decoder.interrupt().await {
+            Ok((bytes, _)) => {
+                assert!(
+                    supported,
+                    "{release}: an older process heard decoder.interrupt"
+                );
+                assert_eq!(bytes, b"stop\n");
+            }
+            Err(failure) => {
+                assert!(!supported, "{release}: {failure:?}");
+                assert_eq!(failure.code, FailureCode::InterruptUnsupported);
+            }
+        }
+        let received = std::fs::read_to_string(&reports).unwrap_or_default();
+        let asked: Vec<&str> = received
+            .lines()
+            .filter(|line| line.contains("decoder.interrupt"))
+            .collect();
+        assert_eq!(asked.len(), usize::from(supported), "{release}: {received}");
+        // The older process never heard the request, so it still decodes the turn.
+        let decoded = decoder.output(b"finish\n").await;
+        assert!(
+            decoded.contains(&Decoded::Status(SessionEvent::TurnFinished)),
+            "{release}: {decoded:?}"
+        );
+        let _ = std::fs::remove_file(&reports);
+    }
+}
+
 /// A copy of the stand-in that a test may upgrade, and the file its starts are counted in.
 fn installed(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     let directory =

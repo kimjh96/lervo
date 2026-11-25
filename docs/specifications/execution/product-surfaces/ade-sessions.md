@@ -112,6 +112,16 @@ The native conversation's structured stream carries the same kinds of events tha
 - When the workspace's session does not run, the interface opens it with `session.open`, which resumes the provider's session through the core, and attaches again.
 - Each item kind has one renderer in a registry. Lervo notices render from the catalog by code. In S1.5c, messages render as plain text; S1.6 chooses Markdown and code rendering by measurement against the conversation budgets.
 
+## Stopping a turn
+
+The owner stops the agent's running turn without ending the session, as Escape does in Claude Code's terminal.
+
+- **In the interface.** While the agent works and the reply card is empty, the card's button is Stop, and Escape in the card does the same. Typed text turns the button back into send, so a reply can still go. The working line says "Stopping" until the turn ends, and the turn's notice confirms it. Stop shows only when the session host is at least as new as the interface and the core advertises `decoder.interrupt`.
+- **Through the session host and the core.** `session.interrupt` asks the session's decoder for the bytes that stop the turn through `decoder.interrupt`, and the session host writes them to the provider's standard input. With no turn running, nothing is written. The session host answers with `session.interrupted` once the bytes reached the provider, or with `request.failed` and `interrupt_unsupported` in the CLI conversation, for a provider that cannot, or when the core did not advertise it.
+- **Claude Code.** The decoder writes a stream-json `control_request` with subtype `interrupt`. Claude Code answers with a `control_response`, stops the turn, and ends it with a `result` whose `terminal_reason` is `aborted_streaming` or `aborted_tools`; a stop while text streams reports `error_during_execution`. The session stays, and the next message continues it. Observed with Claude Code 2.1 on 2026-11-25.
+- **What the conversation shows.** A stopped turn ends with the `turn_stopped` notice instead of `provider_turn_failed`. A turn whose result says `completed` finished before the request arrived and shows no notice. A Claude Code without `terminal_reason` is taken at the request.
+- **Core records.** Claude Code runs no `Stop` hook for a stopped turn, in the terminal or the ADE, and the next prompt replaces the turn's open-turn marker. The stopped turn therefore records no `terminal.turn.observed` today, and its file changes are recorded by no turn. The follow-up settles such a turn at the next prompt, `SessionEnd`, or the next `SessionStart` of the same session, with an `ending` that says no `Stop` ran and `completionResult: not_checked`. Those fields need event schema 12, so its reader ships in one CLI release and the writer in the next.
+
 ## The CLI conversation in the interface
 
 The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md)). This section records how it worked, for when it returns.

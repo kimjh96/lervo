@@ -76,6 +76,9 @@
           "$ref": "#/$defs/DecoderSendRequest"
         },
         {
+          "$ref": "#/$defs/DecoderInterruptRequest"
+        },
+        {
           "$ref": "#/$defs/DecoderOutputRequest"
         },
         {
@@ -760,6 +763,31 @@
         "text": {
           "type": "string",
           "maxLength": 262144
+        }
+      }
+    },
+    "DecoderInterruptRequest": {
+      "title": "DecoderInterruptRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "decoderId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "decoder.interrupt"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decoderId": {
+          "$ref": "#/$defs/Identifier"
         }
       }
     },

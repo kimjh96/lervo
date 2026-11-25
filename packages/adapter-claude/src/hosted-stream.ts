@@ -2,6 +2,7 @@ import {
   type HostedDecodedContent,
   type HostedDecodedEvent,
   type HostedStreamDecoder,
+  type HostedTurnInterrupting,
   type HostedTurnUsage,
   type HostedUsageReporting,
   usageModelName,
@@ -39,11 +40,14 @@ function blocks(line: Line): Line[] {
  *   and `content_block_stop` completes it.
  * - A tool call becomes one tool-activity item when its result arrives, succeeded or failed. Tool
  *   inputs and outputs never leave the decoder.
- * - `result` ends the turn. A turn that did not succeed adds the `provider_turn_failed` notice.
+ * - `result` ends the turn. A turn the user stopped adds the `turn_stopped` notice, and any other
+ *   turn that did not succeed adds the `provider_turn_failed` notice.
  *   Its per-model usage since the previous result is kept for `takeUsage`, never shown.
  * - Subagent messages, thinking, hooks, and system lines are not part of the conversation.
  */
-export class ClaudeHostedStreamDecoder implements HostedStreamDecoder, HostedUsageReporting {
+export class ClaudeHostedStreamDecoder
+  implements HostedStreamDecoder, HostedUsageReporting, HostedTurnInterrupting
+{
   private readonly decoder = new TextDecoder();
   private partial = "";
   private dropping = false;
@@ -53,6 +57,9 @@ export class ClaudeHostedStreamDecoder implements HostedStreamDecoder, HostedUsa
   /** Whether the current assistant message streamed its text, so the full copy is a repeat. */
   private streamedText = false;
   private readonly toolNames = new Map<string, string>();
+  /** Whether the user asked to stop the running turn, so its end says it was stopped. */
+  private interrupting = false;
+  private interruptions = 0;
   /** Finished turns' usage that the caller has not taken yet. */
   private usage: HostedTurnUsage[] = [];
   /** The model of the turn's last assistant message, for a result without per-model usage. */
@@ -203,7 +210,15 @@ export class ClaudeHostedStreamDecoder implements HostedStreamDecoder, HostedUsa
       this.streamingBlock = null;
       events.push({ kind: "finish" });
     }
-    if (line.subtype !== "success" || line.is_error === true)
+    // A stopped turn ends as `aborted_streaming` or `aborted_tools`, the former as an error. A
+    // Claude Code without `terminal_reason` is taken at the request, so a turn that finished
+    // just before it arrived may show as stopped.
+    const reason = text(line.terminal_reason);
+    const stopped = reason === undefined ? this.interrupting : reason.startsWith("aborted_");
+    this.interrupting = false;
+    if (stopped)
+      events.push(this.item({ kind: "lervo_notice", code: "turn_stopped", parameters: {} }));
+    else if (line.subtype !== "success" || line.is_error === true)
       events.push(
         this.item({
           kind: "lervo_notice",
@@ -218,6 +233,23 @@ export class ClaudeHostedStreamDecoder implements HostedStreamDecoder, HostedUsa
     this.usage.push(...turnUsage(line, this.lastModel));
     events.push({ kind: "status", event: "turn_finished" });
     return events;
+  }
+
+  /**
+   * Asks Claude Code to stop the running turn with a stream-json control request. Claude answers
+   * with a `control_response` and ends the turn with its `result`, keeping the session, so the
+   * next message continues it. With no turn running, nothing is sent.
+   */
+  interrupt(): { input: Uint8Array; events: HostedDecodedEvent[] } {
+    if (!this.inTurn) return { input: new Uint8Array(), events: [] };
+    this.interrupting = true;
+    this.interruptions += 1;
+    const line = JSON.stringify({
+      type: "control_request",
+      request_id: `lervo_interrupt_${this.interruptions}`,
+      request: { subtype: "interrupt" },
+    });
+    return { input: new TextEncoder().encode(`${line}\n`), events: [] };
   }
 
   usageAccounting(): ResourceAccountingDescriptor {

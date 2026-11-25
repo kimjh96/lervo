@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   bindHostUpdate,
+  hostIsCurrent,
   nextUpdate,
   olderVersion,
   restartHost,
@@ -39,6 +40,13 @@ describe("the session host update", () => {
     expect(olderVersion("0.3.1", "0.3.1")).toBe(false);
     expect(olderVersion("0.4.0", "0.3.9")).toBe(false);
     expect(olderVersion("unknown", "0.3.1")).toBe(false);
+  });
+
+  it("treats a session host at least as new as the application as knowing its requests", () => {
+    expect(hostIsCurrent(null)).toBe(false);
+    expect(hostIsCurrent(older)).toBe(false);
+    expect(hostIsCurrent({ ...older, hostVersion: "0.3.1" })).toBe(true);
+    expect(hostIsCurrent({ ...older, hostVersion: "0.4.0", replaceable: false })).toBe(true);
   });
 
   it("offers a restart only for an older session host the shell can end", () => {

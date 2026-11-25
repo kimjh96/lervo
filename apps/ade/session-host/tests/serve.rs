@@ -76,6 +76,11 @@ impl StreamDecoder for LineDecoder {
         }
         decoded
     }
+
+    /// Stops a turn with a line the fake provider answers like any other.
+    async fn interrupt(&mut self) -> Result<(Vec<u8>, Vec<Decoded>), Failure> {
+        Ok((b"stop-turn\n".to_vec(), Vec::new()))
+    }
 }
 
 impl Core for FakeCore {
@@ -507,6 +512,59 @@ async fn runs_a_native_session_and_pages_its_stored_conversation() {
     assert_eq!(
         serde_json::to_value(failed.code).unwrap(),
         json!("range_invalid")
+    );
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn stops_a_native_turn_and_refuses_in_the_cli_conversation() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_native"}))
+        .await;
+    let HostMessage::SessionOpenedMessage(_) = client.next_message().await else {
+        panic!("expected session.opened")
+    };
+    client
+        .send(json!({"kind": "session.attach", "requestId": "req_2", "sessionId": "ses_native", "afterSequence": 0}))
+        .await;
+    client
+        .send(json!({"kind": "session.interrupt", "requestId": "req_3", "sessionId": "ses_native"}))
+        .await;
+    // The decoder's bytes reach the provider, which answers them, and the request is answered.
+    let (mut interrupted, mut replies) = (None, String::new());
+    while interrupted.is_none() || !replies.contains("stop-turn") {
+        match client.next_message().await {
+            HostMessage::SessionInterruptedMessage(answer) => interrupted = Some(answer),
+            HostMessage::ConversationDeltaMessage(delta) => replies.push_str(&delta.append),
+            HostMessage::ConversationAppendedMessage(_) | HostMessage::SessionStatusMessage(_) => {}
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+    let interrupted = interrupted.unwrap();
+    assert_eq!(interrupted.request_id.as_str(), "req_3");
+    assert_eq!(interrupted.session_id.as_str(), "ses_native");
+
+    // The CLI conversation stops a turn in its terminal, so the request is refused by name.
+    let mut cli = Client::connect(&layout).await;
+    cli.send(json!({"kind": "session.open", "requestId": "req_4", "workspaceId": "wks_switch"}))
+        .await;
+    let HostMessage::SessionOpenedMessage(opened) = cli.next_message().await else {
+        panic!("expected session.opened")
+    };
+    cli.send(json!({"kind": "session.interrupt", "requestId": "req_5", "sessionId": opened.session_id.as_str()}))
+        .await;
+    let HostMessage::RequestFailedMessage(failed) = cli.next_message().await else {
+        panic!("expected request.failed")
+    };
+    assert_eq!(failed.request_id.as_str(), "req_5");
+    assert_eq!(
+        serde_json::to_value(failed.code).unwrap(),
+        json!("interrupt_unsupported")
     );
 
     stop.send(()).unwrap();

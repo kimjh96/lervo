@@ -74,6 +74,19 @@ impl<C: Core> Host<C> {
                 self.request(&send.session_id, &send.request_id, command, &reply)
                     .await;
             }
+            ClientMessage::SessionInterruptMessage(interrupt) => {
+                let command = Command::Interrupt {
+                    request: interrupt.request_id.clone(),
+                    reply: Reply::new(output),
+                };
+                self.request(
+                    &interrupt.session_id,
+                    &interrupt.request_id,
+                    command,
+                    &reply,
+                )
+                .await;
+            }
             ClientMessage::SessionResizeMessage(resize) => {
                 let columns = u16::try_from(resize.columns.get()).unwrap_or(u16::MAX);
                 let rows = u16::try_from(resize.rows.get()).unwrap_or(u16::MAX);

@@ -9,10 +9,11 @@ use lervo_session_protocol::{
     ConversationDeltaMessageKind, ConversationItem, ConversationMode as WireMode,
     ConversationPageMessage, ConversationPageMessageKind, HostMessage, Identifier, Parameters,
     ParametersKey, ParametersValue, ParametersValueString, RequestFailedMessage,
-    RequestFailedMessageCode, RequestFailedMessageKind, Sequence, SessionOpenedMessage,
-    SessionOpenedMessageKind, SessionResyncRequiredMessage, SessionResyncRequiredMessageKind,
-    SessionSentMessage, SessionSentMessageKind, SessionStatusMessage,
-    SessionStatusMessageEndReason, SessionStatusMessageKind, SessionStatusMessageStatus,
+    RequestFailedMessageCode, RequestFailedMessageKind, Sequence, SessionInterruptedMessage,
+    SessionInterruptedMessageKind, SessionOpenedMessage, SessionOpenedMessageKind,
+    SessionResyncRequiredMessage, SessionResyncRequiredMessageKind, SessionSentMessage,
+    SessionSentMessageKind, SessionStatusMessage, SessionStatusMessageEndReason,
+    SessionStatusMessageKind, SessionStatusMessageStatus,
 };
 use serde_json::{Map, Value};
 
@@ -116,6 +117,16 @@ pub fn sent(request: &Identifier, session: &Identifier) -> HostMessage {
     })
 }
 
+/// The answer to a `session.interrupt` whose request reached the provider, or that found no
+/// running turn.
+pub fn interrupted(request: &Identifier, session: &Identifier) -> HostMessage {
+    HostMessage::from(SessionInterruptedMessage {
+        kind: SessionInterruptedMessageKind::SessionInterrupted,
+        request_id: request.clone(),
+        session_id: session.clone(),
+    })
+}
+
 /// The `request.failed` for a failure the core reported, with its code and stage as parameters.
 pub fn core_failed(request: &Identifier, failure: &Failure) -> HostMessage {
     let code = match failure.code {
@@ -130,6 +141,7 @@ pub fn core_failed(request: &Identifier, failure: &Failure) -> HostMessage {
         FailureCode::ApplicationFailed => RequestFailedMessageCode::ApplicationFailed,
         FailureCode::ApplicationUnavailable => RequestFailedMessageCode::ApplicationUnavailable,
         FailureCode::ApplicationTimeout => RequestFailedMessageCode::ApplicationTimeout,
+        FailureCode::InterruptUnsupported => RequestFailedMessageCode::InterruptUnsupported,
     };
     failed_with(
         request,

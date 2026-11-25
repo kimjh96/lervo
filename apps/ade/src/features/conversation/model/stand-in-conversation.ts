@@ -31,6 +31,10 @@ export class StandInConversation implements ConversationSource {
     return Promise.reject(new RequestFailure("session_not_started"));
   }
 
+  interrupt(): Promise<void> {
+    return Promise.reject(new RequestFailure("session_not_started"));
+  }
+
   async loadEarlier(): Promise<void> {}
 
   async loadLater(): Promise<void> {}

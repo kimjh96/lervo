@@ -53,6 +53,7 @@ export const requestFailedMessageSchema = {
         "application_timeout",
         "session_start_failed",
         "session_stop_timeout",
+        "interrupt_unsupported",
       ],
     },
     parameters: parametersSchema,
