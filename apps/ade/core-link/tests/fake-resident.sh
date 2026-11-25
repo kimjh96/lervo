@@ -3,7 +3,8 @@
 # with a fixed response, and exits when a command's instruction is "crash". Its first argument
 # picks a release: "older" advertises no commands and ends on `provider.list`, as a release from
 # before the provider list does, and "invalid" answers `provider.list` with a malformed result.
-# Its second argument, when given, is a file that collects every `session.exited` it receives,
+# Its second argument, when given, is a file that collects every `session.exited` and
+# `decoder.open` it receives (an "older" release ends on a `decoder.open` that names a session),
 # and its third, a file that gets one line each time the process starts. Output "finish\n"
 # (`ZmluaXNoCg==`) finishes the turn.
 release="${1:-current}"
@@ -22,7 +23,7 @@ while IFS= read -r line; do
         *'"workspace.list"'*)
           case "$release" in
             older) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[]}}\n' "$id" ;;
-            *) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited"]}}\n' "$id" ;;
+            *) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited","decoder.session"]}}\n' "$id" ;;
           esac ;;
         older:*'"provider.list"'*) exit 1 ;;
         invalid:*'"provider.list"'*) printf '{"kind":"core.result","id":%s,"result":{"providers":[]}}\n' "$id" ;;
@@ -30,6 +31,10 @@ while IFS= read -r line; do
         *) printf '{"kind":"core.result","id":%s,"result":{"workspaceId":"wsp_1","sessionId":"0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c","provider":"claude"},"launch":%s}\n' "$id" "$launch" ;;
       esac ;;
     core.open) printf '{"kind":"core.failed","id":%s,"code":"workspace_not_found"}\n' "$id" ;;
+    decoder.open)
+      [ -n "$reports" ] && printf '%s\n' "$line" >> "$reports"
+      case "$release:$line" in older:*'"sessionId"'*) exit 1 ;; esac
+      printf '{"kind":"decoder.decoded","id":%s,"events":[]}\n' "$id" ;;
     session.exited)
       [ -n "$reports" ] && printf '%s\n' "$line" >> "$reports"
       printf '{"kind":"core.result","id":%s,"result":{"status":"recorded"}}\n' "$id" ;;

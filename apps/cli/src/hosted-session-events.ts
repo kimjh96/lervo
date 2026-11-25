@@ -31,7 +31,7 @@ export interface HostedSessionEvent {
  */
 export type HostedSessionEventOutcome = "recorded" | "inactive";
 
-const POLICY_VERSION = sha256("lervo.hosted-session-events.v1");
+export const POLICY_VERSION = sha256("lervo.hosted-session-events.v1");
 
 export function sha256(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -45,7 +45,8 @@ export function providerSessionDigest(provider: string, sessionId: string): stri
   return sha256(`${provider}\0${sessionId}`);
 }
 
-function suffix(digest: string): string {
+/** The part of a digest that hosted session envelope IDs carry. */
+export function suffix(digest: string): string {
   return digest.slice("sha256:".length, "sha256:".length + 24);
 }
 

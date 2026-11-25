@@ -727,6 +727,9 @@
         "provider": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
         }
       }
     },

@@ -229,6 +229,46 @@ async fn reports_an_exit_only_to_a_process_that_advertised_it() {
     }
 }
 
+#[tokio::test]
+async fn names_the_session_on_decoder_open_only_to_a_process_that_advertised_it() {
+    for (release, named) in [("current", true), ("older", false)] {
+        let reports = std::env::temp_dir().join(format!(
+            "lervo-decoder-opens-{release}-{}.log",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&reports);
+        let core = reporting(release, &reports);
+        core.command("workspace.list", none()).await.unwrap();
+        let launch = lervo_session_core::ports::Launch {
+            session_id: "0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c".to_owned(),
+            workspace_id: "wsp_1".to_owned(),
+            mode: ConversationMode::Native,
+            provider: "claude".to_owned(),
+            program: "/opt/claude".to_owned(),
+            arguments: Vec::new(),
+            environment: Vec::new(),
+            working_directory: std::env::temp_dir(),
+            initial_input: None,
+            environment_remove: Vec::new(),
+            transcript: false,
+        };
+        let (input, _) = core.decoder(&launch).send("hi").await;
+        assert!(!input.is_empty(), "{release}: the decoder did not open");
+        let received = std::fs::read_to_string(&reports).unwrap_or_default();
+        let opened: Value = serde_json::from_str(received.lines().next().unwrap()).unwrap();
+        assert_eq!(opened["kind"], "decoder.open");
+        assert_eq!(
+            opened.get("sessionId").is_some(),
+            named,
+            "{release}: {received}"
+        );
+        if named {
+            assert_eq!(opened["sessionId"], launch.session_id.as_str());
+        }
+        let _ = std::fs::remove_file(&reports);
+    }
+}
+
 /// A copy of the stand-in that a test may upgrade, and the file its starts are counted in.
 fn installed(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     let directory =

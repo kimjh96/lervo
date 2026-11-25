@@ -45,7 +45,7 @@ Every request carries a positive integer `id`, and the resident process answers 
   - `conversationModes`, the modes its provider offers, or only the last mode when no adapter admits the provider;
   - `sessionId` and `preparedAt`.
 
-  It reads one worktree listing per repository. `commands` names every application command the resident process answers, and the core-link requests it advertises, such as `session.exited`.
+  It reads one worktree listing per repository. `commands` names every application command the resident process answers, and the core-link requests and fields it advertises: `session.exited`, and `decoder.session` for `decoder.open`'s `sessionId`.
 
 - `workspace.start`, `workspace.list`, and `repository.list` are the base commands, which every release answers. The session host sends any other command only to a resident process whose last `workspace.list` named it, because a process from an older release ends the core link on a request it cannot validate.
 - `provider.list` answers `{providers, defaultProvider}`, every admitted hosted provider in registry order. Each holds:
@@ -69,6 +69,7 @@ Every request carries a positive integer `id`, and the resident process answers 
   - `skipped`, when the hook already recorded the end;
   - `inactive`, below event schema 10;
   - `unknown_session`, for a session that no launch record names.
+- `decoder.open` may take the launch's `sessionId`. The session host sends it only to a resident process whose last `workspace.list` named `decoder.session`, and only to that process; when another process runs by then, the decoder opens without it. With a `sessionId`, the resident process takes each finished turn's usage from the decoder after answering its events and records it as `resource.usage.recorded` with hosted attribution ([Lervo ADE sessions](ade-sessions.md)). Usage never travels in a response.
 - `transcript.read` takes `workspaceId`, `offset` (items to skip), and `limit` (at most 500). `transcript.page` answers with complete items, oldest first, as `item` events carry them, and `complete` when the transcript ended. A page holds at most 4 MiB of text. A request that continues the previous page resumes the same reader, so a transcript read page by page is read once. A provider that kept no transcript answers an empty, complete page.
 - Decoded events are, in order of application: `status` (`turn_started`, `question_asked`, or `turn_finished`), `item` and `start` with conversation content and a creation time, `delta` with text for the streaming item, and `finish`. Content is a user message, an agent message, a question, tool activity (name, status, and call count), or a Lervo notice (a code and parameters).
 
@@ -77,6 +78,7 @@ Every request carries a positive integer `id`, and the resident process answers 
 - Commands run concurrently. Decoder requests are answered at once and in arrival order, so a decoder's state follows its provider's stream exactly while a command waits on Git.
 - A request line holds at most 2 MiB; a longer line ends the link. A `decoder.output` request carries at most 1 MiB of output, and the session host splits larger reads.
 - At most 256 decoders are open at once; `decoder.open` beyond that fails with `decoder_limit_reached`.
+- Turn usage waits in one queue and is recorded a batch at a time, so a decoder request never waits on the event store. At most 1,024 usage records wait or are being recorded at once. A batch the store fails to record, such as on a busy database, is tried up to three times, a second apart; records it already holds count once, because their IDs are deterministic. Records beyond the bound, or still unrecorded after the last try, are dropped and counted, and the resident process writes `core_link_turn_usage_dropped <count>` to standard error when it ends. It ends only after the queue drains.
 - The session host waits 120 seconds for a command and 30 seconds for a decoder request.
 
 ## Failure meaning

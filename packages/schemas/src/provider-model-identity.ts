@@ -74,9 +74,11 @@ export const providerModelIdentitySchema = modelIdentitySchema(modelIdSchema);
  * priced differently. Only schema-11 hosted usage records use this pattern; every older payload
  * keeps the managed one, so older readers never see a bracket.
  */
+export const hostedModelIdPattern = "^[A-Za-z0-9][A-Za-z0-9._:@/\\[\\]-]{0,127}$" as const;
+
 export const hostedModelIdentitySchema = modelIdentitySchema({
   ...modelIdSchema,
-  pattern: "^[A-Za-z0-9][A-Za-z0-9._:@/\\[\\]-]{0,127}$",
+  pattern: hostedModelIdPattern,
 } as const);
 
 export type ProviderModelIdentity = FromSchema<typeof providerModelIdentitySchema>;

@@ -8,6 +8,7 @@ import {
   startWorkspaceFromInstruction,
 } from "./workspace-launch-service.js";
 import { WorkspaceTranscripts } from "./workspace-transcript-service.js";
+import { recordHostedTurnUsage } from "./hosted-turn-usage-events.js";
 import { recordHostedSessionExit } from "./hosted-session-exit.js";
 import { retireHostedWorkspace } from "./hosted-workspace-retire.js";
 import { hostedWorkspaceRetireEffects } from "./hosted-workspace-retire-effects.js";
@@ -49,6 +50,8 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   retireWorkspace: (workspaceId) =>
     retireHostedWorkspace(workspaceId, hostedWorkspaceRetireEffects()),
   recordSessionExit: (sessionId, exitCode) => recordHostedSessionExit(sessionId, exitCode),
+  recordTurnUsage: (sessionId, accounting, usage) =>
+    recordHostedTurnUsage(sessionId, accounting, usage),
 };
 
 /**
@@ -61,6 +64,8 @@ export async function serveCoreLinkOverStandardStreams(): Promise<number> {
     process.stdout.write(`${line}\n`);
   });
   const end = await server.serve(process.stdin);
+  if (server.usage.dropped > 0)
+    process.stderr.write(`core_link_turn_usage_dropped ${server.usage.dropped}\n`);
   if (end === "message_invalid") {
     process.stderr.write("core_link_message_invalid\n");
     return 1;
