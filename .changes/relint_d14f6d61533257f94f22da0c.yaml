@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d14f6d61533257f94f22da0c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "The resident process records the usage of turns a hosted session's decoder decoded before the session host named the session, once it is named, instead of losing it."

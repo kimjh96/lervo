@@ -24,6 +24,11 @@ import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 export const MAX_REQUEST_LINE_BYTES = 2 * 1024 * 1024;
 /** Decoders open at once. Each belongs to one native session of the session host. */
 export const MAX_OPEN_DECODERS = 256;
+/**
+ * Usage records an unnamed decoder holds until the session host names its session. Past this,
+ * the oldest are dropped and counted with the queue's drops, never lost silently.
+ */
+export const MAX_PENDING_TURN_USAGE = 256;
 
 type Request = { kind: string; id: number } & Record<string, unknown>;
 type Started = WorkspaceStartResult | WorkspaceOpenResult;
@@ -66,6 +71,8 @@ export class CoreLinkServer {
   private readonly decoders = new Map<string, HostedStreamDecoder>();
   /** The hosted session each decoder serves, when the session host named it. */
   private readonly decoderSessions = new Map<string, string>();
+  /** Usage of decoders opened before their session was named, by decoder. */
+  private readonly pendingUsage = new Map<string, HostedTurnUsage[]>();
   private readonly pending = new Set<Promise<void>>();
   readonly usage: TurnUsageQueue;
 
@@ -247,7 +254,24 @@ export class CoreLinkServer {
       return;
     }
     try {
+      const existing = this.decoders.get(decoderId);
+      if (
+        existing !== undefined &&
+        typeof request.sessionId === "string" &&
+        !this.decoderSessions.has(decoderId)
+      ) {
+        // The session host names a decoder it opened unnamed: keep it, and record the turns it
+        // already decoded. Their coordinates are deterministic, so nothing counts twice.
+        this.decoderSessions.set(decoderId, request.sessionId);
+        const pending = this.pendingUsage.get(decoderId) ?? [];
+        this.pendingUsage.delete(decoderId);
+        if (pending.length > 0 && reportsUsage(existing))
+          this.usage.push(request.sessionId, existing.usageAccounting(), pending);
+        this.decoded(request.id, []);
+        return;
+      }
       this.decoders.set(decoderId, this.handlers.createDecoder(request.provider as string));
+      this.pendingUsage.delete(decoderId);
       if (typeof request.sessionId === "string")
         this.decoderSessions.set(decoderId, request.sessionId);
       else this.decoderSessions.delete(decoderId);
@@ -263,6 +287,7 @@ export class CoreLinkServer {
     if (request.kind === "decoder.close") {
       this.decoders.delete(decoderId);
       this.decoderSessions.delete(decoderId);
+      this.pendingUsage.delete(decoderId);
       this.decoded(request.id, []);
       return;
     }
@@ -285,11 +310,20 @@ export class CoreLinkServer {
       return;
     }
     this.decoded(request.id, decoder.output(Buffer.from(request.data as string, "base64")));
-    // Usage leaves the decoder only for a named session, after the events are answered.
-    const sessionId = this.decoderSessions.get(decoderId);
-    if (sessionId === undefined || !reportsUsage(decoder)) return;
+    // Usage leaves the decoder after the events are answered: to the queue for a named session,
+    // and held, bounded, for one the session host has not named yet.
+    if (!reportsUsage(decoder)) return;
     const usage = decoder.takeUsage();
-    if (usage.length > 0) this.usage.push(sessionId, decoder.usageAccounting(), usage);
+    if (usage.length === 0) return;
+    const sessionId = this.decoderSessions.get(decoderId);
+    if (sessionId !== undefined) {
+      this.usage.push(sessionId, decoder.usageAccounting(), usage);
+      return;
+    }
+    const pending = [...(this.pendingUsage.get(decoderId) ?? []), ...usage];
+    const overflow = Math.max(0, pending.length - MAX_PENDING_TURN_USAGE);
+    this.usage.dropped += overflow;
+    this.pendingUsage.set(decoderId, pending.slice(overflow));
   }
 
   private decoded(id: number, events: readonly unknown[], input?: string): void {
