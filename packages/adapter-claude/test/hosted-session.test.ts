@@ -28,6 +28,7 @@ describe("Claude Code hosted sessions", () => {
       "--output-format",
       "stream-json",
       "--include-partial-messages",
+      "--replay-user-messages",
       "--permission-mode",
       "bypassPermissions",
       "--session-id",

@@ -58,6 +58,13 @@ const lines = [
     message: { content: [{ type: "text", text: "Terminal에서 보낸 메시지" }] },
   },
   {
+    type: "user",
+    timestamp: at(9),
+    isMeta: true,
+    origin: { kind: "peer", name: "lervo-b9", body: "Please canary the ADE." },
+    message: { content: "Another Claude session sent a message: <cross-session-message>…" },
+  },
+  {
     type: "system",
     subtype: "compact_boundary",
     timestamp: at(9),
@@ -115,6 +122,11 @@ describe("Claude Code transcripts", () => {
         {
           content: { kind: "user_message", text: "Terminal에서 보낸 메시지" },
           createdAtMs: Date.parse(at(8)),
+        },
+        // Another session's message shows as that session's, though the transcript marks it meta.
+        {
+          content: { kind: "peer_message", from: "lervo-b9", text: "Please canary the ADE." },
+          createdAtMs: Date.parse(at(9)),
         },
         // A compaction shows as its notice; the summary it wrote for the model does not show.
         {

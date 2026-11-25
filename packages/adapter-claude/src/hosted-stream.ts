@@ -5,12 +5,12 @@ import {
   type HostedTurnInterrupting,
   type HostedTurnUsage,
   type HostedUsageReporting,
-  usageModelName,
 } from "@lervo/adapter-contract";
 import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 import { homedir } from "node:os";
 
 import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
+import { CLAUDE_HOSTED_USAGE_ACCOUNTING, turnUsage } from "./hosted-usage.js";
 
 /** A line longer than this is dropped up to its end, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
@@ -47,6 +47,8 @@ function blocks(line: Line): Line[] {
  * - `result` ends the turn. A turn the user stopped adds the `turn_stopped` notice, and any other
  *   turn that did not succeed adds the `provider_turn_failed` notice.
  *   Its per-model usage since the previous result is kept for `takeUsage`, never shown.
+ * - Replayed user messages (`--replay-user-messages`) repeat the person's own, which `send`
+ *   already showed; one another session sent becomes that session's message.
  * - A `compact_boundary` line, where Claude Code compacted the conversation, adds the
  *   `context_compacted` notice. Subagent messages, thinking, hooks, and other system lines are not
  *   part of the conversation.
@@ -131,6 +133,12 @@ export class ClaudeHostedStreamDecoder
         this.lastModel = text(record(line.message)?.model) ?? this.lastModel;
         return this.assistant(line);
       case "user":
+        // With replayed user messages, the person's own messages repeat what `send` showed; a
+        // message another session sent shows as that session's message.
+        if (line.isReplay === true) {
+          const message = peerMessage(record(line.origin));
+          return message === undefined ? [] : [this.item(message)];
+        }
         return this.toolResults(line);
       case "result":
         return this.result(line);
@@ -306,6 +314,26 @@ export class ClaudeHostedStreamDecoder
   }
 }
 
+/** Where Claude Code appends a notice of its own to a relayed message's body. */
+const RELAY_NOTICE = "\n\n<artifact-content-authored-by-others/>";
+
+/**
+ * A message another session sent, from a user line's `origin`: Claude Code marks one with `kind:
+ * "peer"`, the sender's session name, and the message's body.
+ */
+export function peerMessage(origin: Line | undefined): HostedDecodedContent | undefined {
+  if (origin?.kind !== "peer") return undefined;
+  const body = text(origin.body);
+  if (body === undefined) return undefined;
+  const cut = body.indexOf(RELAY_NOTICE);
+  const from = text(origin.name)?.trim();
+  return {
+    kind: "peer_message",
+    from: (from === undefined || from.length === 0 ? "another session" : from).slice(0, 128),
+    text: (cut === -1 ? body : body.slice(0, cut)).trim(),
+  };
+}
+
 /** The notice for a compaction: `manual` when the person ran /compact, otherwise `auto`. */
 export function compacted(trigger: unknown): HostedDecodedContent {
   return {
@@ -313,86 +341,4 @@ export function compacted(trigger: unknown): HostedDecodedContent {
     code: "context_compacted",
     parameters: { trigger: trigger === "manual" ? "manual" : "auto" },
   };
-}
-
-const count = (value: unknown): number =>
-  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
-const optionalCount = (value: unknown): number | null =>
-  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
-const positiveCount = (value: unknown): number | null =>
-  typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
-
-/**
- * How Claude Code counts the usage this decoder reports: each result's per-model delta since the
- * previous result, from `model_usage_since_last_result`, or the turn's own `usage` from an older
- * Claude Code. The core stores this descriptor once before the first record citing it.
- */
-export const CLAUDE_HOSTED_USAGE_ACCOUNTING: ResourceAccountingDescriptor = {
-  kind: "resource_accounting_descriptor",
-  schemaVersion: 2,
-  provider: "claude",
-  adapterId: "claude/hosted-session",
-  adapterVersion: "1",
-  accountingMode: "operation_delta",
-  observationSupport: "supported",
-  unavailableReason: null,
-  normalizationId: "claude.hosted.result-usage.v1",
-  nativeCounterSemanticsId: "claude.stream-json.model-usage-since-last-result.v1",
-  requestedModel: null,
-  serviceTier: null,
-};
-
-/**
- * A result's usage: one record per model from `model_usage_since_last_result`, whose amounts sum
- * to the process's cumulative totals, or, from an older Claude Code, one record from the turn's
- * `usage` without a cost. A result without a UUID, or without either, reports nothing.
- */
-function turnUsage(line: Line, lastModel: string | undefined): HostedTurnUsage[] {
-  const turnKey = text(line.uuid);
-  if (turnKey === undefined) return [];
-  const resultIndex = count(line.result_index);
-  const perModel = record(line.model_usage_since_last_result);
-  if (perModel !== undefined)
-    return Object.entries(perModel).flatMap(([key, value]) => {
-      const stats = record(value);
-      if (stats === undefined) return [];
-      const cost =
-        typeof stats.costUSD === "number" && Number.isFinite(stats.costUSD) && stats.costUSD >= 0
-          ? stats.costUSD
-          : null;
-      return [
-        {
-          turnKey,
-          resultIndex,
-          modelKey: key,
-          model: usageModelName(text(stats.canonicalModel) ?? key),
-          uncachedInputTokens: count(stats.inputTokens),
-          cacheReadInputTokens: count(stats.cacheReadInputTokens),
-          cacheCreationInputTokens: count(stats.cacheCreationInputTokens),
-          outputTokens: count(stats.outputTokens),
-          reasoningOutputTokens: optionalCount(stats.thinkingTokens),
-          contextWindow: positiveCount(stats.contextWindow),
-          costUsd: cost,
-          costBasis: cost === null ? ("unreported" as const) : ("list" as const),
-        },
-      ];
-    });
-  const usage = record(line.usage);
-  if (usage === undefined) return [];
-  return [
-    {
-      turnKey,
-      resultIndex,
-      modelKey: lastModel ?? "",
-      model: usageModelName(lastModel),
-      uncachedInputTokens: count(usage.input_tokens),
-      cacheReadInputTokens: count(usage.cache_read_input_tokens),
-      cacheCreationInputTokens: count(usage.cache_creation_input_tokens),
-      outputTokens: count(usage.output_tokens),
-      reasoningOutputTokens: optionalCount(record(usage.output_tokens_details)?.thinking_tokens),
-      contextWindow: null,
-      costUsd: null,
-      costBasis: "unreported",
-    },
-  ];
 }

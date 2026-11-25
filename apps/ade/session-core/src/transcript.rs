@@ -36,6 +36,11 @@ pub enum Content {
     UserMessage(String),
     AgentMessage(String),
     Question(String),
+    /// A message another agent session sent: the sender's name and the text.
+    PeerMessage {
+        from: String,
+        text: String,
+    },
     ToolActivity {
         name: String,
         status: ToolStatus,
@@ -52,7 +57,7 @@ impl Content {
     fn text_mut(&mut self) -> Option<&mut String> {
         match self {
             Self::UserMessage(text) | Self::AgentMessage(text) | Self::Question(text) => Some(text),
-            Self::ToolActivity { .. } | Self::LervoNotice { .. } => None,
+            Self::ToolActivity { .. } | Self::LervoNotice { .. } | Self::PeerMessage { .. } => None,
         }
     }
 
