@@ -83,8 +83,6 @@ export async function recordPreparedTerminalContext(input: {
   storage?: ProjectStorage;
   transcript?: TranscriptPosition | null;
   transcriptAbsent?: string | null;
-  /** The provider's session ID; with it, a turn of this session that no Stop closed settles. */
-  providerSessionId?: string;
 }): Promise<string> {
   input.context.documents.forEach((document) =>
     assertTerminalRepositoryRelativePath(document.path),
@@ -168,15 +166,11 @@ export async function recordPreparedTerminalContext(input: {
     );
     // Schema 12: the session's previous turn is still open when no Stop hook ran for it, as
     // when the owner interrupted it. This prompt's snapshot settles it, before its marker goes.
-    if (
-      input.providerSessionId !== undefined &&
-      (storage.writableEventSchemaVersion ?? 1) >= turnEndingEventSchemaVersion
-    )
+    if ((storage.writableEventSchemaVersion ?? 1) >= turnEndingEventSchemaVersion)
       await requestOpenTerminalTurnSettlement({
         root: input.root,
         executionRoot: input.executionRoot ?? input.root,
         provider: input.provider,
-        providerSessionId: input.providerSessionId,
         providerSessionDigest: input.coordinates.providerSessionDigest,
         ending: "next_prompt",
         afterObservationId: input.observationId,

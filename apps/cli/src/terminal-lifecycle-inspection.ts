@@ -62,6 +62,9 @@ export async function inspectTerminalLifecycle(
       root,
       provider: expected.provider,
       providerSessionId: expected.providerSessionId,
+      ...(expected.providerSessionDigest === undefined
+        ? {}
+        : { providerSessionDigest: expected.providerSessionDigest }),
       binding: expected.workspaceBinding,
     });
     issues.push(...workspace.issues);

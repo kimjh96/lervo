@@ -7,6 +7,7 @@ import {
   terminalWorkspaceHost,
   terminalWorkspaceMarker,
   terminalWriterSessionId,
+  terminalWriterSessionIdForDigest,
 } from "./terminal-workspace-boundary.js";
 import type {
   TerminalWorkspaceBinding,
@@ -17,6 +18,8 @@ export async function inspectTerminalWorkspace(input: {
   root: string;
   provider: "codex" | "claude";
   providerSessionId: string;
+  /** When given, the writer session comes from this digest; a settlement knows only the digest. */
+  providerSessionDigest?: string;
   binding: TerminalWorkspaceBinding;
   now?: Date;
 }): Promise<TerminalWorkspaceInspection> {
@@ -42,7 +45,10 @@ export async function inspectTerminalWorkspace(input: {
     workspace.leaseGeneration !== input.binding.leaseGeneration
   )
     issues.push({ code: "workspace_revision_changed", command: "lervo workspace inspect --json" });
-  const sessionId = terminalWriterSessionId(input.provider, input.providerSessionId);
+  const sessionId =
+    input.providerSessionDigest === undefined
+      ? terminalWriterSessionId(input.provider, input.providerSessionId)
+      : terminalWriterSessionIdForDigest(input.providerSessionDigest);
   if (
     workspace.state !== "active" ||
     workspace.writerSession?.sessionId !== input.binding.writerSessionId ||

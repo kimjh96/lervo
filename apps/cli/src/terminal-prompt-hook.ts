@@ -100,7 +100,6 @@ export async function prepareAndRecordTerminalPrompt({
         storage: observationStorage,
         transcript,
         transcriptAbsent,
-        providerSessionId,
       });
       await writeTerminalActivationReceipt(root, {
         schemaVersion: 1,

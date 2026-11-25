@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -18,8 +18,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { runCli } from "../src/main.js";
 import { prefetchTerminalPromptContext } from "../src/terminal-knowledge-snapshot.js";
 import {
+  acquireTerminalTurnSettlementLease,
   listTerminalTurnSettlements,
+  readTerminalTurnSettlementDrops,
   settledTerminalTurnEventId,
+  type TerminalTurnSettlementRequest,
   writeTerminalTurnSettlement,
 } from "../src/terminal-turn-settlement.js";
 import { settleTerminalTurns } from "../src/terminal-turn-settlement-worker.js";
@@ -148,6 +151,21 @@ const exists = (path: string) =>
 const hook = (cwd: string, input: Record<string, unknown>) =>
   cli(cwd, ["terminal", "hook", "--provider", "claude", "--contract", "2"], JSON.stringify(input));
 
+/** A settlement request for `contextEventId`, as a hook writes one. */
+const request = (contextEventId: string, executionRoot: string): TerminalTurnSettlementRequest => ({
+  schemaVersion: 1,
+  provider: "claude",
+  providerSessionDigest: `sha256:${"a".repeat(64)}`,
+  contextEventId,
+  ending: "next_prompt",
+  executionRoot,
+  afterObservationId: null,
+  transcriptStart: null,
+  transcriptEnd: null,
+  requestedAt: new Date().toISOString(),
+  attempts: 0,
+});
+
 const prompt = (cwd: string, turn: string, text = "Raise the password limit.") =>
   hook(cwd, {
     hook_event_name: "UserPromptSubmit",
@@ -170,7 +188,12 @@ describe("turns that end without a Stop hook", () => {
       contextEventId: first?.eventId,
       ending: "next_prompt",
       executionRoot: root,
+      attempts: 0,
     });
+    // Repository state names the session only by its digest.
+    const directory = resolve(root, ".lervo/state/terminal-integration/turn-settlements");
+    for (const name of await readdir(directory))
+      expect(await readFile(resolve(directory, name), "utf8")).not.toContain("settle-session");
     expect(await settleTerminalTurns(root)).toBe(1);
     const [settled] = await events(root, ["terminal.turn.observed"]);
     expect(settled?.eventId).toBe(settledTerminalTurnEventId(first!.eventId));
@@ -212,7 +235,46 @@ describe("turns that end without a Stop hook", () => {
     const older = await repository(11);
     await prompt(older, "turn-1");
     await prompt(older, "turn-2", "Go on.");
+    await hook(older, {
+      hook_event_name: "SessionStart",
+      session_id: "settle-session",
+      source: "resume",
+    });
     expect(await listTerminalTurnSettlements(older)).toEqual([]);
+
+    // A request a writer cannot record, as after an activation rollback, is dropped and counted.
+    const [context] = await events(older, ["terminal.context.prepared"]);
+    expect(await writeTerminalTurnSettlement(older, request(context!.eventId, older))).toBe(true);
+    expect(await settleTerminalTurns(older)).toBe(0);
+    expect(await listTerminalTurnSettlements(older)).toEqual([]);
+    expect(await readTerminalTurnSettlementDrops(older)).toMatchObject({
+      writer_below_schema_12: 1,
+    });
+  }, 60_000);
+
+  it("runs one worker at a time and drops a request that keeps failing", async () => {
+    const root = await repository(12);
+    await prompt(root, "turn-1");
+    const [context] = await events(root, ["terminal.context.prepared"]);
+    // A checkout that is gone fails every attempt.
+    const failing = request(context!.eventId, resolve(root, "gone"));
+    expect(await writeTerminalTurnSettlement(root, failing)).toBe(true);
+
+    // While another worker holds the lease, a second one leaves at once.
+    const release = await acquireTerminalTurnSettlementLease(root);
+    expect(release).not.toBeNull();
+    expect(await settleTerminalTurns(root)).toBe(0);
+    expect(await listTerminalTurnSettlements(root)).toMatchObject([{ attempts: 0 }]);
+    await release!();
+
+    expect(await settleTerminalTurns(root)).toBe(0);
+    expect(await listTerminalTurnSettlements(root)).toMatchObject([{ attempts: 1 }]);
+    await settleTerminalTurns(root);
+    expect(await listTerminalTurnSettlements(root)).toMatchObject([{ attempts: 2 }]);
+    await settleTerminalTurns(root);
+    expect(await listTerminalTurnSettlements(root)).toEqual([]);
+    expect(await readTerminalTurnSettlementDrops(root)).toMatchObject({ attempts_exhausted: 1 });
+    expect(await events(root, ["terminal.turn.observed"])).toHaveLength(0);
   }, 60_000);
 
   it("settles the session's open turn when the session starts again", async () => {

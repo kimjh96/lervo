@@ -23,7 +23,10 @@ import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapsho
 import { resolveCommandRoots } from "./terminal-roots.js";
 import { preparedTurnExpectationFromContext } from "./terminal-turn-observation.js";
 import {
+  acquireTerminalTurnSettlementLease,
+  countTerminalTurnSettlementDrops,
   listTerminalTurnSettlements,
+  recordTerminalTurnSettlementFailure,
   removeTerminalTurnSettlement,
   settledTerminalTurnEventId,
   type TerminalTurnSettlementRequest,
@@ -77,11 +80,11 @@ async function settleTurn(
   const payload = context.payload as Record<string, unknown>;
   const executionRoot = request.executionRoot;
   const linked = executionRoot !== root;
-  const expectation = preparedTurnExpectationFromContext(
-    context,
-    request.provider,
-    request.providerSessionId,
-  );
+  // The request keeps the session only as its digest, which the workspace check accepts.
+  const expectation = {
+    ...preparedTurnExpectationFromContext(context, request.provider, ""),
+    providerSessionDigest: request.providerSessionDigest,
+  };
   const before = await readPreparedRepositorySnapshot(executionRoot, expectation.observationId);
   const after =
     request.afterObservationId === null
@@ -193,28 +196,40 @@ async function settleTurn(
 }
 
 /**
- * Settles every pending request of the repository `cwd` belongs to. Below writer schema 12 it
- * records nothing and leaves the requests to expire. A request that fails stays for the next
- * worker; one that recorded, or whose turn needs no record, is removed.
+ * Settles every pending request of the repository `cwd` belongs to, under the single-flight lease:
+ * a second worker finds it held and leaves. Below writer schema 12 nothing can be recorded, so the
+ * requests are dropped and counted. A request that fails is retried by a later worker and dropped
+ * and counted after its last attempt; one that recorded, or whose turn needs no record, is removed.
  */
 export async function settleTerminalTurns(cwd: string, now = () => new Date()): Promise<number> {
   const { evidenceRoot: root } = await resolveCommandRoots(cwd);
-  const requests = await listTerminalTurnSettlements(root, now());
-  if (requests.length === 0) return 0;
-  const storage = await openProjectStorage(root);
+  const release = await acquireTerminalTurnSettlementLease(root, now());
+  if (release === null) return 0;
   let settled = 0;
   try {
-    if ((storage.writableEventSchemaVersion ?? 1) < turnEndingEventSchemaVersion) return 0;
-    for (const request of requests) {
-      try {
-        if (await settleTurn(root, storage, request, now())) settled += 1;
-        await removeTerminalTurnSettlement(root, request.contextEventId);
-      } catch {
-        /* Kept for the next worker until it expires. */
+    const requests = await listTerminalTurnSettlements(root, now());
+    if (requests.length === 0) return 0;
+    const storage = await openProjectStorage(root);
+    try {
+      if ((storage.writableEventSchemaVersion ?? 1) < turnEndingEventSchemaVersion) {
+        for (const request of requests)
+          await removeTerminalTurnSettlement(root, request.contextEventId);
+        await countTerminalTurnSettlementDrops(root, "writer_below_schema_12", requests.length);
+        return 0;
       }
+      for (const request of requests) {
+        try {
+          if (await settleTurn(root, storage, request, now())) settled += 1;
+          await removeTerminalTurnSettlement(root, request.contextEventId);
+        } catch {
+          await recordTerminalTurnSettlementFailure(root, request);
+        }
+      }
+    } finally {
+      await storage.close();
     }
   } finally {
-    await storage.close();
+    await release();
   }
   return settled;
 }

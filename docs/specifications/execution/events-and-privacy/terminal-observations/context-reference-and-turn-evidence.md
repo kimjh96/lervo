@@ -37,7 +37,11 @@ The writer settles a turn that no Stop hook closed while the writer selects sche
 - **Request.** A hook that finds the same session's open-turn marker still open writes a settlement request under the repository's `.lervo/state/terminal-integration/turn-settlements/`. The marker must also name the same checkout, by `executionRootDigest`; a marker from before that field counts for any checkout. The next prompt writes one with `ending: next_prompt` before its marker replaces the old one, and a session start writes one with `ending: session_start`. The hook does nothing else, so a prompt pays only a directory check.
   - Requests are idempotent by the turn's context event.
   - They are bounded as markers are: 128 entries, each expiring after six hours.
+  - A request names the session only by its digest. The workspace check derives the writer session from it, so no raw provider session ID reaches repository state.
+  - Below writer schema 12 no hook writes one: the prompt reads the writer from its own store, and a session start reads the writer coordinate.
 - **Worker.** The hook starts a detached worker from the hook runtime (`settle-turns`). A prompt, a session start, and a Stop each start it while any request waits, so a request whose worker never ran is picked up by the session's next hook.
+  - One worker runs at a time. It holds an owner-only lease with its process ID and start time, and a hook launches none while a live lease exists. A lease older than ten minutes, or one whose process has ended, is stale.
+  - A request that fails is retried by a later worker and dropped after its third failed attempt. A worker that finds the writer below schema 12, as after an activation rollback, drops every request. Both drops are counted by reason in the directory's `.drops.json`.
 - **Record.** The worker first looks for a `terminal.turn.observed` that already cites the context event, through the type index. If one exists, as when a Stop recorded but failed to remove its marker, the request settles to nothing. Otherwise it records the turn:
   - The event ID derives from the context event, so two settlements record once.
   - `ending` is the request's, and `completionResult` is `not_checked`.

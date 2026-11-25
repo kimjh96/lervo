@@ -2,6 +2,9 @@ import { formatDegradedTerminalContext } from "./terminal-compact-format.js";
 import { withTerminalSnapshotDeadline } from "./terminal-repository-snapshot.js";
 import { parseArgs } from "node:util";
 
+import { turnEndingEventSchemaVersion } from "@lervo/event-contract";
+import { inspectEventWriterCoordinate } from "@lervo/project";
+
 import { type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 
 import {
@@ -260,7 +263,7 @@ async function executeTerminalHookCommand(
 /**
  * At a session start, requests the settlement of the session's turn that no Stop closed, with
  * the checkout's snapshot taken when the worker runs, and starts the worker for every pending
- * request. The worker records nothing below writer schema 12.
+ * request. Below writer schema 12 nothing can be recorded, so no request is written.
  */
 async function settleOnSessionStart(
   cwd: string,
@@ -268,16 +271,18 @@ async function settleOnSessionStart(
   input: { providerSessionId: string },
 ): Promise<boolean> {
   const { evidenceRoot, executionRoot } = await resolveTerminalRoots(cwd);
-  await requestOpenTerminalTurnSettlement({
-    root: evidenceRoot,
-    executionRoot,
-    provider,
-    providerSessionId: input.providerSessionId,
-    providerSessionDigest: terminalProviderSessionDigest(provider, input.providerSessionId),
-    ending: "session_start",
-    afterObservationId: null,
-    transcriptEnd: null,
-    now: new Date(),
-  });
+  const writer = (await inspectEventWriterCoordinate(evidenceRoot)).coordinate
+    .selectedEventSchemaVersion;
+  if (writer >= turnEndingEventSchemaVersion)
+    await requestOpenTerminalTurnSettlement({
+      root: evidenceRoot,
+      executionRoot,
+      provider,
+      providerSessionDigest: terminalProviderSessionDigest(provider, input.providerSessionId),
+      ending: "session_start",
+      afterObservationId: null,
+      transcriptEnd: null,
+      now: new Date(),
+    });
   return launchTerminalTurnSettlements(evidenceRoot, executionRoot);
 }
