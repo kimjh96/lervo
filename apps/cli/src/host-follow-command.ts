@@ -41,6 +41,11 @@ import {
 import type { HostUpgradeDependencies } from "./host-upgrade.js";
 import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
 import { keepServiceLogBounded } from "./service-log-bound.js";
+import { terminalHookRuntimeStorePath } from "@lervo/repository-knowledge";
+import {
+  superviseTerminalContextServer,
+  type TerminalContextSupervisor,
+} from "./terminal-context-supervisor.js";
 import type { CliIo } from "./types.js";
 
 /** Test seam for the follower's process, service, and timing effects. */
@@ -55,6 +60,8 @@ export interface HostFollowOverrides {
   log?: (line: string) => void;
   /** Receives the PATH a service configuration restores; the default sets `process.env.PATH`. */
   restoreSearchPath?: (searchPath: string) => void;
+  /** The context server the service supervises; null runs none. */
+  contextServer?: TerminalContextSupervisor | null;
 }
 
 export interface HostFollowContext {
@@ -181,10 +188,35 @@ export async function runHostFollowCommand(
     context.platform === "darwin" && follow.log === undefined
       ? keepServiceLogBounded(hostFollowLogPath(context.homeDirectory))
       : () => undefined;
+  // Resident context socket: every host runs exactly one follower service, so it supervises the
+  // host's context server, whatever serves the host's repositories.
+  const contextServer =
+    follow.contextServer !== undefined
+      ? follow.contextServer
+      : config === null || context.platform === "win32"
+        ? null
+        : superviseTerminalContextServer({
+            store: terminalHookRuntimeStorePath(
+              process.env,
+              context.platform,
+              context.homeDirectory,
+            ),
+          });
+  const ensureContextServer = () => void contextServer?.ensure().catch(() => undefined);
+  ensureContextServer();
+  // A runtime installed outside a follower cycle is picked up within a minute.
+  const watchRuntime = setInterval(ensureContextServer, 60_000);
+  watchRuntime.unref();
   try {
     return await runFollowLoop({
       layout,
-      runCycle: () => runFollowCycle(cycle),
+      runCycle: async () => {
+        try {
+          return await runFollowCycle(cycle);
+        } finally {
+          ensureContextServer();
+        }
+      },
       random: follow.random ?? Math.random,
       sleep: follow.sleep ?? abortableSleep,
       log: follow.log ?? ((line) => io.stdout(`${line}\n`)),
@@ -192,6 +224,8 @@ export async function runHostFollowCommand(
       signal: signal as AbortSignal,
     });
   } finally {
+    clearInterval(watchRuntime);
+    await contextServer?.stop();
     stopBounding();
   }
 }

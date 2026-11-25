@@ -52,8 +52,6 @@ export async function runHostKnowledgeResidentsCommand(
   const stop = startHostKnowledgeResidents({
     provider: fallback,
     launch,
-    // Resident context socket: only the service serves prompts, never a manual run.
-    contextServer: launch === "service",
     onCycle: (root, result, cost) =>
       io.stdout(`${JSON.stringify({ repositoryRoot: root, result, cost })}\n`),
     onFailure: (root, error) => io.stderr(knowledgeWorkerFailureLine(error, root)),

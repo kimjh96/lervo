@@ -371,6 +371,38 @@ describe("runFollowLoop", () => {
     await expect(withFollowLock(harness.layout, async () => "free")).resolves.toBe("free");
   });
 
+  it("supervises the host's context server for as long as the service loop runs", async () => {
+    const harness = await followHarness();
+    const controller = new AbortController();
+    const calls: string[] = [];
+    const base = overrides(harness);
+    const { io } = capture();
+    const code = await runHostCommand(["upgrade", "--follow", "--apply"], io, {
+      ...base,
+      follow: {
+        ...base.follow,
+        signal: controller.signal,
+        log: () => undefined,
+        // The first wait ends the loop, as a stop request from the service manager does.
+        sleep: async () => {
+          controller.abort();
+        },
+        contextServer: {
+          ensure: async () => {
+            calls.push("ensure");
+          },
+          stop: async () => {
+            calls.push("stop");
+          },
+        },
+      },
+    });
+    expect(code).toBe(0);
+    expect(calls[0]).toBe("ensure");
+    expect(calls.filter((call) => call === "ensure").length).toBeGreaterThanOrEqual(2);
+    expect(calls.at(-1)).toBe("stop");
+  });
+
   it("stops cleanly when the service manager stops it", async () => {
     const harness = await followHarness();
     const controller = new AbortController();
