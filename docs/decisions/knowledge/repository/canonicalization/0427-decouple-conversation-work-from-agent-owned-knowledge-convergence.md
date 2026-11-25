@@ -2,6 +2,7 @@
 
 Status: accepted
 Decision date: 2026-09-23
+Amended by: [ADR-0433](0433-own-background-knowledge-for-every-repository-change.md), [ADR-0452](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0457](../../documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md)
 
 ## Context
 
