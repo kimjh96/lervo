@@ -6,10 +6,11 @@ use lervo_session_protocol::{
     AgentMessageItem, AgentMessageItemKind, AgentMessageItemState, AgentMessageItemText, Code,
     ConversationItem, EpochMilliseconds, Identifier, LervoNoticeItem, LervoNoticeItemKind,
     LervoNoticeItemState, Parameters, ParametersKey, ParametersValue, ParametersValueString,
-    QuestionItem, QuestionItemKind, QuestionItemState, QuestionItemText, ToolActivityItem,
-    ToolActivityItemKind, ToolActivityItemState, ToolActivityItemTool, ToolActivityItemToolName,
-    ToolActivityItemToolStatus, UserMessageItem, UserMessageItemKind, UserMessageItemState,
-    UserMessageItemText,
+    PeerMessageItem, PeerMessageItemFrom, PeerMessageItemKind, PeerMessageItemState,
+    PeerMessageItemText, QuestionItem, QuestionItemKind, QuestionItemState, QuestionItemText,
+    ToolActivityItem, ToolActivityItemKind, ToolActivityItemState, ToolActivityItemTool,
+    ToolActivityItemToolName, ToolActivityItemToolStatus, UserMessageItem, UserMessageItemKind,
+    UserMessageItemState, UserMessageItemText,
 };
 
 /// The code of the item that replaces one the provider adapter produced outside the protocol's
@@ -70,6 +71,19 @@ fn convert(item: &Item, id: &str) -> Option<ConversationItem> {
             },
             text: QuestionItemText::try_from(text.as_str()).ok()?,
         }),
+        Content::PeerMessage { from, text } => {
+            if streaming {
+                return None;
+            }
+            ConversationItem::from(PeerMessageItem {
+                created_at_ms,
+                item_id,
+                kind: PeerMessageItemKind::PeerMessage,
+                state: PeerMessageItemState::Complete,
+                from: PeerMessageItemFrom::try_from(from.as_str()).ok()?,
+                text: PeerMessageItemText::try_from(text.as_str()).ok()?,
+            })
+        }
         Content::ToolActivity {
             name,
             status,

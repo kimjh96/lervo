@@ -133,6 +133,7 @@ export function createClaudeHostedSessionAdapter(
               "--output-format",
               "stream-json",
               "--include-partial-messages",
+              "--replay-user-messages",
               "--permission-mode",
               CLAUDE_HOSTED_PERMISSION_MODE,
               ...session,

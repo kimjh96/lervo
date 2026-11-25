@@ -218,6 +218,9 @@
           "$ref": "#/$defs/ToolActivityContent"
         },
         {
+          "$ref": "#/$defs/PeerMessageContent"
+        },
+        {
           "$ref": "#/$defs/LervoNoticeContent"
         }
       ]
@@ -1481,6 +1484,33 @@
               }
             }
           }
+        }
+      }
+    },
+    "PeerMessageContent": {
+      "title": "PeerMessageContent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "from",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "peer_message"
+          ]
+        },
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
         }
       }
     },

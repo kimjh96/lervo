@@ -38,6 +38,10 @@ fn content(content: DecodedContent) -> Content {
         DecodedContent::UserMessageContent(item) => Content::UserMessage(item.text.to_string()),
         DecodedContent::AgentMessageContent(item) => Content::AgentMessage(item.text.to_string()),
         DecodedContent::QuestionContent(item) => Content::Question(item.text.to_string()),
+        DecodedContent::PeerMessageContent(item) => Content::PeerMessage {
+            from: item.from.to_string(),
+            text: item.text.to_string(),
+        },
         DecodedContent::ToolActivityContent(item) => Content::ToolActivity {
             name: item.name.to_string(),
             status: match item.status {

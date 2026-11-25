@@ -96,6 +96,21 @@ function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_
 }
 
 /**
+ * A message another agent session sent this one: at the start of the line like the agent's words,
+ * but framed and named, so it never reads as the person's message or the agent's own.
+ */
+function PeerMessage({ item }: { item: Extract<ConversationItem, { kind: "peer_message" }> }) {
+  return (
+    <div className={styles.peer}>
+      <span className={styles.peerFrom}>
+        <FormattedMessage id="conversation.peer.from" values={{ name: item.from }} />
+      </span>
+      <p className={styles.peerText}>{item.text}</p>
+    </div>
+  );
+}
+
+/**
  * The renderer of each item kind. A new kind adds a schema entry and a renderer here; the list
  * code does not change (ADE convention, "Extensibility and flexibility").
  */
@@ -105,6 +120,7 @@ const renderers: { [Kind in ConversationItem["kind"]]: Renderer<Kind> } = {
   question: Question,
   tool_activity: ToolLine,
   lervo_notice: LervoNotice,
+  peer_message: PeerMessage,
 };
 
 export function ConversationItemView({ item }: { item: ConversationItem }) {

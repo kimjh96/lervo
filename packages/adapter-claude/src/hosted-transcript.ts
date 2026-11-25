@@ -5,7 +5,7 @@ import { createInterface } from "node:readline";
 
 import type { HostedDecodedContent, HostedTranscriptItem } from "@lervo/adapter-contract";
 
-import { compacted } from "./hosted-stream.js";
+import { compacted, peerMessage } from "./hosted-stream.js";
 import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
 
 /** A line longer than this is skipped, so one bad line cannot grow memory. */
@@ -58,6 +58,12 @@ export class ClaudeTranscriptDecoder {
       line = record(JSON.parse(source));
     } catch {
       return [];
+    }
+    // A message another session sent is a meta line with the sender in its origin.
+    const peer = line === undefined ? undefined : peerMessage(record(line.origin));
+    if (peer !== undefined) {
+      const at = Date.parse(text(line?.timestamp) ?? "");
+      return Number.isNaN(at) ? [] : [item(peer, at)];
     }
     // The summary Claude Code writes after a compaction is for the model, not the conversation.
     if (

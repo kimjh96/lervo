@@ -22,6 +22,12 @@ export type HostedDecodedContent =
       readonly output?: string;
     }
   | {
+      /** A message another agent session sent this one. */
+      readonly kind: "peer_message";
+      readonly from: string;
+      readonly text: string;
+    }
+  | {
       readonly kind: "lervo_notice";
       readonly code: string;
       readonly parameters: Readonly<Record<string, string | number | boolean>>;

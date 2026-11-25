@@ -223,6 +223,17 @@ export const decodedContentSchemas = [
     },
   },
   {
+    title: "PeerMessageContent",
+    type: "object",
+    additionalProperties: false,
+    required: ["kind", "from", "text"],
+    properties: {
+      kind: { type: "string", enum: ["peer_message"] },
+      from: { type: "string", minLength: 1, maxLength: 128 },
+      text: textSchema,
+    },
+  },
+  {
     title: "LervoNoticeContent",
     type: "object",
     additionalProperties: false,

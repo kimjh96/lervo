@@ -109,13 +109,14 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 
 A conversation item has an opaque `itemId`, a `kind`, a creation time, and a `state` of `streaming` or `complete`. A streaming item becomes complete when `conversation.appended` repeats it with the state `complete`.
 
-| Kind            | Content                                                                |
-| --------------- | ---------------------------------------------------------------------- |
-| `user_message`  | The user's text                                                        |
-| `agent_message` | The agent's text, streamed through `conversation.delta`                |
-| `tool_activity` | The tool name, a status, a count of calls, and an optional tool detail |
-| `question`      | The agent's question to the user                                       |
-| `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`          |
+| Kind            | Content                                                                               |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `user_message`  | The user's text                                                                       |
+| `agent_message` | The agent's text, streamed through `conversation.delta`                               |
+| `tool_activity` | The tool name, a status, a count of calls, and an optional tool detail                |
+| `question`      | The agent's question to the user                                                      |
+| `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`                         |
+| `peer_message`  | A message another agent session sent this one: the sender's session name and the text |
 
 A Lervo notice carries a code, never a sentence, and the interface renders it from its message catalog. Conversation text from the user and the agent passes through unchanged.
 

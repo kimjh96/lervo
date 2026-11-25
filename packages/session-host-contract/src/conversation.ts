@@ -32,6 +32,23 @@ export const userMessageItemSchema = textItemSchema("UserMessageItem", "user_mes
 export const agentMessageItemSchema = textItemSchema("AgentMessageItem", "agent_message");
 export const questionItemSchema = textItemSchema("QuestionItem", "question");
 
+/** A message another agent session sent this one, such as through Claude Code's SendMessage. */
+export const peerMessageItemSchema = {
+  title: "PeerMessageItem",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "itemId", "createdAtMs", "state", "from", "text"],
+  properties: {
+    kind: { type: "string", enum: ["peer_message"] },
+    itemId: identifierSchema,
+    createdAtMs: epochMillisecondsSchema,
+    state: { type: "string", enum: ["complete"] },
+    /** The sending session's name, as the provider reported it. */
+    from: { type: "string", minLength: 1, maxLength: 128 },
+    text: conversationTextSchema,
+  },
+} as const;
+
 /**
  * One tool call: its name and status, and a bounded detail of what it acted on and showed. The
  * full input and output stay in the provider's transcript.
@@ -82,6 +99,7 @@ export const conversationItemSchemas = [
   toolActivityItemSchema,
   questionItemSchema,
   lervoNoticeItemSchema,
+  peerMessageItemSchema,
 ] as const;
 
 export const conversationItemSchema = {
