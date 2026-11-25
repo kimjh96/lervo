@@ -2,6 +2,8 @@
 
 Direct Codex/Claude hooks use a tracked repository-local contract-v2 launcher backed by a verified host-local runtime and native assets, as described in the [host-local runtime contract](../../recovery-and-verification-supplement.md#host-local-terminal-runtime-reconciliation). The launcher verifies runtime and declared asset lengths and hashes before importing the runtime or reading provider input. Missing host runtime state returns empty success as unmanaged; malformed or changed artifacts fail closed. The shared command defaults to compact context within 4,096 UTF-8 bytes, without a provider call. `LERVO_TERMINAL_CONTEXT=retrieval` restores per-prompt provider projection and document retrieval under the shared deadlines.
 
+In a linked worktree of a registered repository, the hooks run against the worktree's files and record into the registered repository ([ADR-0633](../../../../decisions/execution/providers/hooks/0633-record-a-linked-worktree-in-its-registered-repository.md)).
+
 Compact preparation records an empty deterministic query projection and retrieves no documents. It records `unmanaged_terminal_retrieval_only` without semantic-action coordinates, effect, workflow, authority, external route, or durable rule. It creates no managed run and proves no acceptance, understanding, or use.
 
 Under [ADR-0531](../../../../decisions/execution/providers/hooks/0531-bound-terminal-hooks-and-retain-degraded-context.md), internal prompt failure retains independently read base context and a closed degraded code. It creates no new preparation evidence for a missing snapshot. Failed stage recording is best effort; unavailable storage is never successful inspection evidence. Managed execution stays typed and fail-closed.

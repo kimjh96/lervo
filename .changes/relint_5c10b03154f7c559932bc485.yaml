@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5c10b03154f7c559932bc485"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "A terminal session or Lervo command in a linked worktree of a registered repository records its evidence, owner-rule captures, plan, and workstream in that repository."
