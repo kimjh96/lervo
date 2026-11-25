@@ -1,4 +1,10 @@
-import type { HostedStreamDecoder, HostedTranscriptItem } from "@lervo/adapter-contract";
+import {
+  reportsUsage,
+  type HostedStreamDecoder,
+  type HostedTranscriptItem,
+  type HostedTurnUsage,
+} from "@lervo/adapter-contract";
+import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 import {
   advertisedCoreRequestNames,
   applicationCommandNames,
@@ -6,7 +12,9 @@ import {
 } from "@lervo/session-host-contract";
 
 import { CommandFailure, errorCode } from "./command-error-output.js";
+import { TurnUsageQueue } from "./core-link-usage-queue.js";
 import type { HostedProviderSummary } from "./hosted-session-adapters.js";
+import type { HostedTurnUsageOutcome } from "./hosted-turn-usage-events.js";
 import type { RepositorySummary, WorkspaceSummary } from "./workspace-list-service.js";
 import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
@@ -36,6 +44,12 @@ export interface CoreLinkHandlers {
   retireWorkspace(workspaceId: string): Promise<object>;
   /** Records a hosted session's process exit unless its own hook recorded the end. */
   recordSessionExit(sessionId: string, exitCode: number | null): Promise<{ status: string }>;
+  /** Records the usage a hosted session's decoder reported for its finished turns. */
+  recordTurnUsage(
+    sessionId: string,
+    accounting: ResourceAccountingDescriptor,
+    usage: readonly HostedTurnUsage[],
+  ): Promise<HostedTurnUsageOutcome>;
 }
 
 /** Why the core link ended. `message_invalid` means the session host sent a malformed line. */
@@ -49,12 +63,19 @@ export type CoreLinkEnd = "input_closed" | "message_invalid";
  */
 export class CoreLinkServer {
   private readonly decoders = new Map<string, HostedStreamDecoder>();
+  /** The hosted session each decoder serves, when the session host named it. */
+  private readonly decoderSessions = new Map<string, string>();
   private readonly pending = new Set<Promise<void>>();
+  readonly usage: TurnUsageQueue;
 
   constructor(
     private readonly handlers: CoreLinkHandlers,
     private readonly write: (line: string) => void,
-  ) {}
+  ) {
+    this.usage = new TurnUsageQueue((sessionId, accounting, usage) =>
+      this.handlers.recordTurnUsage(sessionId, accounting, usage),
+    );
+  }
 
   /** Serves until the input ends or a malformed line arrives, then lets running commands finish. */
   async serve(input: AsyncIterable<Uint8Array | string>): Promise<CoreLinkEnd> {
@@ -66,6 +87,7 @@ export class CoreLinkServer {
       }
     }
     await Promise.allSettled([...this.pending]);
+    await this.usage.idle();
     return end;
   }
 
@@ -225,6 +247,9 @@ export class CoreLinkServer {
     }
     try {
       this.decoders.set(decoderId, this.handlers.createDecoder(request.provider as string));
+      if (typeof request.sessionId === "string")
+        this.decoderSessions.set(decoderId, request.sessionId);
+      else this.decoderSessions.delete(decoderId);
       this.decoded(request.id, []);
     } catch (error) {
       this.fail(request.id, error);
@@ -236,6 +261,7 @@ export class CoreLinkServer {
     const decoder = this.decoders.get(decoderId);
     if (request.kind === "decoder.close") {
       this.decoders.delete(decoderId);
+      this.decoderSessions.delete(decoderId);
       this.decoded(request.id, []);
       return;
     }
@@ -249,6 +275,11 @@ export class CoreLinkServer {
       return;
     }
     this.decoded(request.id, decoder.output(Buffer.from(request.data as string, "base64")));
+    // Usage leaves the decoder only for a named session, after the events are answered.
+    const sessionId = this.decoderSessions.get(decoderId);
+    if (sessionId === undefined || !reportsUsage(decoder)) return;
+    const usage = decoder.takeUsage();
+    if (usage.length > 0) this.usage.push(sessionId, decoder.usageAccounting(), usage);
   }
 
   private decoded(id: number, events: readonly unknown[], input?: string): void {

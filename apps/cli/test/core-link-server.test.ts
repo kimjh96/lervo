@@ -41,6 +41,9 @@ const started: WorkspaceStartResult = {
   hostedEvents: "recorded",
 };
 
+/** Each `recordTurnUsage` call: the session and the models it carried. */
+const recordedUsage: [string, (string | null)[]][] = [];
+
 function handlers(release?: Promise<void>): CoreLinkHandlers {
   return {
     async startWorkspace(arguments_) {
@@ -74,6 +77,10 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
     recordSessionExit: async (sessionId, exitCode) => ({
       status: sessionId === started.sessionId && exitCode === null ? "recorded" : "unknown_session",
     }),
+    async recordTurnUsage(sessionId, _accounting, usage) {
+      recordedUsage.push([sessionId, usage.map((turn) => turn.model)]);
+      return { status: "recorded", recorded: usage.length, duplicates: 0, dropped: 0 };
+    },
   };
 }
 
@@ -285,5 +292,36 @@ describe("the core-link server", () => {
       kind: "core.failed",
       code: "workspace_not_found",
     });
+  });
+
+  it("records a named session's turn usage after answering its decoded events", async () => {
+    recordedUsage.length = 0;
+    const result = (uuid: string) =>
+      Buffer.from(
+        `${JSON.stringify({
+          type: "result",
+          subtype: "success",
+          uuid,
+          result_index: 0,
+          model_usage_since_last_result: {
+            "claude-haiku-5-5": { inputTokens: 1, outputTokens: 2, costUSD: 0.01 },
+          },
+        })}\n`,
+      ).toString("base64");
+    const sessionId = started.sessionId;
+    const { written } = await serve([
+      { kind: "core.command", id: 1, command: "workspace.list", arguments: {} },
+      { kind: "decoder.open", id: 2, decoderId: "dec_1", provider: "claude", sessionId },
+      { kind: "decoder.output", id: 3, decoderId: "dec_1", data: result("r1") },
+      // A decoder the session host did not name records nothing.
+      { kind: "decoder.open", id: 4, decoderId: "dec_2", provider: "claude" },
+      { kind: "decoder.output", id: 5, decoderId: "dec_2", data: result("r2") },
+    ]);
+    const list = written.find((response) => response.id === 1)?.result as { commands: string[] };
+    expect(list.commands).toContain("decoder.session");
+    expect(written.find((response) => response.id === 3)).toMatchObject({
+      kind: "decoder.decoded",
+    });
+    expect(recordedUsage).toEqual([[sessionId, ["claude-haiku-5-5"]]]);
   });
 });

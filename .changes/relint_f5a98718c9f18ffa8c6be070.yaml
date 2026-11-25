@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f5a98718c9f18ffa8c6be070"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "The resident Lervo process records each hosted turn's usage, per result and model, once a repository's writer selects event schema 11."

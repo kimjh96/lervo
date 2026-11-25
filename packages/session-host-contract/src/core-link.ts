@@ -52,7 +52,15 @@ export const coreOpenRequestSchema = request(
 export const decoderOpenRequestSchema = request(
   "DecoderOpenRequest",
   "decoder.open",
-  { decoderId: identifierSchema, provider: providerIdSchema },
+  {
+    decoderId: identifierSchema,
+    provider: providerIdSchema,
+    /**
+     * The hosted session the decoder serves, so the core records its turns' usage. The session
+     * host sends it only to a core that advertised `decoder.session`.
+     */
+    sessionId: identifierSchema,
+  },
   ["decoderId", "provider"],
 );
 
@@ -111,11 +119,11 @@ export const sessionExitedRequestSchema = request(
 );
 
 /**
- * Core-link requests beyond the base ones that a core advertises in `workspace.list`'s
- * `commands`, beside its application commands, so a session host sends them only to a core that
- * answers them.
+ * Core-link requests and request fields beyond the base ones that a core advertises in
+ * `workspace.list`'s `commands`, beside its application commands, so a session host sends them
+ * only to a core that answers them. `decoder.session` names `decoder.open`'s `sessionId`.
  */
-export const advertisedCoreRequestNames = ["session.exited"] as const;
+export const advertisedCoreRequestNames = ["session.exited", "decoder.session"] as const;
 
 export const coreLinkRequestSchemas = [
   coreCommandRequestSchema,
