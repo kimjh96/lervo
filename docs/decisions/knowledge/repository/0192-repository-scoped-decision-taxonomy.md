@@ -1,6 +1,7 @@
 # ADR-0192: Repository-scoped fail-closed decision taxonomy
 
 Status: `accepted`
+Amended by: [ADR-0464](../documents/0464-report-document-drift-and-historical-documents.md), [ADR-0476](../documents/0476-route-legacy-documents-semantically-and-never-migrate-application-content.md)
 
 As of: 2026-08-23
 
