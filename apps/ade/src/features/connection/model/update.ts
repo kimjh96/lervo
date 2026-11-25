@@ -10,6 +10,15 @@ export function olderVersion(version: string, than: string): boolean {
   return differs !== -1 && (left[differs] ?? 0) < (right[differs] ?? 0);
 }
 
+/**
+ * Whether the reached session host knows every request this interface sends. It ships with the
+ * application, so one at least as new does; an older one ends the connection on a request it
+ * cannot validate, so a feature that needs a newer request, such as stopping a turn, waits.
+ */
+export function hostIsCurrent(identity: HostIdentity | null): boolean {
+  return identity !== null && !olderVersion(identity.hostVersion, identity.appVersion);
+}
+
 /** The update a session host with `identity` offers. */
 export function updateFor(identity: HostIdentity): HostUpdate {
   return identity.replaceable && olderVersion(identity.hostVersion, identity.appVersion)

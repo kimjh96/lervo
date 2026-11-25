@@ -8,6 +8,11 @@ export interface ConversationSource {
   close(): void;
   /** Sends a reply; it resolves once the provider received it and rejects with the failure. */
   send(text: string): Promise<void>;
+  /**
+   * Stops the running turn and keeps the session; it resolves once the provider received the
+   * request, and the turn's end follows as status.
+   */
+  interrupt(): Promise<void>;
   loadEarlier(): Promise<void>;
   loadLater(): Promise<void>;
   showLatest(): Promise<void>;

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f0d92a689ba265768ea5e183"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Stop the agent's running turn without ending the session: while the agent works, the empty reply card's button is Stop and Escape stops too, shown only when the Lervo core advertises decoder.interrupt."

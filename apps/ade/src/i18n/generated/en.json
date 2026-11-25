@@ -67,6 +67,12 @@
       "value": "Creating the workspace"
     }
   ],
+  "conversation.activity.stopping": [
+    {
+      "type": 0,
+      "value": "Stopping"
+    }
+  ],
   "conversation.activity.thinking": [
     {
       "type": 0,
@@ -127,6 +133,26 @@
     {
       "type": 0,
       "value": "The agent starts in a moment"
+    }
+  ],
+  "conversation.stop": [
+    {
+      "type": 0,
+      "value": "Stop"
+    }
+  ],
+  "conversation.stop.failed": [
+    {
+      "type": 0,
+      "value": "The agent did not stop ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": "). It keeps working."
     }
   ],
   "conversation.tool.failed": [
@@ -257,6 +283,12 @@
     {
       "type": 0,
       "value": ")."
+    }
+  ],
+  "notice.turn_stopped": [
+    {
+      "type": 0,
+      "value": "You stopped the agent's turn. Send a message to continue."
     }
   ],
   "notice.unknown": [

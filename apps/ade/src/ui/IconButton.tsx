@@ -11,7 +11,7 @@ export function IconButton(props: {
   icon: ReactNode;
   type?: "button" | "submit";
   disabled?: boolean;
-  onClick?: () => void;
+  onClick?: (() => void) | undefined;
   /** Placement within its parent, such as pushing it to the end of a bar. */
   className?: string | undefined;
 }) {

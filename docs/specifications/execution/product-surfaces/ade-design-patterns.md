@@ -81,7 +81,7 @@ Every wait in Lervo follows one system, so the person always reads a wait the sa
 ### Keyboard
 
 - **Every action has a keyboard path.** Shortcuts use the platform's command modifier, and `Kbd` shows them beside the action they run.
-- **Shortcuts.** `⌘N` opens new work. Enter sends from an input card, and Shift+Enter adds a line. Input-method composition never sends.
+- **Shortcuts.** `⌘N` opens new work. Enter sends from an input card, and Shift+Enter adds a line. Escape in the reply card stops the agent's turn while it works. Input-method composition never sends or stops.
 - **Focus order** follows the visual order: the workspace list, the header, the content, then the input card.
 - **Focus on open.** The start screen focuses its instruction when it opens and on each "New work". An overlay, when one arrives, returns focus to where it was when it closes.
 - **Full keyboard access.** macOS moves Tab between buttons only when the person turns on keyboard navigation, as in every Mac app. Text fields and selects take Tab always.
@@ -91,6 +91,7 @@ Every wait in Lervo follows one system, so the person always reads a wait the sa
 
 - **Drafts persist.** An unsent instruction or reply survives switching workspaces and restarting the app, per workspace.
 - **Sending.** The send control enables only when there is something to send. Sending clears the field at once, and a failed send puts the text back with its failure, so nothing is lost.
+- **Stopping.** While the agent works, the empty reply card's button is Stop, a filled square; its icon changes in place, and typed text turns it back into send. A failed stop shows under the card, and the agent keeps working.
 - **Choices.** A `Select` keeps an option that cannot be chosen now visible and disabled, with the reason in its text, such as "Codex (not installed)".
 
 ### Notifications and notices

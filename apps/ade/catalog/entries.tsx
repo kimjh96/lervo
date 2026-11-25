@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { Button } from "../src/ui/Button";
 import { FloatingButton } from "../src/ui/FloatingButton";
 import { IconButton } from "../src/ui/IconButton";
-import { ArrowUpIcon, ChevronDownIcon, PlusIcon, TrashIcon } from "../src/ui/icons";
+import { ArrowUpIcon, ChevronDownIcon, PlusIcon, StopIcon, TrashIcon } from "../src/ui/icons";
 import { InlineAlert } from "../src/ui/InlineAlert";
 import { Kbd } from "../src/ui/Kbd";
 import { ListRow } from "../src/ui/ListRow";
@@ -152,6 +152,10 @@ export const entries: readonly Entry[] = [
       {
         name: "Disabled",
         render: () => <IconButton label="Send" icon={<ArrowUpIcon size="lg" />} disabled />,
+      },
+      {
+        name: "Stop, while the agent works",
+        render: () => <IconButton label="Stop" icon={<StopIcon size="lg" />} />,
       },
     ],
   },
@@ -316,6 +320,7 @@ export const entries: readonly Entry[] = [
             <ChevronDownIcon size="sm" />
             <PlusIcon size="md" />
             <ArrowUpIcon size="lg" />
+            <StopIcon size="lg" />
             <TrashIcon size="md" />
           </span>
         ),

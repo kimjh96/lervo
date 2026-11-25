@@ -8,7 +8,10 @@ use lervo_session_core::transcript::{Content, Input};
 use lervo_session_protocol::core_link::CoreLinkResponse;
 use serde_json::{Value, json};
 
-use crate::{CoreLink, DECODE_DEADLINE, DECODER_SESSION, OUTPUT_CHUNK_BYTES, events, failures};
+use crate::{
+    CoreLink, DECODE_DEADLINE, DECODER_INTERRUPT, DECODER_SESSION, OUTPUT_CHUNK_BYTES, events,
+    failures,
+};
 
 /// One native session's decoder in the resident process. It opens there on first use and again
 /// after the resident process restarted; a restart loses only a partial line.
@@ -181,6 +184,44 @@ impl StreamDecoder for LinkDecoder {
             },
             Ok((decoded, None)) => (Vec::new(), decoded),
             Err(failure) => (Vec::new(), vec![unavailable(&failure)]),
+        }
+    }
+
+    /// Asks the resident process that advertised `decoder.interrupt` for the bytes that stop
+    /// the turn. A decoder never opened has run no turn, so there is nothing to stop. During a
+    /// turn this decoder holds its process, so the advertiser is the process that knows it.
+    async fn interrupt(&mut self) -> Result<(Vec<u8>, Vec<Decoded>), Failure> {
+        let Some(generation) = self.core.advertiser_of(DECODER_INTERRUPT) else {
+            return Err(Failure::new(FailureCode::InterruptUnsupported));
+        };
+        if !self.open || !self.in_turn {
+            return Ok((Vec::new(), Vec::new()));
+        }
+        let request = json!({"kind": "decoder.interrupt", "decoderId": self.decoder_id});
+        let (response, _) = self
+            .core
+            .ask_on(request, DECODE_DEADLINE, Some(generation), false)
+            .await?;
+        match response {
+            CoreLinkResponse::DecoderDecodedResponse(response) => {
+                let decoded: Vec<Decoded> =
+                    response.events.into_iter().map(events::decoded).collect();
+                self.track(&decoded, None);
+                let bytes = match response.input {
+                    Some(input) => STANDARD
+                        .decode(input.to_string())
+                        .map_err(|_| Failure::new(FailureCode::ApplicationFailed))?,
+                    None => Vec::new(),
+                };
+                Ok((bytes, decoded))
+            }
+            CoreLinkResponse::CoreFailedResponse(response) => {
+                Err(failures::from_core(&response.code, None))
+            }
+            CoreLinkResponse::CoreResultResponse(_)
+            | CoreLinkResponse::TranscriptPageResponse(_) => {
+                Err(Failure::new(FailureCode::ApplicationFailed))
+            }
         }
     }
 

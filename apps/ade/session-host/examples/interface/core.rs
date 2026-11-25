@@ -1,9 +1,11 @@
 //! The scripted core: four workspaces, their launches, and a decoder for the scripted providers.
 
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::io::{BufRead, Write};
 use std::process::ExitCode;
 use std::sync::Mutex;
+use std::sync::mpsc::RecvTimeoutError;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use lervo_session_core::ports::{
@@ -20,6 +22,13 @@ const STREAM_DELTAS: u32 = 1_000;
 const STREAM_INTERVAL: Duration = Duration::from_millis(2);
 /// The line that ends a scripted provider's turn.
 const TURN_END: &str = "\u{1e}end";
+/// The line the scripted decoder writes to stop a turn.
+const STOP_LINE: &str = "\u{1e}stop";
+/// A reply that starts with this word streams slowly until it is stopped, for checking Stop.
+const SLOW_REPLY: &str = "slow";
+/// Lines a slow reply writes at most, one every `SLOW_INTERVAL`.
+const SLOW_LINES: u32 = 600;
+const SLOW_INTERVAL: Duration = Duration::from_millis(150);
 
 struct Workspace {
     id: &'static str,
@@ -123,11 +132,11 @@ impl Core for InterfaceCore {
             ),
             // Other native providers answer each reply with the reply itself.
             _ => (
-                "/bin/sh".to_owned(),
-                vec![
-                    "-c".to_owned(),
-                    format!("while read -r line; do printf '%s\\n{TURN_END}\\n' \"$line\"; done"),
-                ],
+                std::env::current_exe()
+                    .map_err(|_| Failure::new(FailureCode::ApplicationFailed))?
+                    .display()
+                    .to_string(),
+                vec!["echo".to_owned()],
             ),
         };
         Ok(Launch {
@@ -156,7 +165,11 @@ impl Core for InterfaceCore {
                     .iter()
                     .map(|workspace| listed(workspace, self.mode(workspace)))
                     .collect();
-                json!({ "workspaces": workspaces })
+                // Like a current core, it advertises stopping a turn.
+                json!({
+                    "workspaces": workspaces,
+                    "commands": ["workspace.start", "workspace.list", "repository.list", "decoder.interrupt"],
+                })
             }
             "repository.list" => json!({ "repositories": [
                 { "projectId": "prj_interface_lervo", "name": "lervo" },
@@ -189,16 +202,20 @@ fn listed(workspace: &Workspace, mode: ConversationMode) -> Value {
 }
 
 /// Decodes the scripted providers: each reply starts a turn with the user's message and a
-/// streaming agent message, each output line extends it, and the turn-end line completes it.
+/// streaming agent message, each output line extends it, and the turn-end line completes it. A
+/// stopped turn ends with the `turn_stopped` notice, as the Claude decoder's does.
 #[derive(Default)]
 pub struct ScriptDecoder {
     /// Bytes after the last complete line.
     partial: Vec<u8>,
+    in_turn: bool,
+    stopping: bool,
 }
 
 impl StreamDecoder for ScriptDecoder {
     async fn send(&mut self, text: &str) -> (Vec<u8>, Vec<Decoded>) {
         let now = now_ms();
+        self.in_turn = true;
         (
             format!("{text}\n").into_bytes(),
             vec![
@@ -226,12 +243,30 @@ impl StreamDecoder for ScriptDecoder {
         for line in text.split_inclusive('\n') {
             if line.trim_end() == TURN_END {
                 decoded.push(Decoded::Conversation(Input::Finish));
+                if std::mem::take(&mut self.stopping) {
+                    decoded.push(Decoded::Conversation(Input::Item {
+                        content: Content::LervoNotice {
+                            code: "turn_stopped".to_owned(),
+                            parameters: Default::default(),
+                        },
+                        created_at_ms: now_ms(),
+                    }));
+                }
+                self.in_turn = false;
                 decoded.push(Decoded::Status(SessionEvent::TurnFinished));
             } else {
                 decoded.push(Decoded::Conversation(Input::Delta(line.to_owned())));
             }
         }
         decoded
+    }
+
+    async fn interrupt(&mut self) -> Result<(Vec<u8>, Vec<Decoded>), Failure> {
+        if !self.in_turn {
+            return Ok((Vec::new(), Vec::new()));
+        }
+        self.stopping = true;
+        Ok((format!("{STOP_LINE}\n").into_bytes(), Vec::new()))
     }
 }
 
@@ -247,6 +282,64 @@ fn now_us() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |since| since.as_micros())
+}
+
+/// The echoing provider. It answers each reply with the reply itself. A reply that starts with
+/// `slow` writes a line every `SLOW_INTERVAL` instead, until the stop line arrives, so Stop can
+/// be checked in the real window.
+pub fn echo() -> ExitCode {
+    let (sender, lines) = std::sync::mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        for line in std::io::stdin().lock().lines() {
+            let Ok(line) = line else { break };
+            if sender.send(line).is_err() {
+                break;
+            }
+        }
+    });
+    let mut out = std::io::stdout().lock();
+    let mut queued = VecDeque::new();
+    loop {
+        let line = match queued.pop_front() {
+            Some(line) => line,
+            None => match lines.recv() {
+                Ok(line) => line,
+                Err(_) => return ExitCode::SUCCESS,
+            },
+        };
+        if line == STOP_LINE {
+            continue;
+        }
+        if !line.starts_with(SLOW_REPLY) {
+            if writeln!(out, "{line}\n{TURN_END}")
+                .and_then(|()| out.flush())
+                .is_err()
+            {
+                return ExitCode::FAILURE;
+            }
+            continue;
+        }
+        for written in 0..SLOW_LINES {
+            match lines.recv_timeout(SLOW_INTERVAL) {
+                Ok(next) if next == STOP_LINE => break,
+                Ok(next) => queued.push_back(next),
+                Err(RecvTimeoutError::Timeout) => {}
+                Err(RecvTimeoutError::Disconnected) => return ExitCode::SUCCESS,
+            }
+            if writeln!(out, "Line {written} of a slow reply.")
+                .and_then(|()| out.flush())
+                .is_err()
+            {
+                return ExitCode::FAILURE;
+            }
+        }
+        if writeln!(out, "{TURN_END}")
+            .and_then(|()| out.flush())
+            .is_err()
+        {
+            return ExitCode::FAILURE;
+        }
+    }
 }
 
 /// The streaming provider. After each line on stdin it writes `STREAM_DELTAS` lines on a fixed

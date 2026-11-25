@@ -75,6 +75,37 @@ describe("replies and resynchronization", () => {
     controller.close();
   });
 
+  it("stops the running turn and rejects with the session host's refusal", async () => {
+    let refuse = false;
+    const session = await host((message) => {
+      if (message.kind === "conversation.range") return page(message.requestId);
+      if (message.kind !== "session.interrupt") return undefined;
+      return refuse
+        ? {
+            kind: "request.failed",
+            requestId: message.requestId,
+            code: "interrupt_unsupported",
+            parameters: {},
+          }
+        : { kind: "session.interrupted", requestId: message.requestId, sessionId: "ses_1" };
+    });
+    const controller = new ConversationController(
+      session.client,
+      { workspaceId: "wks_1", sessionId: "ses_1" },
+      (run) => run(),
+    );
+    await controller.open();
+    await expect(controller.interrupt()).resolves.toBeUndefined();
+    expect(session.sent).toContainEqual(
+      expect.objectContaining({ kind: "session.interrupt", sessionId: "ses_1" }),
+    );
+    refuse = true;
+    await expect(controller.interrupt()).rejects.toEqual(
+      new RequestFailure("interrupt_unsupported"),
+    );
+    controller.close();
+  });
+
   it("reopens a session that last ran in the terminal in the native conversation first", async () => {
     const session = await host((message) => {
       if (message.kind === "conversation.range") return page(message.requestId);

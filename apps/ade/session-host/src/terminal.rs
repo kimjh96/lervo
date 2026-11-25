@@ -162,6 +162,11 @@ impl Terminal {
                 &request,
                 RequestFailedMessageCode::ConversationModeUnsupported,
             )),
+            // The CLI conversation stops a turn through its own keys in the terminal.
+            Command::Interrupt { request, reply } => reply.send(messages::failed(
+                &request,
+                RequestFailedMessageCode::InterruptUnsupported,
+            )),
             // The CLI conversation has no items; the terminal carries it.
             Command::Range(range) => range.reply.send(messages::page(
                 &range.request,

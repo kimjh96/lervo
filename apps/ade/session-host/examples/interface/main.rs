@@ -12,7 +12,8 @@
 //! - `wks_echo`, a CLI conversation whose provider echoes what is typed;
 //! - `wks_deploy`, an empty native conversation in a second repository.
 //!
-//! The streaming provider is this example itself, run with `emit`.
+//! The providers are this example itself: `emit` streams, and `echo` answers each reply with
+//! itself, or slowly until stopped for a reply that starts with `slow`.
 
 mod core;
 mod seed;
@@ -29,12 +30,13 @@ use crate::core::{HISTORY_SESSION, InterfaceCore};
 
 /// Items in the seeded conversation.
 const HISTORY_ITEMS: u64 = 100_000;
-const USAGE: &str = "usage: interface serve <state-dir> | emit";
+const USAGE: &str = "usage: interface serve <state-dir> | emit | echo";
 
 fn main() -> ExitCode {
     let mut arguments = std::env::args().skip(1);
     match (arguments.next().as_deref(), arguments.next()) {
         (Some("emit"), None) => core::emit(),
+        (Some("echo"), None) => core::echo(),
         (Some("serve"), Some(root)) => serve(PathBuf::from(root)),
         _ => {
             eprintln!("{USAGE}");

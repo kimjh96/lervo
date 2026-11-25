@@ -28,16 +28,17 @@ This specification defines the core link: the protocol between the ADE session h
 
 Every request carries a positive integer `id`, and the resident process answers each request exactly once with that `id`.
 
-| Request           | Purpose                                                                    | Answer                                                               |
-| ----------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `core.command`    | Runs an application command, such as `workspace.start` or `provider.list`. | `core.result`, with `launch` for `workspace.start`, or `core.failed` |
-| `core.open`       | Prepares the launch that continues a workspace, as `lervo workspace open`. | `core.result` with `launch`, or `core.failed`                        |
-| `decoder.open`    | Creates a stream decoder for a provider under a session-host `decoderId`.  | `decoder.decoded` with no events, or `core.failed`                   |
-| `decoder.send`    | Encodes the user's text for the provider's standard input.                 | `decoder.decoded` with `input` (Base64) and the events to show       |
-| `decoder.output`  | Decodes a chunk of the provider's standard output, as Base64.              | `decoder.decoded` with the events                                    |
-| `decoder.close`   | Forgets the decoder.                                                       | `decoder.decoded` with no events                                     |
-| `transcript.read` | Reads a page of the provider's own transcript of a workspace's session.    | `transcript.page` with items and `complete`, or `core.failed`        |
-| `session.exited`  | Reports that a hosted session's process ended, with its exit code.         | `core.result` with `status`, or `core.failed`                        |
+| Request             | Purpose                                                                    | Answer                                                               |
+| ------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `core.command`      | Runs an application command, such as `workspace.start` or `provider.list`. | `core.result`, with `launch` for `workspace.start`, or `core.failed` |
+| `core.open`         | Prepares the launch that continues a workspace, as `lervo workspace open`. | `core.result` with `launch`, or `core.failed`                        |
+| `decoder.open`      | Creates a stream decoder for a provider under a session-host `decoderId`.  | `decoder.decoded` with no events, or `core.failed`                   |
+| `decoder.send`      | Encodes the user's text for the provider's standard input.                 | `decoder.decoded` with `input` (Base64) and the events to show       |
+| `decoder.interrupt` | Encodes the request that stops the provider's running turn.                | `decoder.decoded` with `input` (Base64), or `core.failed`            |
+| `decoder.output`    | Decodes a chunk of the provider's standard output, as Base64.              | `decoder.decoded` with the events                                    |
+| `decoder.close`     | Forgets the decoder.                                                       | `decoder.decoded` with no events                                     |
+| `transcript.read`   | Reads a page of the provider's own transcript of a workspace's session.    | `transcript.page` with items and `complete`, or `core.failed`        |
+| `session.exited`    | Reports that a hosted session's process ended, with its exit code.         | `core.result` with `status`, or `core.failed`                        |
 
 - `workspace.list` answers `{workspaces, commands}`. `workspaces` are the host's workspaces with a hosted launch whose worktree still exists, newest first and at most 100. Each holds:
   - `workspaceId`, `projectId`, `repositoryName`, `branch`, and `title` (the workstream title, or null);
@@ -45,7 +46,7 @@ Every request carries a positive integer `id`, and the resident process answers 
   - `conversationModes`, the modes its provider offers, or only the last mode when no adapter admits the provider;
   - `sessionId` and `preparedAt`.
 
-  It reads one worktree listing per repository. `commands` names every application command the resident process answers, and the core-link requests and fields it advertises: `session.exited`, and `decoder.session` for `decoder.open`'s `sessionId`.
+  It reads one worktree listing per repository. `commands` names every application command the resident process answers, and the core-link requests and fields it advertises: `session.exited`, `decoder.session` for `decoder.open`'s `sessionId`, and `decoder.interrupt`.
 
 - `workspace.start`, `workspace.list`, and `repository.list` are the base commands, which every release answers. The session host sends any other command only to a resident process whose last `workspace.list` named it, because a process from an older release ends the core link on a request it cannot validate.
 - `provider.list` answers `{providers, defaultProvider}`, every admitted hosted provider in registry order. Each holds:
@@ -70,6 +71,7 @@ Every request carries a positive integer `id`, and the resident process answers 
   - `inactive`, below event schema 10;
   - `unknown_session`, for a session that no launch record names.
 - `decoder.open` may take the launch's `sessionId`. The session host sends it only to a resident process whose last `workspace.list` named `decoder.session`, and only to that process; when another process runs by then, the decoder opens without it. With a `sessionId`, the resident process takes each finished turn's usage from the decoder after answering its events and records it as `resource.usage.recorded` with hosted attribution ([Lervo ADE sessions](ade-sessions.md)). Usage never travels in a response.
+- `decoder.interrupt` takes `decoderId`. The session host sends it only to the resident process whose last `workspace.list` named `decoder.interrupt`, and only while the decoder is in a turn; a decoder holds its process during a turn, so that process knows it. The answer's `input` holds the bytes that stop the turn and keep the session, such as Claude Code's stream-json `control_request` with subtype `interrupt`, or nothing when the decoder saw no turn running. A provider whose decoder cannot stop a turn fails with `interrupt_unsupported`. The turn's own end arrives later through `decoder.output`.
 - `transcript.read` takes `workspaceId`, `offset` (items to skip), and `limit` (at most 500). `transcript.page` answers with complete items, oldest first, as `item` events carry them, and `complete` when the transcript ended. A page holds at most 4 MiB of text. A request that continues the previous page resumes the same reader, so a transcript read page by page is read once. A provider that kept no transcript answers an empty, complete page.
 - Decoded events are, in order of application: `status` (`turn_started`, `question_asked`, or `turn_finished`), `item` and `start` with conversation content and a creation time, `delta` with text for the streaming item, and `finish`. Content is a user message, an agent message, a question, tool activity (name, status, and call count), or a Lervo notice (a code and parameters).
 

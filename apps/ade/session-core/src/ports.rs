@@ -83,6 +83,8 @@ pub enum FailureCode {
     ApplicationUnavailable,
     /// The resident process did not answer in time.
     ApplicationTimeout,
+    /// The provider or the running core cannot stop a turn and keep the session.
+    InterruptUnsupported,
 }
 
 /// A failure that the session host reports with `request.failed`.
@@ -141,6 +143,15 @@ pub trait StreamDecoder: Send + 'static {
     /// Decodes a chunk of standard output. Chunks split anywhere, so the decoder keeps partial
     /// records until their end arrives.
     fn output(&mut self, bytes: &[u8]) -> impl Future<Output = Vec<Decoded>> + Send;
+
+    /// Encodes the request that stops the provider's running turn and keeps its session, with
+    /// what to show for it. The bytes are empty when no turn is running. A decoder that cannot
+    /// stop a turn fails with `InterruptUnsupported`.
+    fn interrupt(
+        &mut self,
+    ) -> impl Future<Output = Result<(Vec<u8>, Vec<Decoded>), Failure>> + Send {
+        std::future::ready(Err(Failure::new(FailureCode::InterruptUnsupported)))
+    }
 }
 
 /// What the session host asks of the Lervo core.

@@ -69,6 +69,11 @@ pub(crate) enum Command {
         text: String,
         reply: Reply,
     },
+    /// Stops the native conversation's running turn and keeps the session.
+    Interrupt {
+        request: Identifier,
+        reply: Reply,
+    },
     Range(Range),
     Stop,
     /// Ends an ended session's retention early, so its actor exits and its memory returns.

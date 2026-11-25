@@ -3,8 +3,9 @@
 # with a fixed response, and exits when a command's instruction is "crash". Its first argument
 # picks a release: "older" advertises no commands and ends on `provider.list`, as a release from
 # before the provider list does, and "invalid" answers `provider.list` with a malformed result.
-# Its second argument, when given, is a file that collects every `session.exited` and
-# `decoder.open` it receives (an "older" release ends on a `decoder.open` that names a session),
+# Its second argument, when given, is a file that collects every `session.exited`,
+# `decoder.open`, and `decoder.interrupt` it receives (an "older" release ends on a
+# `decoder.open` that names a session and on any `decoder.interrupt`),
 # and its third, a file that gets one line each time the process starts. Output "finish\n"
 # (`ZmluaXNoCg==`) finishes the turn.
 release="${1:-current}"
@@ -23,7 +24,7 @@ while IFS= read -r line; do
         *'"workspace.list"'*)
           case "$release" in
             older) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[]}}\n' "$id" ;;
-            *) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited","decoder.session"]}}\n' "$id" ;;
+            *) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited","decoder.session","decoder.interrupt"]}}\n' "$id" ;;
           esac ;;
         older:*'"provider.list"'*) exit 1 ;;
         invalid:*'"provider.list"'*) printf '{"kind":"core.result","id":%s,"result":{"providers":[]}}\n' "$id" ;;
@@ -43,6 +44,10 @@ while IFS= read -r line; do
         *'"offset":0'*) printf '{"kind":"transcript.page","id":%s,"items":[{"content":{"kind":"user_message","text":"from the terminal"},"createdAtMs":5}],"complete":false}\n' "$id" ;;
         *) printf '{"kind":"transcript.page","id":%s,"items":[],"complete":true}\n' "$id" ;;
       esac ;;
+    decoder.interrupt)
+      [ -n "$reports" ] && printf '%s\n' "$line" >> "$reports"
+      case "$release" in older) exit 1 ;; esac
+      printf '{"kind":"decoder.decoded","id":%s,"events":[],"input":"c3RvcAo="}\n' "$id" ;;
     decoder.send) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"item","content":{"kind":"user_message","text":"hi"},"createdAtMs":1},{"kind":"status","event":"turn_started"}],"input":"aGkK"}\n' "$id" ;;
     decoder.output)
       case "$line" in

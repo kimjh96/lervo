@@ -47,6 +47,8 @@ export function InputField(props: {
   rows: number;
   maxLines?: number | undefined;
   disabled?: boolean | undefined;
+  /** Escape outside an input method's composition, such as stopping the agent's turn. */
+  onEscape?: (() => void) | undefined;
   ref?: Ref<HTMLTextAreaElement> | undefined;
 }) {
   const own = useRef<HTMLTextAreaElement | null>(null);
@@ -60,7 +62,13 @@ export function InputField(props: {
     element.style.height = `${Math.min(element.scrollHeight, limit)}px`;
   }, [maxLines, value]);
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === "Escape" && props.onEscape !== undefined) {
+      event.preventDefault();
+      props.onEscape();
+      return;
+    }
+    if (event.key !== "Enter" || event.shiftKey) return;
     event.preventDefault();
     props.onSubmit();
   };

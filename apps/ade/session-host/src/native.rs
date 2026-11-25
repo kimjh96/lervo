@@ -176,6 +176,19 @@ impl<D: StreamDecoder> Native<D> {
                             reply.send(messages::failed(&request, RequestFailedMessageCode::SessionEnded));
                         }
                     }
+                    Some(Command::Interrupt { request, reply }) => {
+                        match self.decoder.interrupt().await {
+                            Ok((bytes, decoded)) => {
+                                if bytes.is_empty() || process.input(&bytes).await.is_ok() {
+                                    self.apply(decoded);
+                                    reply.send(messages::interrupted(&request, self.fanout.session()));
+                                } else {
+                                    reply.send(messages::failed(&request, RequestFailedMessageCode::SessionEnded));
+                                }
+                            }
+                            Err(failure) => reply.send(messages::core_failed(&request, &failure)),
+                        }
+                    }
                     Some(command) => self.command(command),
                     None => {
                         listening = false;
@@ -231,7 +244,7 @@ impl<D: StreamDecoder> Native<D> {
             }
             Command::Detach { connection } => self.fanout.detach(connection),
             Command::Range(range) => self.range(range),
-            Command::Send { request, reply, .. } => {
+            Command::Send { request, reply, .. } | Command::Interrupt { request, reply } => {
                 reply.send(messages::failed(
                     &request,
                     RequestFailedMessageCode::SessionEnded,

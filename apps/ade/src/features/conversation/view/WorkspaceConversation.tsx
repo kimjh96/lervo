@@ -1,11 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useShallow } from "zustand/react/shallow";
 
 import { useSessionHost } from "../../../ports";
+import { useHostIsCurrent } from "../../connection";
 import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
 import { ConversationController } from "../model/controller";
+import type { ConversationSource } from "../model/source";
 import { StandInConversation } from "../model/stand-in-conversation";
 import { useConversationStore } from "../model/store";
 import { BaseNotice } from "./BaseNotice";
@@ -50,9 +52,33 @@ export function WorkspaceConversation(props: {
   );
   const activity = useConversationStore(useShallow((store) => activityOf(store.window)));
   const starting = sessionId === null;
+  // A session host older than the application ends the connection on `session.interrupt`, and
+  // only a core that advertises `decoder.interrupt` can stop a turn.
+  const hostIsCurrent = useHostIsCurrent();
+  const coreStops = useWorkspaceStore(
+    (store) => store.advertisedCommands?.includes("decoder.interrupt") === true,
+  );
+  // The source asked to stop: the working line says so until the turn ends, which its notice
+  // confirms. It resets during render when the turn ends or the conversation changes.
+  const [stopped, setStopped] = useState<ConversationSource | null>(null);
+  if (stopped !== null && (!working || stopped !== source)) setStopped(null);
+  const stopping = stopped === source;
+  const stop = async () => {
+    setStopped(source);
+    try {
+      await source.interrupt();
+    } catch (failure) {
+      setStopped(null);
+      throw failure;
+    }
+  };
   const label = intl.formatMessage(
-    starting ? activityMessages.starting : activityMessages[activity.kind],
-    activity.kind === "tool" ? { name: activity.name } : {},
+    starting
+      ? activityMessages.starting
+      : stopping
+        ? activityMessages.stopping
+        : activityMessages[activity.kind],
+    !stopping && activity.kind === "tool" ? { name: activity.name } : {},
   );
   return (
     <ConversationPane
@@ -60,6 +86,7 @@ export function WorkspaceConversation(props: {
       working={starting || working ? label : null}
       draftKey={workspaceId === null ? undefined : `reply:${workspaceId}`}
       waiting={starting ? intl.formatMessage({ id: "conversation.reply.starting" }) : undefined}
+      onStop={working && !starting && !stopping && hostIsCurrent && coreStops ? stop : undefined}
       continues={firstMessage !== undefined}
       notice={
         /* motion: Lervo notices in the conversation */

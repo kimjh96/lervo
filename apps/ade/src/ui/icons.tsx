@@ -57,6 +57,15 @@ export function ArrowUpIcon(props: IconProps) {
   );
 }
 
+/** A filled square: stopping what runs. */
+export function StopIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
 export function TrashIcon(props: IconProps) {
   return (
     <Icon {...props}>

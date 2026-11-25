@@ -4,13 +4,15 @@ import type { MessageDescriptor } from "react-intl";
 import type { Activity } from "../model/activity";
 
 /** The working line's text for each activity, with static IDs the catalog check can see. */
-export const activityMessages: Readonly<Record<Activity["kind"] | "starting", MessageDescriptor>> =
-  {
-    starting: { id: "conversation.activity.starting" },
-    thinking: { id: "conversation.activity.thinking" },
-    writing: { id: "conversation.activity.writing" },
-    tool: { id: "conversation.tool.running" },
-  };
+export const activityMessages: Readonly<
+  Record<Activity["kind"] | "starting" | "stopping", MessageDescriptor>
+> = {
+  starting: { id: "conversation.activity.starting" },
+  stopping: { id: "conversation.activity.stopping" },
+  thinking: { id: "conversation.activity.thinking" },
+  writing: { id: "conversation.activity.writing" },
+  tool: { id: "conversation.tool.running" },
+};
 
 /** A tool line's text for each status. */
 export const toolMessages: Readonly<
