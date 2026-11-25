@@ -224,6 +224,31 @@ describe("lervo workspace start and open", () => {
     expect((await git(app.repository, "worktree", "list")).split("\n")).toHaveLength(1);
   });
 
+  it("refuses a home whose folder for the repository is a checkout, without changing anything", async () => {
+    const app = await fixture();
+    // The home itself is no repository, but <home>/app is the project's own checkout.
+    vi.stubEnv("LERVO_WORKSPACES_HOME", app.root);
+    const started = io(app.root, instruction);
+    expect(
+      await runCli(["workspace", "start", "--repository", app.projectId, "--json"], started.io),
+    ).toBe(1);
+    const failure = JSON.parse(started.stdout.join("")) as { error: { code: string } };
+    expect(failure.error.code).toBe("workspace_home_invalid");
+    expect(await git(app.repository, "branch", "--list", "lervo/*")).toBe("");
+  });
+
+  it("refuses an invalid LERVO_WORKSPACES_HOME without changing anything", async () => {
+    const app = await fixture();
+    vi.stubEnv("LERVO_WORKSPACES_HOME", "relative/workspaces");
+    const started = io(app.root, instruction);
+    expect(
+      await runCli(["workspace", "start", "--repository", app.projectId, "--json"], started.io),
+    ).toBe(1);
+    const failure = JSON.parse(started.stdout.join("")) as { error: { code: string } };
+    expect(failure.error.code).toBe("workspace_home_invalid");
+    expect(await git(app.repository, "branch", "--list", "lervo/*")).toBe("");
+  });
+
   it("refuses a workspaces home inside a repository without changing anything", async () => {
     const app = await fixture();
     vi.stubEnv("LERVO_WORKSPACES_HOME", resolve(app.repository, "workspaces"));

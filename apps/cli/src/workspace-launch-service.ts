@@ -1,5 +1,6 @@
 // `lervo workspace start` and `open` as services, for the CLI and the resident process alike.
 import { randomBytes, randomUUID } from "node:crypto";
+import { basename, resolve } from "node:path";
 
 import {
   hasTranscriptReader,
@@ -37,7 +38,7 @@ import {
 } from "./hosted-session-settings.js";
 import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
 import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
-import { insideRepository, workspacesHome } from "./workspaces-home.js";
+import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
 import {
   defaultBranchCommit,
@@ -96,11 +97,12 @@ export async function startWorkspaceFromInstruction(
 ): Promise<WorkspaceStartResult> {
   const repository = await registeredRepository(options.repository);
   const adapter = await resolveHostedSessionAdapter(options.provider ?? defaultHostedProvider);
+  // The repository's folder under the home is where its workspaces go; it must lie outside every
+  // repository, the owner's checkouts included, before anything changes.
   const home = workspacesHome();
-  if (await insideRepository(home))
-    throw new CommandFailure(
-      "workspace_home_invalid",
-      "The workspaces home is inside a Git repository. Set LERVO_WORKSPACES_HOME to a folder outside every repository.",
+  if (await insideRepository(resolve(home, basename(repository.repositoryRoot))))
+    throw invalidWorkspacesHome(
+      "Workspaces would land inside a Git repository. Set LERVO_WORKSPACES_HOME to a folder outside every repository.",
     );
   const sessionId = randomUUID();
   const hooks = hostedSessionHooks(adapter, sessionId);

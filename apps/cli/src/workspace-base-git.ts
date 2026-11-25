@@ -23,6 +23,8 @@ export interface RunGitOptions {
   readonly raw?: boolean;
   /** Extra environment, such as the committer identity. */
   readonly env?: NodeJS.ProcessEnv;
+  /** Variables Git must not inherit, such as `GIT_DIR`, which would override the folder. */
+  readonly unset?: readonly string[];
 }
 
 /** The environment that keeps Git, its credential helpers, and ssh from waiting for a person. */
@@ -46,6 +48,7 @@ export function runGit(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const environment = nonInteractiveGitEnvironment({ ...process.env, ...options.env });
+    for (const name of options.unset ?? []) delete environment[name];
     // A process group exists only on POSIX; Windows gets no console window either way.
     const grouped = process.platform !== "win32";
     const child = spawn("git", ["-C", root, ...arguments_], {
