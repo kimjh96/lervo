@@ -196,8 +196,9 @@ async function verifySelfContainedTerminalHook(deploymentRoot, projectRoot, repo
   assert.equal(command.includes("lervo terminal hook"), false);
   const environment = { ...process.env, PATH: `${dirname(process.execPath)}:/usr/bin:/bin` };
   assert.deepEqual(await runShell(command, { cwd: nested, env: environment }), {
-    code: 2,
-    stdout: "",
+    // ADR-0635: input Lervo cannot read never blocks the prompt; an empty answer goes out.
+    code: 0,
+    stdout: "{}\n",
     // ADR-0531: a closed reason code only, never prompt or provider configuration content.
     stderr: "Lervo terminal integration failed (hook_input_invalid).\n",
   });
