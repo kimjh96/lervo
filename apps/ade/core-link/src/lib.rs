@@ -144,6 +144,39 @@ impl CoreLink {
             .map(|advertised| advertised.generation)
     }
 
+    /// The generation whose commands are recorded, if any.
+    fn advertised_generation(&self) -> Option<u64> {
+        self.advertised
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .as_ref()
+            .map(|advertised| advertised.generation)
+    }
+
+    /// Asks the resident process of `generation` for its workspace list, only to record what it
+    /// advertises. A failure leaves the record as it was; the interface's next list retries.
+    async fn refresh_advertised(&self, generation: u64) {
+        let request = json!({
+            "kind": "core.command",
+            "command": "workspace.list",
+            "arguments": {},
+        });
+        let Ok((CoreLinkResponse::CoreResultResponse(response), answered_by)) = self
+            .ask_on(request, COMMAND_DEADLINE, Some(generation), false)
+            .await
+        else {
+            return;
+        };
+        if self
+            .link
+            .codec()
+            .validate_result("workspace.list", &response.result)
+            .is_ok()
+        {
+            self.record_advertised(answered_by, &response.result);
+        }
+    }
+
     /// Records the commands a workspace list named. An older core names none.
     fn record_advertised(&self, generation: u64, result: &Map<String, Value>) {
         let commands = result
@@ -223,6 +256,11 @@ impl Core for CoreLink {
             .map_err(|_| failures::result_invalid())?;
         if command == "workspace.list" {
             self.record_advertised(answered_by, &outcome.result);
+        } else if generation.is_none() && self.advertised_generation() != Some(answered_by) {
+            // A base command started a new resident process, which has advertised nothing yet.
+            // Ask it now, so a session this command launches names itself to that process at
+            // once instead of after the interface's next workspace list.
+            self.refresh_advertised(answered_by).await;
         }
         Ok(outcome)
     }
