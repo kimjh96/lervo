@@ -73,6 +73,15 @@
   min-height: calc(var(--type-meta-size) * var(--type-meta-line-height) + var(--space-14));
 }
 
+/* A reply that waits for the agent's next step says so, quietly, under its bubble. */
+.queued {
+  justify-self: end;
+  padding-block-start: var(--space-4);
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
 /* A Lervo notice about how the work started sits under the first message. */
 .lead {
   padding-block-start: var(--space-14);

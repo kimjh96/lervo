@@ -91,6 +91,10 @@
     "defaultMessage": "Opening the conversation",
     "description": "Where the conversation will appear, while the session host attaches and loads its newest page, or starts the session again."
   },
+  "conversation.queued": {
+    "defaultMessage": "Queued · the agent reads it at its next step",
+    "description": "Under a reply sent while the agent worked: the agent reads it between steps of its running turn; it fades when the agent's next item arrives."
+  },
   "conversation.reply.failed": {
     "defaultMessage": "The reply did not reach the agent ({code}). It is back in the input.",
     "description": "A reply failed; {code} is the protocol code."
@@ -802,6 +806,10 @@
   "lervo.command.workstream.update": {
     "defaultMessage": "Updated the workstream",
     "description": "What Lervo did when the agent ran `lervo workstream update`, as a quiet line in the conversation."
+  },
+  "notice.context_compacted": {
+    "defaultMessage": "{trigger, select, manual {You compacted the context} other {Context compacted}}",
+    "description": "A divider where the agent's conversation was compacted to fit its context: by the person with /compact (manual), or by the provider on its own."
   },
   "notice.conversation_item_invalid": {
     "defaultMessage": "A message from the agent could not be shown.",

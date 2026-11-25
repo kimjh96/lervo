@@ -2,11 +2,9 @@ import type { TurnSummary } from "@lervo/session-host-contract";
 import { createContext, type PropsWithChildren, useContext, useState } from "react";
 import { createStore, type StoreApi, useStore } from "zustand";
 
-/** A turn as the conversation names it: when its message was sent, and when the next one was. */
-export interface TurnWindow {
-  readonly startedAtMs: number;
-  readonly endedAtMs?: number;
-}
+import type { TurnWindow } from "../model/turns";
+
+export type { TurnWindow };
 
 /** What the core recorded about one turn, once asked: its summary, or null when it has none. */
 type Entry =
