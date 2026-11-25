@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_55732feb5590ac1ecbad314a"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Serve Stop hooks over the resident context socket, with the session's environment and umask, detached workers started by the hook's client, and a server that finishes the hook in flight before it stops."
