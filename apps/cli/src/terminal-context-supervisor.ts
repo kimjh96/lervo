@@ -10,8 +10,12 @@ const FIRST_RESTART_MILLISECONDS = 200;
 const LAST_RESTART_MILLISECONDS = 60_000;
 /** A server that ran this long before exiting restarts at the first delay again. */
 const STABLE_MILLISECONDS = 60_000;
-/** A server that ignores SIGTERM this long is killed. */
-const TERMINATE_MILLISECONDS = 3000;
+/**
+ * A server that has not exited this long after SIGTERM is killed. On SIGTERM it stops accepting at
+ * once and finishes the hook in flight, which its own watchdog ends at the hook budget plus five
+ * seconds (terminal-context-serve.ts), so this waits that long.
+ */
+const TERMINATE_MILLISECONDS = 20_000;
 
 export interface TerminalContextRuntime {
   entry: string;

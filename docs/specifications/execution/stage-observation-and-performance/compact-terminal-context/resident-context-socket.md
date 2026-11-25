@@ -36,21 +36,39 @@ ADR-0562 sets the target: a prompt hook p95 under 200 milliseconds end to end. A
 ## Request and response
 
 - **Request** (`terminal.context.request`, version 1):
-  - `version`: 1, and `kind`: `prompt`. The client parses the input first and sends only `UserPromptSubmit`; `SessionStart`, `Stop`, and the workspace recording hooks stay in process.
+  - `version`: 1, and `kind`: `prompt` for `UserPromptSubmit` or `stop` for `Stop`. The client parses the input first and sends only those two; `SessionStart` and the workspace recording hooks stay in process. The server declines a request whose input names another event than its kind as `invalid_request`, so a request runs exactly the hook its kind names.
   - `runtime`: the content hash the store's pointer names, which is the runtime the launcher would load.
   - `cwd`: the realpath of the hook's working directory. The served hook resolves the repository, a linked worktree's execution and evidence roots, and everything else from it, as the in-process hook does.
   - `args`: the launcher's arguments, which carry the provider and the contract.
   - `environment`: the values of every variable the hook path reads that can change what it prints or records: `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `HOME`, `LERVO_USER_CAPABILITY_ROOT`, `LERVO_USER_STATE_DIRECTORY`, `LERVO_WORKSPACES_HOME`, `XDG_CONFIG_HOME`, and `XDG_STATE_HOME`. The list is closed; a test keeps the launcher's copy equal to the server's. The server compares what each value means: an unset variable stands for its default, so a service that sets `LERVO_USER_STATE_DIRECTORY` to the default path matches a session that leaves it unset.
   - `elapsed`: the client's time spent so far, in milliseconds. The served hook's budget and its recorded `total` include it.
-  - `input`: the provider's hook input exactly as read from standard input, at most 200 KiB; a larger input stays in process.
+  - `input`: the provider's hook input exactly as read from standard input, at most 200 KiB; a larger input, such as a Stop with a long final message, stays in process.
+  - `session`: the session's values the served hook runs with (see Session environment). Older clients omit it, and the hook then runs with the server's values.
+  - `umask`: the session's file mode creation mask, which the served hook's writes use. Older clients omit it.
 - **Response** (`terminal.context.response`, version 1):
   - `ok`, with `stdout`, `stderr`, and `exitCode`: what the in-process hook would have produced. The client writes both streams and exits with that code.
+  - `launches`: the detached processes the hook asked for, each an entry, its arguments, its working directory, and the variables it needs beyond the session's own. The client starts them (see Detached launches).
   - `declined`, with `reason`, always sent before `A`, so nothing was recorded.
 - **Decline reasons** (closed for version 1):
   - `runtime_mismatch`: the server's runtime hash differs from the request's, as during an upgrade.
   - `environment_mismatch`: a value in `environment` differs from the server's.
   - `busy`: the server is already running a request. It serves one at a time; a later slice may run more than one.
   - `request_too_large` and `invalid_request`.
+
+## Session environment
+
+The compared variables choose which stores a hook reads, so a difference declines the request. Other variables change only how the hook's child processes behave, and a service's values differ from a terminal session's. The served hook runs with the session's values of those instead:
+
+- `PATH`, where `git`, `launchctl`, `systemctl`, and `ps` are found.
+- `XDG_RUNTIME_DIR` and `DBUS_SESSION_BUS_ADDRESS`, which decide on Linux whether Stop's replica service inspection can reach the user's service manager. A service has them where an SSH session may not, so Stop would otherwise record a different lifecycle result.
+- Every `GIT_` variable, which redirects Git; a `GIT_` variable only the server has is removed for the request.
+- The file mode creation mask. The service runs with `0077`, which keeps the socket private, while a session's files are usually `0644`.
+
+The server serves one request at a time, so it applies these to its own process for the request and restores its own values once the hook's leftover work drained. Provider variables such as `CLAUDE_PROJECT_DIR` are not carried: neither hook reads them.
+
+## Detached launches
+
+A hook starts detached workers: the knowledge worker and the next prompt's prefetch after a Stop, and the interrupted-turn settlement worker after any hook. Started by the server, they would belong to the service: a service manager stops them with it, systemd by its whole control group, and they would get the service's environment, which lacks shell-only variables such as provider credentials and proxies, its Node, and its mask. The served hook therefore hands each launch to its answer instead of starting it, and the client starts it, detached, with its own Node and environment plus the variables the launch names, exactly as an in-process hook would. A launch asked for after the answer went out, by work a deadline abandoned, is dropped, as a failed launch is; its queued work waits for the next hook or the resident.
 
 ## Launcher delegation
 
@@ -69,26 +87,28 @@ Otherwise the copy runs itself, exactly as before, so a clone without Lervo, a C
 - It connects with a 150 millisecond timeout and waits at most 100 milliseconds for `A`.
 - On a declined line, no listener, a missing `A`, or an error before it sent `G`, it closes the connection and runs the in-process path.
 - After it sent `G`, it waits up to 25 seconds, the provider's hook limit, and does not fall back. If the answer never comes, it prints `{}`, as a failed hook does, and the server's records stand.
-- On `ok` it writes the response's streams and exits with its code.
+- On `ok` it starts the response's launches, then writes the response's streams and exits with its code. The socket closing after the answer arrived changes nothing.
 - It never retries the socket within one invocation. `LERVO_TERMINAL_CONTEXT_SOCKET=0` keeps a hook in process.
 
 ## Host behavior
 
 - The server runs `runTerminalHookCommand` for one request at a time, with the request's working directory, input, and arguments, and with the hook's start moved back by the client's `elapsed`. The hook path reads its working directory only from that input, never from the process.
 - Session identity comes only from the input, never from the host's environment.
-- The in-process hook relies on its process exit to drop work a deadline abandoned. A stage that fails or reaches its deadline settles its measurement, and the hook answers, possibly degraded, while sibling stages' work may still run. After answering, the server therefore waits for every stage's own work to settle and serves no other request meanwhile; a prompt that arrives then is declined as `busy` and prepared in process. When that work does not settle within 250 milliseconds, or the request ran past half the budget, the server exits and the host starts a fresh one, which it does within a fraction of a second, so abandoned work never runs into the next request. A request that never settles makes the server exit after the hook budget plus five seconds. On SIGTERM the server exits at once, without waiting for a request in flight.
+- The in-process hook relies on its process exit to drop work a deadline abandoned. A stage that fails or reaches its deadline settles its measurement, and the hook answers, possibly degraded, while sibling stages' work may still run. After answering, the server therefore waits for every stage's own work to settle and serves no other request meanwhile; a prompt that arrives then is declined as `busy` and prepared in process. When that work does not settle within 250 milliseconds, or the request ran past half the budget, the server exits and the host starts a fresh one, which it does within a fraction of a second, so abandoned work never runs into the next request. A request that never settles makes the server exit after the hook budget plus five seconds. On SIGTERM, or when its follower disconnects, the server stops accepting and removes its socket at once, so later hooks run in process, and exits once the hook in flight answered and drained. A Stop cut off mid-run would lose its decision and leave its records half written, which an in-process hook never risks from a Lervo upgrade. The supervisor therefore waits up to the hook budget plus five seconds before it kills a server that has not exited.
+- A Stop holds the server like a prompt does, so another session's prompt that arrives meanwhile is declined as `busy` and prepared in process. Stop's replica service inspection runs `ps` and `sysctl` synchronously, which can hold the server's event loop long enough that another client's 150 and 100 millisecond waits expire; that client also runs in process.
+- The recorded stage observations name the server's Node version and architecture, which are the session's on a host with one Node install.
 - Request failures are reported by closed code only. No request body, parse excerpt, or provider input reaches a log.
 
 ## Privacy
 
-- Prompt text crosses the socket in memory only. The host never writes a request to disk and logs no request body. The events it records are the ones the in-process hook already records.
+- Prompt text, a Stop's final message, and the session's carried variables cross the socket in memory only. The host never writes a request to disk and logs no request body. The events it records are the ones the in-process hook already records. Provider credentials and other variables outside the session list never cross it: a launch gets them from the client's own environment.
 - On Unix, only processes of this user can connect, because the socket and its directory are owner-only.
 
 ## Failure meaning
 
 - A missing or unreachable listener means the hook works as before. It is not an error and raises no attention.
 - A `runtime_mismatch` that persists after an upgrade means the host did not replace its server.
-- A served prompt records the same stage observations as an in-process one; its `total` includes the client's time. The server keeps its counts since it started in `context-stats.json` beside its socket: prompts served, prompts declined by reason, and the last served time. It holds counts and times only, so a canary reads directly whether prompts were served. Recording which prompts fell back, and why, needs new stage outcomes, whose enums are closed: it waits for a reader-first schema change.
+- A served hook records the same stage observations as an in-process one; its `total` includes the client's time. The server keeps its counts since it started in `context-stats.json` beside its socket: hooks served, by launcher and by kind (`servedKinds`), requests declined by reason, and the last served time. It holds counts and times only, so a canary reads directly whether prompts were served. Recording which prompts fell back, and why, needs new stage outcomes, whose enums are closed: it waits for a reader-first schema change.
 
 ## Slice 0 results
 
@@ -113,6 +133,6 @@ Measured on the Mac on 2026-11-25 (load average 5 to 11) against a local clone o
 0. **Measure the gain.** In one long-lived process on the Mac and WSL hosts, time repeated prompt preparation against this repository, cold and warm, and with an in-memory repository snapshot that a watch keeps current. Record which stages remain. Build the channel only if the warm path is well under the in-process path.
 1. **Prompt over the socket, Unix only:** the supervised server and its serve mode in the hook runtime, the launcher client with the commit handshake and fallback, and the closed declines and environment. Landed; see the slice 1 results.
 2. **A faster snapshot:** the repository snapshot is the largest remaining stage. The snapshot must not miss a change made just before the prompt: Stop attributes the difference between the prompt-time and Stop-time snapshots to the turn. A watch kept current by file events would have to be drained before each prompt, by writing a marker file and waiting for its event; on the Mac under load that round trip took 70 to 875 milliseconds, longer than walking every file, so the snapshot does not use a watch. Walking directories concurrently while recording files in the same order cut a warm capture of this repository from about 180–250 milliseconds to 115–150 milliseconds, with identical revisions. It landed with the snapshot's deadline and read-bound guarantees restated for concurrent reads in [terminal preparation and snapshots](../terminal-preparation-and-snapshots.md). Acceptance: ADR-0562's prompt hook p95 under 200 milliseconds end to end on the Mac and WSL hosts.
-3. **Stop over the socket**, with the same fallback.
+3. **Stop over the socket**, with the same fallback, the session environment, detached launches started by the client, and a server that finishes the hook in flight before it stops. In an isolated end-to-end run against this repository on the Mac, a served Stop took 41–182 milliseconds against 238–402 milliseconds in process, with identical output. That run's prompts degraded, so its Stops found no prepared turn; the full Stop path is verified on the hosts after release.
 4. **Record after answering, and the cached base.** The order guarantees of ADR-0548 and ADR-0549 are restated for events the host commits after the hook returns. When the host is unreachable, the hook prints the last cached base block and records `host_unreachable`, as ADR-0562 states.
 5. **Windows:** a pipe whose server the client authenticates before sending.

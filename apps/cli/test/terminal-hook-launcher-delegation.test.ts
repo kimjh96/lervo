@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import {
   chmod,
@@ -59,24 +60,28 @@ function launch(
 }
 
 const start = JSON.stringify({ hook_event_name: "SessionStart", session_id: "s" });
+/** The version this launcher has; a host launcher must be at least this new to take over. */
+const current = Number(
+  /\nconst launcherVersion = (\d+);\n/u.exec(readFileSync(source, "utf8"))![1],
+);
 const hostLauncher = (version: number) =>
   `#!/usr/bin/env node\nconst launcherVersion = ${version};\nprocess.stdout.write("host launcher ran");\n`;
 
 it("hands the hook to the host's launcher when it is this user's, owner-only, and as new", async () => {
   const f = await fixture();
-  await writeFile(f.host, hostLauncher(1), { mode: 0o600 });
+  await writeFile(f.host, hostLauncher(current), { mode: 0o600 });
   expect(await launch(f, source, start)).toEqual({ code: 0, stdout: "host launcher ran" });
   // A newer host launcher is used too.
-  await writeFile(f.host, hostLauncher(7), { mode: 0o600 });
+  await writeFile(f.host, hostLauncher(current + 6), { mode: 0o600 });
   expect((await launch(f, source, start)).stdout).toBe("host launcher ran");
 });
 
 it("runs itself, exactly as before, when the host's launcher is older, open to others, absent, or switched off", async () => {
   const f = await fixture();
   expect(await launch(f, source, start)).toEqual({ code: 0, stdout: start });
-  await writeFile(f.host, hostLauncher(0), { mode: 0o600 });
+  await writeFile(f.host, hostLauncher(current - 1), { mode: 0o600 });
   expect((await launch(f, source, start)).stdout).toBe(start);
-  await writeFile(f.host, hostLauncher(1), { mode: 0o600 });
+  await writeFile(f.host, hostLauncher(current), { mode: 0o600 });
   await chmod(f.host, 0o640);
   expect((await launch(f, source, start)).stdout).toBe(start);
   await chmod(f.host, 0o600);
