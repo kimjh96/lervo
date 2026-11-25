@@ -299,8 +299,9 @@ describe("lervo workspace start and open", () => {
       "UserPromptSubmit",
       "Stop",
     ]);
-    expect(hooks.hooks.UserPromptSubmit?.[0]?.hooks[0]?.command).toBe(
-      "lervo terminal hook --provider claude --contract 2",
+    // The host launcher runs where the install has one, and the CLI's hook where it has none.
+    expect(hooks.hooks.UserPromptSubmit?.[0]?.hooks[0]?.command).toMatch(
+      /^(?:lervo terminal hook|node ".*\/launcher\.mjs") --provider claude --contract 2$/u,
     );
     expect(hooks.hooks.SessionStart?.[0]?.hooks[0]?.command).toBe(
       "lervo workspace hook --provider claude",

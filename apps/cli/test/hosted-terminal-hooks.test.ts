@@ -49,9 +49,9 @@ describe("the terminal hooks a hosted session adds", () => {
       [launcher]: "// launcher\n",
     });
     expect(await missingTerminalHookEvents(root)).toEqual([]);
-    expect(await hostedTerminalHooks(createClaudeHostedSessionAdapter("/opt/claude"), root)).toBe(
-      undefined,
-    );
+    expect(
+      await hostedTerminalHooks(createClaudeHostedSessionAdapter("/opt/claude"), root, "/none"),
+    ).toBe(undefined);
   });
 
   it("adds only the events an older project setup lacks", async () => {
@@ -60,10 +60,28 @@ describe("the terminal hooks a hosted session adds", () => {
       [launcher]: "// launcher\n",
     });
     expect(
-      await hostedTerminalHooks(createClaudeHostedSessionAdapter("/opt/claude"), root),
+      await hostedTerminalHooks(createClaudeHostedSessionAdapter("/opt/claude"), root, "/none"),
     ).toEqual({
       command: "lervo terminal hook --provider claude --contract 2",
       events: ["SessionStart"],
+      via: "cli",
+    });
+  });
+
+  it("runs the host launcher beside the runtime store when the install has one", async () => {
+    const root = await worktree({});
+    const store = await worktree({ "launcher.mjs": "// host launcher\n" });
+    const launcherPath = join(store, "launcher.mjs");
+    expect(
+      await hostedTerminalHooks(
+        createClaudeHostedSessionAdapter("/opt/claude"),
+        root,
+        launcherPath,
+      ),
+    ).toEqual({
+      command: `node ${JSON.stringify(launcherPath)} --provider claude --contract 2`,
+      events: ["SessionStart", "UserPromptSubmit", "Stop"],
+      via: "launcher",
     });
   });
 
@@ -85,8 +103,8 @@ describe("the terminal hooks a hosted session adds", () => {
     });
     expect(await missingTerminalHookEvents(root)).toEqual([]);
     const bare = await worktree({});
-    expect(await hostedTerminalHooks(createCodexHostedSessionAdapter("/opt/codex"), bare)).toBe(
-      undefined,
-    );
+    expect(
+      await hostedTerminalHooks(createCodexHostedSessionAdapter("/opt/codex"), bare, "/none"),
+    ).toBe(undefined);
   });
 });

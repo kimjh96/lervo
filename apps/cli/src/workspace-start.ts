@@ -6,7 +6,6 @@ import {
   type HostedLaunch,
   type HostedSessionAdapter,
   type HostedSessionHooks,
-  type HostedTerminalHooks,
 } from "@lervo/adapter-contract";
 
 import { CommandFailure, errorCode } from "./command-error-output.js";
@@ -18,6 +17,7 @@ import {
   type HostedSessionEventOutcome,
 } from "./hosted-session-events.js";
 import { settingsFileDigest } from "./hosted-session-settings.js";
+import type { HostedTerminalHookPlan } from "./hosted-terminal-hooks.js";
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
 import { workspacesHome } from "./workspaces-home.js";
 
@@ -64,7 +64,7 @@ export interface WorkspaceStartPorts {
    * Lervo's terminal hooks for the events the new worktree's project settings lack, read once the
    * worktree exists; absent, the launch carries only the request's hooks.
    */
-  terminalHooks?(workspacePath: string): Promise<HostedTerminalHooks | undefined>;
+  terminalHooks?(workspacePath: string): Promise<HostedTerminalHookPlan | undefined>;
   provisionWorkspace(placement: WorkspacePlacement): Promise<void>;
   /** Replays the placement's effect commits on its new branch; absent where none can exist. */
   replayEffects?(placement: WorkspacePlacement): Promise<EffectReplay>;
@@ -275,6 +275,9 @@ export async function startWorkspace(
       settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
+      ...(terminal === undefined
+        ? {}
+        : { terminalHooks: { events: [...terminal.events], via: terminal.via } }),
       ...(base === undefined
         ? {}
         : {

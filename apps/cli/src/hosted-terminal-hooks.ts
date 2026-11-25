@@ -8,11 +8,18 @@ import { resolve } from "node:path";
 import type { HostedSessionAdapter, HostedTerminalHooks } from "@lervo/adapter-contract";
 import { TERMINAL_HOOK_RUNTIME_PATH, terminalIntegrationEvents } from "@lervo/repository-knowledge";
 
+import { hostTerminalLauncherPath } from "./terminal-runtime.js";
+
 /** Settings files Claude Code reads from a project, in the order it merges them. */
 const PROJECT_SETTINGS = [".claude/settings.json", ".claude/settings.local.json"];
 const MAXIMUM_SETTINGS_BYTES = 256 * 1024;
-/** The command that runs Lervo's terminal hook from the installed CLI, wherever the worktree is. */
-const TERMINAL_HOOK_COMMAND = "lervo terminal hook --provider claude --contract 2";
+/** The installed CLI's terminal hook, for a host whose install predates the host launcher. */
+const CLI_TERMINAL_HOOK_COMMAND = "lervo terminal hook --provider claude --contract 2";
+
+/** The terminal hooks of a hosted launch, and whether they run the host launcher or the CLI. */
+export interface HostedTerminalHookPlan extends HostedTerminalHooks {
+  readonly via: "launcher" | "cli";
+}
 
 const exists = (path: string) =>
   lstat(path).then(
@@ -62,14 +69,24 @@ export async function missingTerminalHookEvents(worktree: string): Promise<strin
 }
 
 /**
- * The terminal hooks a hosted session in `worktree` needs: the installed CLI's hook for each event
- * the project lacks, or undefined when the project hooks them all or the adapter takes no hooks.
+ * The terminal hooks a hosted session in `worktree` needs, for each event the project lacks, or
+ * undefined when the project hooks them all or the adapter takes no hooks. They run the host
+ * launcher beside the runtime store, the path every Lervo session takes; a host whose install
+ * predates that launcher runs the CLI's terminal hook instead, and the plan says which.
  */
 export async function hostedTerminalHooks(
   adapter: HostedSessionAdapter,
   worktree: string,
-): Promise<HostedTerminalHooks | undefined> {
+  launcher: string = hostTerminalLauncherPath(),
+): Promise<HostedTerminalHookPlan | undefined> {
   if (!adapter.capabilities.hooks || adapter.provider !== "claude") return undefined;
   const events = await missingTerminalHookEvents(worktree);
-  return events.length === 0 ? undefined : { command: TERMINAL_HOOK_COMMAND, events };
+  if (events.length === 0) return undefined;
+  return (await exists(launcher))
+    ? {
+        command: `node ${JSON.stringify(launcher)} --provider claude --contract 2`,
+        events,
+        via: "launcher",
+      }
+    : { command: CLI_TERMINAL_HOOK_COMMAND, events, via: "cli" };
 }

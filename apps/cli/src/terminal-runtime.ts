@@ -7,7 +7,8 @@ import {
   terminalHookRuntimeStorePath,
   sha256,
 } from "@lervo/repository-knowledge";
-import { readFile, realpath } from "node:fs/promises";
+import { lstat, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { isInstalledTerminalRuntimeCli } from "./terminal-runtime-installation.js";
 import { STARTUP_EFFECTS_VARIABLE } from "./startup-effects.js";
 
@@ -50,6 +51,40 @@ export async function loadTerminalHookLauncher(): Promise<string> {
   return readFile(new URL("./terminal-hook-launcher.mjs", import.meta.url), "utf8");
 }
 
+/**
+ * The host launcher beside the runtime store: the same launcher a repository commits as
+ * `.lervo/generated/terminal-hooks/runtime-v2.mjs`, which verifies and runs the store's current
+ * runtime. Hosted sessions run it in worktrees that commit no launcher (ADR-0632, S2a), so every
+ * session takes the one path from launcher to verified runtime.
+ */
+export function hostTerminalLauncherPath(store: string = terminalHookRuntimeStorePath()): string {
+  return resolve(store, "launcher.mjs");
+}
+
+/**
+ * Writes the host launcher when it is missing, or with `refresh` after the runtime changed, as
+ * an owner-only file replaced atomically. A failure only leaves hosted sessions on the CLI's
+ * terminal hook.
+ */
+export async function ensureHostTerminalLauncher(store: string, refresh: boolean): Promise<void> {
+  const path = hostTerminalLauncherPath(store);
+  if (
+    !refresh &&
+    (await lstat(path).then(
+      (stat) => stat.isFile(),
+      () => false,
+    ))
+  )
+    return;
+  const temporary = resolve(store, `.launcher-${process.pid}.tmp`);
+  try {
+    await writeFile(temporary, await loadTerminalHookLauncher(), { mode: 0o600 });
+    await rename(temporary, path);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
+
 /** The build embeds the runtime identity so unchanged CLI startup never reads the bundle. */
 export async function ensureHostTerminalRuntime(
   input: {
@@ -68,12 +103,14 @@ export async function ensureHostTerminalRuntime(
       input.verification,
       input.authority,
     ))
-  )
+  ) {
+    await ensureHostTerminalLauncher(store, false).catch(() => undefined);
     return "current";
+  }
   const runtimeContent = await loadTerminalHookRuntime();
   if (sha256(runtimeContent) !== contentHash)
     throw new Error("The installed terminal runtime changed.");
-  return materializeHostTerminalRuntime({
+  const result = await materializeHostTerminalRuntime({
     store,
     runtimeContent,
     assets: await loadTerminalHookRuntimeAssets(),
@@ -82,6 +119,9 @@ export async function ensureHostTerminalRuntime(
     ),
     authority: input.authority ?? "publish",
   });
+  if (result !== "busy")
+    await ensureHostTerminalLauncher(store, result === "materialized").catch(() => undefined);
+  return result;
 }
 
 /**

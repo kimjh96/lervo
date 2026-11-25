@@ -241,7 +241,12 @@ describe("a worktree without project hooks", () => {
       ...fake.value,
       async terminalHooks(workspacePath) {
         asked.push(workspacePath);
-        return { command: "lervo terminal hook --provider claude --contract 2", events: ["Stop"] };
+        return {
+          command:
+            "node /home/me/.lervo/terminal-hooks/launcher.mjs --provider claude --contract 2",
+          events: ["Stop"],
+          via: "launcher",
+        };
       },
     });
     expect(asked).toHaveLength(1);
@@ -250,6 +255,7 @@ describe("a worktree without project hooks", () => {
       hooks: Record<string, unknown[]>;
     };
     expect(Object.keys(settings.hooks)).toEqual(["SessionStart", "SessionEnd", "Stop"]);
+    expect(fake.records[0]?.terminalHooks).toEqual({ events: ["Stop"], via: "launcher" });
   });
 });
 

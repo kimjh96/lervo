@@ -193,8 +193,12 @@ export async function openWorkspace(
     ...(hooks === undefined ? {} : { hooks }),
   });
   if (launch.settingsFile !== null) await writeHostedSessionSettings(launch.settingsFile);
+  const { terminalHooks: _previousTerminal, ...kept } = previous;
   const record: HostedLaunchRecord = {
-    ...previous,
+    ...kept,
+    ...(terminal === undefined
+      ? {}
+      : { terminalHooks: { events: [...terminal.events], via: terminal.via } }),
     sessionId,
     conversationMode: mode,
     argumentDigest: launchArgumentDigest(launch),
