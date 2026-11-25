@@ -22,6 +22,11 @@ export interface CliIo {
   stdout: (message: string) => void;
   stderr: (message: string) => void;
   stdin?: (maximumBytes?: number) => Promise<string>;
+  /**
+   * ADR-0636: delivers a hook's complete answer before the hook finishes its records. Only the
+   * resident context server provides it; a hook in its own process prints when it is done.
+   */
+  answer?: (stdout: string) => void;
 }
 
 export interface CliServices {

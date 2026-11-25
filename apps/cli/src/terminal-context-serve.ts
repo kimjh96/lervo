@@ -91,13 +91,15 @@ export async function runServedTerminalHook(
   const restoreEnvironment = applyTerminalContextSessionEnvironment(request.session);
   // The server's own mask keeps its socket private; the hook's files get the session's mode.
   const ownMask = request.umask === undefined ? null : process.umask(request.umask);
-  // Only a client that sends its session starts launches; an older one ignores them, so its
-  // hook starts them here, as before. A launch asked for after the answer went out cannot reach
-  // the client and fails, as a failed launch does; its queued work waits for the next hook.
-  let answered = false;
+  // Only a client that sends its session starts launches; an older one ignores them, so its hook
+  // starts them here, as before. After an early answer (ADR-0636) the hook's records continue and a
+  // launch they ask for starts here too, with the session's values applied. A launch asked for
+  // after the hook finished, by work a deadline abandoned, fails as a failed launch does.
+  let phase: "running" | "recording" | "finished" = "running";
   if (request.session !== undefined)
     handOffDetachedLaunches((launch) => {
-      if (answered) return false;
+      if (phase === "finished") return false;
+      if (phase === "recording") return null;
       launches.push(launch);
       return true;
     });
@@ -106,43 +108,77 @@ export async function runServedTerminalHook(
     if (ownMask !== null) process.umask(ownMask);
     restoreEnvironment();
   };
-  let exitCode: number;
-  try {
-    exitCode = await runTerminalHookCommand(
-      request.args,
-      {
-        cwd: request.cwd,
-        stdout: (message) => {
-          stdout += message;
-        },
-        stderr: (message) => {
-          stderr += message;
-        },
-        stdin: async () => request.input,
+  let early!: (stdout: string) => void;
+  const answeredEarly = new Promise<string>((resolve) => (early = resolve));
+  const run = runTerminalHookCommand(
+    request.args,
+    {
+      cwd: request.cwd,
+      stdout: (message) => {
+        stdout += message;
       },
-      { createTerminalStageObservation: observation.create },
-      startedAt,
-    );
+      stderr: (message) => {
+        stderr += message;
+      },
+      stdin: async () => request.input,
+      answer: (message) => {
+        phase = "recording";
+        early(message);
+      },
+    },
+    { createTerminalStageObservation: observation.create },
+    startedAt,
+  ).finally(() => {
+    phase = "finished";
+  });
+  // A run that fails after an early answer is observed by the drain; this branch must not
+  // surface it as an unhandled rejection.
+  const finishedRun = run.then((exitCode) => ({ exitCode }));
+  finishedRun.catch(() => undefined);
+  let first: { exitCode: number } | { early: string };
+  try {
+    first = await Promise.race([
+      finishedRun,
+      answeredEarly.then((message) => ({ early: message })),
+    ]);
   } catch (error) {
     settle();
     throw error;
   }
-  answered = true;
+  const overran = () => performance.now() - startedAt > OVERRUN_MILLISECONDS;
+  // Work a failed or late stage left running gets a moment to settle. A server held busy for
+  // longer would turn later hooks away; exiting instead lets the host start a fresh one, which it
+  // does within a fraction of a second.
+  const drainStages = async () => {
+    try {
+      return await observation.drain(DRAIN_MILLISECONDS);
+    } finally {
+      settle();
+    }
+  };
+  if ("exitCode" in first)
+    return {
+      stdout,
+      stderr,
+      exitCode: first.exitCode,
+      overran: overran(),
+      launches: [...launches],
+      drain: drainStages,
+    };
+  // Answered before its records: the server stays busy until they finish, then drains.
   return {
-    stdout,
+    stdout: first.early,
     stderr,
-    exitCode,
-    overran: performance.now() - startedAt > OVERRUN_MILLISECONDS,
+    exitCode: 0,
+    overran: false,
     launches: [...launches],
-    // Work a failed or late stage left running gets a moment to settle. A server held busy for
-    // longer would turn later hooks away; exiting instead lets the host start a fresh one, which it
-    // does within a fraction of a second.
     drain: async () => {
-      try {
-        return await observation.drain(DRAIN_MILLISECONDS);
-      } finally {
-        settle();
-      }
+      const finished = await run.then(
+        () => true,
+        () => false,
+      );
+      const drained = await drainStages();
+      return finished && drained && !overran();
     },
   };
 }

@@ -129,6 +129,8 @@ async function executeTerminalHookCommand(
     };
     let repositoryRoot: string | undefined;
     let checkoutRoot: string | undefined;
+    /** Whether a served prompt already delivered its answer (ADR-0636). */
+    let answered = false;
     let workspaceBinding: TerminalWorkspaceBinding | null = null;
     try {
       // A linked worktree runs in its own files and records into its registered repository.
@@ -170,6 +172,10 @@ async function executeTerminalHookCommand(
           );
           return 0;
         }
+        const promptAnswer = (additionalContext: string) =>
+          `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } })}\n`;
+        // ADR-0636: a served prompt is answered once its context is prepared and recorded after.
+        const answer = io.answer;
         const additionalContext = await prepareAndRecordTerminalPrompt({
           root,
           executionRoot,
@@ -184,10 +190,16 @@ async function executeTerminalHookCommand(
           contractId,
           occurredAt,
           deadlineMs: startedAt + TERMINAL_HOOK_BUDGET_MS,
+          ...(answer === undefined
+            ? {}
+            : {
+                deliver: (prepared: string) => {
+                  answered = true;
+                  answer(promptAnswer(prepared));
+                },
+              }),
         });
-        io.stdout(
-          `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } })}\n`,
-        );
+        if (!answered) io.stdout(promptAnswer(additionalContext));
         return 0;
       }
       const expectation = await timing.measure("lifecycle_inspection", () =>
@@ -230,6 +242,8 @@ async function executeTerminalHookCommand(
           policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
         }),
       ).catch(() => undefined);
+      // A delivered context stays delivered; a failure after it loses only its records.
+      if (answered) return 0;
       if (input.event === "UserPromptSubmit") {
         const lines = await baseContext;
         io.stdout(

@@ -41,6 +41,7 @@ export async function prepareAndRecordTerminalPrompt({
   contractId,
   occurredAt,
   deadlineMs,
+  deliver,
 }: {
   /** The repository the turn's evidence, queues, and shared state belong to. */
   root: string;
@@ -57,6 +58,8 @@ export async function prepareAndRecordTerminalPrompt({
   contractId: "lervo_terminal_hooks_v1" | "lervo_terminal_hooks_v2";
   occurredAt: string;
   deadlineMs: number;
+  /** ADR-0636: receives the prepared context before it is recorded, when the caller can deliver it. */
+  deliver?: (additionalContext: string) => void;
 }): Promise<string> {
   // ADR-0542: record only the transcript position; the resident reads the turn later.
   const transcript = await terminalTranscriptPosition(provider, transcriptPath);
@@ -83,6 +86,7 @@ export async function prepareAndRecordTerminalPrompt({
     bootstrapNotice === null
       ? prepared
       : { ...prepared, additionalContext: `${prepared.additionalContext}\n${bootstrapNotice}` };
+  deliver?.(context.additionalContext);
   const observationEventId = newTerminalIdentifier("evt");
   const observationStorage = await timing.measure("event_commit", () => openProjectStorage(root));
   try {
@@ -144,8 +148,9 @@ export async function prepareAndRecordTerminalPrompt({
   } finally {
     await withinTerminalDeadline(deadlineMs, () => observationStorage.close());
   }
-  // ADR-0548 and ADR-0549: only a context that every step above prepared successfully is the one
-  // the provider receives, so delivery is recorded last. A failure loses only these observations.
+  // ADR-0548 and ADR-0549: in its own process, only a context that every step above prepared
+  // successfully is the one the provider receives, so delivery is recorded last. A served prompt
+  // already delivered it (ADR-0636). A failure loses only these observations.
   await recordOwnerTurnStopAppearance(root, context, occurredAt).catch(() => undefined);
   const governance = context.governance;
   if (governance !== undefined && context.additionalContext.includes(governance.line))

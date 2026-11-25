@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-25
 Amends: [ADR-0327](0327-availability-safe-unmanaged-terminal-hooks.md), [ADR-0451](../../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md)
-Amended by: [ADR-0634](0634-remove-the-retrieval-terminal-context-mode.md) (retrieval mode and its Stop prefetch exception are removed), [ADR-0635](0635-never-block-a-prompt-over-hook-input-lervo-cannot-read.md) (rejected ingress exits 0; empty prompts are valid and long prompts are cut)
+Amended by: [ADR-0634](0634-remove-the-retrieval-terminal-context-mode.md) (retrieval mode and its Stop prefetch exception are removed), [ADR-0635](0635-never-block-a-prompt-over-hook-input-lervo-cannot-read.md) (rejected ingress exits 0; empty prompts are valid and long prompts are cut), [ADR-0636](0636-answer-a-served-prompt-before-recording-it.md) (a served prompt is answered before its records)
 
 ## Context
 
