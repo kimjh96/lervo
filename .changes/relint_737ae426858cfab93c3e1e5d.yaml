@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_737ae426858cfab93c3e1e5d"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "The resident process stops a hosted Claude session's running turn through decoder.interrupt, which it advertises to the ADE, and the conversation marks a stopped turn instead of reporting it as failed."

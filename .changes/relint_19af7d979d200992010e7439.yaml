@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_19af7d979d200992010e7439"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Read event schema 12 in the CLI, the Node, and the Hub: terminal.turn.observed can record a turn that ended without a Stop hook, with its ending and a not_checked completion. Automatic writer activation stays at schema 11 until every reader has it."
