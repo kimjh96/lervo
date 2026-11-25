@@ -29,7 +29,7 @@ export function ConversationPane(props: {
   onStop?: (() => Promise<void>) | undefined;
   /** Shows the first items at once, when the view continues one already on screen. */
   continues: boolean;
-  /** A Lervo notice above the working line, such as what the work started without. */
+  /** A Lervo notice under the first message, such as what the work started without. */
   notice?: ReactNode;
 }) {
   const intl = useIntl();
@@ -61,9 +61,9 @@ export function ConversationPane(props: {
           onLoadLater={() => void source.loadLater()}
           onJumpToLatest={() => void source.showLatest()}
           continues={props.continues}
+          lead={props.notice}
           dock={
             <>
-              <Presence className={styles.notice}>{props.notice ?? null}</Presence>
               {/* The working line keeps its row, so the conversation never moves as work starts
                 or ends. */}
               <div className={styles.working}>

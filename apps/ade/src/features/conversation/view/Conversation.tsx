@@ -48,6 +48,11 @@ export function Conversation(props: {
   dock: ReactNode;
   /** Shows the first items at once, when the view continues one already on screen. */
   continues?: boolean | undefined;
+  /**
+   * A Lervo notice under the first message, such as what the work started without. It belongs to
+   * the conversation, so it scrolls with it instead of floating over it.
+   */
+  lead?: ReactNode;
 }) {
   const window = useConversationStore((store) => store.window);
   const arrived = useConversationStore((store) => store.arrived);
@@ -256,6 +261,10 @@ export function Conversation(props: {
                 style={{ transform: `translateY(${row.start}px)` }}
               >
                 <ConversationItemView item={item} />
+                {/* motion: Lervo notices in the conversation */}
+                {row.index === 0 && !window.hasEarlier ? (
+                  <Presence className={styles.lead}>{props.lead ?? null}</Presence>
+                ) : null}
               </div>
             );
           })}
