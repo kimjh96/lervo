@@ -2222,7 +2222,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "lervo-ade"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "lervo-session-protocol",
  "lervo-session-transport",
@@ -2237,7 +2237,7 @@ dependencies = [
 
 [[package]]
 name = "lervo-core-link"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "base64 0.22.1",
  "lervo-session-core",
@@ -2249,7 +2249,7 @@ dependencies = [
 
 [[package]]
 name = "lervo-session-core"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "serde_json",
  "thiserror 2.0.21",
@@ -2257,7 +2257,7 @@ dependencies = [
 
 [[package]]
 name = "lervo-session-host"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "fd-lock",
  "lervo-core-link",
@@ -2275,7 +2275,7 @@ dependencies = [
 
 [[package]]
 name = "lervo-session-protocol"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "jsonschema",
  "prettyplease",
@@ -2291,7 +2291,7 @@ dependencies = [
 
 [[package]]
 name = "lervo-session-pty"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "portable-pty",
  "thiserror 2.0.21",
@@ -2300,7 +2300,7 @@ dependencies = [
 
 [[package]]
 name = "lervo-session-store"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "lervo-session-core",
  "tempfile",
@@ -2309,7 +2309,7 @@ dependencies = [
 
 [[package]]
 name = "lervo-session-stream"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "nix",
  "thiserror 2.0.21",
@@ -2318,7 +2318,7 @@ dependencies = [
 
 [[package]]
 name = "lervo-session-transport"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "dirs",
  "getrandom 0.4.3",
