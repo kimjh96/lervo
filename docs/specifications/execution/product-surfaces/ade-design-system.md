@@ -191,7 +191,7 @@ The [motion principles](ade-motion.md) are this chapter. In short, motion explai
 
 ## Imagery
 
-The app uses no illustration or photography. Empty states use text and, at most, one icon. The site's imagery is defined with the site and follows the same calm.
+The app uses no illustration or photography of its own; it shows the images a person sends, as they are. Empty states use text and, at most, one icon. The site's imagery is defined with the site and follows the same calm.
 
 ## Data display
 
@@ -222,6 +222,8 @@ Each component is specified by its purpose, when to use and not to use it, anato
 | Component          | Use it for                                                                                                                                                                         | Not for                                                                                                                                |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `InputCard`        | A text field and its actions: the instruction (input, stacked) or a reply (floating, inline)                                                                                       | Short single values, or forms with several fields                                                                                      |
+| `ImageTray`        | Images waiting in an input card to go with its text, as thumbnails above the field                                                                                                 | Images already sent, which show in their message, or files that are not images                                                         |
+| `ImageViewer`      | One image at full size over the dimmed window, opened from a message or a tray                                                                                                     | Content other than images, or choices the person must make                                                                             |
 | `ListRow`          | A row of a navigation list, such as a workspace                                                                                                                                    | Actions that change data, or rows that need two lines                                                                                  |
 | `FloatingButton`   | A way back to where content continues, such as "Jump to latest"                                                                                                                    | Primary actions, or anything that must stay on screen                                                                                  |
 | `IconButton`       | The one primary action of an input card, such as send                                                                                                                              | A second primary action, or an action that needs words                                                                                 |

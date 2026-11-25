@@ -149,6 +149,7 @@ impl Core for InterfaceCore {
             working_directory: std::env::temp_dir(),
             provider: "claude".to_owned(),
             initial_input: None,
+            initial_images: Vec::new(),
             environment_remove: Vec::new(),
             transcript: false,
         })

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { ClaudeHostedStreamDecoder, createClaudeHostedSessionAdapter } from "../src/index.js";
@@ -270,7 +271,14 @@ describe("Claude Code stream decoding", () => {
       content: {
         kind: "user_message",
         text: "What is wrong here?",
-        images: [{ mediaType: "image/png", width: 1568, height: 980 }],
+        images: [
+          {
+            mediaType: "image/png",
+            width: 1568,
+            height: 980,
+            imageId: createHash("sha256").update(Buffer.from(png, "base64")).digest("hex"),
+          },
+        ],
       },
       createdAtMs: 7,
     });

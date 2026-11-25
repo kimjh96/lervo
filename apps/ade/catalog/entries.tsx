@@ -14,7 +14,15 @@ import { PaneHeader } from "../src/ui/PaneHeader";
 import { StatusDot } from "../src/ui/StatusDot";
 import { Waiting } from "../src/ui/Waiting";
 import { WorkingLine } from "../src/ui/WorkingLine";
-import { CardDemo, PresenceDemo, SegmentedDemo, SelectDemo, ViewPresenceDemo } from "./demos";
+import {
+  CardDemo,
+  ImageTrayDemo,
+  ImageViewerDemo,
+  PresenceDemo,
+  SegmentedDemo,
+  SelectDemo,
+  ViewPresenceDemo,
+} from "./demos";
 
 export interface Variant {
   readonly name: string;
@@ -46,6 +54,24 @@ export const entries: readonly Entry[] = [
       { name: "Input, stacked", render: () => <CardDemo surface="input" layout="stacked" /> },
       { name: "Floating, inline", render: () => <CardDemo surface="floating" layout="inline" /> },
     ],
+  },
+  {
+    module: "ImageTray",
+    name: "Image tray",
+    purpose:
+      "Images waiting in an input card to go with its text, as thumbnails above the field; each opens at full size and has a remove button on hover and focus.",
+    use: ["Images pasted into the reply card or the instruction of new work"],
+    avoid: ["Images already sent, which show in their message bubble", "Files that are not images"],
+    variants: [{ name: "Ready and preparing", render: () => <ImageTrayDemo /> }],
+  },
+  {
+    module: "ImageViewer",
+    name: "Image viewer",
+    purpose:
+      "One image at full size over the dimmed window; Escape or a click outside closes it, and the arrow keys move between images.",
+    use: ["Opening an image from a message bubble or an image tray"],
+    avoid: ["Content other than images", "Choices the person must make"],
+    variants: [{ name: "Two images", render: () => <ImageViewerDemo /> }],
   },
   {
     module: "ListRow",

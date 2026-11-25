@@ -7,6 +7,7 @@ rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
+base64 = "0.22"
 fd-lock = "4"
 lervo-core-link = { path = "../core-link" }
 lervo-session-core = { path = "../session-core" }
@@ -16,6 +17,7 @@ lervo-session-store = { path = "../session-store" }
 lervo-session-stream = { path = "../session-stream" }
 lervo-session-transport = { path = "../session-transport" }
 serde_json = "1"
+sha2 = "0.10"
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 

@@ -1,3 +1,5 @@
+import type { ImageMark } from "@lervo/session-host-contract";
+
 import { RequestFailure } from "../../../ports";
 import type { ConversationSource } from "./source";
 import { standInWindow } from "./stand-in";
@@ -12,12 +14,13 @@ export class StandInConversation implements ConversationSource {
   constructor(
     private readonly firstMessage: string,
     private readonly now: () => number = Date.now,
+    private readonly firstImages: readonly ImageMark[] = [],
   ) {}
 
   async open(): Promise<void> {
     useConversationStore.setState({
       sessionId: null,
-      window: standInWindow(this.firstMessage, this.now()),
+      window: standInWindow(this.firstMessage, this.now(), this.firstImages),
       loadingEarlier: false,
       loadingLater: false,
       arrived: new Set(),
@@ -33,6 +36,11 @@ export class StandInConversation implements ConversationSource {
 
   interrupt(): Promise<void> {
     return Promise.reject(new RequestFailure("session_not_started"));
+  }
+
+  /** The work's own images are in the cache already; the session host keeps none yet. */
+  readImage(): Promise<string> {
+    return Promise.reject(new RequestFailure("image_not_found"));
   }
 
   async loadEarlier(): Promise<void> {}

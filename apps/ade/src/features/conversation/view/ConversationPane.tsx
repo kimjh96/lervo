@@ -1,5 +1,5 @@
 import type { TurnSummary } from "@lervo/session-host-contract";
-import { type ReactNode, useLayoutEffect } from "react";
+import { type ReactNode, useCallback, useLayoutEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import type { PreparedImage } from "../../../ports";
@@ -12,6 +12,7 @@ import type { ConversationSource } from "../model/source";
 import { useConversationStore } from "../model/store";
 import { Composer } from "./Composer";
 import { Conversation } from "./Conversation";
+import { ConversationImagesProvider } from "./ConversationImages";
 import styles from "./ConversationPane.module.css";
 import { ToolLinesProvider } from "./ToolLinesProvider";
 import { TurnSummariesProvider, type TurnWindow } from "./TurnSummariesProvider";
@@ -55,6 +56,7 @@ export function ConversationPane(props: {
     void source.open();
     return () => source.close();
   }, [source]);
+  const readImage = useCallback((imageId: string) => source.readImage(imageId), [source]);
   return (
     <div className={styles.pane}>
       <Presence className={styles.opening}>
@@ -69,33 +71,37 @@ export function ConversationPane(props: {
       </Presence>
       <TurnSummariesProvider conversation={source} summarize={props.summarize}>
         <ToolLinesProvider conversation={source}>
-          <Conversation
-            onLoadEarlier={() => void source.loadEarlier()}
-            onLoadLater={() => void source.loadLater()}
-            onJumpToLatest={() => void source.showLatest()}
-            continues={props.continues}
-            lead={props.notice}
-            turnOpen={props.working !== null}
-            queuedSince={props.queuedSince ?? null}
-            dock={
-              <>
-                {/* The working line keeps its row, so the conversation never moves as work starts
+          <ConversationImagesProvider read={readImage}>
+            <Conversation
+              onLoadEarlier={() => void source.loadEarlier()}
+              onLoadLater={() => void source.loadLater()}
+              onJumpToLatest={() => void source.showLatest()}
+              continues={props.continues}
+              lead={props.notice}
+              turnOpen={props.working !== null}
+              queuedSince={props.queuedSince ?? null}
+              dock={
+                <>
+                  {/* The working line keeps its row, so the conversation never moves as work starts
                 or ends. */}
-                <div className={styles.working}>
-                  <Presence>
-                    {props.working === null ? null : <WorkingLine label={props.working} />}
-                  </Presence>
-                </div>
-                <Composer
-                  draftKey={props.draftKey}
-                  onSend={props.onSend ?? ((text, images) => source.send(text, sentImages(images)))}
-                  acceptsImages={props.acceptsImages}
-                  onStop={props.onStop}
-                  waiting={props.waiting}
-                />
-              </>
-            }
-          />
+                  <div className={styles.working}>
+                    <Presence>
+                      {props.working === null ? null : <WorkingLine label={props.working} />}
+                    </Presence>
+                  </div>
+                  <Composer
+                    draftKey={props.draftKey}
+                    onSend={
+                      props.onSend ?? ((text, images) => source.send(text, sentImages(images)))
+                    }
+                    acceptsImages={props.acceptsImages}
+                    onStop={props.onStop}
+                    waiting={props.waiting}
+                  />
+                </>
+              }
+            />
+          </ConversationImagesProvider>
         </ToolLinesProvider>
       </TurnSummariesProvider>
     </div>

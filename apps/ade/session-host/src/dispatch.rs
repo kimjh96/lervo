@@ -9,6 +9,7 @@ use lervo_session_protocol::{
 };
 
 use crate::host::Host;
+use crate::images;
 use crate::messages;
 use crate::session::{Command, Range, Reply};
 use crate::subscriber::{Output, Subscriber};
@@ -22,7 +23,14 @@ impl<C: Core> Host<C> {
         let reply = Reply::new(output);
         match message {
             ClientMessage::HelloMessage(_) => {}
-            ClientMessage::ApplicationCommandMessage(command) => {
+            ClientMessage::ApplicationCommandMessage(mut command) => {
+                // Images pasted with an instruction go with its first message; the core gets the
+                // text alone.
+                let images = if command.command.as_str() == "workspace.start" {
+                    images::take(&mut command.arguments)
+                } else {
+                    Vec::new()
+                };
                 let host = Arc::clone(self);
                 tokio::spawn(async move {
                     let request = command.request_id;
@@ -34,11 +42,31 @@ impl<C: Core> Host<C> {
                         Err(failure) => reply.send(messages::core_failed(&request, &failure)),
                         Ok(outcome) => {
                             reply.send(messages::application_result(&request, outcome.result));
-                            if let Some(launch) = outcome.launch {
+                            if let Some(mut launch) = outcome.launch {
+                                launch.initial_images = images;
                                 reply.send(host.start(&request, &launch).await);
                             }
                         }
                     }
+                });
+            }
+            ClientMessage::ImageReadMessage(read) => {
+                let directory = self.indexes.join(read.session_id.as_str());
+                tokio::spawn(async move {
+                    let id = read.image_id.to_string();
+                    let found = {
+                        let id = id.clone();
+                        tokio::task::spawn_blocking(move || images::read(&directory, &id))
+                            .await
+                            .ok()
+                            .flatten()
+                    };
+                    reply.send(messages::image_data(
+                        &read.request_id,
+                        &read.session_id,
+                        &id,
+                        found,
+                    ));
                 });
             }
             ClientMessage::SessionOpenMessage(open) => {

@@ -1,5 +1,7 @@
+import type { ImageMark } from "@lervo/session-host-contract";
 import { create } from "zustand";
 
+import type { PreparedImage } from "../../../ports";
 import type { StartDraft } from "./start";
 
 /** Why a start failed, as the session host or the core reported it. */
@@ -29,6 +31,8 @@ export interface PendingStart {
   readonly workspaceId: string | null;
   /** What the created workspace started without, when the core said so. */
   readonly baseNotice: BaseNotice | null;
+  /** The images pasted with the instruction, as its first message shows them. */
+  readonly images: readonly ImageMark[];
 }
 
 interface StartStore {
@@ -36,6 +40,8 @@ interface StartStore {
   readonly pending: PendingStart | null;
   /** The failure of the last start: the protocol code and, when the core named it, the stage. */
   readonly error: StartFailure | null;
+  /** The images of a start that failed, which the start screen puts back with the instruction. */
+  readonly returnedImages: readonly PreparedImage[];
 }
 
 /**
@@ -47,4 +53,5 @@ export const useStartStore = create<StartStore>(() => ({
   draft: { instruction: "", repository: "", provider: "" },
   pending: null,
   error: null,
+  returnedImages: [],
 }));

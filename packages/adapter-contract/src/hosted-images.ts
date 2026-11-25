@@ -1,5 +1,7 @@
 // Images in a hosted native conversation's messages (Lervo ADE sessions, "Images in a message"):
 // what a decoder writes for them, and the mark the conversation keeps of each.
+import { createHash } from "node:crypto";
+
 import type { HostedDecodedEvent } from "./hosted-conversation.js";
 
 export type HostedImageMediaType = "image/png" | "image/jpeg" | "image/gif" | "image/webp";
@@ -10,11 +12,16 @@ export interface HostedSentImage {
   readonly data: string;
 }
 
-/** What the conversation keeps of an image: its format and size, never its bytes. */
+/**
+ * What the conversation keeps of an image: its format, size, and identity, the SHA-256 of its
+ * bytes, never the bytes themselves. The session host keeps the bytes of the images it sent under
+ * the same identity, so a conversation read back from the provider's transcript finds them too.
+ */
 export interface HostedImageMark {
   readonly mediaType: HostedImageMediaType;
   readonly width?: number;
   readonly height?: number;
+  readonly imageId?: string;
 }
 
 /** A stream decoder that can carry images in the user's message. */
@@ -79,12 +86,13 @@ function size(
   return undefined;
 }
 
-/** The mark for an image: its format and, when its header tells it, its size. */
+/** The mark for an image: its format, its identity, and, when its header tells it, its size. */
 export function imageMark(image: HostedSentImage): HostedImageMark {
   const head = image.data.slice(0, HEADER_CHARACTERS - (HEADER_CHARACTERS % 4));
   const measured = size(image.mediaType, Buffer.from(head, "base64"));
   const fits = (side: number) => Number.isInteger(side) && side >= 1 && side <= MAX_SIDE;
+  const imageId = createHash("sha256").update(Buffer.from(image.data, "base64")).digest("hex");
   return measured !== undefined && fits(measured.width) && fits(measured.height)
-    ? { mediaType: image.mediaType, width: measured.width, height: measured.height }
-    : { mediaType: image.mediaType };
+    ? { mediaType: image.mediaType, width: measured.width, height: measured.height, imageId }
+    : { mediaType: image.mediaType, imageId };
 }

@@ -18,6 +18,11 @@ export interface ConversationSource {
    * request, and the turn's end follows as status.
    */
   interrupt(): Promise<void>;
+  /**
+   * The bytes of an image a message in this conversation carried, as a data URL; it rejects with
+   * `image_not_found` when the session host keeps no such image.
+   */
+  readImage(imageId: string): Promise<string>;
   loadEarlier(): Promise<void>;
   loadLater(): Promise<void>;
   showLatest(): Promise<void>;

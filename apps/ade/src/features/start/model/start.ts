@@ -1,4 +1,5 @@
-import { type ApplicationCommands, RequestFailure } from "../../../ports";
+import { type ApplicationCommands, type PreparedImage, RequestFailure } from "../../../ports";
+import { remember, sentImages } from "../../conversation";
 import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces";
 import { useStartStore } from "./store";
 
@@ -32,21 +33,41 @@ export async function startWork(
   commands: ApplicationCommands,
   draft: StartDraft,
   repositoryName: string,
+  images: readonly PreparedImage[] = [],
 ): Promise<void> {
   starts += 1;
   const id = starts;
   const instruction = draft.instruction.trim();
   const current = () => useStartStore.getState().pending?.id === id;
+  // The first message draws its images from the cache, under the identity the session host uses.
+  // Work without images shows its pending workspace at once, without waiting a turn.
+  const identities = images.length === 0 ? [] : await remember(images);
+  const marks = images.map(({ mediaType, width, height }, index) => ({
+    mediaType,
+    width,
+    height,
+    ...(identities[index] === undefined ? {} : { imageId: identities[index] }),
+  }));
   useStartStore.setState({
-    pending: { id, instruction, repositoryName, workspaceId: null, baseNotice: null },
+    pending: {
+      id,
+      instruction,
+      repositoryName,
+      workspaceId: null,
+      baseNotice: null,
+      images: marks,
+    },
     draft: { ...draft, instruction: "" },
     error: null,
+    returnedImages: [],
   });
   try {
+    // The session host takes the images out and sends them with the first message.
     const result = await commands.run("workspace.start", {
       instruction,
       repository: draft.repository,
       ...(draft.provider === "" ? {} : { provider: draft.provider }),
+      ...(images.length === 0 ? {} : { images: sentImages(images) }),
     });
     const { workspaceId } = result;
     const notice = result.base?.notice ?? null;
@@ -64,6 +85,7 @@ export async function startWork(
       useStartStore.setState((store) => ({
         pending: null,
         draft: { ...store.draft, instruction },
+        returnedImages: images,
         error: {
           code: failure instanceof RequestFailure ? failure.code : "workspace_start_failed",
           stage: typeof stage === "string" ? stage : null,

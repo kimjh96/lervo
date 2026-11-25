@@ -42,6 +42,9 @@ pub struct Launch {
     pub working_directory: PathBuf,
     /// Text to send through the stream decoder once the process runs, such as the instruction.
     pub initial_input: Option<String>,
+    /// Images sent with the initial input, such as those pasted with the instruction. The session
+    /// host takes them from `workspace.start`'s arguments; the core never sees them.
+    pub initial_images: Vec<SentImage>,
     /// Variables of the session host's own environment the process must not inherit, such as an
     /// enclosing agent session's markers.
     pub environment_remove: Vec<String>,

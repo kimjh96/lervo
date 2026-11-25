@@ -85,6 +85,53 @@
       "value": "Writing a reply"
     }
   ],
+  "conversation.images.alt": [
+    {
+      "type": 0,
+      "value": "Image "
+    },
+    {
+      "type": 1,
+      "value": "number"
+    },
+    {
+      "type": 0,
+      "value": " of "
+    },
+    {
+      "type": 1,
+      "value": "count"
+    },
+    {
+      "type": 5,
+      "value": "sized",
+      "options": {
+        "yes": {
+          "value": [
+            {
+              "type": 0,
+              "value": ", "
+            },
+            {
+              "type": 1,
+              "value": "width"
+            },
+            {
+              "type": 0,
+              "value": " × "
+            },
+            {
+              "type": 1,
+              "value": "height"
+            }
+          ]
+        },
+        "other": {
+          "value": []
+        }
+      }
+    }
+  ],
   "conversation.images.attached": [
     {
       "type": 0,
@@ -96,7 +143,7 @@
     },
     {
       "type": 0,
-      "value": " · "
+      "value": ", "
     },
     {
       "type": 1,
@@ -111,33 +158,13 @@
       "value": "height"
     }
   ],
-  "conversation.images.preparing": [
-    {
-      "type": 0,
-      "value": "Preparing the image"
-    }
-  ],
-  "conversation.images.remove": [
-    {
-      "type": 0,
-      "value": "Remove image "
-    },
-    {
-      "type": 1,
-      "value": "number"
-    }
-  ],
-  "conversation.images.sent": [
+  "conversation.images.missing": [
     {
       "type": 5,
       "value": "sized",
       "options": {
         "yes": {
           "value": [
-            {
-              "type": 0,
-              "value": "Image · "
-            },
             {
               "type": 1,
               "value": "width"
@@ -161,6 +188,26 @@
           ]
         }
       }
+    }
+  ],
+  "conversation.images.preparing": [
+    {
+      "type": 0,
+      "value": "Preparing image "
+    },
+    {
+      "type": 1,
+      "value": "number"
+    }
+  ],
+  "conversation.images.remove": [
+    {
+      "type": 0,
+      "value": "Remove image "
+    },
+    {
+      "type": 1,
+      "value": "number"
     }
   ],
   "conversation.images.tooLarge": [
@@ -963,6 +1010,44 @@
     {
       "type": 0,
       "value": ")."
+    }
+  ],
+  "images.viewer.close": [
+    {
+      "type": 0,
+      "value": "Close"
+    }
+  ],
+  "images.viewer.count": [
+    {
+      "type": 1,
+      "value": "index"
+    },
+    {
+      "type": 0,
+      "value": " / "
+    },
+    {
+      "type": 1,
+      "value": "count"
+    }
+  ],
+  "images.viewer.label": [
+    {
+      "type": 0,
+      "value": "Image"
+    }
+  ],
+  "images.viewer.next": [
+    {
+      "type": 0,
+      "value": "Next image"
+    }
+  ],
+  "images.viewer.previous": [
+    {
+      "type": 0,
+      "value": "Previous image"
     }
   ],
   "keyboard.command": [

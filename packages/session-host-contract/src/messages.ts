@@ -13,6 +13,7 @@ import {
   conversationRangeMessageSchema,
 } from "./conversation.js";
 import { helloMessageSchema, rejectedMessageSchema, welcomeMessageSchema } from "./handshake.js";
+import { imageDataMessageSchema, imageReadMessageSchema } from "./image.js";
 import {
   sessionAttachMessageSchema,
   sessionDetachMessageSchema,
@@ -39,6 +40,7 @@ export const clientMessageSchemas = [
   sessionsWatchMessageSchema,
   sessionSendMessageSchema,
   sessionInterruptMessageSchema,
+  imageReadMessageSchema,
   sessionResizeMessageSchema,
   sessionStopMessageSchema,
   conversationRangeMessageSchema,
@@ -55,6 +57,7 @@ export const hostMessageSchemas = [
   sessionStatusMessageSchema,
   sessionSentMessageSchema,
   sessionInterruptedMessageSchema,
+  imageDataMessageSchema,
   sessionResyncRequiredMessageSchema,
   conversationAppendedMessageSchema,
   conversationDeltaMessageSchema,

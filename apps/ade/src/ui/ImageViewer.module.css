@@ -1,0 +1,158 @@
+/* An image at full size over the blurred window, opening and closing as overlays do (ADE motion,
+   "Overlays"). It renders into the document's body, so no clipped ancestor holds it in the main
+   area, and it is a flex box of the window's size, so the image's percentage bounds resolve and a
+   tall image fits the window instead of running past it.
+
+   The viewer itself never fades: WebKit draws no backdrop blur under or on an element whose
+   opacity animates, and switches it on at the end, so the blur snapped in, the sidebar most of
+   all. The blur eases in and out by its own radius, and the tint, image, and controls fade. */
+.viewer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-48);
+}
+
+/* A blur shows most in its first pixels of radius, so it eases in and out slowly at both ends,
+   over the time of an arrival and a leaving. */
+.blur {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
+  pointer-events: none;
+  animation: blur-in var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+@keyframes blur-in {
+  from {
+    backdrop-filter: blur(0) saturate(1);
+  }
+}
+
+.viewer[data-closing] .blur {
+  animation: blur-out var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+@keyframes blur-out {
+  to {
+    backdrop-filter: blur(0) saturate(1);
+  }
+}
+
+.veil {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background-color: color-mix(in srgb, var(--glass-tint-color) 55%, transparent);
+  cursor: zoom-out;
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.image {
+  position: relative;
+  flex: none;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-window);
+  object-fit: contain;
+  animation:
+    global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade),
+    grow var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+@keyframes grow {
+  from {
+    transform: scale(0.98);
+  }
+}
+
+.close,
+.arrow {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.viewer[data-closing] .veil,
+.viewer[data-closing] .image,
+.viewer[data-closing] .close,
+.viewer[data-closing] .arrow,
+.viewer[data-closing] .count {
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+.close {
+  top: var(--space-14);
+  right: var(--space-14);
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  border-radius: var(--radius-sm);
+}
+
+.arrow {
+  top: 50%;
+  width: var(--size-control-lg);
+  height: var(--size-control-lg);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  transform: translateY(-50%);
+}
+
+.arrow[data-side="previous"] {
+  left: var(--space-16);
+}
+
+.arrow[data-side="next"] {
+  right: var(--space-16);
+}
+
+.arrow:disabled {
+  visibility: hidden;
+}
+
+.close:hover,
+.arrow:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.close:focus-visible,
+.arrow:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.count {
+  position: absolute;
+  bottom: var(--space-16);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-meta-size);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blur,
+  .viewer[data-closing] .blur,
+  .veil,
+  .image,
+  .close,
+  .arrow,
+  .count,
+  .viewer[data-closing] .veil,
+  .viewer[data-closing] .image,
+  .viewer[data-closing] .close,
+  .viewer[data-closing] .arrow,
+  .viewer[data-closing] .count {
+    animation: none;
+  }
+}

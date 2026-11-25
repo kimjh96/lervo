@@ -1,13 +1,16 @@
 // The stylesheet check for the ADE motion principles: durations and easings come from the motion
 // tokens, only opacity, transform, and control colors move, and keyframes animate only opacity,
-// transform, and the working line's background position (ADE motion, "Verification").
+// transform, the working line's background position, and the image viewer's backdrop blur (ADE
+// motion, "Verification").
 import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 const MOVING = new Set(["opacity", "transform", "background-color", "border-color", "color"]);
 // The working line's highlight moves across its text with `background-position`; it repaints
-// only that line while an agent works (ADE motion, "Working status").
-const KEYFRAMED = new Set(["opacity", "transform", "background-position"]);
+// only that line while an agent works (ADE motion, "Working status"). The image viewer's blur
+// eases in and out with `backdrop-filter`: WebKit draws no backdrop blur while an element's opacity
+// animates and switches it on at the end, so a fading blur would snap (ADE motion, "Overlays").
+const KEYFRAMED = new Set(["opacity", "transform", "background-position", "backdrop-filter"]);
 const LITERAL_TIME = /(?<![\w-])\d*\.?\d+m?s\b/u;
 const LITERAL_EASING = /(?<![\w-])(?:ease(?:-in|-out|-in-out)?|linear|cubic-bezier\(|steps\()/u;
 

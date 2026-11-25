@@ -83,6 +83,7 @@ impl Core for LoadCore {
             working_directory: std::env::temp_dir(),
             provider: "load".to_owned(),
             initial_input: None,
+            initial_images: Vec::new(),
             environment_remove: Vec::new(),
             transcript: false,
         })

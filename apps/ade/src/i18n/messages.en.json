@@ -51,21 +51,25 @@
     "defaultMessage": "Writing a reply",
     "description": "The working line while the agent streams a reply."
   },
+  "conversation.images.alt": {
+    "defaultMessage": "Image {number} of {count}{sized, select, yes {, {width} × {height}} other {}}",
+    "description": "The text of an image in a message bubble, for screen readers: its place among the message's images and its size when known. It opens the image at full size."
+  },
   "conversation.images.attached": {
-    "defaultMessage": "Image {number} · {width} × {height}",
-    "description": "A pasted image waiting above the reply card for the next reply: its place in the reply and the size it goes at."
+    "defaultMessage": "Image {number}, {width} × {height}",
+    "description": "The accessible name of a pasted image waiting above a card: its place and the size it goes at. It opens the image at full size."
+  },
+  "conversation.images.missing": {
+    "defaultMessage": "{sized, select, yes {{width} × {height}} other {Image}}",
+    "description": "Inside the quiet tile that stands in a bubble for an image the session host does not keep, such as one read back from Claude Code's transcript: its size when known."
   },
   "conversation.images.preparing": {
-    "defaultMessage": "Preparing the image",
-    "description": "A pasted image is being scaled down to send; it shows above the reply card until the image is ready."
+    "defaultMessage": "Preparing image {number}",
+    "description": "The accessible name of a pasted image still being scaled down to send."
   },
   "conversation.images.remove": {
     "defaultMessage": "Remove image {number}",
     "description": "The accessible name of the button that takes a pasted image out of the next reply."
-  },
-  "conversation.images.sent": {
-    "defaultMessage": "{sized, select, yes {Image · {width} × {height}} other {Image}}",
-    "description": "In the user's message bubble, one line per image it carried: the image's size when known. The conversation keeps no image bytes."
   },
   "conversation.images.tooLarge": {
     "defaultMessage": "The pasted image stays too large to send, even scaled down.",
@@ -310,6 +314,26 @@
   "conversation.unavailable": {
     "defaultMessage": "The conversation could not open ({code}).",
     "description": "The session could not attach or start; the code names why."
+  },
+  "images.viewer.close": {
+    "defaultMessage": "Close",
+    "description": "The accessible name of the button that closes the full-size image view; Escape does the same."
+  },
+  "images.viewer.count": {
+    "defaultMessage": "{index} / {count}",
+    "description": "Under the full-size image: which of the message's images shows, of how many."
+  },
+  "images.viewer.label": {
+    "defaultMessage": "Image",
+    "description": "The accessible name of the full-size image view over the window."
+  },
+  "images.viewer.next": {
+    "defaultMessage": "Next image",
+    "description": "The accessible name of the arrow to the message's next image in the full-size view."
+  },
+  "images.viewer.previous": {
+    "defaultMessage": "Previous image",
+    "description": "The accessible name of the arrow to the message's previous image in the full-size view."
   },
   "keyboard.command": {
     "defaultMessage": "{modifier, select, command {⌘{key}} other {Ctrl+{key}}}",

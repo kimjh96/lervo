@@ -2,6 +2,7 @@ import type { ConversationItem } from "@lervo/session-host-contract";
 import { type ComponentType, lazy, Suspense } from "react";
 import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
+import { MessageImages } from "./MessageImages";
 import { usePacedText } from "./paced";
 import styles from "./renderers.module.css";
 import { ToolLine } from "./ToolLine";
@@ -29,31 +30,17 @@ function Paragraphs(props: { text: string; className: string | undefined }) {
 }
 
 /**
- * The user's message in its bubble. Images it carried show as quiet lines under the text, with
- * their size; the conversation keeps no image bytes (Lervo ADE sessions, "Images in a message").
+ * The user's message in its bubble, with the images it carried above its text (approved image
+ * mockup, "A"; Lervo ADE sessions, "Images in a message").
  */
 function UserMessage({ item }: { item: Extract<ConversationItem, { kind: "user_message" }> }) {
   const images = item.images ?? [];
   if (images.length === 0) return <p className={styles.user}>{item.text}</p>;
   return (
     <div className={styles.user}>
+      <MessageImages images={images} alone={item.text.length === 0} />
       {/* motion: A message arrives live */}
       {item.text.length === 0 ? null : <p className={styles.userText}>{item.text}</p>}
-      <ul className={styles.images}>
-        {images.map((image, index) => (
-          // Marks never change or move, so their place names them.
-          <li key={index}>
-            <FormattedMessage
-              id="conversation.images.sent"
-              values={{
-                sized: image.width === undefined || image.height === undefined ? "no" : "yes",
-                width: image.width,
-                height: image.height,
-              }}
-            />
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
