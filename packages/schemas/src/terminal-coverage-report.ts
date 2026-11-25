@@ -170,7 +170,7 @@ const terminalTurnCoverageSchema = {
     completion: {
       type: "object",
       properties: {
-        result: { type: "string", enum: ["allowed", "blocked", "not_observed"] },
+        result: { type: "string", enum: ["allowed", "blocked", "not_checked", "not_observed"] },
         lifecycleStatus: { type: "string", enum: ["current", "action_required", "not_observed"] },
       },
       required: ["result", "lifecycleStatus"],

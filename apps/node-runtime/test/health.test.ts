@@ -202,7 +202,7 @@ describe("Node runtime readiness snapshot", () => {
       eventReader: {
         schemaVersion: 1,
         capability: "event_reader",
-        readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
       },
       sync: { status: "pending" },
       workstreamReplication: { status: "pending" },

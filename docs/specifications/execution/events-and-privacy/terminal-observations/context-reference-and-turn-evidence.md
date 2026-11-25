@@ -22,6 +22,21 @@ Existing hash-bound `lervo-ref:` citations against loaded documents retain `refe
 
 For a direct root session, `lifecycleStatus: action_required` may coexist with `completionResult: allowed`: the former is an observed repository finding; the latter means the audit did not claim authority to block provider availability. Attached-worker isolation may still record `blocked`. Empty hook success after an internal failure creates neither an event nor inferred success.
 
+### Turns that end without a Stop hook (schema 12)
+
+Claude runs no Stop hook for an interrupted turn, in the terminal (Esc) or in the ADE. Schema 12 lets `terminal.turn.observed` record how a turn ended in an optional `ending`:
+
+- `stop_hook`: the Stop hook ran. An absent `ending` means the same, so every earlier record keeps its meaning.
+- `next_prompt`, `session_end`, `session_start`: the open turn is settled when the same session's next prompt, end, or start arrives.
+- `provider_interrupt`: the provider reported the interrupt directly.
+
+The Stop gate checks completion only at a Stop hook. Every other ending therefore records `completionResult: not_checked`, and a Stop-hook ending never does. The event screen refuses any other pairing, so no reader can count a turn the gate never saw as `allowed`. Below schema 12, the envelope refuses `ending` and `not_checked`, so older readers never receive them. The terminal coverage report shows such a turn's completion as `not_checked`.
+
+This release only reads these fields; no writer records them yet. The writer that settles interrupted turns must:
+
+- settle only the same session's open turn, matched on the session digest and the execution root;
+- attribute the turn's repository change as the difference between its prompt-time snapshot and the snapshot taken when it is settled. Files edited by hand between the interrupt and that moment are attributed to the interrupted turn, and no attempt is made to split them.
+
 `terminal.turn.declared` retains an opaque declaration and context ID, exact repository revision, task mode, canonicalization and knowledge dispositions, deliberation disposition, optional completed-deliberation ID, and time.
 
 These terminal events exclude prompts, retrieval-query text, bodies, final responses, transcripts, summaries, raw coordinates, configuration, secrets, and absolute paths. Agent declarations do not prove internal reasoning.

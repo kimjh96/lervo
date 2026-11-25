@@ -1118,6 +1118,7 @@ export const eventPayloadAllowlists = {
     "leaseGeneration",
     "writerSessionId",
     "workspaceCheckpointEventId",
+    "ending",
   ],
   "workstream.snapshot.recorded": [
     "workstreamId",
