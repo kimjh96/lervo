@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.47.9" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.48.0" schema="1" -->
 
 ## What's changed
 
-- ADE workspaces start under ~/.lervo/workspaces/<repository>/<branch>, never in a <repository>-wt folder beside the project, and a workspaces home inside a repository is refused; earlier workspaces keep opening and retiring where they are.
+- Every ADE session is a Lervo session: a hosted launch adds Lervo's terminal hooks, run through a host launcher beside the runtime store, for each event the settings a session merges leave uncovered, so a repository without committed hooks still gives the agent Lervo's context.

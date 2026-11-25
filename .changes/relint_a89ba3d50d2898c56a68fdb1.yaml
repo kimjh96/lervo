@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a89ba3d50d2898c56a68fdb1"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Every ADE session is a Lervo session: a hosted launch adds Lervo's terminal hooks, run through a host launcher beside the runtime store, for each event the settings a session merges leave uncovered, so a repository without committed hooks still gives the agent Lervo's context."
