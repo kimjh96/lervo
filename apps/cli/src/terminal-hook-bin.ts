@@ -10,6 +10,7 @@ import { runTerminalHookCommand } from "./terminal-hook-command.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
 import { prefetchTerminalPromptContext } from "./terminal-compact-context.js";
 import { settleTerminalTurns } from "./terminal-turn-settlement-worker.js";
+import { serveTerminalContext } from "./terminal-context-serve.js";
 
 if (
   !consumeTerminalRuntimeLaunchReceipt(fileURLToPath(import.meta.url)) &&
@@ -23,6 +24,11 @@ if (
 } else if (process.argv[2] === "settle-turns") {
   // Schema 12: records the turns that ended without a Stop hook, from their settlement requests.
   await settleTerminalTurns(process.cwd()).catch(() => 0);
+} else if (process.argv[2] === "context-server") {
+  // Started and supervised by the host's knowledge resident (resident-context-socket.md).
+  const entry = fileURLToPath(import.meta.url);
+  process.env.LERVO_TERMINAL_HOOK_RUNTIME = entry;
+  await serveTerminalContext(entry);
 } else if (process.argv[2] === "knowledge-bootstrap") {
   // Detached from the first prompt of a checkout without built knowledge; it records its outcome.
   await runKnowledgeBootstrap({ root: process.cwd() });

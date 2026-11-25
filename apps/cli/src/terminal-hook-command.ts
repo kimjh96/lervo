@@ -42,8 +42,12 @@ export function runTerminalHookCommand(
   args: string[],
   io: CliIo,
   services: Pick<CliServices, "createTerminalStageObservation">,
+  /**
+   * When the hook started. The context server passes the client's start, so the budget and the
+   * recorded total include the time the launcher spent before the request arrived.
+   */
+  startedAt = performance.now(),
 ): Promise<number> {
-  const startedAt = performance.now();
   return withTerminalSnapshotDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS / 2, () =>
     executeTerminalHookCommand(args, io, services, startedAt),
   );

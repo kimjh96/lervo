@@ -44,6 +44,7 @@ import { hostResidentStatusWriter } from "./knowledge-host-status-writer.js";
 import { watchStandbyHolder } from "./knowledge-host-standby-watch.js";
 import { activationRetryAt } from "./knowledge-host-activation-retry.js";
 import { refreshRelationWebWithCatalog } from "./relation-web-catalog.js";
+import { superviseTerminalContextServer } from "./terminal-context-supervisor.js";
 
 /**
  * ADR-0602: a standby host resident retries the host lock when the holder's presence closes. Only
@@ -86,6 +87,8 @@ export function startHostKnowledgeResidents(input: {
   materializeRuntime?: () => Promise<unknown>;
   /** Test seam: the terminal runtime store whose pointer a rescan repairs. */
   runtimeStore?: string;
+  /** Whether the lock holder serves prompts; only the service passes it, never a test. */
+  contextServer?: boolean;
 }): () => Promise<void> {
   const workerId = `cli-host-${process.pid}`;
   const activate = input.activate ?? ((root: string) => activateLocalEventWriter(root));
@@ -107,6 +110,12 @@ export function startHostKnowledgeResidents(input: {
   };
   let lock: HostKnowledgeResidentLock | null = null;
   let stopped = false;
+  const contextServer =
+    input.contextServer === true
+      ? superviseTerminalContextServer({
+          store: input.runtimeStore ?? terminalHookRuntimeStorePath(),
+        })
+      : null;
   let scanning: Promise<void> = Promise.resolve();
   const status = hostResidentStatusWriter({
     path: statusPath,
@@ -234,6 +243,8 @@ export function startHostKnowledgeResidents(input: {
     await (
       input.materializeRuntime ?? (() => ensureHostTerminalRuntime({ authority: "repair" }))
     )().catch((error: unknown) => input.onFailure("", error));
+    // The runtime pointer is watched, so an upgrade rescans and replaces the server here.
+    await contextServer?.ensure().catch((error: unknown) => input.onFailure("", error));
     const candidates = await hostResidentCandidates(input.provider);
     for (const root of new Set([...residents.keys(), ...held.keys()]))
       if (!candidates.wanted.has(root)) await release(root);
@@ -378,6 +389,7 @@ export function startHostKnowledgeResidents(input: {
     holderExit?.();
     await scanning;
     await Promise.all([...new Set([...residents.keys(), ...held.keys()])].map(release));
+    await contextServer?.stop();
     if (lock?.acquired === true) await lock.release();
     status.release();
   };

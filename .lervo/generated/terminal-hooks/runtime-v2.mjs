@@ -2,8 +2,10 @@
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { connect } from "node:net";
 import { homedir } from "node:os";
 import { relative, resolve, sep } from "node:path";
+import { Readable } from "node:stream";
 import { pathToFileURL } from "node:url";
 
 const hash = (bytes) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -196,6 +198,110 @@ async function integrityFailure() {
   await marker(true);
   process.stderr.write("Lervo terminal hook runtime integrity verification failed.\n");
   process.exitCode = 2;
+}
+// Resident context socket (resident-context-socket.md): the host's context server may answer a
+// prompt before this process loads the runtime. Before the server's `A`, any failure falls back
+// to this process; after the client's `G`, the server alone records the prompt.
+const environmentNames = [
+  "CLAUDE_CONFIG_DIR",
+  "CODEX_HOME",
+  "HOME",
+  "LERVO_USER_CAPABILITY_ROOT",
+  "LERVO_USER_STATE_DIRECTORY",
+  "XDG_STATE_HOME",
+];
+async function served() {
+  // Without a listening server, this process behaves exactly as before: it never touches stdin.
+  try {
+    if (!(await lstat(resolve(store, "context.s"))).isSocket()) return false;
+  } catch {
+    return false;
+  }
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(Buffer.from(chunk));
+  const input = Buffer.concat(chunks);
+  // Whatever happens next, the runtime can read the same input again.
+  Object.defineProperty(process, "stdin", {
+    value: Readable.from([input]),
+    configurable: true,
+    writable: true,
+  });
+  if (input.length > 200 * 1024) return false;
+  let event;
+  try {
+    event = JSON.parse(input.toString("utf8")).hook_event_name;
+  } catch {
+    return false;
+  }
+  if (event !== "UserPromptSubmit") return false;
+  await trustedParents();
+  await directory(store);
+  // Prompt text goes only to a store no one else can enter.
+  if ((await lstat(store)).mode & 0o077) return false;
+  const pointer = JSON.parse(await bytes(resolve(store, "current.json"), 4096));
+  if (!/^sha256:[a-f0-9]{64}$/u.test(pointer.contentHash)) return false;
+  const request = JSON.stringify({
+    version: 1,
+    kind: "prompt",
+    runtime: pointer.contentHash,
+    cwd: await realpath(process.cwd()),
+    args: process.argv.slice(2),
+    environment: Object.fromEntries(
+      environmentNames.map((name) => [name, process.env[name] ?? null]),
+    ),
+    elapsed: performance.now(),
+    input: input.toString("utf8"),
+  });
+  return new Promise((done) => {
+    const socket = connect(resolve(store, "context.s"));
+    let state = "connecting";
+    let received = Buffer.alloc(0);
+    const finish = (value) => {
+      clearTimeout(timer);
+      if (value === false) socket.destroy();
+      done(value);
+    };
+    let timer = setTimeout(() => finish(false), 150);
+    socket.on("error", () => (state === "committed" ? finish({}) : finish(false)));
+    socket.on("connect", () => {
+      state = "sent";
+      clearTimeout(timer);
+      timer = setTimeout(() => finish(false), 100);
+      socket.write(`${request}\n`);
+    });
+    socket.on("data", (chunk) => {
+      if (state === "sent") {
+        if (chunk[0] !== 0x41 /* A */) return finish(false);
+        state = "committed";
+        clearTimeout(timer);
+        // Committed: wait to the provider's hook limit, never falling back.
+        timer = setTimeout(() => finish({}), 25000);
+        socket.write("G");
+        chunk = chunk.subarray(1);
+      }
+      if (state !== "committed") return;
+      received = Buffer.concat([received, chunk]);
+      const end = received.indexOf(0x0a);
+      if (end === -1) return;
+      let answer;
+      try {
+        answer = JSON.parse(received.subarray(0, end).toString("utf8"));
+      } catch {
+        return finish({});
+      }
+      finish(answer.ok === true ? answer : {});
+    });
+    socket.on("close", () => (state === "committed" ? finish({}) : finish(false)));
+  });
+}
+if (process.platform !== "win32" && process.env.LERVO_TERMINAL_CONTEXT_SOCKET !== "0") {
+  const answer = await served().catch(() => false);
+  if (answer !== false) {
+    // A committed request whose answer never came prints no context, as a failed hook does.
+    process.stderr.write(answer.stderr ?? "");
+    process.stdout.write(answer.stdout ?? "{}\n", () => process.exit(answer.exitCode ?? 0));
+    await new Promise(() => undefined);
+  }
 }
 for (let attempt = 0; attempt < 2; attempt++) {
   let entry;

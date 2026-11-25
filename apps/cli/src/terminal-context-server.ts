@@ -1,0 +1,257 @@
+// ADR-0562 section 4, resident context socket (resident-context-socket.md): the host's context
+// server answers a prompt hook over a Unix socket with exactly what the in-process hook would print.
+// The launcher is the client. Nothing here runs before the client commits with `G`, so a prompt is
+// recorded once: either here, or by the client's in-process fallback, never both.
+import { createServer, type Server, type Socket } from "node:net";
+import { rmSync, statSync } from "node:fs";
+import { chmod, rm, stat } from "node:fs/promises";
+
+/** The socket's name inside the terminal hook runtime store, which only this user can enter. */
+export const TERMINAL_CONTEXT_SOCKET_NAME = "context.s";
+
+/**
+ * Every variable the hook path reads that can change what it prints or records. The server serves
+ * a request only when each value equals its own; any other difference declines it.
+ */
+export const TERMINAL_CONTEXT_ENVIRONMENT = [
+  "CLAUDE_CONFIG_DIR",
+  "CODEX_HOME",
+  "HOME",
+  "LERVO_USER_CAPABILITY_ROOT",
+  "LERVO_USER_STATE_DIRECTORY",
+  "XDG_STATE_HOME",
+] as const;
+
+const MAXIMUM_LINE_BYTES = 256 * 1024;
+const REQUEST_READ_MILLISECONDS = 1000;
+/**
+ * Generous on purpose: a client that leaves closes the socket anyway, and a stalled event loop
+ * must not drop a `G` that already arrived, which would lose a committed prompt.
+ */
+const COMMIT_WAIT_MILLISECONDS = 10_000;
+const HASH = /^sha256:[a-f0-9]{64}$/u;
+
+export type TerminalContextDecline =
+  "runtime_mismatch" | "environment_mismatch" | "busy" | "request_too_large" | "invalid_request";
+
+export interface TerminalContextRequest {
+  version: 1;
+  kind: "prompt";
+  /** The content hash of the runtime the launcher would have loaded. */
+  runtime: string;
+  /** The hook's working directory, as the in-process hook would see it. */
+  cwd: string;
+  args: string[];
+  environment: Record<(typeof TERMINAL_CONTEXT_ENVIRONMENT)[number], string | null>;
+  /** Milliseconds the client spent before sending. */
+  elapsed: number;
+  /** The provider's hook input, exactly as read from standard input. */
+  input: string;
+}
+
+export interface TerminalContextAnswer {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  /** The hook reached a deadline: work it abandoned may still be running in this process. */
+  overran: boolean;
+}
+
+export function parseTerminalContextRequest(line: string): TerminalContextRequest | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (value === null || typeof value !== "object") return null;
+  const item = value as Record<string, unknown>;
+  const environment = item.environment as Record<string, unknown> | null;
+  if (
+    item.version !== 1 ||
+    item.kind !== "prompt" ||
+    typeof item.runtime !== "string" ||
+    !HASH.test(item.runtime) ||
+    typeof item.cwd !== "string" ||
+    !item.cwd.startsWith("/") ||
+    item.cwd.includes("\0") ||
+    !Array.isArray(item.args) ||
+    item.args.length > 8 ||
+    !item.args.every((arg) => typeof arg === "string" && arg.length <= 64) ||
+    typeof item.elapsed !== "number" ||
+    !Number.isFinite(item.elapsed) ||
+    item.elapsed < 0 ||
+    typeof item.input !== "string" ||
+    environment === null ||
+    typeof environment !== "object" ||
+    Object.keys(environment).sort().join(",") !== [...TERMINAL_CONTEXT_ENVIRONMENT].join(",") ||
+    !Object.values(environment).every((entry) => entry === null || typeof entry === "string")
+  )
+    return null;
+  return value as TerminalContextRequest;
+}
+
+export function terminalContextEnvironment(
+  environment: NodeJS.ProcessEnv,
+): TerminalContextRequest["environment"] {
+  return Object.fromEntries(
+    TERMINAL_CONTEXT_ENVIRONMENT.map((name) => [name, environment[name] ?? null]),
+  ) as TerminalContextRequest["environment"];
+}
+
+export interface TerminalContextServer {
+  readonly ready: Promise<void>;
+  close(): Promise<void>;
+  /** Removes the socket now, only if it is still the one this server bound. */
+  releaseSocket(): void;
+}
+
+/**
+ * Listens on `socketPath` and serves one request at a time. `run` prepares the prompt as the
+ * in-process hook would. After an answer that `overran`, or a run that has not settled within
+ * `runLimitMs`, `onOverrun` lets the caller exit, so abandoned work never runs into the next
+ * request.
+ */
+export function startTerminalContextServer(input: {
+  socketPath: string;
+  runtimeHash: string;
+  environment: NodeJS.ProcessEnv;
+  run: (request: TerminalContextRequest) => Promise<TerminalContextAnswer>;
+  onOverrun?: () => void;
+  runLimitMs?: number;
+}): TerminalContextServer {
+  let bound: { dev: number; ino: number } | null = null;
+  const own = terminalContextEnvironment(input.environment);
+  let busy = false;
+  const connections = new Set<Socket>();
+  const server: Server = createServer((socket) => {
+    connections.add(socket);
+    socket.once("close", () => connections.delete(socket));
+    serve(socket);
+  });
+
+  function decline(socket: Socket, reason: TerminalContextDecline) {
+    socket.end(`${JSON.stringify({ declined: reason })}\n`);
+  }
+
+  function serve(socket: Socket) {
+    let buffered = Buffer.alloc(0);
+    let request: TerminalContextRequest | null = null;
+    let committed = false;
+    let commitTimer: NodeJS.Timeout | undefined;
+    const readTimer = setTimeout(() => socket.destroy(), REQUEST_READ_MILLISECONDS);
+    socket.on("error", () => undefined);
+    socket.on("close", () => {
+      clearTimeout(readTimer);
+      if (commitTimer !== undefined) clearTimeout(commitTimer);
+      // A client that left before committing abandons its request: nothing ran for it.
+      if (request !== null && !committed) busy = false;
+    });
+    socket.on("data", (chunk: Buffer) => {
+      if (request === null) {
+        buffered = Buffer.concat([buffered, chunk]);
+        const end = buffered.indexOf(0x0a);
+        if (end === -1) {
+          if (buffered.length > MAXIMUM_LINE_BYTES) {
+            clearTimeout(readTimer);
+            decline(socket, "request_too_large");
+          }
+          return;
+        }
+        clearTimeout(readTimer);
+        if (end > MAXIMUM_LINE_BYTES) return decline(socket, "request_too_large");
+        const parsed = parseTerminalContextRequest(buffered.subarray(0, end).toString("utf8"));
+        const rest = buffered.subarray(end + 1);
+        if (parsed === null) return decline(socket, "invalid_request");
+        if (parsed.runtime !== input.runtimeHash) return decline(socket, "runtime_mismatch");
+        if (TERMINAL_CONTEXT_ENVIRONMENT.some((name) => parsed.environment[name] !== own[name]))
+          return decline(socket, "environment_mismatch");
+        if (busy) return decline(socket, "busy");
+        busy = true;
+        request = parsed;
+        socket.write("A");
+        commitTimer = setTimeout(() => socket.destroy(), COMMIT_WAIT_MILLISECONDS);
+        if (rest.length > 0) commit(socket, rest);
+        return;
+      }
+      if (!committed) commit(socket, chunk);
+    });
+
+    function commit(socket: Socket, chunk: Buffer) {
+      if (chunk[0] !== 0x47 /* G */) return socket.destroy();
+      committed = true;
+      if (commitTimer !== undefined) clearTimeout(commitTimer);
+      const current = request!;
+      // A run that never settles would keep the server busy forever; the caller exits instead.
+      const watchdog = setTimeout(() => input.onOverrun?.(), input.runLimitMs ?? 30_000);
+      void input
+        .run(current)
+        .then(
+          (answer) => {
+            if (!socket.destroyed)
+              socket.end(
+                `${JSON.stringify({
+                  ok: true,
+                  stdout: answer.stdout,
+                  stderr: answer.stderr,
+                  exitCode: answer.exitCode,
+                })}\n`,
+              );
+            return answer.overran;
+          },
+          () => {
+            // The in-process hook answers an internal failure with an empty context.
+            if (!socket.destroyed)
+              socket.end(
+                `${JSON.stringify({ ok: true, stdout: "{}\n", stderr: "", exitCode: 0 })}\n`,
+              );
+            return true;
+          },
+        )
+        .then((overran) => {
+          clearTimeout(watchdog);
+          busy = false;
+          if (overran) input.onOverrun?.();
+        });
+    }
+  }
+
+  const owned = (path: string) => {
+    try {
+      const current = statSync(path);
+      return bound !== null && current.dev === bound.dev && current.ino === bound.ino;
+    } catch {
+      return false;
+    }
+  };
+  const ready = (async () => {
+    // Only the lock holder's service starts a server, and one whose host died exits when its
+    // parent disconnects, so a socket left here belongs to no live server.
+    await rm(input.socketPath, { force: true });
+    await new Promise<void>((resolveListen, reject) => {
+      server.once("error", reject);
+      server.listen(input.socketPath, () => {
+        server.off("error", reject);
+        resolveListen();
+      });
+    });
+    await chmod(input.socketPath, 0o600);
+    const listening = await stat(input.socketPath);
+    bound = { dev: listening.dev, ino: listening.ino };
+  })();
+
+  const releaseSocket = () => {
+    // Another server may have bound the name since; only this server's socket is removed.
+    if (owned(input.socketPath)) rmSync(input.socketPath, { force: true });
+  };
+  return {
+    ready,
+    releaseSocket,
+    // Closing never waits on a request in flight: its client prints an empty context.
+    close: () =>
+      new Promise<void>((resolveClose) => {
+        server.close(() => resolveClose());
+        for (const socket of connections) socket.destroy();
+      }).then(releaseSocket),
+  };
+}
