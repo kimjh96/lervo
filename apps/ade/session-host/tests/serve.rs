@@ -704,10 +704,12 @@ async fn keeps_a_diagnostics_log_of_codes_without_bodies() {
     };
     drop(client);
 
+    // The writer thread appends in the background, so wait for every entry this test checks,
+    // not only the connection ends: on a slow runner they can show first.
     let mut log = String::new();
-    for _ in 0..200 {
+    for _ in 0..500 {
         log = std::fs::read_to_string(&layout.diagnostics).unwrap_or_default();
-        if log.matches("connection.ended").count() >= 2 {
+        if log.matches("connection.ended").count() >= 2 && log.contains("session_not_found") {
             break;
         }
         tokio::time::sleep(Duration::from_millis(10)).await;
@@ -721,13 +723,16 @@ async fn keeps_a_diagnostics_log_of_codes_without_bodies() {
         .map(|entry| entry["event"].as_str().unwrap())
         .collect();
     assert_eq!(events.first(), Some(&"host.started"));
-    assert!(entries.iter().any(|entry| entry["event"] == "request.failed"
-        && entry["code"] == "session_not_found"));
+    assert!(
+        entries.iter().any(|entry| entry["event"] == "request.failed"
+            && entry["code"] == "session_not_found"),
+        "{log}"
+    );
     let ended: Vec<&Value> = entries
         .iter()
         .filter(|entry| entry["event"] == "connection.ended")
         .collect();
-    assert_eq!(ended.len(), 2);
+    assert_eq!(ended.len(), 2, "{log}");
     assert!(ended.iter().any(|entry| entry["code"] != "closed"));
     // Requests' contents never reach the log.
     assert!(!log.contains("ses_secret_text") && !log.contains("not a frame"));
