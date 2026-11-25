@@ -8,7 +8,11 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 
 import { CommandFailure } from "../src/command-error-output.js";
-import { type CoreLinkHandlers, CoreLinkServer } from "../src/core-link-server.js";
+import {
+  type CoreLinkHandlers,
+  CoreLinkServer,
+  MAX_PENDING_TURN_USAGE,
+} from "../src/core-link-server.js";
 import { createHostedStreamDecoder, listHostedProviders } from "../src/hosted-session-adapters.js";
 import type { WorkspaceStartResult } from "../src/workspace-start.js";
 
@@ -367,5 +371,67 @@ describe("the core-link server", () => {
       kind: "decoder.decoded",
     });
     expect(recordedUsage).toEqual([[sessionId, ["claude-haiku-5-5"]]]);
+  });
+
+  it("records an unnamed decoder's turns once the session host names it", async () => {
+    recordedUsage.length = 0;
+    const result = (uuid: string) =>
+      Buffer.from(
+        `${JSON.stringify({
+          type: "result",
+          subtype: "success",
+          uuid,
+          result_index: 0,
+          model_usage_since_last_result: {
+            "claude-haiku-5-5": { inputTokens: 1, outputTokens: 2, costUSD: 0.01 },
+          },
+        })}\n`,
+      ).toString("base64");
+    const sessionId = started.sessionId;
+    const server = new CoreLinkServer(handlers(), () => undefined);
+    await server.serve(
+      input([
+        // Opened before its process advertised decoder.session: the first turn is held.
+        { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+        { kind: "decoder.output", id: 2, decoderId: "dec_1", data: result("r1") },
+        // Named before the next turn: the same decoder keeps going and the held turn records.
+        { kind: "decoder.open", id: 3, decoderId: "dec_1", provider: "claude", sessionId },
+        { kind: "decoder.output", id: 4, decoderId: "dec_1", data: result("r2") },
+      ]),
+    );
+    expect(recordedUsage).toEqual([
+      [sessionId, ["claude-haiku-5-5"]],
+      [sessionId, ["claude-haiku-5-5"]],
+    ]);
+    expect(server.usage.dropped).toBe(0);
+  });
+
+  it("counts an unnamed decoder's usage past its bound as dropped", async () => {
+    recordedUsage.length = 0;
+    const turns = Array.from({ length: MAX_PENDING_TURN_USAGE + 3 }, (_, index) =>
+      JSON.stringify({
+        type: "result",
+        subtype: "success",
+        uuid: `r${index}`,
+        result_index: index,
+        model_usage_since_last_result: {
+          "claude-haiku-5-5": { inputTokens: 1, outputTokens: 2, costUSD: 0.01 },
+        },
+      }),
+    ).join("\n");
+    const server = new CoreLinkServer(handlers(), () => undefined);
+    await server.serve(
+      input([
+        { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+        {
+          kind: "decoder.output",
+          id: 2,
+          decoderId: "dec_1",
+          data: Buffer.from(`${turns}\n`).toString("base64"),
+        },
+      ]),
+    );
+    expect(server.usage.dropped).toBe(3);
+    expect(recordedUsage).toEqual([]);
   });
 });

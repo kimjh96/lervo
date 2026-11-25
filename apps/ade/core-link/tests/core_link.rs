@@ -323,6 +323,78 @@ async fn stops_a_turn_only_through_a_process_that_advertised_it() {
     }
 }
 
+/// The `decoder.open` requests a stand-in collected, in order.
+fn decoder_opens(reports: &std::path::Path) -> Vec<Value> {
+    std::fs::read_to_string(reports)
+        .unwrap_or_default()
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .filter(|request| request["kind"] == "decoder.open")
+        .collect()
+}
+
+#[tokio::test]
+async fn names_a_session_its_start_launched_before_any_workspace_list() {
+    // As after a CLI upgrade: the start runs on a new process that has advertised nothing, and
+    // the session's decoder opens at once. Before, it opened unnamed and recorded no usage.
+    let reports =
+        std::env::temp_dir().join(format!("lervo-start-names-{}.log", std::process::id()));
+    let _ = std::fs::remove_file(&reports);
+    let core = reporting("current", &reports);
+    let launch = core
+        .command("workspace.start", arguments("go"))
+        .await
+        .unwrap()
+        .launch
+        .unwrap();
+    core.decoder(&launch).send("hi").await;
+    let opens = decoder_opens(&reports);
+    assert_eq!(opens.len(), 1, "{opens:?}");
+    assert_eq!(opens[0]["sessionId"], launch.session_id.as_str());
+    let _ = std::fs::remove_file(&reports);
+}
+
+#[tokio::test]
+async fn opens_an_unnamed_decoder_again_named_before_its_next_turn() {
+    let reports = std::env::temp_dir().join(format!("lervo-late-names-{}.log", std::process::id()));
+    let _ = std::fs::remove_file(&reports);
+    let core = reporting("current", &reports);
+    let launch = lervo_session_core::ports::Launch {
+        session_id: "0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c".to_owned(),
+        workspace_id: "wsp_1".to_owned(),
+        mode: ConversationMode::Native,
+        provider: "claude".to_owned(),
+        program: "/opt/claude".to_owned(),
+        arguments: Vec::new(),
+        environment: Vec::new(),
+        working_directory: std::env::temp_dir(),
+        initial_input: None,
+        environment_remove: Vec::new(),
+        transcript: false,
+    };
+    // The first turn starts before anything is advertised, so its decoder opens unnamed.
+    let mut decoder = core.decoder(&launch);
+    decoder.send("hi").await;
+    assert!(
+        decoder
+            .output(b"finish\n")
+            .await
+            .contains(&Decoded::Status(SessionEvent::TurnFinished))
+    );
+    core.command("workspace.list", none()).await.unwrap();
+    // The next turn opens it again, named, so the process records that turn's usage.
+    decoder.send("again").await;
+    let opens = decoder_opens(&reports);
+    assert_eq!(opens.len(), 2, "{opens:?}");
+    assert!(opens[0].get("sessionId").is_none());
+    assert_eq!(opens[1]["sessionId"], launch.session_id.as_str());
+    // A named decoder stays open across turns.
+    decoder.output(b"finish\n").await;
+    decoder.send("third").await;
+    assert_eq!(decoder_opens(&reports).len(), 2);
+    let _ = std::fs::remove_file(&reports);
+}
+
 /// A copy of the stand-in that a test may upgrade, and the file its starts are counted in.
 fn installed(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     let directory =

@@ -22,6 +22,9 @@ pub struct LinkDecoder {
     /// The hosted session the decoder serves, named to a resident process that records usage.
     session_id: String,
     open: bool,
+    /// Whether the open decoder heard the session's ID. One opened before its resident process
+    /// advertised `decoder.session` opens again, named, before the next turn.
+    named: bool,
     /// Between a turn's start and its finish, as the decoded status events say.
     in_turn: bool,
     /// The last output ended inside a line, which the resident process holds until the rest.
@@ -51,6 +54,7 @@ impl LinkDecoder {
             provider,
             session_id,
             open: false,
+            named: false,
             in_turn: false,
             mid_line: false,
             holding: false,
@@ -85,7 +89,7 @@ impl LinkDecoder {
     /// `decoder.session` hears the session's ID, because an older one ends the link on a field it
     /// cannot validate; when that process was replaced meanwhile, the decoder opens without it
     /// and the new process records no usage for it.
-    async fn open_decoder(&self) -> Result<CoreLinkResponse, Failure> {
+    async fn open_decoder(&self) -> Result<(CoreLinkResponse, bool), Failure> {
         let opened = json!({
             "kind": "decoder.open",
             "decoderId": self.decoder_id,
@@ -99,10 +103,10 @@ impl LinkDecoder {
                 .ask_on(named, DECODE_DEADLINE, Some(generation), false)
                 .await
             {
-                return Ok(response);
+                return Ok((response, true));
             }
         }
-        self.core.ask(opened, DECODE_DEADLINE).await
+        Ok((self.core.ask(opened, DECODE_DEADLINE).await?, false))
     }
 
     /// Sends `request` for this decoder, opening it first if needed and once more if the resident
@@ -110,8 +114,12 @@ impl LinkDecoder {
     async fn decode(&mut self, request: Value) -> Result<(Vec<Decoded>, Option<String>), Failure> {
         for _ in 0..2 {
             if !self.open {
-                match self.open_decoder().await? {
-                    CoreLinkResponse::DecoderDecodedResponse(_) => self.open = true,
+                let (response, named) = self.open_decoder().await?;
+                match response {
+                    CoreLinkResponse::DecoderDecodedResponse(_) => {
+                        self.open = true;
+                        self.named = named;
+                    }
                     CoreLinkResponse::CoreFailedResponse(response) => {
                         return Err(failures::from_core(&response.code, None));
                     }
@@ -169,6 +177,16 @@ fn now_ms() -> u64 {
 
 impl StreamDecoder for LinkDecoder {
     async fn send(&mut self, text: &str) -> (Vec<u8>, Vec<Decoded>) {
+        // Between turns the decoder holds no partial state, so one opened before its process
+        // advertised `decoder.session` opens again, named, and this turn's usage is recorded.
+        if self.open
+            && !self.named
+            && !self.in_turn
+            && !self.mid_line
+            && self.core.advertiser_of(DECODER_SESSION).is_some()
+        {
+            self.open = false;
+        }
         let request = json!({"kind": "decoder.send", "decoderId": self.decoder_id, "text": text});
         let answer = self.decode(request).await;
         if let Ok((decoded, _)) = &answer {
