@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_296cc0781efddfc4178cfaf3"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "lervo upgrade now activates event schema 11 once every configured reader, the Hub included, reads it, so hosted ADE sessions record their turn usage in resource.usage.recorded."
