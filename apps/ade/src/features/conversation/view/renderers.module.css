@@ -49,6 +49,25 @@
   gap: var(--space-10);
 }
 
+/* A compaction: centered quiet words between hairlines across the column. */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
+.divider::before,
+.divider::after {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-subtle);
+  content: "";
+}
+
 .source {
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-semibold);

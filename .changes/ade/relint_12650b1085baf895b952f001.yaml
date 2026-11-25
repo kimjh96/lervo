@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_12650b1085baf895b952f001"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Show a compaction as a thin divider, and mark a reply sent while the agent works as queued until its next step."

@@ -64,7 +64,24 @@ const noticeMessages: Readonly<Record<string, MessageDescriptor>> = {
   turn_stopped: { id: "notice.turn_stopped" },
 };
 
+/**
+ * Where the provider compacted the conversation: a thin divider, not a notice line, because the
+ * conversation above it is what the agent no longer holds word for word.
+ */
+function CompactionDivider({ manual }: { manual: boolean }) {
+  return (
+    <p className={styles.divider} role="separator">
+      <FormattedMessage
+        id="notice.context_compacted"
+        values={{ trigger: manual ? "manual" : "auto" }}
+      />
+    </p>
+  );
+}
+
 function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
+  if (item.code === "context_compacted")
+    return <CompactionDivider manual={item.parameters.trigger === "manual"} />;
   const message = Object.hasOwn(noticeMessages, item.code)
     ? noticeMessages[item.code]
     : { id: "notice.unknown" };

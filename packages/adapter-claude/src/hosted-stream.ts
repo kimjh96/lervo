@@ -47,7 +47,9 @@ function blocks(line: Line): Line[] {
  * - `result` ends the turn. A turn the user stopped adds the `turn_stopped` notice, and any other
  *   turn that did not succeed adds the `provider_turn_failed` notice.
  *   Its per-model usage since the previous result is kept for `takeUsage`, never shown.
- * - Subagent messages, thinking, hooks, and other system lines are not part of the conversation.
+ * - A `compact_boundary` line, where Claude Code compacted the conversation, adds the
+ *   `context_compacted` notice. Subagent messages, thinking, hooks, and other system lines are not
+ *   part of the conversation.
  */
 export class ClaudeHostedStreamDecoder
   implements HostedStreamDecoder, HostedUsageReporting, HostedTurnInterrupting
@@ -135,6 +137,8 @@ export class ClaudeHostedStreamDecoder
       case "system":
         if (line.subtype === "init")
           this.workingDirectory = text(line.cwd) ?? this.workingDirectory;
+        if (line.subtype === "compact_boundary")
+          return [this.item(compacted(record(line.compact_metadata)?.trigger))];
         return [];
       default:
         return [];
@@ -300,6 +304,15 @@ export class ClaudeHostedStreamDecoder
   private started(content: HostedDecodedContent): HostedDecodedEvent {
     return { kind: "start", content, createdAtMs: this.now() };
   }
+}
+
+/** The notice for a compaction: `manual` when the person ran /compact, otherwise `auto`. */
+export function compacted(trigger: unknown): HostedDecodedContent {
+  return {
+    kind: "lervo_notice",
+    code: "context_compacted",
+    parameters: { trigger: trigger === "manual" ? "manual" : "auto" },
+  };
 }
 
 const count = (value: unknown): number =>

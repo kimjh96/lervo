@@ -1,4 +1,3 @@
-import type { ConversationItem } from "@lervo/session-host-contract";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   type CSSProperties,
@@ -17,7 +16,8 @@ import { useConversationStore } from "../model/store";
 import styles from "./Conversation.module.css";
 import { ConversationItemView } from "./renderers";
 import { useToolLineToggles } from "./ToolLinesProvider";
-import { type TurnWindow, useShowsTurnSummaries } from "./TurnSummariesProvider";
+import { queuedReplies, type TurnEnd, turnEnds } from "../model/turns";
+import { useShowsTurnSummaries } from "./TurnSummariesProvider";
 import { TurnSummaryLine } from "./TurnSummaryLine";
 
 const NEAR_EDGE_PX = 48;
@@ -59,6 +59,8 @@ export function Conversation(props: {
   lead?: ReactNode;
   /** Whether the agent still works on the last turn, which then has no summary yet. */
   turnOpen?: boolean | undefined;
+  /** When a reply was sent while the agent worked; such replies say they wait until it answers. */
+  queuedSince?: number | null | undefined;
 }) {
   const window = useConversationStore((store) => store.window);
   const arrived = useConversationStore((store) => store.arrived);
@@ -100,31 +102,17 @@ export function Conversation(props: {
   const toggles = useToolLineToggles();
   const showsSummaries = useShowsTurnSummaries();
   const turnOpen = props.turnOpen === true;
-  // Each finished turn's last item carries the turn's summary: the turn starts at a message the
-  // user sent, and ends before the next one, or at the end once the agent stopped working.
-  const turnEnds = useMemo(() => {
-    const ends = new Map<number, { turn: string; window: TurnWindow; elapsedMs: number }>();
-    if (!showsSummaries) return ends;
-    let start: ConversationItem | undefined;
-    window.items.forEach((item, index) => {
-      if (item.kind === "user_message") {
-        start = item;
-        return;
-      }
-      const next = window.items[index + 1];
-      if (start === undefined || (next === undefined ? turnOpen : next.kind !== "user_message"))
-        return;
-      ends.set(index, {
-        turn: start.itemId,
-        elapsedMs: item.createdAtMs - start.createdAtMs,
-        window:
-          next === undefined
-            ? { startedAtMs: start.createdAtMs }
-            : { startedAtMs: start.createdAtMs, endedAtMs: next.createdAtMs },
-      });
-    });
-    return ends;
-  }, [window.items, turnOpen, showsSummaries]);
+  // Each finished turn's last item carries the turn's summary.
+  const ends = useMemo(
+    () => (showsSummaries ? turnEnds(window.items, turnOpen) : new Map<number, TurnEnd>()),
+    [window.items, turnOpen, showsSummaries],
+  );
+  // A reply sent while the agent worked says it waits until the agent's next item arrives.
+  const queuedSince = props.queuedSince ?? null;
+  const queued = useMemo(
+    () => queuedReplies(window.items, queuedSince),
+    [window.items, queuedSince],
+  );
   /** The list's height when the user last opened or closed a tool line, until it is measured. */
   const toggledAt = useRef<number | null>(null);
 
@@ -294,13 +282,16 @@ export function Conversation(props: {
                 style={{ transform: `translateY(${row.start}px)` }}
               >
                 <ConversationItemView item={item} />
+                <Presence className={styles.queued}>
+                  {queued.has(item.itemId) ? <FormattedMessage id="conversation.queued" /> : null}
+                </Presence>
                 {/* motion: A message arrives live */}
-                {turnEnds.has(row.index) ? (
+                {ends.has(row.index) ? (
                   <div className={styles.turnEnd}>
                     <TurnSummaryLine
-                      turn={turnEnds.get(row.index)!.turn}
-                      window={turnEnds.get(row.index)!.window}
-                      elapsedMs={turnEnds.get(row.index)!.elapsedMs}
+                      turn={ends.get(row.index)!.turn}
+                      window={ends.get(row.index)!.window}
+                      elapsedMs={ends.get(row.index)!.elapsedMs}
                     />
                   </div>
                 ) : null}

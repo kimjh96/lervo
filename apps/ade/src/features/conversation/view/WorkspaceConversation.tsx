@@ -14,6 +14,9 @@ import { BaseNotice } from "./BaseNotice";
 import { ConversationPane } from "./ConversationPane";
 import { activityMessages } from "./messages";
 
+/** How far before the send a reply's item may be stamped, by the core's clock. */
+const QUEUED_SKEW_MS = 1_000;
+
 /**
  * One workspace's native conversation: the controller's lifetime follows the session. While the
  * core creates the workspace of work just sent, it is that work's conversation: the instruction
@@ -63,6 +66,19 @@ export function WorkspaceConversation(props: {
   const coreSummarizes = useWorkspaceStore(
     (store) => store.advertisedCommands?.includes("turn.summary") === true,
   );
+  // A reply sent while the agent works waits for its next step; the time marks such replies until
+  // the turn ends.
+  const [queuedSince, setQueuedSince] = useState<number | null>(null);
+  const [queuedFor, setQueuedFor] = useState(source);
+  if ((!working || queuedFor !== source) && queuedSince !== null) {
+    setQueuedSince(null);
+    setQueuedFor(source);
+  }
+  const send = (text: string) => {
+    setQueuedSince(working ? Date.now() - QUEUED_SKEW_MS : null);
+    setQueuedFor(source);
+    return source.send(text);
+  };
   const summarize = useMemo(
     () =>
       workspaceId === null || sessionId === null || !coreSummarizes
@@ -104,6 +120,8 @@ export function WorkspaceConversation(props: {
       onStop={working && !starting && !stopping && hostIsCurrent && coreStops ? stop : undefined}
       continues={firstMessage !== undefined}
       summarize={summarize}
+      onSend={send}
+      queuedSince={queuedSince}
       notice={
         /* motion: Lervo notices in the conversation */
         props.baseNotice === undefined || props.baseNotice === null ? null : (

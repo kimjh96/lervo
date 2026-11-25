@@ -33,6 +33,10 @@ export function ConversationPane(props: {
   continues: boolean;
   /** A Lervo notice under the first message, such as what the work started without. */
   notice?: ReactNode;
+  /** Sends a reply; the source's own send when absent. */
+  onSend?: ((text: string) => Promise<void>) | undefined;
+  /** When a reply was sent while the agent worked, so it waits for the agent's next step. */
+  queuedSince?: number | null | undefined;
   /** Asks the core what it recorded about a turn; without it, no turn summary shows. */
   summarize?: ((window: TurnWindow) => Promise<TurnSummary | null>) | undefined;
 }) {
@@ -68,6 +72,7 @@ export function ConversationPane(props: {
             continues={props.continues}
             lead={props.notice}
             turnOpen={props.working !== null}
+            queuedSince={props.queuedSince ?? null}
             dock={
               <>
                 {/* The working line keeps its row, so the conversation never moves as work starts
@@ -79,7 +84,7 @@ export function ConversationPane(props: {
                 </div>
                 <Composer
                   draftKey={props.draftKey}
-                  onSend={(text) => source.send(text)}
+                  onSend={props.onSend ?? ((text) => source.send(text))}
                   onStop={props.onStop}
                   waiting={props.waiting}
                 />

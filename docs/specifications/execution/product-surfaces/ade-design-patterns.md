@@ -117,6 +117,8 @@ These patterns are defined with the features that need them:
 - **Waiting** names the activity: "Writing a reply", "Creating the workspace", "Stopping the session". "Waiting" in the patterns defines where it shows.
 - **Failure** states what failed, its code, and the next step.
 - **A notice** states the condition and what continues.
+- **A compaction** is a thin divider across the column: _Context compacted_, or _You compacted the context_ after /compact. It claims nothing about what Lervo sent again, which the stream does not show.
+- **A reply sent while the agent works** says _Queued · the agent reads it at its next step_ under its bubble until the agent's next item arrives.
 - **A turn's summary** leads with how long the turn took and adds only what it did beyond the usual; its card shows only rows with something to say. "None", "Unchanged", and a passed check stay out.
 - **Lervo's own work** in a turn reads as a plain past-tense sentence in the regular weight, a step quieter than the agent's tools, which read as code: _Searched for “login limits”_ or _Updated the workstream_, next to **Bash** `pnpm test`. No dot or "Lervo" prefix marks it. Every Lervo CLI command has its sentence. A failure, a help lookup, and a command the app has no sentence for name the command itself in the mono face: _`lervo workstream update` failed_. Opening the line shows the exact command and its output (approved 2026-11-25). A knowledge search ends with how many documents it found, _20 found_, and opens to the command and the documents in rank order: each title over its path, _stale_ beside a document Lervo marks stale, and how many more it found.
 
