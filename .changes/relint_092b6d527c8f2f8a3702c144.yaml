@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_092b6d527c8f2f8a3702c144"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Name each image mark by the SHA-256 of its bytes, so the ADE finds the image its session host kept, also in a conversation read back from Claude Code's transcript."

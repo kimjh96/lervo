@@ -143,6 +143,7 @@ async fn reports_a_missing_resident_process_without_failing_the_session() {
         environment: Vec::new(),
         working_directory: std::env::temp_dir(),
         initial_input: None,
+        initial_images: Vec::new(),
         environment_remove: Vec::new(),
         transcript: false,
     };
@@ -252,6 +253,7 @@ async fn names_the_session_on_decoder_open_only_to_a_process_that_advertised_it(
             environment: Vec::new(),
             working_directory: std::env::temp_dir(),
             initial_input: None,
+            initial_images: Vec::new(),
             environment_remove: Vec::new(),
             transcript: false,
         };
@@ -372,6 +374,7 @@ async fn opens_an_unnamed_decoder_again_named_before_its_next_turn() {
         environment: Vec::new(),
         working_directory: std::env::temp_dir(),
         initial_input: None,
+        initial_images: Vec::new(),
         environment_remove: Vec::new(),
         transcript: false,
     };

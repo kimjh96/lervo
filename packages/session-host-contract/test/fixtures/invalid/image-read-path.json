@@ -1,0 +1,6 @@
+{
+  "kind": "image.read",
+  "requestId": "req_6",
+  "sessionId": "ses_1",
+  "imageId": "../../etc/passwd"
+}

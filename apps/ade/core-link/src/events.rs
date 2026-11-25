@@ -104,6 +104,7 @@ pub fn launch(launch: CoreLaunch) -> Launch {
             .collect(),
         working_directory: PathBuf::from(launch.working_directory.to_string()),
         initial_input: launch.initial_input.map(|text| text.to_string()),
+        initial_images: Vec::new(),
         environment_remove: launch
             .environment_remove
             .into_iter()

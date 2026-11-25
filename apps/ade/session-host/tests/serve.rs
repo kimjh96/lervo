@@ -110,6 +110,7 @@ impl Core for FakeCore {
                 working_directory: std::env::temp_dir(),
                 provider: "fake".to_owned(),
                 initial_input: None,
+                initial_images: Vec::new(),
                 environment_remove: Vec::new(),
                 transcript: false,
             });
@@ -125,6 +126,7 @@ impl Core for FakeCore {
                 working_directory: std::env::temp_dir(),
                 provider: "fake".to_owned(),
                 initial_input: None,
+                initial_images: Vec::new(),
                 environment_remove: Vec::new(),
                 transcript: true,
             });
@@ -145,6 +147,7 @@ impl Core for FakeCore {
                 working_directory: std::env::temp_dir(),
                 provider: "fake".to_owned(),
                 initial_input: None,
+                initial_images: Vec::new(),
                 environment_remove: Vec::new(),
                 transcript: false,
             });
@@ -160,6 +163,7 @@ impl Core for FakeCore {
                 working_directory: std::env::temp_dir(),
                 provider: "fake".to_owned(),
                 initial_input: None,
+                initial_images: Vec::new(),
                 environment_remove: Vec::new(),
                 transcript: false,
             });
@@ -187,6 +191,7 @@ impl Core for FakeCore {
             working_directory: std::env::temp_dir(),
             provider: "fake".to_owned(),
             initial_input: None,
+            initial_images: Vec::new(),
             environment_remove: Vec::new(),
             transcript: false,
         })

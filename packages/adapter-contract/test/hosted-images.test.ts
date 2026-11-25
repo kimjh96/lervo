@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import { imageMark, sendsImages } from "../src/index.js";
@@ -7,7 +9,7 @@ const base64 = (hex: string) => Buffer.from(hex.replaceAll(" ", ""), "hex").toSt
 describe("hosted images", () => {
   it("reads each format's size from its header", () => {
     const png = base64("89504e470d0a1a0a 0000000d 49484452 00000620 000003d4 0806000000");
-    expect(imageMark({ mediaType: "image/png", data: png })).toEqual({
+    expect(imageMark({ mediaType: "image/png", data: png })).toMatchObject({
       mediaType: "image/png",
       width: 1568,
       height: 980,
@@ -35,10 +37,18 @@ describe("hosted images", () => {
   it("keeps only the format of an image whose header does not tell its size", () => {
     expect(imageMark({ mediaType: "image/jpeg", data: base64("ffd8ffd9") })).toEqual({
       mediaType: "image/jpeg",
+      imageId: createHash("sha256").update(Buffer.from("ffd8ffd9", "hex")).digest("hex"),
     });
-    expect(imageMark({ mediaType: "image/png", data: base64("89504e47") })).toEqual({
-      mediaType: "image/png",
-    });
+    expect(imageMark({ mediaType: "image/png", data: base64("89504e47") })).not.toHaveProperty(
+      "width",
+    );
+  });
+
+  it("names an image by the SHA-256 of its bytes, as the session host keeps it", () => {
+    expect(
+      imageMark({ mediaType: "image/png", data: "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAAfFcSJ" })
+        .imageId,
+    ).toBe("535576c2c306112bc2ee4680abf9b52d6e29cf98b0324f0a11c60a4f12be9e36");
   });
 
   it("tells a decoder that carries images from one that does not", () => {

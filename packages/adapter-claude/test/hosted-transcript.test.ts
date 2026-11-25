@@ -212,7 +212,14 @@ describe("Claude Code transcripts", () => {
           content: {
             kind: "user_message",
             text: "이 화면 봐줘",
-            images: [{ mediaType: "image/png", width: 2, height: 1 }],
+            images: [
+              {
+                mediaType: "image/png",
+                width: 2,
+                height: 1,
+                imageId: "535576c2c306112bc2ee4680abf9b52d6e29cf98b0324f0a11c60a4f12be9e36",
+              },
+            ],
           },
           createdAtMs: Date.parse(at(13)),
         },
@@ -220,7 +227,14 @@ describe("Claude Code transcripts", () => {
           content: {
             kind: "user_message",
             text: "",
-            images: [{ mediaType: "image/png", width: 2, height: 1 }],
+            images: [
+              {
+                mediaType: "image/png",
+                width: 2,
+                height: 1,
+                imageId: "535576c2c306112bc2ee4680abf9b52d6e29cf98b0324f0a11c60a4f12be9e36",
+              },
+            ],
           },
           createdAtMs: Date.parse(at(14)),
         },

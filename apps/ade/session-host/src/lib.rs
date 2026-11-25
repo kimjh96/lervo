@@ -6,6 +6,7 @@ mod connection;
 mod diagnostics;
 mod dispatch;
 mod host;
+mod images;
 mod index;
 mod items;
 mod lifecycle;

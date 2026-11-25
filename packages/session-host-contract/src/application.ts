@@ -56,6 +56,7 @@ export const requestFailedMessageSchema = {
         "interrupt_unsupported",
         "images_unsupported",
         "message_empty",
+        "image_not_found",
       ],
     },
     parameters: parametersSchema,

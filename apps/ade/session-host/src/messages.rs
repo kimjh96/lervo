@@ -109,6 +109,28 @@ pub fn failed_with(
 }
 
 /// The answer to a `session.send` whose text reached the provider.
+/// The answer to an `image.read`: the image's bytes, or `image_not_found`.
+pub fn image_data(
+    request: &Identifier,
+    session: &Identifier,
+    image_id: &str,
+    found: Option<(&str, String)>,
+) -> HostMessage {
+    found
+        .and_then(|(media_type, data)| {
+            serde_json::from_value(serde_json::json!({
+                "kind": "image.data",
+                "requestId": request.as_str(),
+                "sessionId": session.as_str(),
+                "imageId": image_id,
+                "mediaType": media_type,
+                "data": data,
+            }))
+            .ok()
+        })
+        .unwrap_or_else(|| failed(request, RequestFailedMessageCode::ImageNotFound))
+}
+
 pub fn sent(request: &Identifier, session: &Identifier) -> HostMessage {
     HostMessage::from(SessionSentMessage {
         kind: SessionSentMessageKind::SessionSent,

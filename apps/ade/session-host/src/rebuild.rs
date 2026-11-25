@@ -8,6 +8,7 @@ use lervo_session_core::transcript::{Change, Input, Item, Transcript};
 use lervo_session_protocol::codec::encode;
 use lervo_session_store::{ConversationStore, StoreError, retention};
 
+use crate::images;
 use crate::items::to_wire;
 
 /// The items `transcript` places, as the live transcript would: long text splits the same way.
@@ -26,6 +27,27 @@ pub(crate) fn projected(transcript: Vec<Input>) -> Vec<Item> {
     items
 }
 
+/// Removes everything in `directory` but the images its messages carried, which the rebuilt items
+/// name by the same identity.
+fn clear_keeping_images(directory: &Path) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        let keep = entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with(images::PREFIX);
+        if keep {
+            continue;
+        }
+        if entry.file_type()?.is_dir() {
+            std::fs::remove_dir_all(entry.path())?;
+        } else {
+            std::fs::remove_file(entry.path())?;
+        }
+    }
+    Ok(())
+}
+
 /// Opens the index in `directory`. With transcript `items` that differ in number from what the
 /// index holds, it replaces the index with them; an empty transcript, such as one the provider did
 /// not keep, never replaces anything.
@@ -42,7 +64,7 @@ pub(crate) fn open_synced(
         return Ok(store);
     }
     drop(store);
-    lervo_session_store::remove(directory)?;
+    clear_keeping_images(directory)?;
     retention::touch(directory)?;
     let mut store = ConversationStore::open(directory, cache_bytes)?;
     for item in &items {

@@ -79,6 +79,7 @@ The session host removes the socket and the token when it shuts down. Its sessio
 | `session.detach`      | Ends the subscription. The session keeps running.                                                                                 |
 | `sessions.watch`      | Subscribes to the status of every session, without output.                                                                        |
 | `session.send`        | Sends the user's message, text and up to three images, to the native conversation; `session.sent` or `request.failed` answers it. |
+| `image.read`          | Asks for the bytes of an image a session's message carried, by its identity; `image.data` or `request.failed` answers it.         |
 | `session.interrupt`   | Stops the native conversation's running turn and keeps the session; `session.interrupted` or `request.failed` answers it.         |
 | `session.resize`      | Sets the CLI conversation's terminal size.                                                                                        |
 | `session.stop`        | Stops the agent session.                                                                                                          |
@@ -96,6 +97,7 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 | `application.result`      | Returns the result of an application command.                                  |
 | `request.failed`          | Reports that a request failed, with a code and parameters.                     |
 | `session.opened`          | Confirms a session, its conversation mode, and its terminal channel.           |
+| `image.data`              | The bytes of an image, as Base64, answering `image.read`.                      |
 | `session.sent`            | Confirms that the text of a `session.send` reached the provider.               |
 | `session.interrupted`     | Confirms that a `session.interrupt` reached the provider, or found no turn.    |
 | `session.status`          | Reports `starting`, `working`, `needs_user`, `idle`, or `ended`.               |
@@ -109,14 +111,14 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 
 A conversation item has an opaque `itemId`, a `kind`, a creation time, and a `state` of `streaming` or `complete`. A streaming item becomes complete when `conversation.appended` repeats it with the state `complete`.
 
-| Kind            | Content                                                                                     |
-| --------------- | ------------------------------------------------------------------------------------------- |
-| `user_message`  | The user's text, and a mark for each image it carried: its format and size, never its bytes |
-| `agent_message` | The agent's text, streamed through `conversation.delta`                                     |
-| `tool_activity` | The tool name, a status, a count of calls, and an optional tool detail                      |
-| `question`      | The agent's question to the user                                                            |
-| `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`                               |
-| `peer_message`  | A message another agent session sent this one: the sender's session name and the text       |
+| Kind            | Content                                                                                                                          |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `user_message`  | The user's text, and a mark for each image it carried: its format, size, and identity, the SHA-256 of its bytes, never the bytes |
+| `agent_message` | The agent's text, streamed through `conversation.delta`                                                                          |
+| `tool_activity` | The tool name, a status, a count of calls, and an optional tool detail                                                           |
+| `question`      | The agent's question to the user                                                                                                 |
+| `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`                                                                    |
+| `peer_message`  | A message another agent session sent this one: the sender's session name and the text                                            |
 
 A Lervo notice carries a code, never a sentence, and the interface renders it from its message catalog. Conversation text from the user and the agent passes through unchanged.
 
@@ -169,6 +171,7 @@ A tool call's `detail` says what the call acted on and what it showed, bounded s
   - `session_start_failed`: the provider's CLI exists, but its process could not start, for example because the system refused a PTY or a process. The `reason` parameter names the error kind;
   - `session_stop_timeout`: a conversation mode switch could not stop the running provider process in time. The session keeps running in its current mode.
   - `message_empty`: a `session.send` carried neither text nor images;
+  - `image_not_found`: the session host keeps no image with the identity `image.read` named;
   - `images_unsupported`: the session cannot carry images. A resident process may not advertise `decoder.images`, and a provider's decoder may not offer it. Nothing was sent;
   - `interrupt_unsupported`: the session cannot stop a turn and keep running. The CLI conversation stops a turn in its terminal, a provider's decoder may not offer it, and a resident process may not advertise `decoder.interrupt`. The turn goes on.
 - A failure that the core reported carries the core's own code in the `coreCode` parameter and, for `workspace.start`, the failed stage in the `stage` parameter. The [core link](ade-core-link.md) defines how the session host reaches the core.

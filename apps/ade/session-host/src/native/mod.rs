@@ -6,25 +6,25 @@ use std::pin::Pin;
 use std::time::Duration;
 
 use lervo_session_core::paging::{item_id, page};
-use lervo_session_core::retention::INDEX_CAP_BYTES;
 use lervo_session_core::status::{EndReason, SessionEvent};
 use lervo_session_core::transcript::{Change, Input, Transcript, coalesce};
 use lervo_session_protocol::codec::{decode_record, encode};
-use lervo_session_protocol::{ConversationItem, Identifier, RequestFailedMessageCode};
-use lervo_session_store::{StoreError, retention};
-use lervo_session_stream::{StreamCommand, StreamError, StreamProcess};
+use lervo_session_protocol::{ConversationItem, RequestFailedMessageCode};
+use lervo_session_stream::StreamProcess;
 use tokio::sync::mpsc;
 use tokio::time::Sleep;
 
+use crate::images;
 use crate::index::Index;
 use crate::items::to_wire;
 use crate::messages;
-use crate::rebuild;
-use crate::session::{Command, Fanout, Range, SessionHandle, StatusSink, linger};
-use lervo_session_core::ports::{ConversationMode, Decoded, Launch, StreamDecoder};
+use crate::session::{Command, Fanout, Range, linger};
+use lervo_session_core::ports::{Decoded, Failure, SentImage, StreamDecoder};
 
-/// Bytes of sealed segments one session keeps in memory.
-const SEGMENT_CACHE_BYTES: usize = 1024 * 1024;
+mod prepare;
+
+pub(crate) use prepare::{IndexPlace, StartError, prepare};
+
 /// How long a provider may run after closing its output before the session host stops it.
 const EXIT_GRACE: Duration = Duration::from_secs(5);
 /// How long a provider asked to end with SIGTERM may take to run its own shutdown, such as its
@@ -36,101 +36,13 @@ const STOP_GRACE: Duration = Duration::from_secs(8);
 /// Called once with the provider's exit code, or none after a signal, when its process ended.
 pub(crate) type ExitReport = Box<dyn FnOnce(Option<u8>) + Send>;
 
-/// Why a native session did not start.
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum StartError {
-    #[error(transparent)]
-    Process(#[from] StreamError),
-    #[error(transparent)]
-    Index(#[from] StoreError),
-    #[error("conversation_index_unavailable: {0}")]
-    IndexDirectory(#[from] std::io::Error),
-}
-
-/// Where a native session keeps its index.
-pub(crate) struct IndexPlace {
-    /// The directory of all conversation indexes.
-    pub(crate) root: PathBuf,
-    /// Sessions whose indexes are in use and must survive the cap.
-    pub(crate) in_use: Vec<String>,
-}
-
-/// A native session whose index is open and whose provider process runs, before its actor does.
-pub(crate) struct Prepared<D> {
-    session: Identifier,
-    channel: u32,
-    initial_input: Option<String>,
-    stored: u64,
-    index: Index,
-    process: StreamProcess,
-    decoder: D,
-}
-
-/// Opens the index in `<root>/<session>`, applying the cap on all indexes, and starts `launch`
-/// with piped streams. This is blocking file and process work: the lifecycle runs it off the
-/// async workers and outside the registry's lock.
-///
-/// With the provider's `transcript`, the index is rebuilt from it first when it holds a different
-/// number of items, so turns from the CLI conversation appear here too.
-pub(crate) fn prepare<D: StreamDecoder>(
-    launch: &Launch,
-    session: Identifier,
-    channel: u32,
-    decoder: D,
-    indexes: &IndexPlace,
-    transcript: Option<Vec<Input>>,
-) -> Result<Prepared<D>, StartError> {
-    let directory: PathBuf = indexes.root.join(session.as_str());
-    retention::touch(&directory)?;
-    let mut keep: Vec<&str> = indexes.in_use.iter().map(String::as_str).collect();
-    keep.push(session.as_str());
-    retention::enforce(&indexes.root, INDEX_CAP_BYTES, &keep)?;
-    let store = rebuild::open_synced(
-        &directory,
-        SEGMENT_CACHE_BYTES,
-        transcript.map(rebuild::projected),
-    )?;
-    let stored = store.len();
-    let index = Index::spawn(store)?;
-    let process = StreamProcess::spawn(&StreamCommand {
-        program: launch.program.clone(),
-        arguments: launch.arguments.clone(),
-        environment: launch.environment.clone(),
-        environment_remove: launch.environment_remove.clone(),
-        working_directory: launch.working_directory.clone(),
-    })?;
-    Ok(Prepared {
-        session,
-        channel,
-        initial_input: launch.initial_input.clone(),
-        stored,
-        index,
-        process,
-        decoder,
-    })
-}
-
-impl<D: StreamDecoder> Prepared<D> {
-    /// Starts the session's actor and returns its handle.
-    pub(crate) fn start(self, watchers: StatusSink, on_exit: ExitReport) -> SessionHandle {
-        let (handle, commands, ended) = SessionHandle::new(ConversationMode::Native, self.channel);
-        let actor = Native {
-            fanout: Fanout::new(self.session, ended, watchers),
-            initial_input: self.initial_input,
-            transcript: Transcript::new(self.stored),
-            index: self.index,
-            decoder: self.decoder,
-            on_exit: Some(on_exit),
-        };
-        tokio::spawn(actor.run(self.process, commands));
-        handle
-    }
-}
-
 struct Native<D> {
     fanout: Fanout,
-    /// The first instruction, sent through the decoder once the provider runs.
+    /// The first instruction and its images, sent through the decoder once the provider runs.
     initial_input: Option<String>,
+    initial_images: Vec<SentImage>,
+    /// The session's index directory, which also keeps the images its messages carried.
+    directory: PathBuf,
     transcript: Transcript,
     /// Damaged once storing failed; live items still flow, and ranges report the damage.
     index: Index,
@@ -139,12 +51,31 @@ struct Native<D> {
 }
 
 impl<D: StreamDecoder> Native<D> {
+    /// The bytes and items of the user's message. Its images are kept beside the index first, so
+    /// the message's marks name images `image.read` can return.
+    async fn encode(
+        &mut self,
+        text: &str,
+        images: &[SentImage],
+    ) -> Result<(Vec<u8>, Vec<Decoded>), Failure> {
+        if images.is_empty() {
+            return Ok(self.decoder.send(text).await);
+        }
+        images::keep(&self.directory, images);
+        self.decoder.send_with_images(text, images).await
+    }
+
     async fn run(mut self, mut process: StreamProcess, mut commands: mpsc::Receiver<Command>) {
         self.fanout.change(SessionEvent::Launched);
         if let Some(text) = self.initial_input.take() {
-            let (bytes, decoded) = self.decoder.send(&text).await;
-            if process.input(&bytes).await.is_ok() {
-                self.apply(decoded);
+            let images = std::mem::take(&mut self.initial_images);
+            // A decoder that cannot carry images still gets the instruction.
+            let encoded = match self.encode(&text, &images).await {
+                Ok(encoded) => encoded,
+                Err(_) => self.decoder.send(&text).await,
+            };
+            if process.input(&encoded.0).await.is_ok() {
+                self.apply(encoded.1);
             }
         }
         let mut stopped = false;
@@ -168,16 +99,11 @@ impl<D: StreamDecoder> Native<D> {
                         ask_to_end(&mut process, kill.as_mut(), &mut kill_armed).await;
                     }
                     Some(Command::Send { request, text, images, reply }) => {
-                        let encoded = if images.is_empty() {
-                            if text.is_empty() {
-                                reply.send(messages::failed(&request, RequestFailedMessageCode::MessageEmpty));
-                                continue;
-                            }
-                            Ok(self.decoder.send(&text).await)
-                        } else {
-                            self.decoder.send_with_images(&text, &images).await
-                        };
-                        match encoded {
+                        if text.is_empty() && images.is_empty() {
+                            reply.send(messages::failed(&request, RequestFailedMessageCode::MessageEmpty));
+                            continue;
+                        }
+                        match self.encode(&text, &images).await {
                             Ok((bytes, decoded)) => {
                                 if process.input(&bytes).await.is_ok() {
                                     self.apply(decoded);
