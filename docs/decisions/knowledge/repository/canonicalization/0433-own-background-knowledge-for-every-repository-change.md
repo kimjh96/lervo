@@ -3,6 +3,7 @@
 - Status: accepted
 - Decision date: 2026-09-25
 - Amends: [ADR-0427](0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md)
+- Amended by: [ADR-0451](0451-keep-terminal-hooks-off-the-developer-critical-path.md), [ADR-0461](../../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md), [ADR-0510](../source-intake/0510-scan-only-what-git-would-keep-and-never-read-environment-files.md), [ADR-0605](../source-intake/0605-queue-knowledge-jobs-only-on-the-host-that-runs-them.md)
 
 ## Context
 
