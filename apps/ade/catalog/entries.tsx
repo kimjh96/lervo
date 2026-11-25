@@ -299,7 +299,7 @@ export const entries: readonly Entry[] = [
       {
         name: "With controls",
         render: () => (
-          <PaneHeader title="Fix the flaky test" detail="lervo/fix-flaky">
+          <PaneHeader title="Fix the flaky test">
             <SegmentedDemo />
           </PaneHeader>
         ),

@@ -1,0 +1,13 @@
+/* The header's end: the repository of work starting, then the workspace's controls in its place.
+   It keeps the controls' width from the start, so the title never shortens when they arrive. */
+.end {
+  flex: none;
+  min-width: calc(var(--size-control-lg) * 2 + var(--space-6));
+}
+
+.repository {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-mono);
+  font-size: var(--type-meta-size);
+  white-space: nowrap;
+}

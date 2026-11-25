@@ -1,3 +1,5 @@
+import { workspaceTitle } from "@lervo/session-host-contract";
+
 import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
 import { WorkspaceConversation } from "../features/conversation";
 import { StartScreen, type Surface, useSurface } from "../features/start";
@@ -27,7 +29,7 @@ function Main(props: { surface: Surface }) {
           starting === null
             ? null
             : {
-                title: starting.instruction.split("\n")[0] ?? "",
+                title: workspaceTitle(starting.instruction),
                 repositoryName: starting.repositoryName,
               }
         }
