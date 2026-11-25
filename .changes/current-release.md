@@ -1,8 +1,8 @@
-<!-- lervo-release package="@lervo/cli" version="0.51.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.52.0" schema="1" -->
 
 ## What's changed
 
-- A linked worktree's prompts use the registered repository's knowledge snapshot instead of scanning their own, so a plain git worktree of a large repository records its turns and no longer waits for the hook deadline on every prompt.
-- In a linked worktree, lervo terminal status, coverage, and budget, lervo knowledge instruction capture, and lervo application attention report the registered repository's evidence, and a status read no longer clears the checkout's workstream.
-- Read event schema 12 in the CLI, the Node, and the Hub: terminal.turn.observed can record a turn that ended without a Stop hook, with its ending and a not_checked completion. Automatic writer activation stays at schema 11 until every reader has it.
-- The resident process stops a hosted Claude session's running turn through decoder.interrupt, which it advertises to the ADE, and the conversation marks a stopped turn instead of reporting it as failed.
+- A terminal turn that ended without a Stop hook, such as one the owner interrupted in the terminal or the ADE, is recorded at the session's next prompt or start with how it ended, its repository change, and its skill assessment, once the writer selects event schema 12.
+- Hosted Claude sessions in the ADE run with Claude Code's auto memory off, so owner rules reach Lervo instead of a memory every worktree shares; the owner's own settings are unchanged.
+- Repository upgrades activate event schema 12, which records how a terminal turn ended when no Stop hook ran, once every configured reader reads it.
+- The resident process records the usage of turns a hosted session's decoder decoded before the session host named the session, once it is named, instead of losing it.
