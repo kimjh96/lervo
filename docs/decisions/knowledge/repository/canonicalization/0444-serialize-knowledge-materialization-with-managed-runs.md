@@ -3,6 +3,7 @@
 Status: accepted
 Decision date: 2026-09-29
 Amended by: [ADR-0484](../../../operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (foreground commands wait for a live owner)
+Amended by: [ADR-0465](../../documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md)
 
 ## Context
 
