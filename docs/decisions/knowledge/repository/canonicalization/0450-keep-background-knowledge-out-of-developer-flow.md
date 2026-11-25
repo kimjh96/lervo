@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-03
 Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0449](0449-synchronize-integration-target-with-working-branch.md), and [ADR-0625](../../../execution/verification/0625-prepare-isolated-candidate-verification-workspaces.md)
+Amended by: [ADR-0451](0451-keep-terminal-hooks-off-the-developer-critical-path.md), [ADR-0465](../../documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md)
 
 ## Context
 
