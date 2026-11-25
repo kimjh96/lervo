@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_46e2b6255528e2add7186bc1"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "End each finished turn with a quiet summary line that opens to what Lervo recorded about it."

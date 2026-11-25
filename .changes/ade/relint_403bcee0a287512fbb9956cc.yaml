@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_403bcee0a287512fbb9956cc"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A session started right after a Lervo CLI upgrade names itself to the new resident process from its first turn, and an unnamed session's decoder opens again named before its next turn, so its usage is recorded."
