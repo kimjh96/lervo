@@ -30,7 +30,10 @@ import type { TerminalStageObservationPort } from "./terminal-stage-observation.
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 import { observeWorkstreamFreshness } from "./workstream-repository-head.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
-import { terminalKnowledgeSnapshotId } from "./terminal-knowledge-snapshot.js";
+import {
+  repositoryKnowledgeSnapshotId,
+  terminalKnowledgeSnapshotId,
+} from "./terminal-knowledge-snapshot.js";
 import { terminalPlanContextLines } from "./terminal-plan-context.js";
 
 export {
@@ -70,9 +73,17 @@ export async function prepareCompactTerminalPromptContext(input: {
   );
   const [sourceSnapshotId, query, canonicalization, health, repositoryHealth, learned, governance] =
     await Promise.all([
-      input.timing.measure("corpus_preparation", () =>
-        terminalKnowledgeSnapshotId(checkout, repositorySnapshot.revision),
-      ),
+      input.timing.measure("corpus_preparation", async () => {
+        if (checkout === input.root)
+          return terminalKnowledgeSnapshotId(checkout, repositorySnapshot.revision);
+        // A linked worktree ranks against the repository's knowledge and never scans its own
+        // (ADR-0633). With none cached, this prompt degrades at once instead of at the deadline,
+        // and Stop's prefetch computes it for the next prompt.
+        const repository = await repositoryKnowledgeSnapshotId(input.root);
+        if (repository === null)
+          throw new Error("The repository's knowledge snapshot is not cached.");
+        return repository;
+      }),
       input.timing.measure("query_projection", async () => {
         const storage = await openProjectStorage(input.root);
         try {

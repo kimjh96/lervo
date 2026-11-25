@@ -10,7 +10,11 @@ import {
   scanConfiguredRepositoryKnowledge,
 } from "@lervo/repository-knowledge";
 
-import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
+import {
+  captureTerminalRepositorySnapshot,
+  captureTerminalRepositorySnapshotWithoutDeadline,
+} from "./terminal-repository-snapshot.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 
 const KNOWLEDGE_SNAPSHOT_CACHE = ".lervo/state/cache/terminal-knowledge-snapshot.json";
 const MAXIMUM_CACHE_BYTES = 8 * 1024;
@@ -118,9 +122,11 @@ export async function terminalKnowledgeSnapshotId(
     return cached.sourceSnapshotId;
   const { scan } = await scanConfiguredRepositoryKnowledge(root);
   const directory = await cacheDirectory(root);
+  // The confirmation ignores the hook's deadline: a prompt whose scan overran still caches it, so
+  // the next prompt in a cold checkout, such as a new linked worktree, finds it ready.
   if (
     directory !== null &&
-    (await captureTerminalRepositorySnapshot(root)).revision === repositoryRevision
+    (await captureTerminalRepositorySnapshotWithoutDeadline(root)).revision === repositoryRevision
   ) {
     const value: CachedKnowledgeSnapshot = {
       schemaVersion: 1,
@@ -134,16 +140,44 @@ export async function terminalKnowledgeSnapshotId(
   return scan.snapshotId;
 }
 
+/**
+ * The knowledge snapshot a linked worktree's prompts are ranked against: its registered
+ * repository's, which the resident keeps warm after each commit (ADR-0633). A worktree never scans
+ * its own knowledge, which in a large repository takes longer than a hook may run. Null when the
+ * repository has none cached for its project and policy.
+ */
+export async function repositoryKnowledgeSnapshotId(root: string): Promise<string | null> {
+  const [cached, manifest, policy] = await Promise.all([
+    readKnowledgeSnapshotCache(root),
+    loadProjectManifest(root),
+    loadRepositoryKnowledgePolicy(root),
+  ]);
+  return cached !== null &&
+    cached.projectId === manifest.projectId &&
+    cached.policyId === policy.policyId
+    ? cached.sourceSnapshotId
+    : null;
+}
+
 /** Whether this checkout has a prompt knowledge snapshot cached, and for which revision. */
 export async function cachedKnowledgeSnapshotRevision(root: string): Promise<string | null> {
   return (await readKnowledgeSnapshotCache(root))?.repositoryRevision ?? null;
 }
 
 /**
- * Stop runs this detached so the next prompt finds the post-turn knowledge snapshot ready. The core
- * health projection is computed by resident cycles, not here, so the hook bundle only reads it.
+ * Stop runs this detached so the next prompt finds the post-turn snapshot and knowledge snapshot
+ * ready. The core health projection is computed by resident cycles, not here, so the hook bundle
+ * only reads it. A linked worktree warms only its own file hashes; its prompts use the registered
+ * repository's knowledge snapshot, which this computes only when none is cached (ADR-0633).
  */
 export async function prefetchTerminalPromptContext(root: string): Promise<void> {
-  const snapshot = await captureTerminalRepositorySnapshot(root);
-  await terminalKnowledgeSnapshotId(root, snapshot.revision);
+  const roots = await resolveCommandRoots(root);
+  const snapshot = await captureTerminalRepositorySnapshot(roots.executionRoot);
+  if (roots.evidenceRoot === roots.executionRoot) {
+    await terminalKnowledgeSnapshotId(roots.executionRoot, snapshot.revision);
+    return;
+  }
+  if ((await repositoryKnowledgeSnapshotId(roots.evidenceRoot)) !== null) return;
+  const repository = await captureTerminalRepositorySnapshot(roots.evidenceRoot);
+  await terminalKnowledgeSnapshotId(roots.evidenceRoot, repository.revision);
 }
