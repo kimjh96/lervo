@@ -9,6 +9,7 @@ mod host_program;
 mod login_path;
 mod material;
 mod measure;
+mod notifications;
 mod window;
 
 use std::process::ExitCode;
@@ -23,6 +24,7 @@ fn main() -> ExitCode {
     let relay = Relay::new(host_program::HostProgram::locate(path), Layout::for_user());
     let measurement = measure::Measurement::from_environment(started);
     let result = tauri::Builder::default()
+        // The plugin shows notifications where the shell has no native path (`notifications`).
         .plugin(tauri_plugin_notification::init())
         .plugin(material::plugin())
         .plugin(measure::plugin(measurement.as_ref()))
@@ -37,7 +39,8 @@ fn main() -> ExitCode {
             window::window_ready,
             measure::measure_report,
             measure::measure_hide,
-            measure::measure_opaque
+            measure::measure_opaque,
+            notifications::notify
         ])
         .run(tauri::generate_context!());
     match result {

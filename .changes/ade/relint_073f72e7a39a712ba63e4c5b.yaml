@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_073f72e7a39a712ba63e4c5b"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Show turn notifications on macOS: ask the system's permission at the first one, and sign the app as dev.lervo.ade so the notification daemon serves it."
