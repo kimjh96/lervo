@@ -1,8 +1,14 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it } from "vitest";
+
+import { HireNotice } from "../src/features/conversation/view/HireNotice";
 
 import { startWork } from "../src/features/start/model/start";
 import { useStartStore } from "../src/features/start/model/store";
 import { useWorkspaceStore } from "../src/features/workspaces";
+import { messagesFor } from "../src/i18n/catalog";
 import { type ApplicationCommands, RequestFailure } from "../src/ports";
 
 /** Commands whose `workspace.start` waits until `finish` resolves or rejects it. */
@@ -146,5 +152,43 @@ describe("starting work in a team without a Product Owner", () => {
     expect(asked.find(([command]) => command === "workspace.start")?.[1]).toMatchObject({
       participants: ["agt_po", "agt_dev"],
     });
+    expect(useStartStore.getState().pending?.hireFailure).toBeNull();
+  });
+
+  it("starts without the Product Owner a refused hire would have been, and keeps the code", async () => {
+    const asked: [string, Record<string, unknown> | undefined][] = [];
+    const fake = {
+      run(command: string, arguments_?: Record<string, unknown>) {
+        asked.push([command, arguments_]);
+        if (command === "agent.hire")
+          return Promise.reject(new RequestFailure("agent_headcount_exceeded"));
+        if (command === "workspace.start") return Promise.resolve({ workspaceId: "wks_1" });
+        if (command === "workspace.list") return Promise.resolve({ workspaces: [] });
+        return Promise.resolve({ repositories: [] });
+      },
+    } as unknown as ApplicationCommands;
+    await startWork(fake, { ...draft, participants: ["hire:product-owner", "agt_dev"] }, "web");
+    expect(asked.find(([command]) => command === "workspace.start")?.[1]).toMatchObject({
+      participants: ["agt_dev"],
+    });
+    expect(asked.some(([command]) => command === "agents.list")).toBe(false);
+    expect(useStartStore.getState().pending).toMatchObject({
+      workspaceId: "wks_1",
+      hireFailure: "agent_headcount_exceeded",
+    });
+  });
+
+  it("tells the conversation that its work started without the Product Owner", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: messagesFor("en") },
+        createElement(HireNotice, { code: "agent_headcount_exceeded" }),
+      ),
+    );
+    expect(html).toContain("Lervo");
+    expect(html).toContain(
+      "This work started without a Product Owner, because Lervo could not hire one (agent_headcount_exceeded).",
+    );
   });
 });

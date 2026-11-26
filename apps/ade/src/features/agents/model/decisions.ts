@@ -1,6 +1,6 @@
 import type { AgentSummary, HireableRole } from "@lervo/session-host-contract";
 
-import { visibleStatus, type Workspace } from "../../workspaces";
+import { visibleStatus, type Workspace } from "../../workspaces/model";
 
 /** Whether the core link answers the agent commands; an older core shows no agents. */
 export const managesAgents = (advertised: readonly string[] | null): boolean =>
