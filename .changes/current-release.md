@@ -1,9 +1,7 @@
-<!-- lervo-release package="@lervo/cli" version="0.56.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.56.2" schema="1" -->
 
 ## What's changed
 
-- Answer a served prompt as soon as its context is prepared and record it afterwards, so the context server no longer makes the provider wait for its records.
-- Check Git ignore rules only for a turn's changed paths and reuse the Stop's lifecycle snapshot, so a changed turn's Stop no longer spends about 900 ms re-reading the repository.
-- Fix the built CLI hanging at startup on an import cycle that the lifecycle snapshot reuse introduced, by moving the snapshot hand-off into its own module.
-- Name each image mark by the SHA-256 of its bytes, so the ADE finds the image its session host kept, also in a conversation read back from Claude Code's transcript.
-- Store each prepared prompt snapshot once under its content hash, so a prompt writes a small pointer instead of rewriting megabytes, and retained snapshots shrink from about 140 MB.
+- Answer a served non-worker Stop before its records, and relay launches the records ask for to the provider's session through a detached relay the client leaves behind.
+- Read the boot identity once per process, take a Stop's HEAD from its lifecycle snapshot, and start the newest-workstream read with a small page, trimming repeated work from every Stop.
+- Report each served hook's answer latency by kind in context-stats.json, so a canary sees what the provider waited for apart from the records that follow.

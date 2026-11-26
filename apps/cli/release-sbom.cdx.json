@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:fca1d995-e5b0-5743-a856-4a6c691c0fcb",
+  "serialNumber": "urn:uuid:fb30b56c-1bed-5670-99e5-42202edba079",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -21,11 +21,11 @@
     },
     "component": {
       "type": "application",
-      "bom-ref": "pkg:npm/%40lervo/cli@0.56.1",
+      "bom-ref": "pkg:npm/%40lervo/cli@0.56.2",
       "group": "@lervo",
       "name": "cli",
-      "version": "0.56.1",
-      "purl": "pkg:npm/%40lervo/cli@0.56.1",
+      "version": "0.56.2",
+      "purl": "pkg:npm/%40lervo/cli@0.56.2",
       "hashes": [
         {
           "alg": "SHA-256",
@@ -42,7 +42,7 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:c02d3f74da997e81edec3904484d008073bf9d8548127f37c6e0e17d10cd72f6"
+          "value": "sha256:3907c23524f2b7d8f11ad4aa8dc2458ac7c18d50d6ecd4513f7c45f55df8acb0"
         },
         {
           "name": "lervo:release:bundle-digest",
@@ -63,7 +63,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "e42d8e852a209134bc9350ffa3cf0c3360b29b24b1257b55a042531570496b06"
+          "content": "f7802b16fe6025831c8ca666ac4a8547e8d4edd92cb47b7a37b6a6346dcef433"
         }
       ],
       "properties": [
@@ -80,7 +80,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "cecce3b399eee396bd42e76cf1d28ffdaa9ff038232566ec4fa49c9b43d47d71"
+          "content": "26e9d334bacb012df305a070c4a932653c1ee1639ca6faae3aba57ba1a2eb24e"
         }
       ],
       "properties": [
@@ -141,7 +141,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "bde9dd7ff54c5f82d373d20ca1d8df9a3a08b3d1c4bd5b840e5d32eb113ed6cb"
+          "content": "79a634360ea957009b1106a647d472a258b164d7f229b9395512f9ef7f76c0b2"
         }
       ]
     },
@@ -4279,7 +4279,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40lervo/cli@0.56.1",
+      "ref": "pkg:npm/%40lervo/cli@0.56.2",
       "dependsOn": [
         "lervo:dist/terminal-hook-launcher.mjs",
         "lervo:dist/terminal-hook.js",
