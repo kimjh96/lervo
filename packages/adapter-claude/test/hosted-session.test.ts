@@ -39,6 +39,25 @@ describe("Claude Code hosted sessions", () => {
     expect(launch.initialInput).toBe("Fix the build.");
   });
 
+  it("runs a read-access session that refuses every tool its rules do not allow", () => {
+    const launch = adapter.prepareLaunch({
+      sessionId,
+      mode: "native",
+      workingDirectory: "/work/repo",
+      start: { kind: "new", instruction: "Is the Retry-After header in seconds?" },
+      access: "read",
+    });
+    expect(launch.arguments).not.toContain("bypassPermissions");
+    const mode = launch.arguments.indexOf("--permission-mode");
+    expect(launch.arguments[mode + 1]).toBe("dontAsk");
+    const allowed = launch.arguments[launch.arguments.indexOf("--allowedTools") + 1]?.split(",");
+    expect(allowed).toEqual(
+      expect.arrayContaining(["Read", "Grep", "WebSearch", "Bash(git log *)"]),
+    );
+    expect(allowed).not.toEqual(expect.arrayContaining(["Edit"]));
+    expect(allowed?.some((rule) => rule === "Bash" || rule.startsWith("Write"))).toBe(false);
+  });
+
   it("adds Lervo's start and end handlers through a session-scoped settings file", () => {
     const hooks = {
       settingsPath: "/state/hosted-settings/session.json",

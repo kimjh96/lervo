@@ -42,6 +42,11 @@ export interface HostedLaunchRecord {
    */
   agentId?: string;
   participants?: string[];
+  /**
+   * `read` for an agent that joined the conversation (Lervo ADE rooms, "Participants and their
+   * sessions"). Absent for the lead, whose session writes.
+   */
+  access?: "read";
 }
 
 /**
@@ -82,7 +87,8 @@ function isRecord(value: unknown): value is HostedLaunchRecord {
     ["workspaceId", "sessionId", "provider", "projectId", "branch", "preparedAt"].every(
       (key) => typeof record[key] === "string",
     ) &&
-    (record.conversationMode === "native" || record.conversationMode === "cli")
+    (record.conversationMode === "native" || record.conversationMode === "cli") &&
+    (record.access === undefined || record.access === "read")
   );
 }
 
@@ -125,13 +131,35 @@ export async function hostedLaunchSessions(path: string): Promise<Set<string>> {
   return new Set((await readRecords(path)).map((record) => record.sessionId));
 }
 
-/** The newest record of `workspaceId`, or null. */
+/** The newest record of `workspaceId`'s lead session, or null. Joined agents' records never lead. */
 export async function latestHostedLaunch(
   path: string,
   workspaceId: string,
 ): Promise<HostedLaunchRecord | null> {
   const records = await readRecords(path);
-  return records.findLast((record) => record.workspaceId === workspaceId) ?? null;
+  return (
+    records.findLast((record) => record.workspaceId === workspaceId && record.access !== "read") ??
+    null
+  );
+}
+
+/**
+ * The newest record of each agent's session in `workspaceId`, the lead's first and then in the
+ * order the agents joined. A conversation started without agents has none.
+ */
+export async function roomSessionRecords(
+  path: string,
+  workspaceId: string,
+): Promise<HostedLaunchRecord[]> {
+  const newest = new Map<string, HostedLaunchRecord>();
+  for (const record of await readRecords(path))
+    if (record.workspaceId === workspaceId && record.agentId !== undefined) {
+      // A re-inserted key keeps its first place, so an agent stays where it joined.
+      newest.set(record.agentId, record);
+    }
+  return [...newest.values()].sort(
+    (a, b) => Number(a.access === "read") - Number(b.access === "read"),
+  );
 }
 
 /** Every session the kept records name for `workspaceId`, oldest first. */

@@ -35,9 +35,18 @@ export interface WorkspaceSummary {
   conversationModes: ("native" | "cli")[];
   sessionId: string;
   preparedAt: string;
-  /** The writing agent and every agent the conversation started with, when it started with any. */
+  /** The writing agent, and every agent of the conversation: those it started with, then joiners. */
   agentId?: string;
   participants?: string[];
+  /** Each participant's session, the lead's first (Lervo ADE rooms). */
+  sessions?: { agentId: string; sessionId: string; access: "write" | "read" }[];
+}
+
+/** A workspace's lead record, the newest record of each agent in it, and its last activity. */
+interface ListedWorkspace {
+  lead: HostedLaunchRecord;
+  agents: Map<string, HostedLaunchRecord>;
+  activeAt: string;
 }
 
 /** The host's registered repositories, by name. */
@@ -69,15 +78,46 @@ export async function listRepositories(): Promise<{ repositories: RepositorySumm
   };
 }
 
-async function latestRecords(): Promise<HostedLaunchRecord[]> {
+async function latestRecords(): Promise<ListedWorkspace[]> {
   const file = await readPrivateJsonFile(hostedLaunchRecordsPath(), MAX_RECORD_FILE_BYTES);
   if (file.status !== "read") return [];
   const records = (file.value as { records?: HostedLaunchRecord[] }).records ?? [];
-  const latest = new Map<string, HostedLaunchRecord>();
-  for (const record of records) latest.set(record.workspaceId, record);
-  return [...latest.values()].sort((left, right) =>
-    right.preparedAt.localeCompare(left.preparedAt),
-  );
+  const listed = new Map<string, ListedWorkspace>();
+  for (const record of records) {
+    const known = listed.get(record.workspaceId);
+    // A joined agent's record never leads; the workspace lists once its lead's record is read.
+    const lead = record.access === "read" ? known?.lead : record;
+    if (lead === undefined) continue;
+    const agents = known?.agents ?? new Map<string, HostedLaunchRecord>();
+    if (record.agentId !== undefined) agents.set(record.agentId, record);
+    listed.set(record.workspaceId, { lead, agents, activeAt: record.preparedAt });
+  }
+  return [...listed.values()].sort((left, right) => right.activeAt.localeCompare(left.activeAt));
+}
+
+/** The conversation's agents and their sessions: the lead first, then those who joined. */
+function roomOf(workspace: ListedWorkspace): Pick<WorkspaceSummary, "participants" | "sessions"> {
+  const joined = [...workspace.agents.values()].filter((record) => record.access === "read");
+  const started = workspace.lead.participants ?? [];
+  const participants = [
+    ...started,
+    ...joined.map((record) => record.agentId as string).filter((id) => !started.includes(id)),
+  ];
+  const lead = workspace.lead.agentId;
+  const sessions = [
+    ...(lead === undefined
+      ? []
+      : [{ agentId: lead, sessionId: workspace.lead.sessionId, access: "write" as const }]),
+    ...joined.map((record) => ({
+      agentId: record.agentId as string,
+      sessionId: record.sessionId,
+      access: "read" as const,
+    })),
+  ];
+  return {
+    ...(participants.length === 0 ? {} : { participants }),
+    ...(sessions.length === 0 ? {} : { sessions }),
+  };
 }
 
 /** The workstream title in a worktree, or null when its state is unreadable. */
@@ -106,8 +146,9 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
   );
   const worktrees = new Map<string, Promise<Map<string, string>>>();
   const workspaces: WorkspaceSummary[] = [];
-  for (const record of await latestRecords()) {
+  for (const listed of await latestRecords()) {
     if (workspaces.length >= MAX_LISTED_WORKSPACES) break;
+    const record = listed.lead;
     const repository = registrations.get(record.projectId);
     if (repository === undefined) continue;
     if (!worktrees.has(record.projectId))
@@ -126,7 +167,7 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
       sessionId: record.sessionId,
       preparedAt: record.preparedAt,
       ...(record.agentId === undefined ? {} : { agentId: record.agentId }),
-      ...(record.participants === undefined ? {} : { participants: record.participants }),
+      ...roomOf(listed),
     });
   }
   return { workspaces };

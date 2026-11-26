@@ -9,6 +9,7 @@ import {
   type HostedLaunchRecord,
   latestHostedLaunch,
   recordHostedLaunch,
+  roomSessionRecords,
 } from "../src/hosted-launch-records.js";
 import { resolveHostedSessionAdapter } from "../src/hosted-session-adapters.js";
 
@@ -47,6 +48,42 @@ describe("hosted launch records", () => {
       "session-999",
     );
     expect((await stat(path)).mode & 0o777).toBe(0o600);
+  });
+});
+
+describe("a conversation's agents in the launch records", () => {
+  it("leads with the writing session and lists each agent's newest session in joining order", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-hosted-rooms-"));
+    roots.push(root);
+    const path = resolve(root, "hosted-launches.json");
+    const workspaceId = `wsp_${"1".repeat(24)}`;
+    const lead = { ...record(1, workspaceId), agentId: "agt_elio", participants: ["agt_elio"] };
+    await recordHostedLaunch(path, lead);
+    await recordHostedLaunch(path, {
+      ...record(2, workspaceId),
+      agentId: "agt_arin",
+      access: "read",
+    });
+    await recordHostedLaunch(path, {
+      ...record(3, workspaceId),
+      agentId: "agt_tarin",
+      access: "read",
+    });
+    await recordHostedLaunch(path, {
+      ...record(4, workspaceId),
+      sessionId: "session-arin-resumed",
+      agentId: "agt_arin",
+      access: "read",
+    });
+    // A joined agent's newer record never becomes the conversation's lead.
+    expect((await latestHostedLaunch(path, workspaceId))?.sessionId).toBe("session-1");
+    expect(
+      (await roomSessionRecords(path, workspaceId)).map((item) => [item.agentId, item.sessionId]),
+    ).toEqual([
+      ["agt_elio", "session-1"],
+      ["agt_arin", "session-arin-resumed"],
+      ["agt_tarin", "session-3"],
+    ]);
   });
 });
 

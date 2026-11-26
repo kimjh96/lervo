@@ -15,13 +15,17 @@ import {
   hireableRoleSchema,
 } from "./application-agent-results.js";
 import {
+  roomJoinResultSchema,
+  roomRouteResultSchema,
+  roomSessionSchema,
+} from "./application-room-results.js";
+import { turnSummaryResultSchema, turnSummarySchema } from "./application-turn-results.js";
+import {
   providerCapabilitiesSchema,
   providerListResultSchema,
   providerSummarySchema,
   repositoryListResultSchema,
   repositorySummarySchema,
-  turnSummaryResultSchema,
-  turnSummarySchema,
   workspaceListResultSchema,
   workspaceRetireResultSchema,
   workspaceStartResultSchema,
@@ -114,6 +118,9 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     hireableRoleSchema,
     agentsListResultSchema,
     agentHireResultSchema,
+    roomSessionSchema,
+    roomJoinResultSchema,
+    roomRouteResultSchema,
   ].map((schema) => [schema.title, schema] as const),
   ...[
     ...coreLinkRequestSchemas,

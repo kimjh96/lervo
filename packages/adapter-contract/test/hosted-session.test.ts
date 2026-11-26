@@ -17,6 +17,7 @@ const capabilities: HostedSessionCapabilities = {
   mcp: false,
   systemPromptFile: false,
   resume: false,
+  readAccess: false,
 };
 const sessionId = "0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c";
 
@@ -58,6 +59,7 @@ describe("hosted launch intents", () => {
       [{ ...base, workingDirectory: "repo" }, "launch_intent_invalid"],
       [{ ...base, start: { kind: "new" as const, instruction: "  " } }, "launch_intent_invalid"],
       [{ ...base, start: { kind: "resume" as const } }, "resume_unsupported"],
+      [{ ...base, access: "read" as const }, "access_unsupported"],
       [
         { ...base, mode: "native" as const },
         "conversation_mode_unsupported",
@@ -108,6 +110,7 @@ describe("the common hosted-session checks", () => {
       "does not deliver the instruction",
       "omits the session ID",
       "an undeclared resume launch did not fail",
+      "an undeclared read-access launch did not fail",
       "the display name must be 1 to 64 characters",
       "undeclared hooks did not fail",
     ])
@@ -115,6 +118,27 @@ describe("the common hosted-session checks", () => {
         violations.some((violation) => violation.includes(expected)),
         expected,
       ).toBe(true);
+  });
+
+  it("report a read-access claim whose read launch is the write launch", () => {
+    const same: HostedSessionAdapter = {
+      provider: "same",
+      displayName: "Same",
+      capabilities: { ...capabilities, readAccess: true },
+      prepareLaunch: (intent) => ({
+        program: "same",
+        arguments: ["--session-id", intent.sessionId],
+        environment: {},
+        workingDirectory: intent.workingDirectory,
+        mode: intent.mode,
+        initialInput: intent.start.kind === "new" ? intent.start.instruction : null,
+        environmentRemove: [],
+        settingsFile: null,
+      }),
+    };
+    expect(evaluateHostedSessionContract(same, "/work/repo")).toContain(
+      "same: readAccess is declared, but a read launch is the write launch",
+    );
   });
 
   it("report an adapter that declares hooks but writes no settings file", () => {

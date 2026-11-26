@@ -8,19 +8,14 @@ import {
   type HostedStreamDecoder,
   type HostedTurnUsage,
 } from "@lervo/adapter-contract";
-import {
-  advertisedCoreRequestNames,
-  applicationCommandNames,
-  validateCoreLinkRequest,
-} from "@lervo/session-host-contract";
+import { validateCoreLinkRequest } from "@lervo/session-host-contract";
 
-import { CommandFailure, errorCode } from "./command-error-output.js";
+import { errorCode } from "./command-error-output.js";
+import { commandAnswer, type Started } from "./core-link-commands.js";
 import type { CoreLinkHandlers } from "./core-link-handlers.js";
 import { lines } from "./core-link-lines.js";
 import { TurnUsageQueue } from "./core-link-usage-queue.js";
 import { withoutShellOutput } from "./lervo-command-detail.js";
-import type { WorkspaceStartResult } from "./workspace-start.js";
-import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 
 /** Decoders open at once. Each belongs to one native session of the session host. */
 export const MAX_OPEN_DECODERS = 256;
@@ -31,7 +26,6 @@ export const MAX_OPEN_DECODERS = 256;
 export const MAX_PENDING_TURN_USAGE = 256;
 
 type Request = { kind: string; id: number } & Record<string, unknown>;
-type Started = WorkspaceStartResult | WorkspaceOpenResult;
 
 export type { CoreLinkHandlers } from "./core-link-handlers.js";
 
@@ -123,72 +117,13 @@ export class CoreLinkServer {
 
   /** Commands that start work answer with a launch; list commands answer with their result. */
   private command(request: Request): void {
-    switch (request.command) {
-      case "workspace.list":
-        // The list names every command this core answers, so the session host sends a newer
-        // command only to a core that knows it.
-        this.respond(request.id, async () => ({
-          ...(await this.handlers.listWorkspaces()),
-          commands: [...applicationCommandNames, ...advertisedCoreRequestNames],
-        }));
-        return;
-      case "repository.list":
-        this.respond(request.id, () => this.handlers.listRepositories());
-        return;
-      case "provider.list":
-        this.respond(request.id, () => this.handlers.listProviders());
-        return;
-      case "turn.summary": {
-        const summarize = this.handlers.summarizeTurns;
-        this.respond(request.id, async () => {
-          if (summarize === undefined)
-            throw new CommandFailure("command_unsupported", "This core keeps no turn records.");
-          return summarize(request.arguments as Record<string, unknown>);
-        });
-        return;
-      }
-      case "project.add":
-      case "project.rename":
-      case "project.mark.set":
-      case "project.mark.clear":
-      case "project.mark.read":
-      case "project.unregister":
-      case "projects.location": {
-        const run = this.handlers.runProjectCommand;
-        this.respond(request.id, async () => {
-          if (run === undefined)
-            throw new CommandFailure("command_unsupported", "This core manages no projects.");
-          return run(
-            request.command as string,
-            (request.arguments ?? {}) as Record<string, unknown>,
-          );
-        });
-        return;
-      }
-      case "agents.list":
-      case "agent.hire": {
-        const run = this.handlers.runAgentCommand;
-        this.respond(request.id, async () => {
-          if (run === undefined)
-            throw new CommandFailure("command_unsupported", "This core manages no agents.");
-          return run(
-            request.command as string,
-            (request.arguments ?? {}) as Record<string, unknown>,
-          );
-        });
-        return;
-      }
-      case "workspace.retire":
-        // An invalid ID fails this request alone, never the link.
-        this.respond(request.id, async () =>
-          this.handlers.retireWorkspace(workspaceIdArgument(request.arguments)),
-        );
-        return;
-      default:
-        this.track(request.id, () =>
-          this.handlers.startWorkspace(request.arguments as Record<string, unknown>),
-        );
-    }
+    const answer = commandAnswer(
+      this.handlers,
+      request.command as string,
+      (request.arguments ?? {}) as Record<string, unknown>,
+    );
+    if (answer.kind === "launch") this.track(request.id, answer.run);
+    else this.respond(request.id, answer.run);
   }
 
   private page(request: Request): void {
@@ -378,11 +313,4 @@ export class CoreLinkServer {
   private annotated(content: HostedDecodedContent): HostedDecodedContent {
     return withoutShellOutput(this.handlers.annotate?.(content) ?? content);
   }
-}
-
-/** The `workspaceId` argument of a workspace command, or a failure the session host can show. */
-function workspaceIdArgument(arguments_: unknown): string {
-  const value = (arguments_ as Record<string, unknown> | undefined)?.workspaceId;
-  if (typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/u.test(value)) return value;
-  throw new CommandFailure("workspace_not_found", "The workspace ID is invalid.");
 }

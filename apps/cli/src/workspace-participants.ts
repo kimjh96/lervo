@@ -35,20 +35,40 @@ export async function resolveParticipants(
       "participant_invalid",
       `participants is 1 to ${MAXIMUM_PARTICIPANTS} distinct agent IDs.`,
     );
-  const agents = await listAgents(repositoryRoot, { readOnly: true });
-  const delegation =
-    (await loadConvergenceDelegation(repositoryRoot).catch(() => null))?.delegation ?? null;
-  const lervos = lervoAgentIds(agents, delegation);
-  for (const id of requested as string[]) {
-    const agent = agents.find((item) => item.agentId === id);
-    const lervo = agent?.origin === "lervo" || (agent?.origin === undefined && lervos.has(id));
-    if (agent === undefined || agent.status !== "active" || lervo)
+  const team = await teamAgents(repositoryRoot);
+  for (const id of requested as string[])
+    if (!team.some((agent) => agent.agentId === id))
       throw new CommandFailure(
         "participant_invalid",
         `${id} is not an active agent of the project's team.`,
       );
-  }
   return { agentId: requested[0] as string, participants: requested as string[] };
+}
+
+/** One active agent of the project's team, as a conversation names it. */
+export interface TeamAgent {
+  readonly agentId: string;
+  readonly displayName: string;
+}
+
+/**
+ * The project's active team agents, in the order they were hired. Lervo's own agents are never
+ * part of the team (ADR-0643): those that record their origin, and older records the core
+ * recognizes as Lervo's.
+ */
+export async function teamAgents(repositoryRoot: string): Promise<TeamAgent[]> {
+  const agents = await listAgents(repositoryRoot, { readOnly: true });
+  const delegation =
+    (await loadConvergenceDelegation(repositoryRoot).catch(() => null))?.delegation ?? null;
+  const lervos = lervoAgentIds(agents, delegation);
+  return agents
+    .filter(
+      (agent) =>
+        agent.status === "active" &&
+        agent.origin !== "lervo" &&
+        !(agent.origin === undefined && lervos.has(agent.agentId)),
+    )
+    .map((agent) => ({ agentId: agent.agentId, displayName: agent.displayName }));
 }
 
 /**
