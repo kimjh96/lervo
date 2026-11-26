@@ -112,6 +112,8 @@ describe("Claude Code stream decoding", () => {
           status: "succeeded",
           calls: 1,
           detail: { subject: { kind: "path", text: "notes/a.txt" }, counts: { lines: 1 } },
+          // The call's ID stays in the core, which joins it to the claim Lervo made for it.
+          toolUseId: "toolu_1",
         },
         createdAtMs: 7,
       },

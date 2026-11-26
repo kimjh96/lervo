@@ -38,6 +38,7 @@ import { resolveTerminalRoots } from "./terminal-roots.js";
 import { requestOpenTerminalTurnSettlement } from "./terminal-turn-settlement.js";
 import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
 import { roomBlock } from "./room-context.js";
+import { recordClaimLogEntry } from "./claim-log.js";
 import { answerPreToolUse, claimReading, unclaimed, writingSessionOf } from "./write-claims.js";
 
 export function runTerminalHookCommand(
@@ -106,6 +107,7 @@ async function executeTerminalHookCommand(
           fallbackDirectory: io.cwd,
           writing: (session) => writingSessionOf(session),
           claim: unclaimed,
+          record: (entry) => recordClaimLogEntry(entry),
         }),
       );
       return 0;
