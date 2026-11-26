@@ -38,7 +38,7 @@ The core adds a project from one of three sources, each in one command, and then
 - `lervo project show --project <id>` reads the display name and mark, and whether the profile is present, absent, or invalid.
 - `lervo project rename --project <id> --name <text> --write` writes the display name to the profile.
 - `lervo project mark set --project <id> --image <file> --write` and `lervo project mark clear --project <id> --write` set and clear the mark.
-- `lervo repository unregister --project <id> --write` removes this host's registry entry only. It never touches the project's files, worktrees, workspaces, or state. Workspaces of an unregistered project stay on disk and reappear when the project is added again.
+- `lervo repository unregister --project <id> --write` removes this host's registry entry only. It never touches the project's files, worktrees, workspaces, or state. Workspaces of an unregistered project stay on disk and reappear when the project is added again. The host's background knowledge maintenance and upgrades enumerate the registry, so they stop reaching an unregistered project.
 - Rename and mark changes are repository writes under invariant 10: the core writes them at once and reports each as an effect notice (below). They never wait for approval.
 
 ## Provider sign-in
