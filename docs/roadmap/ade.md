@@ -281,7 +281,23 @@ The page now bundles both modules with the main script and checks the permission
 - **Cold start** now meets its target. The two fixes above cut the page's part from 250–330 ms to 119–201 ms. The shell's part before navigation, 216–307 ms, is now the larger one; it covers the application, window, and webview setup.
 - **Idle CPU with a focused field.** The window material adds nothing, so the caret's cost is WebKit's own and splits evenly across the three processes. This WebKit does not support `caret-animation`, the CSS property that would stop the blink. The revised target stands.
 
-**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. What is left is a full run of the harness on an otherwise idle Mac: first paint with the change on branch `ade-first-paint`, streaming, keystroke echo, and the hidden window sampled for 120 seconds.
+**Fourth run (2026-11-27).** The release shell and the scripted core were built from main at `fb7077a6f`, the ADE 0.10.0 code. The Mac was busy, with a load average between 7 and 13, so latency figures may read high.
+
+| Scenario                                        | Result                           | Target                     |
+| ----------------------------------------------- | -------------------------------- | -------------------------- |
+| First paint of the 100,000-item conversation    | 279 ms                           | 100 ms                     |
+| Scrolling it: p95 and longest frame             | 19 ms and 24 ms, none over 50 ms | 60 fps, no task over 50 ms |
+| Streamed delta to the page, p95                 | 18 ms                            | 33 ms                      |
+| Streamed delta to screen, p50 and p95           | 103 ms and 141 ms                | 153 ms                     |
+| Streamed text trailing its arrival, p95 and max | 134 ms and 159 ms                | 137 ms                     |
+| Keystroke to echo, p50 and p95                  | 17 ms and 19 ms                  | 25 ms                      |
+| UI CPU, idle, window hidden, 120 seconds        | 0.042%                           | 0.1%                       |
+
+- **The harness first measured the start screen's card.** Since the conversation became a lazy chunk, it can mount a moment after the click, so the streaming and keystroke scenarios typed into the start screen's field. The streaming scenario then sent nothing. The harness now waits for the conversation's log and its reply card before it types, and the figures above come from the reply card.
+- **Within target:** streaming to the page and to screen, keystroke echo, scrolling, and the hidden window. The trail's maximum missed by 22 ms at a load average of 12, while its p95 met the target.
+- **First paint** missed again, at 279 ms against 100 ms, in line with the earlier 165–324 ms. Marks for each step of the open (`lervo:conversation-open`, `-not-running`, `-opened`, `-attached`, `-page`), which the scenario now reports, showed where the time went. The controller began opening about 300 ms after the click, and everything after that took about 45 ms. The conversation was a `React.lazy` component. A chunk the frame had preloaded still suspended on its first render, and React holds a revealed Suspense boundary back for 300 ms. The conversation now loads through its own loader, which renders a loaded chunk at once. First paint then measured 135 and 143 ms at a load average near 8: the open starts 9–25 ms after the click, and the newest page arrives 44–79 ms after it.
+
+**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. What is left is the first paint of the 100,000-item conversation, now within about 40 ms of its target under load, and the trail's maximum, both to be measured on an idle Mac.
 
 ### S1.6c measurements
 

@@ -3,7 +3,7 @@
 
 use serde_json::json;
 use tauri::webview::{PageLoadEvent, PageLoadPayload};
-use tauri::{Emitter, Manager, Runtime, Webview, WebviewWindow, Window, WindowEvent};
+use tauri::{Emitter, Runtime, Webview, WebviewWindow, Window, WindowEvent};
 
 /// Shows the window. `public/launch.js` calls it as soon as the document's stylesheets have
 /// loaded, which is when the launch view can paint.
@@ -35,6 +35,7 @@ fn show<R: Runtime>(window: Window<R>) {
 /// setting would change it. Release builds ignore it.
 #[cfg(debug_assertions)]
 pub fn apply_development_appearance<R: Runtime>(app: &tauri::App<R>) {
+    use tauri::Manager;
     let theme = match std::env::var("LERVO_ADE_APPEARANCE").as_deref() {
         Ok("light") => tauri::Theme::Light,
         Ok("dark") => tauri::Theme::Dark,
