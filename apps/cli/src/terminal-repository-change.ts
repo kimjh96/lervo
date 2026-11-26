@@ -14,7 +14,7 @@ import type {
   TerminalLifecycleInspection,
   UnmanagedTerminalCoordinates,
 } from "./terminal-hook-contract.js";
-import { lifecycleRepositorySnapshot } from "./terminal-lifecycle-inspection.js";
+import { lifecycleRepositorySnapshot } from "./terminal-lifecycle-snapshot.js";
 import { readPreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js";
 
 /**

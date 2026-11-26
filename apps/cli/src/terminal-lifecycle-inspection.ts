@@ -9,6 +9,7 @@ import {
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
+import { rememberLifecycleRepositorySnapshot } from "./terminal-lifecycle-snapshot.js";
 import { inspectKnowledgeResidentHealth } from "@lervo/repository-knowledge-runtime";
 import {
   inspectTerminalRuntimeActivation,
@@ -41,35 +42,6 @@ export async function terminalTurnDeclarationRequired(root: string): Promise<boo
  * receipts; `checkoutRoot`, a linked worktree when it differs, holds the files, branch, and
  * integration the turn worked on.
  */
-/**
- * The repository snapshot each inspection captured, kept beside its result rather than in it: the
- * result is printed as JSON, and the snapshot holds every file hash. A Stop records the turn's
- * change from it instead of walking the repository a second time.
- */
-const capturedSnapshots = new WeakMap<
-  TerminalLifecycleInspection,
-  { root: string; snapshot: Awaited<ReturnType<typeof captureTerminalRepositorySnapshot>> }
->();
-
-/** Records the snapshot `inspection` captured of `root`. */
-export function rememberLifecycleRepositorySnapshot(
-  inspection: TerminalLifecycleInspection,
-  root: string,
-  snapshot: Awaited<ReturnType<typeof captureTerminalRepositorySnapshot>>,
-): TerminalLifecycleInspection {
-  capturedSnapshots.set(inspection, { root, snapshot });
-  return inspection;
-}
-
-/** The snapshot `inspection` captured of `root`, or undefined for another root. */
-export function lifecycleRepositorySnapshot(
-  inspection: TerminalLifecycleInspection,
-  root: string,
-): Awaited<ReturnType<typeof captureTerminalRepositorySnapshot>> | undefined {
-  const captured = capturedSnapshots.get(inspection);
-  return captured?.root === root ? captured.snapshot : undefined;
-}
-
 export async function inspectTerminalLifecycle(
   root: string,
   expected?: PreparedTerminalTurnExpectation,
