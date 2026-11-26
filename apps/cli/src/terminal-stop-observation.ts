@@ -1,4 +1,4 @@
-import { lifecycleRepositorySnapshot } from "./terminal-lifecycle-inspection.js";
+import { lifecycleRepositorySnapshot } from "./terminal-lifecycle-snapshot.js";
 import { openProjectStorage } from "@lervo/project-storage";
 import { gitHeadRevision } from "./terminal-repository-revision.js";
 import {
