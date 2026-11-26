@@ -25,17 +25,24 @@
   outline-offset: var(--focus-ring-offset);
 }
 
-/* Each mark after the first overlaps the one before, with a ring of the card's surface. */
+/* Each mark after the first overlaps the one before. The one before is cut away around it, a
+   transparent gap rather than a painted ring, so the marks part cleanly on any surface, the
+   glass included. */
 .marks {
   display: inline-flex;
 }
 
-.marks > * {
-  box-shadow: 0 0 0 var(--border-width-strong) var(--color-surface-input);
+.marks > * + * {
+  margin-inline-start: calc(var(--space-4) * -1);
 }
 
-.marks > * + * {
-  margin-inline-start: calc(var(--space-6) * -1);
+.marks > :not(:last-child) {
+  mask-image: radial-gradient(
+    circle calc(var(--size-mark-sm) / 2 + var(--border-width-strong)) at
+      calc(var(--size-mark-sm) * 1.5 - var(--space-4)) 50%,
+    transparent 99%,
+    currentcolor 100%
+  );
 }
 
 .names {
