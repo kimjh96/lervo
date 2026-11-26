@@ -4,8 +4,14 @@
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import type { HostedSessionAdapter, HostedTerminalHooks } from "@lervo/adapter-contract";
 import {
+  answersClaims,
+  type HostedSessionAdapter,
+  type HostedTerminalHookEvent,
+  type HostedTerminalHooks,
+} from "@lervo/adapter-contract";
+import {
+  claimHandlerCovered,
   missingTerminalHookEvents,
   PROVIDERS,
   providerHookSettingsFiles,
@@ -59,17 +65,20 @@ function terminalProvider(provider: string): TerminalIntegrationProvider | null 
 
 /**
  * What a hosted launch's settings file proves it added: the plan's events whose handlers in the
- * written `settings` run the plan's command. Nothing, when the adapter wrote none of them.
+ * written `settings` run the plan's command, or its claim command for `PreToolUse`. Nothing, when
+ * the adapter wrote none of them.
  */
 export function writtenTerminalHooks(
   plan: HostedTerminalHookPlan,
   settings: { readonly content: string } | null,
 ): { events: string[]; via: HostedTerminalHookPlan["via"] } | undefined {
   if (settings === null) return undefined;
+  const commands =
+    plan.claimCommand === undefined ? [plan.command] : [plan.command, plan.claimCommand];
   const running = new Set(
-    terminalHookEventsRunning(settings.content, plan.command).map(
-      (event) => `${event.name}\0${event.matcher ?? ""}`,
-    ),
+    commands
+      .flatMap((command) => terminalHookEventsRunning(settings.content, command))
+      .map((event) => `${event.name}\0${event.matcher ?? ""}`),
   );
   const events = plan.events
     .filter((event) => running.has(`${event.name}\0${event.matcher ?? ""}`))
@@ -81,6 +90,8 @@ export function writtenTerminalHooks(
  * The terminal hooks a hosted session in `worktree` needs: a handler for each event no merged
  * settings file covers with Lervo's hook, or undefined when every event is covered or the
  * adapter takes no hooks. They run `terminalHookCommandOf`'s command, and the plan says which.
+ * With `claims`, the session also claims its writes: the plan adds the claim handler for the
+ * adapter's tools when no merged file runs it (Lervo ADE coordination, "Where the handler runs").
  */
 export async function hostedTerminalHooks(
   adapter: HostedSessionAdapter,
@@ -90,6 +101,8 @@ export async function hostedTerminalHooks(
     environment?: NodeJS.ProcessEnv;
     home?: string;
     platform?: NodeJS.Platform;
+    /** Whether the worktree's conversation claims its paths. */
+    claims?: boolean;
   } = {},
 ): Promise<HostedTerminalHookPlan | undefined> {
   const provider = terminalProvider(adapter.provider);
@@ -106,13 +119,22 @@ export async function hostedTerminalHooks(
     (text): text is string => text !== null,
   );
   const repositoryLauncher = await isFile(resolve(worktree, TERMINAL_HOOK_RUNTIME_PATH));
-  const missing = missingTerminalHookEvents(provider, settings, repositoryLauncher);
-  if (missing.length === 0) return undefined;
-  const events = missing.map((event) => ({
-    name: event.name as HostedTerminalHooks["events"][number]["name"],
+  const events: HostedTerminalHookEvent[] = missingTerminalHookEvents(
+    provider,
+    settings,
+    repositoryLauncher,
+  ).map((event) => ({
+    name: event.name as HostedTerminalHookEvent["name"],
     ...(event.matcher === undefined ? {} : { matcher: event.matcher }),
   }));
-  return { ...(await terminalHookCommandOf(provider, options)), events };
+  const claims = options.claims === true && answersClaims(adapter) ? adapter.claimTools : null;
+  if (claims !== null && !claimHandlerCovered(settings, claims))
+    events.push({ name: "PreToolUse", matcher: claims });
+  if (events.length === 0) return undefined;
+  const { command, via } = await terminalHookCommandOf(provider, options);
+  return events.some((event) => event.name === "PreToolUse")
+    ? { command, events, via, claimCommand: `${command} --claim` }
+    : { command, events, via };
 }
 
 /**
