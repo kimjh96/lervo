@@ -27,7 +27,7 @@ mod apple {
 
     use block2::RcBlock;
     use objc2::runtime::Bool;
-    use objc2_foundation::{NSError, NSString};
+    use objc2_foundation::{NSBundle, NSError, NSString};
     use objc2_user_notifications::{
         UNAuthorizationOptions, UNMutableNotificationContent, UNNotificationRequest,
         UNUserNotificationCenter,
@@ -54,6 +54,9 @@ mod apple {
     /// system adds it to Notification Center without a banner, and the workspace list shows the
     /// same change.
     pub fn show(title: &str, body: &str) {
+        if !bundled() {
+            return;
+        }
         let (title, body) = (title.to_owned(), body.to_owned());
         let answered = RcBlock::new(move |granted: Bool, _error: *mut NSError| {
             if granted.as_bool() {
@@ -65,6 +68,13 @@ mod apple {
                 UNAuthorizationOptions::Alert,
                 &answered,
             );
+    }
+
+    /// Whether Lervo runs from its app bundle. Outside one, such as a development build run
+    /// straight from its target folder, the User Notifications framework throws when asked for
+    /// its center, which ends the process; such a build shows no notifications instead.
+    fn bundled() -> bool {
+        NSBundle::mainBundle().bundleIdentifier().is_some()
     }
 
     fn deliver(title: &str, body: &str) {

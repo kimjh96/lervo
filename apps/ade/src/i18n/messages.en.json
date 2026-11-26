@@ -151,6 +151,26 @@
     "defaultMessage": "Remove {name}",
     "description": "The accessible name of the button that takes an attached file out of the next message."
   },
+  "conversation.files.size.B": {
+    "defaultMessage": "{value} B",
+    "description": "A file's size on its chip; {value} is the number in the locale's format."
+  },
+  "conversation.files.size.GB": {
+    "defaultMessage": "{value} GB",
+    "description": "A file's size on its chip; {value} is the number in the locale's format."
+  },
+  "conversation.files.size.KB": {
+    "defaultMessage": "{value} KB",
+    "description": "A file's size on its chip; {value} is the number in the locale's format."
+  },
+  "conversation.files.size.MB": {
+    "defaultMessage": "{value} MB",
+    "description": "A file's size on its chip; {value} is the number in the locale's format."
+  },
+  "conversation.files.size.TB": {
+    "defaultMessage": "{value} TB",
+    "description": "A file's size on its chip; {value} is the number in the locale's format."
+  },
   "conversation.files.tooMany": {
     "defaultMessage": "A message takes up to {files} files.",
     "description": "Under the card when more files were pasted or dropped than one message carries; {files} is the limit."
@@ -1230,6 +1250,10 @@
   "room.paused": {
     "defaultMessage": "Agents paused at {limit} turns in 10 minutes. The agent that started the exchange summarizes it; reply to start again.",
     "description": "A room line: agent-to-agent mentions reached the exchange budget."
+  },
+  "room.rejoinFailed": {
+    "defaultMessage": "Lervo could not reopen an agent's session here ({code}).",
+    "description": "A room line: a joined agent's session could not be resumed when the conversation opened; {code} is the protocol code."
   },
   "start.error.application_unavailable": {
     "defaultMessage": "Lervo is not reachable on this computer.",

@@ -94,6 +94,11 @@ export interface TerminalContextAnswer {
    * settle in time. The server serves no other request meanwhile.
    */
   drain?: () => Promise<boolean>;
+  /**
+   * Runs once the hook drained and its launches went out, while the server stays busy; false when
+   * it left work running, which ends the server as an overrun does.
+   */
+  afterDrain?: () => Promise<boolean>;
 }
 
 export function parseTerminalContextRequest(line: string): TerminalContextRequest | null {
@@ -323,7 +328,8 @@ export function startTerminalContextServer(input: {
             // The relay that holds the connection now starts what the records asked for.
             if (relayed && !socket.destroyed)
               socket.end(`${JSON.stringify({ launches: answer.laterLaunches?.() ?? [] })}\n`);
-            return answer.overran || !drained;
+            if (answer.overran || !drained) return true;
+            return (await answer.afterDrain?.().catch(() => true)) === false;
           },
           () => {
             // The in-process hook answers an internal failure with an empty context.

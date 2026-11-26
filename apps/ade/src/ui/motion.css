@@ -13,6 +13,12 @@
   }
 }
 
+@keyframes lervo-rise {
+  from {
+    transform: scale(0.98);
+  }
+}
+
 @keyframes lervo-leave {
   to {
     opacity: 0;

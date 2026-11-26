@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_7b1ff3ff8d0deada79c0a2c8"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Floating glass keeps its blur from the first frame, the floating reply card is edged like other glass, room members reopen without polling, and sizes and lists follow the locale."

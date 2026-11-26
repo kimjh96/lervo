@@ -158,11 +158,17 @@ export function renderMotion(tokens) {
 
 /** The sizes script needs, in pixels, such as the icon sizes components pass to an SVG. */
 export function renderSizes(tokens) {
-  const icon = Object.fromEntries(
-    Object.entries(tokens.size.icon)
-      .filter(([name]) => !name.startsWith("$"))
-      .map(([name, token]) => [name, Number.parseFloat(resolve(tokens, token.$value))]),
+  // The groups that TypeScript lays out with: icons, the spacing scale, and images in a message.
+  const group = (values) =>
+    Object.fromEntries(
+      Object.entries(values)
+        .filter(([name]) => !name.startsWith("$"))
+        .map(([name, token]) => [name, Number.parseFloat(resolve(tokens, token.$value))]),
+    );
+  const body = JSON.stringify(
+    { icon: group(tokens.size.icon), space: group(tokens.space), image: group(tokens.size.image) },
+    null,
+    2,
   );
-  const body = JSON.stringify({ icon }, null, 2);
   return `// Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit.\nexport const sizes = ${body} as const;\n`;
 }

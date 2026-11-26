@@ -55,9 +55,10 @@ describe("files in a message", () => {
   });
 
   it("shows sizes as the chip does", () => {
-    expect(fileSize(512)).toBe("512 B");
-    expect(fileSize(84_000)).toBe("84 KB");
-    expect(fileSize(1_200_000)).toBe("1.2 MB");
-    expect(fileSize(3_000_000_000)).toBe("3 GB");
+    expect(fileSize(512)).toEqual({ value: 512, unit: "B", decimals: 0 });
+    expect(fileSize(84_000)).toEqual({ value: 84, unit: "KB", decimals: 0 });
+    expect(fileSize(1_200_000)).toMatchObject({ unit: "MB", decimals: 1 });
+    expect(fileSize(1_200_000).value).toBeCloseTo(1.2);
+    expect(fileSize(3_000_000_000)).toMatchObject({ value: 3, unit: "GB", decimals: 1 });
   });
 });

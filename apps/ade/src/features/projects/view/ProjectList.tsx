@@ -41,6 +41,7 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
       <ul className={styles.projects}>
         {repositories.map((project, index) => (
           <li key={project.projectId}>
+            {/* motion: Renaming in place */}
             {renaming === project.projectId ? (
               <RenameField
                 project={project}
