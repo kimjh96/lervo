@@ -18,7 +18,7 @@ import {
 } from "@lervo/schemas";
 
 import { capContextBytes, MAXIMUM_COMPACT_CONTEXT_BYTES } from "./terminal-context-budget.js";
-import { prepareTerminalBaseContext } from "./terminal-degraded-context.js";
+import { prepareTerminalBaseParts } from "./terminal-degraded-context.js";
 import { TERMINAL_OBSERVATION_POLICY_VERSION } from "./terminal-event-coordinates.js";
 import {
   TERMINAL_CACHED_BASE_DIRECTORY,
@@ -85,6 +85,9 @@ async function ageMilliseconds(path: string, now: number): Promise<number | null
 interface Marker {
   name: string;
   payload: TerminalContextBaseDeliveredEventPayload | null;
+  /** The random identity the server gave the delivery, once it tried to record it. */
+  id: string | null;
+  content: Record<string, unknown> | null;
 }
 
 /** A marker the launcher may still be writing, which is left for the next prompt. */
@@ -94,9 +97,10 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
   const match = MARKER_NAME.exec(name)!;
   const deliveredAt = Number(match[2]);
   if (content === "" && now - deliveredAt < MARKER_SETTLE_MS) return null;
-  if (now - deliveredAt > MARKER_RETENTION_MS) return { name, payload: null };
+  const dropped = { name, payload: null, id: null, content: null };
+  if (now - deliveredAt > MARKER_RETENTION_MS) return dropped;
   try {
-    const value = JSON.parse(content) as { reason?: unknown; age?: unknown };
+    const value = JSON.parse(content) as { reason?: unknown; age?: unknown; id?: unknown };
     const reason = terminalBaseDeliveryReasons.find((known) => known === value.reason);
     if (
       reason === undefined ||
@@ -104,7 +108,7 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
       (value.age as number) < 0 ||
       (value.age as number) > MAXIMUM_CACHE_AGE_MS
     )
-      return { name, payload: null };
+      return dropped;
     return {
       name,
       payload: {
@@ -112,9 +116,11 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
         cacheAgeMilliseconds: value.age as number,
         deliveredAt: new Date(deliveredAt).toISOString(),
       },
+      id: typeof value.id === "string" && /^[a-f0-9]{32}$/u.test(value.id) ? value.id : null,
+      content: value as Record<string, unknown>,
     };
   } catch {
-    return { name, payload: null };
+    return dropped;
   }
 }
 
@@ -124,7 +130,7 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
  */
 async function sweepOldFiles(directory: string, now: number): Promise<void> {
   for (const name of await readdir(directory)) {
-    if (!/^[a-f0-9]{16}\.(?:turn|json|\d{13}\.\d{1,10}\.unserved)$/u.test(name)) continue;
+    if (!/^[a-f0-9]{16}\.(?:turn|json|retry|\d{13}\.\d{1,10}\.unserved)$/u.test(name)) continue;
     const age = await ageMilliseconds(resolve(directory, name), now);
     if (age !== null && age > MARKER_RETENTION_MS)
       await rm(resolve(directory, name), { force: true });
@@ -141,8 +147,15 @@ export interface TerminalCachedBasePorts {
   roots: (cwd: string) => Promise<{ evidenceRoot: string; executionRoot: string }>;
   /** Whether a workspace that is not removed claims the checkout. */
   claimed: (executionRoot: string) => Promise<boolean>;
-  /** Prepares the base by `deadline`, a `performance.now()` time. */
-  prepare: (evidenceRoot: string, executionRoot: string, deadline: number) => Promise<string[]>;
+  /**
+   * Prepares the base by `deadline`, a `performance.now()` time; `abandoned` says a read reached
+   * the deadline and may still be running.
+   */
+  prepare: (
+    evidenceRoot: string,
+    executionRoot: string,
+    deadline: number,
+  ) => Promise<{ lines: string[]; abandoned: boolean }>;
   openStorage: (evidenceRoot: string) => Promise<DeliveryStorage>;
 }
 
@@ -155,7 +168,7 @@ const defaultPorts: TerminalCachedBasePorts = {
     );
   },
   prepare: (evidenceRoot, executionRoot, deadline) =>
-    prepareTerminalBaseContext(evidenceRoot, deadline, executionRoot),
+    prepareTerminalBaseParts(evidenceRoot, deadline, 2048, executionRoot),
   openStorage: openProjectStorage,
 };
 
@@ -168,9 +181,10 @@ async function markerNames(directory: string, key: string): Promise<string[]> {
 }
 
 /**
- * Records the checkout's delivery markers at writer schema 14. Each is removed before it is
- * recorded, so a server that exits in between loses a delivery rather than recording it twice:
- * the count stays a lower bound.
+ * Records the checkout's delivery markers at writer schema 14. Each delivery gets a random
+ * identity, written into its marker before the record, so a marker that a failed removal or an
+ * exit left behind is recognised and never recorded twice, and no identity reveals the checkout.
+ * A marker stays until it was recorded or proved unrecordable, so a busy store only delays it.
  */
 async function recordDeliveries(
   directory: string,
@@ -190,9 +204,15 @@ async function recordDeliveries(
     const marker = parseMarker(name, content, now);
     if (marker !== null) markers.push(marker);
   }
-  // A marker an older writer cannot record, or one too old or malformed, is dropped unrecorded.
-  await Promise.all(markers.map((marker) => rm(resolve(directory, marker.name), { force: true })));
   const recordable = markers.filter((marker) => marker.payload !== null);
+  for (const marker of recordable)
+    if (marker.id === null) {
+      marker.id = randomUUID().replaceAll("-", "");
+      await writeAtomically(
+        resolve(directory, marker.name),
+        JSON.stringify({ ...marker.content, id: marker.id }),
+      );
+    }
   let recorded = 0;
   if (recordable.length > 0) {
     const storage = await open();
@@ -200,7 +220,8 @@ async function recordDeliveries(
       if ((storage.writableEventSchemaVersion ?? 1) >= baseDeliveryEventSchemaVersion) {
         storage.events.transact((transaction) => {
           for (const marker of recordable) {
-            const id = randomUUID().replaceAll("-", "");
+            const id = marker.id!;
+            if (storage.events.get(`evt_${id}`) !== null) continue;
             transaction.append({
               eventId: `evt_${id}`,
               projectId: storage.manifest.projectId,
@@ -213,18 +234,20 @@ async function recordDeliveries(
               policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
               payload: marker.payload!,
             });
+            recorded += 1;
           }
         });
-        recorded = recordable.length;
       }
     } finally {
       await storage.close();
     }
   }
+  // Recorded, or one an older writer cannot record, too old, or malformed: dropped either way.
+  await Promise.all(markers.map((marker) => rm(resolve(directory, marker.name), { force: true })));
   return recorded;
 }
 
-/** The base directory is swept at most hourly: every served prompt would otherwise list it. */
+/** Day-old files are swept at most hourly, not at every served prompt. */
 const SWEEP_INTERVAL_MS = 60 * 60_000;
 const lastSweeps = new Map<string, number>();
 
@@ -232,10 +255,11 @@ const lastSweeps = new Map<string, number>();
  * After a served prompt drained: records the checkout's pending deliveries, then refreshes its
  * cached base when it is missing or older than five minutes. A checkout a workspace claims gets
  * none, because workspace attachment can block its prompts and a cached answer would skip that.
- * With a fresh base and no markers it only checks two names, so most prompts pay nothing more.
+ * With a fresh base and no markers it stats the base and lists the directory, and does nothing
+ * more.
  *
- * `settled` is false when preparation reached its deadline: the reads it abandoned may still run,
- * and the server must not serve the next hook beside them, so it exits as after an overrun.
+ * `settled` is false when a read reached the preparation deadline: its work may still run, and
+ * the server must not serve the next hook beside it, so it exits as after an overrun.
  */
 export async function keepTerminalCachedBase(input: {
   store: string;
@@ -274,13 +298,33 @@ export async function keepTerminalCachedBase(input: {
     await rm(file, { force: true });
     return { recorded, refreshed: false, settled: true };
   }
-  const deadline = performance.now() + PREPARATION_MS;
-  const lines = await ports.prepare(evidenceRoot, executionRoot, deadline);
-  const settled = performance.now() < deadline;
+  // A checkout whose base could not be prepared waits five minutes before the next attempt, so a
+  // slow or failing store does not restart or hold the server at every prompt.
+  const retry = resolve(directory, `${key}.retry`);
+  const waited = await ageMilliseconds(retry, now());
+  if (waited !== null && waited > -1_000 && waited < REFRESH_AFTER_MS)
+    return { recorded, refreshed: false, settled: true };
+  const { lines, abandoned } = await ports.prepare(
+    evidenceRoot,
+    executionRoot,
+    performance.now() + PREPARATION_MS,
+  );
+  const settled = !abandoned;
   // A base whose owner rules did not load in time would stand for half an hour without them; the
-  // next served prompt tries again instead.
-  if (!lines.some((line) => line.startsWith("Applied owner rules: ")))
+  // next served prompt after the wait tries again instead.
+  if (!lines.some((line) => line.startsWith("Applied owner rules: "))) {
+    await writeAtomically(retry, "").catch(() => undefined);
     return { recorded, refreshed: false, settled };
-  await writeAtomically(file, formatTerminalCachedBase(lines, new Date(now())));
+  }
+  await rm(retry, { force: true });
+  // A base that cannot be written leaves the old one to expire; `settled` still reports reads.
+  const written = await writeAtomically(
+    file,
+    formatTerminalCachedBase(lines, new Date(now())),
+  ).then(
+    () => true,
+    () => false,
+  );
+  if (!written) return { recorded, refreshed: false, settled };
   return { recorded, refreshed: true, settled };
 }

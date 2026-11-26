@@ -12,12 +12,13 @@ All three fields are required, and no other key is kept: the payload screen drop
 
 ## Envelope
 
-The context server records the event, never the launcher. The launcher leaves a private marker. On the next served prompt for the same checkout, the server turns each marker into one event with `actor.kind: system`. Each event gets a fresh `run_basedelivery_<id>` run and `ses_basedelivery_<id>` session, so it is never attributed to the session that was served. It carries no prompt, path, provider session, or turn identity.
+The context server records the event, never the launcher. The launcher leaves a private marker. On the next served prompt for the same checkout, the server turns each marker into one event with `actor.kind: system`. Each event gets a random `<id>`, written into its marker before the record, which names the event, its `run_basedelivery_<id>` run, and its `ses_basedelivery_<id>` session. So it is never attributed to the session that was served, and a marker that survived its record is not recorded twice. It carries no prompt, path, provider session, or turn identity.
 
 ## Failure meaning
 
 - The writer records the event only at schema 14 or later. Below 14, the server removes markers without recording them.
 - A marker older than 24 hours, a malformed one, or one whose reason or age falls outside the closed shape is removed without being recorded. It never fails the served prompt.
-- Markers are recorded only when the same checkout is served again. Any served prompt removes markers older than 24 hours, whatever checkout they name, so a count of these events is a lower bound.
+- Markers are recorded only when the same checkout is served again. A served prompt removes markers older than 24 hours at most hourly, whatever checkout they name, so a count of these events is a lower bound.
+- A store that cannot record leaves the markers for a later prompt.
 - The server leaves an empty marker younger than 10 seconds alone, because the launcher may still be writing it.
-- A turn answered this way records no prepared context, and its Stop records nothing. This event is the only trace that the turn happened.
+- A turn answered this way records no prepared context, and its Stop records nothing. This event is the only trace that the turn happened, unless it follows an interrupted turn, whose settlement at the next prepared prompt includes its edits.

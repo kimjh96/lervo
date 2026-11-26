@@ -5,7 +5,11 @@ import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
 
 import { TERMINAL_AGENTS_POINTER } from "./terminal-compact-format.js";
 import { capContextBytes } from "./terminal-context-budget.js";
-import { TERMINAL_HOOK_BUDGET_MS, withinTerminalDeadline } from "./terminal-hook-budget.js";
+import {
+  TERMINAL_HOOK_BUDGET_MS,
+  TerminalHookFailure,
+  withinTerminalDeadline,
+} from "./terminal-hook-budget.js";
 import { terminalPublicationInstruction } from "./terminal-publication-instruction.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
@@ -19,7 +23,8 @@ export async function prepareTerminalBaseContext(
 }
 
 /**
- * The base lines and the owner-rule sections packed into them, within `ruleBytes`. Owner rules and
+ * The base lines and the owner-rule sections packed into them, within `ruleBytes`. `abandoned`
+ * says a read reached the deadline: its work may still be running. Owner rules and
  * the store come from the repository at `root`; the workstream is the one `checkoutRoot`'s branch
  * continues, which a linked worktree passes.
  */
@@ -28,7 +33,7 @@ export async function prepareTerminalBaseParts(
   remainingBudgetDeadline: number,
   ruleBytes: number,
   checkoutRoot: string = root,
-): Promise<{ lines: string[]; rules: PackedInstructionSection[] }> {
+): Promise<{ lines: string[]; rules: PackedInstructionSection[]; abandoned: boolean }> {
   const deadline = Math.min(
     remainingBudgetDeadline,
     performance.now() + TERMINAL_HOOK_BUDGET_MS / 6,
@@ -55,6 +60,12 @@ export async function prepareTerminalBaseParts(
       }
     }),
   ]);
+  const abandoned = [publication, instructions, workstream].some(
+    (result) =>
+      result.status === "rejected" &&
+      result.reason instanceof TerminalHookFailure &&
+      result.reason.code === "hook_deadline_exceeded",
+  );
   const lines = [TERMINAL_AGENTS_POINTER];
   let rules: PackedInstructionSection[] = [];
   if (publication.status === "fulfilled") lines.push(publication.value);
@@ -74,5 +85,5 @@ export async function prepareTerminalBaseParts(
       "If this turn changes repository-authored bytes, record the next bounded revision with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; never ask the user to run bookkeeping.",
     );
   }
-  return { lines, rules };
+  return { lines, rules, abandoned };
 }
