@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { HireNotice } from "../src/features/conversation/view/HireNotice";
+import { StartNotice } from "../src/features/conversation/view/StartNotice";
 
 import { startWork } from "../src/features/start/model/start";
 import { useStartStore } from "../src/features/start/model/store";
@@ -183,12 +183,54 @@ describe("starting work in a team without a Product Owner", () => {
       createElement(
         IntlProvider,
         { locale: "en", messages: messagesFor("en") },
-        createElement(HireNotice, { code: "agent_headcount_exceeded" }),
+        createElement(StartNotice, {
+          without: "product_owner",
+          code: "agent_headcount_exceeded",
+        }),
       ),
     );
     expect(html).toContain("Lervo");
     expect(html).toContain(
       "This work started without a Product Owner, because Lervo could not hire one (agent_headcount_exceeded).",
+    );
+  });
+
+  it("keeps the failed step when the core could not set up the work's coordination", async () => {
+    const host = commands();
+    const started = startWork(host.fake, draft, "web");
+    host.finish()?.resolve({
+      workspaceId: "wks_1",
+      coordination: { status: "unavailable", code: "coordination_unavailable", cause: "enoent" },
+    });
+    await started;
+    expect(useStartStore.getState().pending?.coordinationFailure).toBe("enoent");
+    // Active or inactive coordination, and an older core's result, say nothing.
+    for (const coordination of [
+      { status: "active" },
+      { status: "inactive", code: "coordination_inactive" },
+      undefined,
+    ]) {
+      const again = commands();
+      const restarted = startWork(again.fake, draft, "web");
+      again.finish()?.resolve({
+        workspaceId: "wks_1",
+        ...(coordination === undefined ? {} : { coordination }),
+      });
+      await restarted;
+      expect(useStartStore.getState().pending?.coordinationFailure).toBeNull();
+    }
+    const html = renderToStaticMarkup(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: messagesFor("en") },
+        createElement(StartNotice, {
+          without: "coordination",
+          code: "enoent",
+        }),
+      ),
+    );
+    expect(html).toContain(
+      "This work writes without claiming its paths, because Lervo could not set up its coordination (enoent).",
     );
   });
 });

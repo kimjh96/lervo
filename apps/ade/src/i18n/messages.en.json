@@ -1223,6 +1223,10 @@
     "defaultMessage": "The agent's turn ended without finishing ({subtype}).",
     "description": "Claude Code's result did not succeed."
   },
+  "notice.start.coordination_unavailable": {
+    "defaultMessage": "This work writes without claiming its paths, because Lervo could not set up its coordination ({code}).",
+    "description": "A Lervo notice at the top of new work when the core could not create the conversation's assignment or workspace record, so other conversations are not kept from its paths; {code} is the failed step's code."
+  },
   "notice.start.hire_failed": {
     "defaultMessage": "This work started without a Product Owner, because Lervo could not hire one ({code}).",
     "description": "A Lervo notice at the top of new work when the Product Owner the start card proposed could not be hired; {code} is the protocol code."

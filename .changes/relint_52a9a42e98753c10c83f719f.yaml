@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_52a9a42e98753c10c83f719f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A conversation whose coordination is active writes Lervo's claim handler into its worktree's local Claude Code settings, and a reopened claiming conversation adds the handler when its worktree lost it. The coordination gate stays closed in this release."
