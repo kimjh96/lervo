@@ -141,6 +141,12 @@ The targets of one hook request are claimed in one transition, all or none. Reco
 
 A conversation assignment holds at most 10,000 entries, the bound of a sealed result's changed paths, instead of the 128 that bound other assignments. Past that, Lervo coalesces as a last resort: the candidates are the directories, below the root, that hold a new path or an entry. Lervo takes the deepest candidate that covers at least two entries and overlaps no other holder, breaking ties by path order, replaces the entries below it, and repeats until the set fits. When no candidate fits, the claim is refused with `lease_path_limit`.
 
+A coalesced directory also stays inside the lead's responsibility paths, so coalescing never takes a path that a claim could not. A widened record that would pass 1.5 MiB is refused with `lease_path_limit` too, which leaves room below the workforce's 2 MiB state-file bound for the assignment's later writes. Reconciliation past the bound claims none of a chunk's conflict-free part (below) rather than an arbitrary share of it. A claim moves the expiry to 10 minutes from now and never shortens a longer renewal. A claim of paths the lease already holds renews it with `assignment.lease.renewed` when less than 5 minutes remain, because `assignment.lease.widened` always adds at least one entry.
+
+Released readers accept at most 128 expected paths, so slice 1 writes at most 128 entries into a conversation's lease and coalesces at 128, while its readers accept 10,000. A later release raises the write bound to 10,000 once every reader in the fleet reads it. One widening call judges at most 2,000 paths in one scheduler lock hold; a larger reconciliation runs in chunks of 2,000, each its own hold. A call records at most 32 `assignment.claim.refused` events and counts the rest.
+
+Each refused path and holder records one `assignment.claim.refused`. A refusal whose event fails still stops its write: the transition reports the failed event rather than allowing the write.
+
 ## Conflicts
 
 The core judges conflicts in one place, for every claim: a conversation's claim, reconciliation, and `claimAssignment` for every other assignment, including Lervo's own agents. A path conflicts when, at that moment:

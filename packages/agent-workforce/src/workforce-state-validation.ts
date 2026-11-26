@@ -1,8 +1,5 @@
 import { validConvergenceProvenance } from "./assignment-convergence-state.js";
-import {
-  isAssignmentAmendmentCoordinate,
-  repositoryPathScopesOverlap,
-} from "@lervo/work-controller";
+import { isAssignmentAmendmentCoordinate } from "@lervo/work-controller";
 import {
   AgentWorkforceError,
   type WorkforceAgent,
@@ -18,6 +15,7 @@ import {
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
 import { validAgentDisplayName } from "./agent-display-identity.js";
+import { maximumExpectedPaths } from "./assignment-path-bounds.js";
 import { workforceLimits } from "./limits.js";
 import { validWorkforceRoutineProvenance } from "./assignment-routine-state.js";
 import { validWorkforceTopologyProvenance } from "./assignment-topology-state.js";
@@ -274,7 +272,7 @@ export function validAssignment(value: unknown, projectId: string): value is Wor
     boundedStrings(item.acceptanceCriteria, 32) &&
     boundedStrings(item.verificationSuiteIds, 32) &&
     boundedStrings(item.approvalRequirements, 32) &&
-    boundedStrings(item.expectedPaths, 128) &&
+    boundedStrings(item.expectedPaths, maximumExpectedPaths(item.taskType)) &&
     item.expectedPaths.every(safePath) &&
     (item.accessMode === undefined || ["read_only", "write"].includes(item.accessMode)) &&
     (item.accessMode !== "read_only" ||
@@ -312,8 +310,4 @@ export function validAssignment(value: unknown, projectId: string): value is Wor
     validTime(item.createdAt) &&
     validTime(item.updatedAt)
   );
-}
-
-export function overlaps(left: string[], right: string[]): boolean {
-  return left.some((a) => right.some((b) => repositoryPathScopesOverlap(a, b)));
 }
