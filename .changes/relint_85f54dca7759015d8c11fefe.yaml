@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_85f54dca7759015d8c11fefe"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "An agent paused or retired while a conversation runs is no longer mentioned there: each turn rereads the conversation's team before it ends."
