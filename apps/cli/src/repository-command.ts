@@ -9,6 +9,7 @@ import {
   registerRepository,
   RepositoryRegistryError,
   resolveRegisteredRepository,
+  unregisterRepository,
 } from "@lervo/repository-registry";
 
 import { onboardKnowledgeContinuity } from "./knowledge-continuity-onboarding.js";
@@ -25,6 +26,7 @@ export const repositoryUsage = [
   "  lervo repository register --root <absolute-path> [--registry <absolute-path>] --write [--json]",
   "  lervo repository list [--registry <absolute-path>] [--json]",
   "  lervo repository resolve --project <project-id> [--registry <absolute-path>] [--json]",
+  "  lervo repository unregister --project <project-id> [--registry <absolute-path>] --write [--json]",
   "  lervo repository node plan --root <absolute-path> --node <node-id> --destination <destination-id> --runtime-version <semver> --manager <systemd|launchd> [--registry <absolute-path>] [--home <absolute-path>] [--json]",
   "  lervo repository node apply --root <absolute-path> --node <node-id> --destination <destination-id> --runtime-version <semver> --manager <systemd|launchd> --config <absolute-path> --apply <plan-id> --write [--transition-legacy] [--registry <absolute-path>] [--home <absolute-path>] [--json]",
   "  lervo repository node status [--registry <absolute-path>] [--home <absolute-path>] [--json]",
@@ -224,7 +226,10 @@ export async function runRepositoryCommand(args: string[], io: CliIo): Promise<n
       return 1;
     }
   }
-  if (parsed.positionals.length !== 1 || !["register", "list", "resolve"].includes(action ?? "")) {
+  if (
+    parsed.positionals.length !== 1 ||
+    !["register", "unregister", "list", "resolve"].includes(action ?? "")
+  ) {
     io.stderr(`The repository action is invalid.\n${repositoryUsage}\n`);
     return 1;
   }
@@ -269,6 +274,27 @@ export async function runRepositoryCommand(args: string[], io: CliIo): Promise<n
         parsed.values.json
           ? `${JSON.stringify({ ...result, knowledgeContinuity }, null, 2)}\n`
           : `Repository ${result.registration.projectId}: ${result.change}\n  ${result.registration.name}\n  ${result.registration.repositoryRoot}\n${knowledgeContinuity === null ? "" : `  knowledge continuity: delegation ${knowledgeContinuity.delegation} · owner-host ${knowledgeContinuity.ownerHost}\n`}`,
+      );
+      return 0;
+    }
+    if (action === "unregister") {
+      if (
+        parsed.values.write !== true ||
+        parsed.values.project === undefined ||
+        parsed.values.root !== undefined
+      )
+        throw new RepositoryRegistryError(
+          "repository_write_required",
+          "Unregistering requires --project and explicit --write.",
+        );
+      const result = await unregisterRepository({
+        registryPath: path,
+        projectId: parsed.values.project,
+      });
+      io.stdout(
+        parsed.values.json
+          ? `${JSON.stringify(result, null, 2)}\n`
+          : `Repository ${result.registration.projectId}: unregistered on this host; its files stay in place.\n`,
       );
       return 0;
     }

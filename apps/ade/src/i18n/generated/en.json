@@ -1805,6 +1805,12 @@
       "value": "Resolved the repository"
     }
   ],
+  "lervo.command.repository.unregister": [
+    {
+      "type": 0,
+      "value": "Removed the project from this Mac's list"
+    }
+  ],
   "lervo.command.research.verify": [
     {
       "type": 0,
