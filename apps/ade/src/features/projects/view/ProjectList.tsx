@@ -1,16 +1,19 @@
+import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { commandModifier } from "../../../platform/keyboard";
 import { PlusIcon } from "../../../ui/icons";
 import { Kbd } from "../../../ui/Kbd";
 import { ListRow } from "../../../ui/ListRow";
+import { PopoverMenu } from "../../../ui/PopoverMenu";
 import { Presence } from "../../../ui/Presence";
 import { StatusDot } from "../../../ui/StatusDot";
 import { type Repository, useWorkspaceStore } from "../../workspaces";
 import { selectProject } from "../model/controller";
 import { projectName, projectsNeedingYou } from "../model/decisions";
 import { useProjectStore } from "../model/store";
-import { addFolder, type ProjectMenuContext, showProjectMenu } from "./project-menu";
+import { type ProjectMenuContext, showProjectMenu } from "./project-menu";
+import { useAddProject } from "./add-project";
 import { ProjectMark } from "./ProjectMark";
 import { RenameField } from "./RenameField";
 import styles from "./ProjectSwitcher.module.css";
@@ -27,6 +30,8 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
   const workspaces = useWorkspaceStore((store) => store.workspaces);
   const statuses = useWorkspaceStore((store) => store.statuses);
   const renaming = useProjectStore((store) => store.renaming);
+  const add = useAddProject();
+  const [menuAt, setMenuAt] = useState<DOMRect | null>(null);
   const needing = projectsNeedingYou(workspaces, statuses);
   const rename = (project: Repository) => {
     if (context.managed) useProjectStore.setState({ renaming: project.projectId });
@@ -89,12 +94,21 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
           <ListRow
             current={false}
             quiet
-            onClick={() => addFolder(context)}
+            onClick={(event) => setMenuAt(event.currentTarget.getBoundingClientRect())}
             leading={<PlusIcon size="md" />}
             label={<FormattedMessage id="projects.add" />}
           />
         ) : null}
       </Presence>
+      {/* motion: Overlays: command palette, menus, popovers */}
+      {menuAt === null ? null : (
+        <PopoverMenu
+          anchor={menuAt}
+          label={intl.formatMessage({ id: "projects.add" })}
+          items={add.items}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
     </div>
   );
 }

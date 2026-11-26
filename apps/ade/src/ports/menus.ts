@@ -2,6 +2,8 @@
 export interface MenuItem {
   readonly text: string;
   readonly run?: () => void;
+  /** The item's keyboard shortcut as the system menu shows it, such as `CmdOrCtrl+O`. */
+  readonly shortcut?: string;
 }
 
 /** The system's context menu, shown at the pointer (Lervo ADE projects, "The switcher"). */

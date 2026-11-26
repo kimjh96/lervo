@@ -9,6 +9,9 @@ const RELEASE_AFTER_MS = 30_000;
  */
 export function shellMenus(): Menus {
   return {
+    // The window shows no new frame for a moment after the system menu closes, so an item never
+    // opens an overlay of the interface: its motion would play unseen. Such choices use the
+    // interface's own menu (`ui/PopoverMenu`).
     async show(items) {
       const { Menu, MenuItem, PredefinedMenuItem } = await import("@tauri-apps/api/menu");
       const built = await Promise.all(
@@ -18,6 +21,7 @@ export function shellMenus(): Menus {
             : MenuItem.new({
                 text: item.text,
                 enabled: item.run !== undefined,
+                ...(item.shortcut === undefined ? {} : { accelerator: item.shortcut }),
                 ...(item.run === undefined ? {} : { action: () => item.run?.() }),
               }),
         ),

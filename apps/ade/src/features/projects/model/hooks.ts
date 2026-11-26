@@ -7,6 +7,7 @@ import {
   useProjectMemory,
 } from "../../../ports";
 import { useWorkspaceStore } from "../../workspaces";
+import type { AddDependencies } from "./add";
 import type { ProjectDependencies } from "./controller";
 import { currentProject } from "./decisions";
 import { useProjectStore } from "./store";
@@ -16,6 +17,16 @@ export function useCurrentProject() {
   const repositories = useWorkspaceStore((store) => store.repositories);
   const selected = useProjectStore((store) => store.selected);
   return currentProject(repositories, selected);
+}
+
+/** The adapters adding a project uses, from the composition root. */
+export function useAddDependencies(): AddDependencies {
+  return {
+    commands: useApplicationCommands(),
+    lists: useListCache(),
+    memory: useProjectMemory(),
+    choosers: useChoosers(),
+  };
 }
 
 /** The adapters the project actions use, from the composition root. */

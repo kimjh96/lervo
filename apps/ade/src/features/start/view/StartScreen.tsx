@@ -9,6 +9,7 @@ import { InlineAlert } from "../../../ui/InlineAlert";
 import { InputCard, InputField } from "../../../ui/InputCard";
 import { Select } from "../../../ui/Select";
 import { Presence } from "../../../ui/Presence";
+import { ViewPresence } from "../../../ui/ViewPresence";
 import { useHostIsCurrent } from "../../connection";
 import {
   attachmentNoticeValues,
@@ -22,6 +23,8 @@ import { chooseProvider, useProviderStore } from "../../providers";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
 import { useStartStore } from "../model/store";
+import { FirstRunWelcome } from "./FirstRunWelcome";
+import { useFirstRun } from "./first-run";
 import styles from "./StartScreen.module.css";
 
 /** The text of each start failure the interface explains; other codes show with their code. */
@@ -42,10 +45,19 @@ const readNothing = () => Promise.reject(new Error("image_not_found"));
  * "5"); other files pasted or dropped wait beside them and go as their paths (file mockup, "5").
  */
 export function StartScreen() {
+  const firstRun = useFirstRun();
+  // Adding the first project changes the view to the usual start screen (ADE motion, "Changing
+  // views").
   return (
-    <ConversationImagesProvider read={readNothing}>
-      <StartForm />
-    </ConversationImagesProvider>
+    <ViewPresence view={firstRun.active ? "first-run" : "start"}>
+      {firstRun.active ? (
+        <FirstRunWelcome />
+      ) : (
+        <ConversationImagesProvider read={readNothing}>
+          <StartForm />
+        </ConversationImagesProvider>
+      )}
+    </ViewPresence>
   );
 }
 
@@ -81,6 +93,8 @@ function StartForm() {
     initialImages: returnedImages,
     initialFiles: returnedFiles,
   });
+  // With no project yet, the card adds the first one.
+  const firstRun = useFirstRun();
   const dragging = useFileDrop(attachments.drop);
   useEffect(() => {
     if (returnedImages.length > 0 || returnedFiles.length > 0)
@@ -169,7 +183,7 @@ function StartForm() {
           </div>
         </InputCard>
         <Presence>
-          {repositories.length === 0 ? (
+          {repositories.length === 0 && !firstRun.managed ? (
             <p className={styles.explain}>
               <FormattedMessage id="start.repository.none" />
             </p>

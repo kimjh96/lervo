@@ -3,6 +3,8 @@
 // "Components"). A new component or variant joins here before it ships.
 import type { ReactNode } from "react";
 
+import { feedbackEntries } from "./entries-feedback";
+
 import { Button } from "../src/ui/Button";
 import { FloatingButton } from "../src/ui/FloatingButton";
 import { IconButton } from "../src/ui/IconButton";
@@ -13,17 +15,14 @@ import { Mark } from "../src/ui/Mark";
 import { ListRow } from "../src/ui/ListRow";
 import { PaneHeader } from "../src/ui/PaneHeader";
 import { StatusDot } from "../src/ui/StatusDot";
-import { Waiting } from "../src/ui/Waiting";
-import { WorkingLine } from "../src/ui/WorkingLine";
 import {
   AttachmentTrayDemo,
   CardDemo,
   FileChipDemo,
   ImageViewerDemo,
-  PresenceDemo,
+  PopoverMenuDemo,
   SegmentedDemo,
   SelectDemo,
-  ViewPresenceDemo,
 } from "./demos";
 
 export interface Variant {
@@ -235,6 +234,14 @@ export const entries: readonly Entry[] = [
     variants: [{ name: "Default", render: () => <Kbd>⌘N</Kbd> }],
   },
   {
+    module: "PopoverMenu",
+    name: "Menu",
+    purpose: "A short list of named actions, hung below the control that opened it.",
+    use: ["A control whose actions open the interface's own windows, such as Add Project"],
+    avoid: ["A project's context menu, which is the system's", "More than about seven items"],
+    variants: [{ name: "Add Project", render: () => <PopoverMenuDemo /> }],
+  },
+  {
     module: "Mark",
     name: "Identity mark",
     purpose: "A project's or an agent's logo, or its first letter on a color chosen by its ID.",
@@ -285,77 +292,7 @@ export const entries: readonly Entry[] = [
       },
     ],
   },
-  {
-    module: "StatusDot",
-    name: "Status dot",
-    purpose: "A workspace's live status, with a text equivalent.",
-    use: ["Working and needs-you only; finished work shows no dot"],
-    avoid: ["Decoration", "Any status without an accessible name"],
-    variants: [
-      { name: "Working", render: () => <StatusDot tone="working" label="Working" /> },
-      { name: "Needs you", render: () => <StatusDot tone="attention" label="Needs you" /> },
-    ],
-  },
-  {
-    module: "WorkingLine",
-    name: "Working line",
-    purpose: "What the agent is doing right now, at the end of the conversation.",
-    use: ["The open conversation while its agent works, or while the core creates its workspace"],
-    avoid: [
-      "Status of a workspace that is not open",
-      "Progress with a known end",
-      "A wait for the person's own action: use Waiting",
-    ],
-    variants: [{ name: "Default", render: () => <WorkingLine label="Writing a reply" /> }],
-  },
-  {
-    module: "Presence",
-    name: "Presence",
-    purpose:
-      "The motion of anything a view shows only sometimes: it fades in over motion.duration.enter and out over motion.duration.leave, so nothing pops in or vanishes.",
-    use: [
-      "A notice, an inline error, the working line, a wait, or a control the core enables",
-      "Every element that comes and goes, unless a motion comment names another catalog row",
-    ],
-    avoid: [
-      "Whole views: use ViewPresence",
-      "Rows that leave a list: keep them with useDeparting, so they fade out where they were",
-    ],
-    variants: [{ name: "Leaving", render: () => <PresenceDemo /> }],
-  },
-  {
-    module: "ViewPresence",
-    name: "View presence",
-    purpose:
-      "The main area's change of views: the old view fades out over motion.duration.leave as a still copy of how it last looked, and the new view fades in over motion.duration.enter, starting halfway through.",
-    use: ["The main area, between the start screen and a workspace, and between workspaces"],
-    avoid: [
-      "A change within one view, such as a button that becomes its wait: use Presence",
-      "Content whose leaving copy must stay interactive: the copy takes no clicks",
-    ],
-    variants: [{ name: "Changing views", render: () => <ViewPresenceDemo /> }],
-  },
-  {
-    module: "Waiting",
-    name: "Waiting",
-    purpose:
-      "What Lervo is doing, where the wait happens: in place of the control an action came from, where a view's content will appear, or in the connection status. It shows after motion.duration.wait.",
-    use: [
-      "An action the person took, named step by step, such as removing a workspace",
-      "A view whose content is opening, such as a conversation",
-      "Reaching the session host",
-    ],
-    avoid: [
-      "An agent's work: use WorkingLine",
-      "Paging within a view: the view keeps its place and the page joins when it arrives",
-      "Text with an ellipsis, Loading, or Please wait",
-      "A spinner, a placeholder that looks like data, or a control left disabled beside it",
-    ],
-    variants: [
-      { name: "An action's step", render: () => <Waiting label="Stopping the session" /> },
-      { name: "A view opening", render: () => <Waiting label="Opening the conversation" /> },
-    ],
-  },
+  ...feedbackEntries,
   {
     module: "PaneHeader",
     name: "Pane header",

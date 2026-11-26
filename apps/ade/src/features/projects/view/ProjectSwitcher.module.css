@@ -79,3 +79,56 @@
     transition: none;
   }
 }
+
+/* "Add project" in place: the row becomes a field, with one quiet line under it that says what
+   Return does. */
+.adder {
+  display: flex;
+  flex-direction: column;
+}
+
+.addRow {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+  padding-block: var(--space-4);
+  padding-inline: var(--space-10) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-selected);
+  box-shadow: var(--shadow-selected);
+}
+
+.addIcon {
+  display: inline-flex;
+  color: var(--color-text-tertiary);
+}
+
+.caption {
+  padding-block: var(--space-4) 0;
+  padding-inline: calc(var(--space-10) + var(--size-mark-sm) + var(--space-10)) var(--space-10);
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}
+
+.named {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.where {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-secondary);
+  font: inherit;
+  background: none;
+  cursor: pointer;
+}
+
+.where:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}

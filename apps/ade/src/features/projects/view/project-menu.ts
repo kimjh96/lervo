@@ -2,7 +2,7 @@ import type { IntlShape } from "react-intl";
 
 import type { Files, MenuItem, Menus } from "../../../ports";
 import type { Repository } from "../../workspaces";
-import { addProjectFolder, chooseMark, clearMark, removeProject } from "../model/changes";
+import { chooseMark, clearMark, removeProject } from "../model/changes";
 import type { ProjectDependencies } from "../model/controller";
 import { useProjectStore } from "../model/store";
 
@@ -58,12 +58,4 @@ export function showProjectMenu(context: ProjectMenuContext, project: Repository
       { text: intl.formatMessage({ id: "projects.menu.remove.note" }) },
     );
   if (items.length > 0) void context.menus.show(items);
-}
-
-/** Opens the folder panel and adds the chosen folder as a project. */
-export function addFolder(context: ProjectMenuContext): void {
-  void addProjectFolder(
-    context.dependencies,
-    context.intl.formatMessage({ id: "projects.add.title" }),
-  );
 }

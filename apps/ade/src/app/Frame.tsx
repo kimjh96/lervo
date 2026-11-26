@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
 import { preloadConversation, WorkspaceConversation } from "../features/conversation";
-import { ProjectSwitcher, useCurrentProject } from "../features/projects";
+import { AddProjectSheet, ProjectSwitcher, useCurrentProject } from "../features/projects";
 import { StartScreen, type Surface, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
 import { WorkspaceList } from "../features/workspaces";
@@ -79,6 +79,7 @@ export function Frame() {
           <Main surface={surface} />
         </ViewPresence>
       </main>
+      <AddProjectSheet />
     </div>
   );
 }

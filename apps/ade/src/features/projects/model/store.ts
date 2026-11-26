@@ -11,6 +11,8 @@ interface ProjectStore {
   readonly renaming: string | null;
   /** The code of the last project change that failed, until the next change. */
   readonly failure: string | null;
+  /** The "Clone Repository" or "New Project" window that is open, if any. */
+  readonly sheet: "clone" | "new" | null;
 }
 
 export const useProjectStore = create<ProjectStore>(() => ({
@@ -19,4 +21,5 @@ export const useProjectStore = create<ProjectStore>(() => ({
   expanded: false,
   renaming: null,
   failure: null,
+  sheet: null,
 }));

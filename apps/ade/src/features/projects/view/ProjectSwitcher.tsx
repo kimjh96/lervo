@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { isCommandKey } from "../../../platform/keyboard";
@@ -20,6 +20,7 @@ import { useCurrentProject, useProjectDependencies } from "../model/hooks";
 import { useProjectStore } from "../model/store";
 import type { ProjectMenuContext } from "./project-menu";
 import type * as Surface from "./surface";
+import { useAddProject } from "./add-project";
 import { ProjectMark } from "./ProjectMark";
 import styles from "./ProjectSwitcher.module.css";
 
@@ -46,6 +47,7 @@ export function ProjectSwitcher() {
   const expanded = useProjectStore((store) => store.expanded);
   const renaming = useProjectStore((store) => store.renaming);
   const failure = useProjectStore((store) => store.failure);
+
   const current = useCurrentProject();
   const { memory } = dependencies;
   const [surface, setSurface] = useState<typeof Surface | null>(null);
@@ -74,6 +76,23 @@ export function ProjectSwitcher() {
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, [memory]);
+
+  // ⌘O opens a folder as a project, as "Open Folder" in the Add Project menu shows.
+  const add = useAddProject();
+  const openFolder = useRef(add.openFolder);
+  useEffect(() => {
+    openFolder.current = add.openFolder;
+  });
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (!isCommandKey(event, "o")) return;
+      if (!managesProjects(useWorkspaceStore.getState().advertisedCommands)) return;
+      event.preventDefault();
+      openFolder.current();
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
 
   if (current === null) return null;
   const elsewhere = [...projectsNeedingYou(workspaces, statuses)].some(

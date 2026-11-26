@@ -1,6 +1,6 @@
 import { failureCode } from "../../../ports";
 import { reloadWorkspaces } from "../../workspaces";
-import { bytesOf, keepMark, type ProjectDependencies, selectProject } from "./controller";
+import { bytesOf, keepMark, type ProjectDependencies } from "./controller";
 import { useProjectStore } from "./store";
 
 // The project changes (Lervo ADE projects, "The switcher"), loaded when the person first asks for
@@ -57,17 +57,4 @@ export async function clearMark(dependencies: ProjectDependencies, projectId: st
 /** Removes the project from this host's list. Its files stay where they are. */
 export async function removeProject(dependencies: ProjectDependencies, projectId: string) {
   await change(dependencies, () => dependencies.commands.run("project.unregister", { projectId }));
-}
-
-/** Opens the folder panel, adds the chosen folder as a project, and selects it. */
-export async function addProjectFolder(
-  dependencies: ProjectDependencies,
-  title: string,
-): Promise<void> {
-  const path = await dependencies.choosers.folder(title);
-  if (path === null) return;
-  const added = await change(dependencies, () =>
-    dependencies.commands.run("project.add", { source: "folder", path }),
-  );
-  if (added !== null) selectProject(dependencies.memory, added.projectId);
 }

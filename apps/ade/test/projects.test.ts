@@ -1,12 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { chooseMark, removeProject, renameProject } from "../src/features/projects/model/changes";
 import {
-  addProjectFolder,
-  chooseMark,
-  removeProject,
-  renameProject,
-} from "../src/features/projects/model/changes";
-import {
+  closeProjectSheet,
+  openProjectSheet,
   type ProjectDependencies,
   refreshMarks,
   restoreProjects,
@@ -134,6 +131,7 @@ beforeEach(() => {
     expanded: false,
     renaming: null,
     failure: null,
+    sheet: null,
   });
 });
 
@@ -266,32 +264,10 @@ describe("project actions", () => {
     expect(deps.ran.some((item) => item.command === "project.mark.read")).toBe(false);
   });
 
-  it("changes nothing when the person cancels a panel", async () => {
+  it("changes nothing when the person cancels the image panel", async () => {
     const deps = dependencies({});
     await chooseMark(deps.value, "prj_a", "Choose a logo");
-    await addProjectFolder(deps.value, "Choose a project folder");
     expect(deps.ran).toEqual([]);
-  });
-
-  it("adds a chosen folder and selects the new project", async () => {
-    const deps = dependencies(
-      {
-        "project.add": ({ path }) => ({
-          projectId: "prj_new",
-          name: "app",
-          displayName: "app",
-          root: path,
-          source: "folder",
-        }),
-      },
-      { folder: "/Users/me/app" },
-    );
-    await addProjectFolder(deps.value, "Choose a project folder");
-    expect(deps.ran[0]).toEqual({
-      command: "project.add",
-      arguments_: { source: "folder", path: "/Users/me/app" },
-    });
-    expect(useProjectStore.getState().selected).toBe("prj_new");
   });
 
   it("records a failed change's code and keeps the lists", async () => {
@@ -349,5 +325,21 @@ describe("marks", () => {
     expect(markLetter("  할 일 앱")).toBe("할");
     expect(markLetter("👩‍💻 team")).toBe("👩‍💻");
     expect(markLetter("")).toBe("?");
+  });
+});
+
+describe("adding a project from the switcher", () => {
+  it("opens the Clone Repository or New Project window without leaving the screen", () => {
+    useWorkspaceStore.setState({ selected: "wsp_1" });
+    useProjectStore.setState({ expanded: true });
+    openProjectSheet("clone");
+    // The open workspace stays: adding a project starts no work.
+    expect(useWorkspaceStore.getState().selected).toBe("wsp_1");
+    expect(useProjectStore.getState()).toMatchObject({ sheet: "clone", expanded: false });
+    closeProjectSheet();
+    expect(useProjectStore.getState().sheet).toBeNull();
+    openProjectSheet("new");
+    selectProject(dependencies({}).value.memory, "prj_a");
+    expect(useProjectStore.getState().sheet).toBeNull();
   });
 });

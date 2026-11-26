@@ -33,10 +33,23 @@ export function restoreProjects(memory: ProjectMemory): void {
  */
 export function selectProject(memory: ProjectMemory, projectId: string): void {
   memory.select(projectId);
-  useProjectStore.setState({ selected: projectId, expanded: false });
+  useProjectStore.setState({ selected: projectId, expanded: false, sheet: null });
   const workspaces = useWorkspaceStore.getState();
   const open = workspaces.workspaces.find((item) => item.workspaceId === workspaces.selected);
   if (open !== undefined && open.projectId !== projectId) workspaces.select(null);
+}
+
+/**
+ * Opens the "Clone Repository" or "New Project" window, which adds a project and starts no work
+ * (Lervo ADE projects, "Adding a project").
+ */
+export function openProjectSheet(kind: "clone" | "new"): void {
+  useProjectStore.setState({ sheet: kind, expanded: false });
+}
+
+/** Closes the "Clone Repository" or "New Project" window. */
+export function closeProjectSheet(): void {
+  if (useProjectStore.getState().sheet !== null) useProjectStore.setState({ sheet: null });
 }
 
 export function bytesOf(data: string): Uint8Array<ArrayBuffer> {

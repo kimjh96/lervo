@@ -1,0 +1,248 @@
+/* The "Clone Repository" and "New Project" windows (Lervo ADE projects, "Adding a project"): a
+   small glass window in the middle of Lervo, over the window blurred behind it, as the image
+   viewer blurs it (ADE motion, "Overlays").
+
+   Nothing here fades as a whole: WebKit draws no backdrop blur under or on an element whose
+   opacity animates. The backdrop's blur eases in by its own radius and its veil fades; the window
+   keeps its glass from the first frame, rises from 0.98, and its content fades. Closing, all of it
+   fades and the blur eases out. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-48);
+}
+
+.blur {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
+  animation: sheet-blur-in var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.veil {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--glass-tint-color) 35%, transparent);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.backdrop[data-closing] {
+  pointer-events: none;
+}
+
+.backdrop[data-closing] .blur {
+  animation: sheet-blur-out var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+.backdrop[data-closing] .veil,
+.backdrop[data-closing] .content {
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+.backdrop[data-closing] .sheet {
+  animation: sheet-sink var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+/* The window is glass: the floating tint over the blurred window, with the window edge's light
+   instead of a dark line, and the window's shadow. */
+.sheet {
+  position: relative;
+  width: var(--layout-panel-width);
+  max-width: 100%;
+  border: 1px solid var(--color-border-window);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-floating);
+  box-shadow: var(--shadow-window);
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
+  animation: sheet-rise var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-20);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--type-body-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-body-line-height);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-caption-line-height);
+}
+
+/* Every control here shares one height and one corner, and reads as a surface on the glass, not
+   as a drawn box. */
+.input,
+.where,
+.primary,
+.secondary {
+  box-sizing: border-box;
+  height: var(--size-control-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--type-list-size);
+}
+
+.input {
+  padding-inline: var(--space-12);
+  color: var(--color-text-primary);
+  background: var(--color-surface-input);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.where {
+  display: inline-flex;
+  gap: var(--space-8);
+  align-items: center;
+  align-self: flex-start;
+  max-width: 100%;
+  padding-inline: var(--space-12) var(--space-10);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-input);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+  cursor: pointer;
+  transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.where:hover:not(:disabled) {
+  background: var(--color-surface-selected);
+}
+
+.whereName {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  justify-content: flex-end;
+  margin-block-start: var(--space-4);
+}
+
+.primary,
+.secondary {
+  min-width: var(--layout-button-min-width);
+  padding-inline: var(--space-16);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-change) var(--motion-easing-standard),
+    opacity var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.primary {
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+}
+
+.primary:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.secondary {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+.secondary:hover {
+  background: var(--color-surface-selected);
+}
+
+.where:focus-visible,
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.failure:empty {
+  display: none;
+}
+
+@keyframes sheet-blur-in {
+  from {
+    backdrop-filter: blur(0) saturate(1);
+  }
+}
+
+@keyframes sheet-blur-out {
+  to {
+    backdrop-filter: blur(0) saturate(1);
+  }
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: scale(0.98);
+  }
+}
+
+/* Closing, the window fades with everything else: its own blur drops as it fades, which no one
+   sees while it leaves. */
+@keyframes sheet-sink {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sheet {
+    background: var(--color-surface-opaque);
+    backdrop-filter: none;
+  }
+}
+
+/* Under reduced motion the window opens and closes at once; script unmounts it without waiting. */
+@media (prefers-reduced-motion: reduce) {
+  .blur,
+  .veil,
+  .sheet,
+  .content,
+  .backdrop[data-closing] .blur,
+  .backdrop[data-closing] .veil,
+  .backdrop[data-closing] .content,
+  .backdrop[data-closing] .sheet {
+    animation: none;
+  }
+}
