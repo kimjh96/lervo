@@ -55,13 +55,17 @@ export async function listGeneratedDurableInstructions(
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return { rules: [], totalCount: 0 };
     throw error;
   }
-  const rules: GeneratedDurableInstruction[] = [];
-  for (const name of names.slice(0, MAXIMUM_LISTED)) {
-    const path = `${GENERATED_DURABLE_INSTRUCTION_DIRECTORY}/${name}`;
-    const content = await boundedRead(resolve(repositoryRoot, path));
-    const ruleTitle = content === null ? null : title(content);
-    if (ruleTitle !== null)
-      rules.push({ ruleId: name.slice(0, -".md".length), path, title: ruleTitle });
-  }
+  // Read together, in name order: every prompt lists these.
+  const listed = await Promise.all(
+    names.slice(0, MAXIMUM_LISTED).map(async (name) => {
+      const path = `${GENERATED_DURABLE_INSTRUCTION_DIRECTORY}/${name}`;
+      const content = await boundedRead(resolve(repositoryRoot, path));
+      const ruleTitle = content === null ? null : title(content);
+      return ruleTitle === null
+        ? null
+        : { ruleId: name.slice(0, -".md".length), path, title: ruleTitle };
+    }),
+  );
+  const rules = listed.filter((rule): rule is GeneratedDurableInstruction => rule !== null);
   return { rules, totalCount: names.length };
 }
