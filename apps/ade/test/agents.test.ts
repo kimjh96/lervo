@@ -115,8 +115,9 @@ describe("the sidebar's agents", () => {
     const elio = { ...agent("Elio", "team"), roleId: "product-owner" };
     const ciel = agent("Ciel", "team");
     expect(defaultParticipants([ciel, elio])).toEqual([elio.agentId]);
-    expect(defaultParticipants([ciel])).toEqual([ciel.agentId]);
-    expect(defaultParticipants([])).toEqual([]);
+    // A team without a Product Owner is offered one that Lervo hires (ADR-0646).
+    expect(defaultParticipants([ciel])).toEqual(["hire:product-owner"]);
+    expect(defaultParticipants([])).toEqual(["hire:product-owner"]);
     expect(toggleParticipant([elio.agentId], ciel.agentId)).toEqual([elio.agentId, ciel.agentId]);
     expect(toggleParticipant([elio.agentId, ciel.agentId], elio.agentId)).toEqual([ciel.agentId]);
     // The last participant stays.

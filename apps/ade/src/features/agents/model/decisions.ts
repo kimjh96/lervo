@@ -11,8 +11,11 @@ export const teamAgents = (agents: readonly AgentSummary[]): AgentSummary[] =>
   agents.filter((agent) => agent.origin === "team");
 
 /** The role "Hire a Product Owner" hires, when the project can hire it. */
+/** The role that leads a project's conversations by default (Lervo ADE agents, "No agents yet"). */
+export const PRODUCT_OWNER_ROLE = "product-owner";
+
 export const productOwnerRole = (roles: readonly HireableRole[]): HireableRole | undefined =>
-  roles.find((role) => role.roleId === "product-owner");
+  roles.find((role) => role.roleId === PRODUCT_OWNER_ROLE);
 
 /** A role's description as one line: its first sentence. */
 export function firstSentence(description: string): string {
@@ -21,14 +24,24 @@ export function firstSentence(description: string): string {
 }
 
 /**
- * The participants a new conversation starts with when the person chose none: the product owner,
- * or else the first team agent, or none in a project without agents (Lervo ADE agents,
- * "Participants and sessions").
+ * The participants a new conversation starts with when the person chose none: the team's product
+ * owner, or else a Product Owner that Lervo hires (ADR-0646; Lervo ADE agents, "Participants and
+ * sessions").
  */
 export function defaultParticipants(team: readonly AgentSummary[]): string[] {
-  const owner = team.find((agent) => agent.roleId === "product-owner") ?? team[0];
-  return owner === undefined ? [] : [owner.agentId];
+  const owner = team.find((agent) => agent.roleId === PRODUCT_OWNER_ROLE);
+  return [owner === undefined ? HIRE_PRODUCT_OWNER : owner.agentId];
 }
+
+/**
+ * The participant that stands for a Product Owner Lervo hires when the work starts, in a project
+ * whose team has none (ADR-0646). It leads unless the person chooses others instead.
+ */
+export const HIRE_PRODUCT_OWNER = "hire:product-owner";
+
+/** Whether the team has no Product Owner, so the start card proposes hiring one. */
+export const proposesProductOwner = (team: readonly AgentSummary[]): boolean =>
+  !team.some((agent) => agent.roleId === PRODUCT_OWNER_ROLE);
 
 /** The chosen participants with one toggled; the last one stays, since a conversation needs one. */
 export function toggleParticipant(chosen: readonly string[], agentId: string): string[] {

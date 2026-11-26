@@ -1,5 +1,9 @@
+export { showProjectAgents } from "./model/controller";
 export {
+  HIRE_PRODUCT_OWNER,
+  PRODUCT_OWNER_ROLE,
   defaultParticipants,
+  proposesProductOwner,
   managesAgents,
   takesParticipants,
   teamAgents,

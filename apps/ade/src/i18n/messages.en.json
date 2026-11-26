@@ -27,6 +27,14 @@
     "defaultMessage": "{names} +{count}",
     "description": "The participants chip with more than two agents: two names, then how many more."
   },
+  "agents.participants.proposedLead": {
+    "defaultMessage": "Product Owner",
+    "description": "The start card's participant in a project without agents: the role Lervo hires to lead the conversation."
+  },
+  "agents.participants.proposedLeadDetail": {
+    "defaultMessage": "Hired when the work starts",
+    "description": "Under the proposed Product Owner in the participants menu, for a team without one."
+  },
   "agents.role": {
     "defaultMessage": " · {role}",
     "description": "After an agent's name in the sidebar: its role, such as \"· Developer\"."

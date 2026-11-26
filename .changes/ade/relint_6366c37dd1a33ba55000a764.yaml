@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6366c37dd1a33ba55000a764"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "A conversation is led by the team's Product Owner by default; in a team without one, the start card proposes a Product Owner that Lervo hires when the work starts."

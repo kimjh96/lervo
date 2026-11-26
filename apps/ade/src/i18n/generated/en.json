@@ -61,6 +61,18 @@
       "value": "count"
     }
   ],
+  "agents.participants.proposedLead": [
+    {
+      "type": 0,
+      "value": "Product Owner"
+    }
+  ],
+  "agents.participants.proposedLeadDetail": [
+    {
+      "type": 0,
+      "value": "Hired when the work starts"
+    }
+  ],
   "agents.role": [
     {
       "type": 0,
