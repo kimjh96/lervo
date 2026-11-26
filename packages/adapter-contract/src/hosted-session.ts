@@ -27,7 +27,15 @@ export interface HostedSessionCapabilities {
   readonly systemPromptFile: boolean;
   /** A session can continue later from its session ID. */
   readonly resume: boolean;
+  /**
+   * A session can run with read access: it reads, searches, and answers, and the provider refuses
+   * every tool that would change the worktree (Lervo ADE rooms, "Participants and their sessions").
+   */
+  readonly readAccess: boolean;
 }
+
+/** What a hosted session may do in its worktree: the lead writes, a joined participant reads. */
+export type HostedSessionAccess = "write" | "read";
 
 /**
  * The conversation a hosted session uses when the user asks for none: the native conversation
@@ -61,6 +69,8 @@ export interface HostedLaunchIntent {
   readonly model?: string;
   /** Lervo's hook handler, for an adapter that declares `hooks`. */
   readonly hooks?: HostedSessionHooks;
+  /** `write` when absent. `read` needs an adapter that declares `readAccess`. */
+  readonly access?: HostedSessionAccess;
 }
 
 /** The process the session host runs. It never carries credentials. */
@@ -111,7 +121,10 @@ export interface HostedSessionAdapter {
 }
 
 export type HostedLaunchErrorCode =
-  "conversation_mode_unsupported" | "resume_unsupported" | "launch_intent_invalid";
+  | "conversation_mode_unsupported"
+  | "resume_unsupported"
+  | "access_unsupported"
+  | "launch_intent_invalid";
 
 /** A launch intent the adapter refuses, with a stable code. */
 export class HostedLaunchError extends Error {
@@ -158,6 +171,11 @@ export function assertHostedLaunchIntent(
     );
   if (intent.start.kind === "resume" && !capabilities.resume)
     throw new HostedLaunchError("resume_unsupported", "This provider cannot resume a session.");
+  if (intent.access === "read" && !capabilities.readAccess)
+    throw new HostedLaunchError(
+      "access_unsupported",
+      "This provider cannot run a session with read access.",
+    );
   if (intent.hooks !== undefined) {
     if (!capabilities.hooks)
       throw new HostedLaunchError(
@@ -230,6 +248,7 @@ export function evaluateHostedSessionContract(
     );
     if (!shown) violations.push(`${adapter.provider}: the decoder does not show the user's text`);
   }
+  violations.push(...readAccessViolations(adapter, workingDirectory, sessionId, instruction));
   for (const [mode, unsupported] of [
     ["native", !adapter.capabilities.nativeConversation],
     ["resume", !adapter.capabilities.resume],
@@ -249,6 +268,40 @@ export function evaluateHostedSessionContract(
     }
   }
   return violations;
+}
+
+/**
+ * A read-access launch differs from the write launch of the same intent, so the provider is told
+ * to refuse changes; an adapter that does not declare `readAccess` refuses it with a code.
+ */
+function readAccessViolations(
+  adapter: HostedSessionAdapter,
+  workingDirectory: string,
+  sessionId: string,
+  instruction: string,
+): string[] {
+  const mode = preferredConversationMode(adapter.capabilities);
+  const intent = {
+    sessionId,
+    mode,
+    workingDirectory,
+    start: { kind: "new", instruction },
+  } as const;
+  if (!adapter.capabilities.readAccess) {
+    try {
+      adapter.prepareLaunch({ ...intent, access: "read" });
+      return [`${adapter.provider}: an undeclared read-access launch did not fail`];
+    } catch (error) {
+      return error instanceof HostedLaunchError && error.code === "access_unsupported"
+        ? []
+        : [`${adapter.provider}: an undeclared read-access launch failed without its code`];
+    }
+  }
+  const write = adapter.prepareLaunch(intent);
+  const read = adapter.prepareLaunch({ ...intent, access: "read" });
+  return JSON.stringify(read.arguments) === JSON.stringify(write.arguments)
+    ? [`${adapter.provider}: readAccess is declared, but a read launch is the write launch`]
+    : [];
 }
 
 /**

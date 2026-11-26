@@ -20,7 +20,7 @@ Agents mention each other directly, choosing by role and by what each has learne
 - A conversation is a workspace with participants ([Lervo ADE agents](ade-agents.md), "Participants and sessions"). The first participant leads: its session writes in the worktree. Every other participant gets its own hosted session in the same worktree when it is first addressed, with read access only. Writing beyond the lead waits for S2h's claims.
 - Rooms need the native conversation mode, where the core decodes each session's output. A conversation in terminal mode keeps one agent.
 - An agent's session carries its identity (`LERVO_AGENT_ID`) and its own context, so each agent answers from what it has seen and learned rather than from a shared transcript.
-- The hosted launch record keeps each participant's session: `sessions`, each with `agentId`, `sessionId`, and `access` (`write` for the lead, `read` otherwise). `workspace.list` reports them.
+- Each participant's session has its own hosted launch record, with `agentId` and, for an agent that joined, `access: read`. The lead's record alone continues the conversation, so a joined agent's newer record never reopens as the conversation. `workspace.list` reports `participants`, those the conversation started with and then those who joined, and `sessions`, each with `agentId`, `sessionId`, and `access`, the lead's first. A conversation holds at most 16 agents.
 
 ## Routing
 

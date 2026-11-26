@@ -17,6 +17,7 @@ import { retireHostedWorkspace } from "./hosted-workspace-retire.js";
 import { hostedWorkspaceRetireEffects } from "./hosted-workspace-retire-effects.js";
 import { withLervoCall } from "./lervo-command-detail.js";
 import { summarizeWorkspaceTurns } from "./turn-summary-service.js";
+import { joinWorkspaceRoom, routeRoomTurn } from "./workspace-room.js";
 
 const transcripts = new WorkspaceTranscripts();
 
@@ -53,6 +54,8 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   listProviders: () => listHostedProviders(),
   runProjectCommand: runCoreLinkProjectCommand,
   runAgentCommand: runCoreLinkAgentCommand,
+  joinRoom: joinWorkspaceRoom,
+  routeRoom: routeRoomTurn,
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,
   readTranscript: (workspaceId, offset, limit) => transcripts.read(workspaceId, offset, limit),

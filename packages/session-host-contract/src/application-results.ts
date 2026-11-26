@@ -29,6 +29,15 @@ import {
   type AgentsListResult,
   agentsListResultSchema,
 } from "./application-agent-results.js";
+import {
+  MAXIMUM_ROOM_AGENTS,
+  roomJoinResultSchema,
+  roomRouteResultSchema,
+  roomSessionSchema,
+  type RoomJoinResult,
+  type RoomRouteResult,
+} from "./application-room-results.js";
+import { turnSummaryResultSchema, type TurnSummaryResult } from "./application-turn-results.js";
 import { identifierSchema } from "./primitives.js";
 import { conversationModeSchema } from "./session.js";
 
@@ -52,6 +61,8 @@ export const applicationCommandNames = [
   "projects.location",
   "agents.list",
   "agent.hire",
+  "room.join",
+  "room.route",
 ] as const;
 
 /** Commands every core answers. Any other command is sent only to a core that advertises it. */
@@ -103,8 +114,15 @@ export const workspaceSummarySchema = {
     preparedAt: timestampSchema,
     /** The agent whose session this is, when the conversation started with agents. */
     agentId: identifierSchema,
-    /** Every agent the conversation started with, the writing one first. */
-    participants: { type: "array", minItems: 1, maxItems: 8, items: identifierSchema },
+    /** Every agent of the conversation, the writing one first, then those who joined. */
+    participants: {
+      type: "array",
+      minItems: 1,
+      maxItems: MAXIMUM_ROOM_AGENTS,
+      items: identifierSchema,
+    },
+    /** Each participant's session, the lead's first (Lervo ADE rooms). An older core omits it. */
+    sessions: { type: "array", maxItems: MAXIMUM_ROOM_AGENTS, items: roomSessionSchema },
   },
 } as const;
 
@@ -211,6 +229,8 @@ export const providerCapabilitiesSchema = {
     hooks: { type: "boolean" },
     mcp: { type: "boolean" },
     systemPromptFile: { type: "boolean" },
+    /** Absent from a core before rooms (Lervo ADE rooms). */
+    readAccess: { type: "boolean" },
     resume: { type: "boolean" },
   },
 } as const;
@@ -268,76 +288,6 @@ export const workspaceRetireResultSchema = {
   },
 } as const;
 
-const countSchema = { type: "integer", minimum: 0 } as const;
-
-/**
- * One turn as the core recorded it (Lervo ADE sessions, "The turn summary"): what Lervo gave the
- * agent, what the agent's searches found and what it cited, what changed, and what the turn used.
- * Every field comes from the repository's records; a turn the core did not record is null.
- */
-export const turnSummarySchema = {
-  title: "TurnSummary",
-  type: "object",
-  required: ["given", "searched", "cited", "outcome"],
-  properties: {
-    /** Documents Lervo selected for the turn, and the workstream revision it gave. */
-    given: {
-      type: "object",
-      required: ["documents"],
-      properties: { documents: countSchema, workstreamRevision: countSchema },
-    },
-    /** Documents the agent's own Lervo searches found, with the first paths. */
-    searched: {
-      type: "object",
-      required: ["documents", "paths"],
-      properties: {
-        documents: countSchema,
-        paths: { type: "array", maxItems: 10, items: { type: "string", maxLength: 512 } },
-      },
-    },
-    /** References to documents the agent's answer made, as Stop observed them. */
-    cited: countSchema,
-    outcome: {
-      type: "object",
-      required: ["repositoryChanged", "completion"],
-      properties: {
-        repositoryChanged: { type: "boolean" },
-        changedPaths: countSchema,
-        workstreamRevision: countSchema,
-        /** `allowed`, `blocked`, or `not_checked`, as the turn's observation says. */
-        completion: { type: "string", maxLength: 32 },
-        /** How a turn without a Stop hook ended, such as `next_prompt`. */
-        ending: { type: "string", maxLength: 32 },
-      },
-    },
-    /** The provider-reported usage of the turn's results, with a list-price cost when known. */
-    usage: {
-      type: "object",
-      required: ["inputTokens", "cachedInputTokens", "outputTokens"],
-      properties: {
-        inputTokens: countSchema,
-        cachedInputTokens: countSchema,
-        outputTokens: countSchema,
-        costUsd: { type: "number", minimum: 0 },
-      },
-    },
-  },
-} as const;
-
-/** `turn.summary`: each requested turn's summary, in the order asked, or null. */
-export const turnSummaryResultSchema = {
-  title: "TurnSummaryResult",
-  type: "object",
-  required: ["turns"],
-  properties: {
-    turns: {
-      type: "array",
-      maxItems: 20,
-      items: { oneOf: [turnSummarySchema, { type: "null" }] },
-    },
-  },
-} as const;
-
 /** Each command's result schema. */
 export const applicationResultSchemas = {
   "workspace.start": workspaceStartResultSchema,
@@ -355,6 +305,8 @@ export const applicationResultSchemas = {
   "projects.location": projectsLocationResultSchema,
   "agents.list": agentsListResultSchema,
   "agent.hire": agentHireResultSchema,
+  "room.join": roomJoinResultSchema,
+  "room.route": roomRouteResultSchema,
 } as const;
 
 export type ApplicationCommandName = (typeof applicationCommandNames)[number];
@@ -367,8 +319,6 @@ export type ProviderCapabilities = FromSchema<typeof providerCapabilitiesSchema>
 export type ProviderSummary = FromSchema<typeof providerSummarySchema>;
 export type ProviderListResult = FromSchema<typeof providerListResultSchema>;
 export type WorkspaceRetireResult = FromSchema<typeof workspaceRetireResultSchema>;
-export type TurnSummary = FromSchema<typeof turnSummarySchema>;
-export type TurnSummaryResult = FromSchema<typeof turnSummaryResultSchema>;
 
 /** Each command's result type. */
 export interface ApplicationResults {
@@ -387,4 +337,6 @@ export interface ApplicationResults {
   "projects.location": ProjectsLocationResult;
   "agents.list": AgentsListResult;
   "agent.hire": AgentHireResult;
+  "room.join": RoomJoinResult;
+  "room.route": RoomRouteResult;
 }

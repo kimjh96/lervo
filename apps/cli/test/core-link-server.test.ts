@@ -59,6 +59,25 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
     async openWorkspace() {
       throw new CommandFailure("workspace_not_found", "missing");
     },
+    async joinRoom(arguments_) {
+      if (arguments_.agentId !== "agt_arin")
+        throw new CommandFailure("mention_target_inactive", "inactive");
+      return {
+        schemaVersion: 1,
+        status: "joined",
+        workspaceId: started.workspaceId,
+        sessionId: "7c1e2d3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+        agentId: "agt_arin",
+        provider: "claude",
+        resumed: false,
+        transcript: false,
+        launch: { ...started.launch, initialInput: "Is it in seconds?" },
+        hostedEvents: "recorded",
+      };
+    },
+    routeRoom: async (arguments_) => ({
+      agents: String(arguments_.text).includes("@Arin") ? ["agt_arin"] : ["agt_elio"],
+    }),
     listWorkspaces: async () => ({ workspaces: [] }),
     listRepositories: async () => ({ repositories: [{ projectId: "prj_1", name: "app" }] }),
     listProviders: () => listHostedProviders({ PATH: "" }),
@@ -183,6 +202,47 @@ describe("the core-link server", () => {
       kind: "core.failed",
       code: "workspace_not_found",
     });
+  });
+
+  it("answers room.join with the joining agent's launch, and room.route with its agents", async () => {
+    const { written } = await serve([
+      {
+        kind: "core.command",
+        id: 1,
+        command: "room.join",
+        arguments: { workspaceId: started.workspaceId, agentId: "agt_arin", instruction: "go" },
+      },
+      {
+        kind: "core.command",
+        id: 2,
+        command: "room.join",
+        arguments: { workspaceId: started.workspaceId, agentId: "agt_gone", instruction: "go" },
+      },
+      {
+        kind: "core.command",
+        id: 3,
+        command: "room.route",
+        arguments: { workspaceId: started.workspaceId, text: "@Arin is it in seconds?" },
+      },
+    ]);
+    const joined = written.find((response) => response.id === 1);
+    expect(joined).toMatchObject({
+      kind: "core.result",
+      result: { agentId: "agt_arin", resumed: false, status: "joined" },
+      launch: {
+        sessionId: "7c1e2d3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+        initialInput: "Is it in seconds?",
+      },
+    });
+    expect(validResult("room.join")(joined?.result)).toBe(true);
+    expect(written.find((response) => response.id === 2)).toEqual({
+      kind: "core.failed",
+      id: 2,
+      code: "mention_target_inactive",
+    });
+    const routed = written.find((response) => response.id === 3);
+    expect(routed).toEqual({ kind: "core.result", id: 3, result: { agents: ["agt_arin"] } });
+    expect(validResult("room.route")(routed?.result)).toBe(true);
   });
 
   it("answers list commands with their result and no launch", async () => {

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1be6b31b84bb36e21ffc6654"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Agents can join a conversation: room.join prepares a team agent's own read-access session in its worktree, room.route names the agents an owner's turn mentions, and workspace.list reports each conversation's participants and sessions."

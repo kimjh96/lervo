@@ -66,7 +66,7 @@ async function registeredRepository(projectId: string) {
 }
 
 /** Records the launch and drops the settings files of sessions that no record keeps. */
-async function recordLaunch(record: HostedLaunchRecord): Promise<void> {
+export async function recordLaunch(record: HostedLaunchRecord): Promise<void> {
   const path = hostedLaunchRecordsPath();
   await recordHostedLaunch(path, record);
   await pruneHostedSessionSettings(
@@ -76,7 +76,7 @@ async function recordLaunch(record: HostedLaunchRecord): Promise<void> {
 }
 
 /** Records hosted session events in the registered repository; a failure never stops a launch. */
-async function recordEvents(
+export async function recordEvents(
   repositoryRoot: string,
   events: readonly HostedSessionEvent[],
 ): Promise<HostedSessionEventOutcome | "unavailable"> {

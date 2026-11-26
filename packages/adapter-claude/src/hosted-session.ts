@@ -51,6 +51,7 @@ export const claudeHostedCapabilities: HostedSessionCapabilities = {
   mcp: false,
   systemPromptFile: false,
   resume: true,
+  readAccess: true,
 };
 
 /**
@@ -67,6 +68,31 @@ const HOOK_TIMEOUT_SECONDS = 10;
  * conversation keeps the owner's own settings, since the owner answers its prompts.
  */
 export const CLAUDE_HOSTED_PERMISSION_MODE = "bypassPermissions";
+
+/**
+ * A read-access session (Lervo ADE rooms, "Participants and their sessions"): Claude Code refuses
+ * every tool these rules do not allow, so the session reads, searches, and answers but changes
+ * nothing. Git and Lervo run only their reading commands.
+ */
+export const CLAUDE_READ_ACCESS_ARGUMENTS = [
+  "--permission-mode",
+  "dontAsk",
+  "--allowedTools",
+  [
+    "Read",
+    "Grep",
+    "Glob",
+    "WebFetch",
+    "WebSearch",
+    "TodoWrite",
+    "Bash(git log *)",
+    "Bash(git diff *)",
+    "Bash(git show *)",
+    "Bash(git status *)",
+    "Bash(lervo knowledge query *)",
+    "Bash(lervo workstream current *)",
+  ].join(","),
+] as const;
 
 /**
  * The environment of every hosted session. Auto memory is off: Claude Code would otherwise write
@@ -124,6 +150,14 @@ export function createClaudeHostedSessionAdapter(
       const instruction = intent.start.kind === "new" ? intent.start.instruction : null;
       const native = intent.mode === "native";
       const settings = intent.hooks === undefined ? [] : ["--settings", intent.hooks.settingsPath];
+      // A read-access session refuses changes in either mode; a native writing session runs
+      // without prompts, and the terminal interface asks as the user configured it.
+      const access =
+        intent.access === "read"
+          ? [...CLAUDE_READ_ACCESS_ARGUMENTS]
+          : native
+            ? ["--permission-mode", CLAUDE_HOSTED_PERMISSION_MODE]
+            : [];
       return {
         program: executable,
         arguments: native
@@ -136,13 +170,18 @@ export function createClaudeHostedSessionAdapter(
               "stream-json",
               "--include-partial-messages",
               "--replay-user-messages",
-              "--permission-mode",
-              CLAUDE_HOSTED_PERMISSION_MODE,
+              ...access,
               ...session,
               ...model,
               ...settings,
             ]
-          : [...session, ...model, ...settings, ...(instruction === null ? [] : [instruction])],
+          : [
+              ...access,
+              ...session,
+              ...model,
+              ...settings,
+              ...(instruction === null ? [] : [instruction]),
+            ],
         environment: { ...CLAUDE_HOSTED_ENVIRONMENT },
         workingDirectory: intent.workingDirectory,
         mode: intent.mode,

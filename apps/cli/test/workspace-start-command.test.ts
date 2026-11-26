@@ -6,10 +6,13 @@ import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { registerAgent } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { runCli } from "../src/main.js";
 import { listRepositories, listWorkspaces } from "../src/workspace-list-service.js";
+import { openWorkspace, startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
+import { joinWorkspaceRoom, routeRoomTurn } from "../src/workspace-room.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -364,5 +367,69 @@ describe("lervo workspace start and open", () => {
       "terminal.session.launched",
       "terminal.session.ended",
     ]);
+  });
+});
+
+describe("agents joining a conversation", () => {
+  it("routes the owner's turn, joins a mentioned agent with read access, and keeps the lead", async () => {
+    const app = await fixture();
+    const lead = await registerAgent({
+      repositoryRoot: app.repository,
+      roleId: "developer",
+      origin: "team",
+    });
+    const researcher = await registerAgent({
+      repositoryRoot: app.repository,
+      roleId: "researcher",
+      origin: "team",
+    });
+    const started = await startWorkspaceFromInstruction({
+      instruction,
+      repository: app.projectId,
+      participants: [lead.agentId],
+    });
+    const workspaceId = started.workspaceId;
+
+    expect(await routeRoomTurn({ workspaceId, text: "Keep going." })).toEqual({
+      agents: [lead.agentId],
+    });
+    expect(
+      await routeRoomTurn({ workspaceId, text: `@${researcher.displayName} is it in seconds?` }),
+    ).toEqual({ agents: [researcher.agentId] });
+
+    const joined = await joinWorkspaceRoom({
+      workspaceId,
+      agentId: researcher.agentId,
+      instruction: "Is the Retry-After header in seconds?",
+    });
+    expect(joined).toMatchObject({ status: "joined", agentId: researcher.agentId, resumed: false });
+    expect(joined.launch.workingDirectory).toBe(started.launch.workingDirectory);
+    expect(joined.launch.arguments).toEqual(expect.arrayContaining(["dontAsk"]));
+    expect(joined.launch.arguments).not.toContain("bypassPermissions");
+    expect(joined.launch.environment.LERVO_AGENT_ID).toBe(researcher.agentId);
+    expect(joined.launch.initialInput).toBe("Is the Retry-After header in seconds?");
+
+    const listed = (await listWorkspaces()).workspaces.find(
+      (workspace) => workspace.workspaceId === workspaceId,
+    );
+    expect(listed).toMatchObject({
+      sessionId: started.sessionId,
+      agentId: lead.agentId,
+      participants: [lead.agentId, researcher.agentId],
+      sessions: [
+        { agentId: lead.agentId, sessionId: started.sessionId, access: "write" },
+        { agentId: researcher.agentId, sessionId: joined.sessionId, access: "read" },
+      ],
+    });
+
+    // Joining again continues the agent's session, and reopening still opens the lead's.
+    const again = await joinWorkspaceRoom({ workspaceId, agentId: researcher.agentId });
+    expect(again).toMatchObject({ resumed: true, sessionId: joined.sessionId });
+    expect(again.launch.arguments).toEqual(expect.arrayContaining(["dontAsk", "--resume"]));
+    expect((await openWorkspace(workspaceId)).sessionId).toBe(started.sessionId);
+
+    await expect(
+      joinWorkspaceRoom({ workspaceId, agentId: `agt_${"0".repeat(24)}`, instruction: "Hi." }),
+    ).rejects.toMatchObject({ code: "mention_target_inactive" });
   });
 });
