@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4d128830e20e10bff9d5c1e1"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A new project starts with its first commit so work can start at once, a new project that fails leaves no folder, and work in a project without a commit fails as repository_has_no_commit instead of a raw Git error."

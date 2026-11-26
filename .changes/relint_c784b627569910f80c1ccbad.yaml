@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c784b627569910f80c1ccbad"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "The core link answers project commands (add, rename, mark set|clear|read, unregister, projects.location) and lists each repository's display name, mark, and root, so the ADE can manage projects through the core."
