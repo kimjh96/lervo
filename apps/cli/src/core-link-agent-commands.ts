@@ -16,6 +16,12 @@ import { RoleContractError } from "@lervo/roles";
 import { RepositoryRegistryError } from "@lervo/repository-registry";
 
 import { hireAgent } from "./agent-hire.js";
+import {
+  clearAgentMark,
+  MAXIMUM_AGENT_MARK_CHARACTERS,
+  readAgentMarkImage,
+  setAgentMark,
+} from "./core-link-agent-marks.js";
 import { defaultHostedProvider, hostedProviderModels } from "./hosted-session-adapters.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 import { CommandFailure } from "./command-error-output.js";
@@ -25,7 +31,7 @@ import { roleCatalog } from "./role-catalog.js";
 /**
  * The agent commands of the core link (Lervo ADE agents, "Core link"): a project's agents with
  * whether each is the team's or Lervo's own, the roles it can hire, hiring for the owner, and the
- * model and effort a team agent runs with (ADR-0647).
+ * model and effort a team agent runs with (ADR-0647), and its image.
  */
 export const coreLinkAgentCommands = new Set([
   "agents.list",
@@ -33,6 +39,9 @@ export const coreLinkAgentCommands = new Set([
   "agent.model",
   "agent.rename",
   "agent.status",
+  "agent.mark.set",
+  "agent.mark.clear",
+  "agent.mark.read",
 ]);
 
 /** A changing command's expected revision, which a stale view fails. */
@@ -78,6 +87,7 @@ function view(agent: WorkforceAgent, roleNames: Map<string, string>, lervos: Set
     provider: agent.provider,
     parentAgentId: agent.parentAgentId,
     revision: agent.revision,
+    mark: agent.mark ?? null,
     ...(agent.origin === "lervo" || lervos.has(agent.agentId) ? {} : { model: modelView(agent) }),
   };
 }
@@ -136,6 +146,24 @@ async function answer(command: string, arguments_: Record<string, unknown>): Pro
         recordEvent,
       }),
     );
+    return { projectId, agent: view(agent, names, new Set()) };
+  }
+  if (command === "agent.mark.read") {
+    const agentId = text(arguments_, "agentId", 64);
+    return { projectId, agentId, image: await readAgentMarkImage(root, agentId) };
+  }
+  if (command === "agent.mark.set" || command === "agent.mark.clear") {
+    const agentId = text(arguments_, "agentId", 64);
+    const revision = revisionOf(arguments_);
+    const agent =
+      command === "agent.mark.set"
+        ? await setAgentMark(
+            root,
+            agentId,
+            revision,
+            text(arguments_, "data", MAXIMUM_AGENT_MARK_CHARACTERS),
+          )
+        : await clearAgentMark(root, agentId, revision);
     return { projectId, agent: view(agent, names, new Set()) };
   }
   if (command === "agent.model") {

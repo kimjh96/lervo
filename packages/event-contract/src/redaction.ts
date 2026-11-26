@@ -35,26 +35,8 @@ import {
   terminalSkillPayloadAllowlists,
   terminalSkillPayloadSchemas,
 } from "./terminal-skill-payload.js";
-import {
-  validateSchema,
-  type AgentContextHandoffRecordedEventPayload,
-  type AgentContextPromotedEventPayload,
-  type AssignmentCompletionPreparedEventPayload,
-  type AssignmentCompletionReconciledEventPayload,
-  type ConversationRepositoryWorkCompletedEventPayload,
-  type DeliberationArtifactRecordedEventPayload,
-  type EventType,
-  type KnowledgeCandidateCreatedEventPayload,
-  type KnowledgeCandidateReviewedEventPayload,
-  type KnowledgeReconciliationReviewedEventPayload,
-  type KnowledgeStaleDetectedEventPayload,
-  type KnowledgeVerifiedEventPayload,
-  type RunCompletedEventPayload,
-  type ResourceUsageRecordedEventPayload,
-  type SchemaName,
-  type VerificationCompletedEventPayload,
-  type WorkstreamSnapshotRecordedEventPayload,
-} from "@lervo/schemas";
+import { validateSchema, type EventType, type SchemaName } from "@lervo/schemas";
+import { payloadCoordinateValidators } from "./payload-coordinates.js";
 import { supervisionPayloadAllowlists, validateSupervisionPayload } from "./supervision-payload.js";
 import { roleInputPayloadFields, validateRoleInputPayload } from "./role-input-payload.js";
 import { validateTopologyPolicyPayload } from "./topology-policy-payload.js";
@@ -349,6 +331,8 @@ export const eventPayloadAllowlists = {
     "previousEffort",
     "modelTier",
     "effort",
+    "previousMarkSha256",
+    "markSha256",
     "previousDisplayName",
     "displayName",
     "displayNameSource",
@@ -1405,88 +1389,10 @@ export function sanitizeEventPayload(
   }
   const schemaName = eventPayloadSchemas[type];
   const invalidSchema = schemaName !== undefined && !validateSchema(schemaName, sanitized).valid;
-  const invalidArtifactCoordinate =
-    !invalidSchema &&
-    type === "deliberation.artifact.recorded" &&
-    !deliberationArtifactCoordinateMatches(
-      sanitized as unknown as DeliberationArtifactRecordedEventPayload,
-    );
-  const invalidCandidateCoordinate =
-    !invalidSchema &&
-    type === "knowledge.candidate.created" &&
-    !knowledgeCandidateCoordinateMatches(
-      sanitized as unknown as KnowledgeCandidateCreatedEventPayload,
-    );
-  const invalidKnowledgeCoordinate =
-    !invalidSchema &&
-    ((type === "knowledge.candidate.reviewed" &&
-      !reviewCoordinateMatches(sanitized as unknown as KnowledgeCandidateReviewedEventPayload)) ||
-      (type === "knowledge.reconciliation.reviewed" &&
-        !reconciliationReviewCoordinateMatches(
-          sanitized as unknown as KnowledgeReconciliationReviewedEventPayload,
-        )) ||
-      (type === "knowledge.verified" &&
-        !verifiedCoordinateMatches(sanitized as unknown as KnowledgeVerifiedEventPayload)) ||
-      (type === "knowledge.stale.detected" &&
-        !staleCoordinateMatches(sanitized as unknown as KnowledgeStaleDetectedEventPayload)));
-  const invalidVerificationCoordinate =
-    !invalidSchema &&
-    type === "verification.completed" &&
-    !verificationCoordinateMatches(sanitized as unknown as VerificationCompletedEventPayload);
-  const invalidRunCompletedCoordinate =
-    !invalidSchema &&
-    type === "run.completed" &&
-    !runCompletedCoordinateMatches(sanitized as unknown as RunCompletedEventPayload);
-  const invalidCompletionPreparedCoordinate =
-    !invalidSchema &&
-    type === "assignment.completion.prepared" &&
-    !assignmentCompletionPreparedCoordinateMatches(
-      sanitized as unknown as AssignmentCompletionPreparedEventPayload,
-    );
-  const invalidConversationRepositoryWorkCoordinate =
-    !invalidSchema &&
-    type === "conversation.repository_work.completed" &&
-    !conversationRepositoryWorkCoordinateMatches(
-      sanitized as unknown as ConversationRepositoryWorkCompletedEventPayload,
-    );
-  const invalidCompletionReconciledCoordinate =
-    !invalidSchema &&
-    type === "assignment.completion.reconciled" &&
-    !assignmentCompletionReconciledCoordinateMatches(
-      sanitized as unknown as AssignmentCompletionReconciledEventPayload,
-    );
-  const invalidWorkstreamCoordinate =
-    !invalidSchema &&
-    type === "workstream.snapshot.recorded" &&
-    !workstreamCoordinateMatches(sanitized as unknown as WorkstreamSnapshotRecordedEventPayload);
-  const invalidResourceUsageCoordinate =
-    !invalidSchema &&
-    type === "resource.usage.recorded" &&
-    !resourceUsageCoordinateMatches(sanitized as unknown as ResourceUsageRecordedEventPayload);
-  const invalidAgentContextCoordinate =
-    !invalidSchema &&
-    ((type === "agent.context.promoted" &&
-      !agentContextPromotionCoordinateMatches(
-        sanitized as unknown as AgentContextPromotedEventPayload,
-      )) ||
-      (type === "agent.context.handoff.recorded" &&
-        !agentContextHandoffCoordinateMatches(
-          sanitized as unknown as AgentContextHandoffRecordedEventPayload,
-        )));
-  if (
-    invalidSchema ||
-    invalidArtifactCoordinate ||
-    invalidCandidateCoordinate ||
-    invalidKnowledgeCoordinate ||
-    invalidVerificationCoordinate ||
-    invalidRunCompletedCoordinate ||
-    invalidCompletionPreparedCoordinate ||
-    invalidConversationRepositoryWorkCoordinate ||
-    invalidCompletionReconciledCoordinate ||
-    invalidWorkstreamCoordinate ||
-    invalidResourceUsageCoordinate ||
-    invalidAgentContextCoordinate
-  ) {
+  // Coordinates a schema cannot state, such as an artifact ID that must name its content hash.
+  const coordinatesMatch =
+    invalidSchema || (payloadCoordinateValidators[type]?.(sanitized) ?? true);
+  if (invalidSchema || !coordinatesMatch) {
     throw new RedactionError(
       "invalid_payload",
       "$",
@@ -1583,144 +1489,3 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",
   "execution.stages.observed": "executionStagesObservedEventPayload",
 };
-
-function conversationRepositoryWorkCoordinateMatches(
-  payload: ConversationRepositoryWorkCompletedEventPayload,
-): boolean {
-  if (payload.changedPathCount < payload.changedPaths.length) return false;
-  if (
-    payload.knowledgeDisposition === "pending_background" &&
-    payload.changedPathCount !== payload.changedPaths.length
-  )
-    return false;
-  return payload.changedPathCount === 0
-    ? payload.changedPaths.length === 0 &&
-        payload.repositoryRevisionBefore === payload.repositoryRevisionAfter
-    : payload.repositoryRevisionBefore !== payload.repositoryRevisionAfter;
-}
-
-function deliberationArtifactCoordinateMatches(
-  payload: DeliberationArtifactRecordedEventPayload,
-): boolean {
-  if (payload.artifactId !== `art_${payload.contentHash.slice("sha256:".length)}`) return false;
-  const artifact = payload.artifact;
-  return (
-    artifact === undefined ||
-    (artifact.deliberationId === payload.deliberationId &&
-      artifact.deliberationArtifactId === payload.deliberationArtifactId &&
-      artifact.kind === payload.kind &&
-      artifact.round === payload.round &&
-      artifact.producer.roleId === payload.producerRoleId &&
-      artifact.content.artifactId === payload.artifactId &&
-      artifact.content.contentHash === payload.contentHash &&
-      artifact.writingPublicationPermit.permitId === payload.writingPermitId)
-  );
-}
-
-function agentContextPromotionCoordinateMatches(
-  payload: AgentContextPromotedEventPayload,
-): boolean {
-  return (
-    payload.summaryArtifactId === `art_${payload.summaryContentHash.slice("sha256:".length)}` &&
-    (payload.source.kind !== "artifact" ||
-      payload.source.sourceId === `art_${payload.source.contentHash.slice("sha256:".length)}`)
-  );
-}
-
-function agentContextHandoffCoordinateMatches(
-  payload: AgentContextHandoffRecordedEventPayload,
-): boolean {
-  return (
-    payload.manifestArtifactId === `art_${payload.manifestContentHash.slice("sha256:".length)}`
-  );
-}
-
-function knowledgeCandidateCoordinateMatches(
-  payload: KnowledgeCandidateCreatedEventPayload,
-): boolean {
-  return (
-    payload.candidateArtifactId === `art_${payload.candidateContentHash.slice("sha256:".length)}`
-  );
-}
-
-function workstreamCoordinateMatches(payload: WorkstreamSnapshotRecordedEventPayload): boolean {
-  return (
-    payload.snapshotArtifactId === `art_${payload.snapshotContentHash.slice("sha256:".length)}` &&
-    (payload.sourceArtifactId === null
-      ? payload.sourceContentHash === null
-      : payload.sourceContentHash !== null &&
-        payload.sourceArtifactId === `art_${payload.sourceContentHash.slice("sha256:".length)}`) &&
-    (["legacy_handoff_migration", "legacy_continuation_migration"].includes(payload.changeKind)
-      ? payload.sourceArtifactId !== null && payload.sourceContentHash !== null
-      : payload.sourceArtifactId === null && payload.sourceContentHash === null)
-  );
-}
-
-function reviewCoordinateMatches(payload: KnowledgeCandidateReviewedEventPayload): boolean {
-  return (
-    payload.approvalArtifactId === `art_${payload.approvalContentHash.slice("sha256:".length)}`
-  );
-}
-
-function reconciliationReviewCoordinateMatches(
-  payload: KnowledgeReconciliationReviewedEventPayload,
-): boolean {
-  const accepted = new Set(payload.acceptedDispositionIds);
-  const listedCount = payload.acceptedDispositionIds.length + payload.skippedDispositionIds.length;
-  return (
-    payload.reviewArtifactId === `art_${payload.reviewArtifactHash.slice("sha256:".length)}` &&
-    payload.skippedDispositionIds.every((id) => !accepted.has(id)) &&
-    listedCount <= 256 &&
-    payload.dispositionCount >= listedCount &&
-    payload.dispositionListTruncated === payload.dispositionCount > listedCount &&
-    (payload.decision === "approved"
-      ? payload.acceptedDispositionIds.length > 0
-      : payload.acceptedDispositionIds.length === 0)
-  );
-}
-
-function verifiedCoordinateMatches(payload: KnowledgeVerifiedEventPayload): boolean {
-  return (
-    payload.knowledgeArtifactId === `art_${payload.knowledgeContentHash.slice("sha256:".length)}`
-  );
-}
-
-function staleCoordinateMatches(payload: KnowledgeStaleDetectedEventPayload): boolean {
-  return payload.resultArtifactId === `art_${payload.resultContentHash.slice("sha256:".length)}`;
-}
-
-function verificationCoordinateMatches(payload: VerificationCompletedEventPayload): boolean {
-  return payload.resultArtifactId === `art_${payload.resultContentHash.slice("sha256:".length)}`;
-}
-
-function runCompletedCoordinateMatches(payload: RunCompletedEventPayload): boolean {
-  const resultArtifactId = `art_${payload.resultDigest.slice("sha256:".length)}`;
-  return (
-    payload.artifactIds.includes(resultArtifactId) &&
-    (payload.verificationStatus === "not_run"
-      ? payload.artifactIds.length === 1
-      : payload.artifactIds.length >= 2)
-  );
-}
-
-function assignmentCompletionPreparedCoordinateMatches(
-  payload: AssignmentCompletionPreparedEventPayload,
-): boolean {
-  return payload.resultArtifactId === `art_${payload.resultContentHash.slice("sha256:".length)}`;
-}
-
-function assignmentCompletionReconciledCoordinateMatches(
-  payload: AssignmentCompletionReconciledEventPayload,
-): boolean {
-  return payload.resultArtifactId === `art_${payload.resultContentHash.slice("sha256:".length)}`;
-}
-
-function resourceUsageCoordinateMatches(payload: ResourceUsageRecordedEventPayload): boolean {
-  return (
-    payload.usage === null ||
-    (payload.usage.cachedInputTokens + (payload.cacheCreationInputTokens ?? 0) <=
-      payload.usage.inputTokens &&
-      payload.usage.reasoningOutputTokens <= payload.usage.outputTokens &&
-      payload.usage.totalTokens === payload.usage.inputTokens + payload.usage.outputTokens)
-  );
-}

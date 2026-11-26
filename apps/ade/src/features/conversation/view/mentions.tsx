@@ -2,8 +2,8 @@ import { type KeyboardEvent, type RefObject, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { caretPoint } from "../../../ui/caret";
-import { Mark } from "../../../ui/Mark";
 import { type Suggestion, SuggestionList, suggestionId } from "../../../ui/SuggestionList";
+import { AgentMark } from "../../agents";
 
 /** An agent the owner can mention: one in the conversation, or one of the team who would join. */
 export interface Mentionable {
@@ -87,9 +87,7 @@ export function useMentions(input: {
   const suggestion = (agent: Mentionable): Suggestion => ({
     key: agent.agentId,
     text: agent.displayName,
-    leading: (
-      <Mark id={agent.agentId} name={agent.displayName} src={null} size="sm" shape="round" />
-    ),
+    leading: <AgentMark agent={agent} size="sm" />,
     detail: agent.participant
       ? agent.roleName
       : intl.formatMessage({ id: "conversation.mention.joins" }, { role: agent.roleName }),

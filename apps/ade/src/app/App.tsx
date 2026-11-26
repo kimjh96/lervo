@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { createIntl, RawIntlProvider } from "react-intl";
 
 import { bindConnection, bindHostUpdate } from "../features/connection";
-import { bindProjects } from "../features/projects";
+import { bindProjects, useProjectStore } from "../features/projects";
 import { bindProviders } from "../features/providers";
-import { bindProfile } from "../features/agents";
+import { bindAgentMarks, bindProfile } from "../features/agents";
 import { bindStart, bindStartDraft } from "../features/start";
 import { bindWorkspaces, notificationMessages, useWorkspaceStore } from "../features/workspaces";
 import { chooseLocale, defaultLocale, messagesFor } from "../i18n/catalog";
@@ -39,6 +39,10 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
       }),
       bindProviders({ client: host, commands }),
       bindProjects({ commands, lists, memory: projects, images, files, choosers }),
+      bindAgentMarks(
+        { commands, memory: projects, images, files, choosers },
+        (sha256) => useProjectStore.getState().marks[sha256] !== undefined,
+      ),
       bindStart(),
       bindProfile(),
       bindStartDraft(drafts),
