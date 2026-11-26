@@ -32,6 +32,11 @@ export interface HostedSessionCapabilities {
    * every tool that would change the worktree (Lervo ADE rooms, "Participants and their sessions").
    */
   readonly readAccess: boolean;
+  /**
+   * The native conversation can carry the agent's questions with choices and the person's answers,
+   * through a stream decoder that answers questions.
+   */
+  readonly questions: boolean;
 }
 
 /** What a hosted session may do in its worktree: the lead writes, a joined participant reads. */
@@ -71,6 +76,12 @@ export interface HostedLaunchIntent {
   readonly hooks?: HostedSessionHooks;
   /** `write` when absent. `read` needs an adapter that declares `readAccess`. */
   readonly access?: HostedSessionAccess;
+  /**
+   * Whether the person answers the agent's questions with choices in the interface, so the
+   * provider asks through its stream rather than in prose. Needs an adapter that declares
+   * `questions` and a native conversation.
+   */
+  readonly questions?: boolean;
 }
 
 /** The process the session host runs. It never carries credentials. */
@@ -171,6 +182,11 @@ export function assertHostedLaunchIntent(
     );
   if (intent.start.kind === "resume" && !capabilities.resume)
     throw new HostedLaunchError("resume_unsupported", "This provider cannot resume a session.");
+  if (intent.questions === true && !(capabilities.questions && intent.mode === "native"))
+    throw new HostedLaunchError(
+      "launch_intent_invalid",
+      "This provider cannot ask questions with choices in this conversation.",
+    );
   if (intent.access === "read" && !capabilities.readAccess)
     throw new HostedLaunchError(
       "access_unsupported",

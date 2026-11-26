@@ -298,3 +298,164 @@ describe("Claude Code stream decoding", () => {
     ).toEqual([{ type: "text", text: "Thanks" }]);
   });
 });
+
+describe("Claude Code questions with choices", () => {
+  const asked = {
+    type: "control_request",
+    request_id: "req_1",
+    request: {
+      subtype: "can_use_tool",
+      tool_name: "AskUserQuestion",
+      tool_use_id: "toolu_ask",
+      input: {
+        questions: [
+          {
+            question: "Which color do you prefer?",
+            header: "Color",
+            multiSelect: false,
+            options: [
+              { label: "Red", description: "The color red" },
+              { label: "Blue", description: "The color blue" },
+            ],
+          },
+        ],
+      },
+    },
+  };
+
+  it("shows the question with its choices and answers it as the person chose", () => {
+    const decoder = new ClaudeHostedStreamDecoder(() => 7);
+    const events = decoder.output(bytes([asked]));
+    expect(events).toEqual([
+      {
+        kind: "item",
+        content: {
+          kind: "question",
+          text: "Which color do you prefer?",
+          choices: {
+            requestId: "req_1",
+            questions: [
+              {
+                question: "Which color do you prefer?",
+                header: "Color",
+                multiSelect: false,
+                options: [
+                  { label: "Red", description: "The color red" },
+                  { label: "Blue", description: "The color blue" },
+                ],
+              },
+            ],
+          },
+        },
+        createdAtMs: 7,
+      },
+      { kind: "status", event: "question_asked" },
+    ]);
+    const answered = decoder.answer("req_1", { "Which color do you prefer?": "Blue" });
+    const line = JSON.parse(new TextDecoder().decode(answered.input)) as {
+      response: {
+        request_id: string;
+        response: { behavior: string; updatedInput: { answers: object } };
+      };
+    };
+    expect(line.response.request_id).toBe("req_1");
+    expect(line.response.response.behavior).toBe("allow");
+    expect(line.response.response.updatedInput.answers).toEqual({
+      "Which color do you prefer?": "Blue",
+    });
+    expect(answered.events).toEqual([
+      { kind: "item", content: { kind: "user_message", text: "Blue" }, createdAtMs: 7 },
+      { kind: "status", event: "turn_started" },
+    ]);
+    // A question answers once.
+    expect(decoder.answer("req_1", { x: "y" }).input).toHaveLength(0);
+  });
+
+  it("shows no tool line for a call whose question showed with choices", () => {
+    const decoder = new ClaudeHostedStreamDecoder(() => 7);
+    const call = (id: string, name: string) => ({
+      type: "assistant",
+      message: { content: [{ type: "tool_use", id, name, input: {} }] },
+    });
+    const result = (id: string) => ({
+      type: "user",
+      message: { content: [{ type: "tool_result", tool_use_id: id, content: "done" }] },
+    });
+    decoder.output(bytes([call("toolu_ask", "AskUserQuestion"), asked]));
+    decoder.answer("req_1", { "Which color do you prefer?": "Blue" });
+    const after = decoder.output(
+      bytes([result("toolu_ask"), call("toolu_ls", "Bash"), result("toolu_ls")]),
+    );
+    expect(
+      after.flatMap((event) =>
+        event.kind === "item" && event.content.kind === "tool_activity" ? [event.content.name] : [],
+      ),
+    ).toEqual(["Bash"]);
+  });
+
+  it("allows other tools it asks about and refuses other requests, without showing them", () => {
+    const decoder = new ClaudeHostedStreamDecoder(() => 7);
+    const events = decoder.output(
+      bytes([
+        {
+          type: "control_request",
+          request_id: "req_2",
+          request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "ls" } },
+        },
+        { type: "control_request", request_id: "req_3", request: { subtype: "hook_callback" } },
+      ]),
+    );
+    expect(events).toEqual([]);
+    const replies = new TextDecoder()
+      .decode(decoder.takeReplies())
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { response: Record<string, unknown> });
+    expect(replies.map((reply) => reply.response.request_id)).toEqual(["req_2", "req_3"]);
+    expect(replies[0]?.response).toMatchObject({
+      subtype: "success",
+      response: { behavior: "allow", updatedInput: { command: "ls" } },
+    });
+    expect(replies[1]?.response).toMatchObject({ subtype: "error" });
+    expect(decoder.takeReplies()).toHaveLength(0);
+  });
+});
+
+describe("Claude Code questions answered in prose", () => {
+  it("settles an open question before the person's message, so the agent never waits", () => {
+    const decoder = new ClaudeHostedStreamDecoder(() => 7);
+    decoder.output(
+      bytes([
+        {
+          type: "control_request",
+          request_id: "req_9",
+          request: {
+            subtype: "can_use_tool",
+            tool_name: "AskUserQuestion",
+            input: {
+              questions: [
+                {
+                  question: "Ship now?",
+                  header: "Ship",
+                  multiSelect: false,
+                  options: [{ label: "Yes", description: "" }],
+                },
+              ],
+            },
+          },
+        },
+      ]),
+    );
+    const lines = new TextDecoder()
+      .decode(decoder.send("Wait until Monday.").input)
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { type: string; response?: Record<string, unknown> });
+    expect(lines.map((line) => line.type)).toEqual(["control_response", "user"]);
+    expect(lines[0]?.response).toMatchObject({
+      request_id: "req_9",
+      response: { behavior: "deny" },
+    });
+    expect(decoder.answer("req_9", { "Ship now?": "Yes" }).input).toHaveLength(0);
+  });
+});

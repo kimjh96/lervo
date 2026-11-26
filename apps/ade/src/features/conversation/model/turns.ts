@@ -14,9 +14,15 @@ export interface TurnEnd {
   readonly elapsedMs: number;
 }
 
+/** Whether `item` asked with choices, so the person's next message answers it within the turn. */
+function asksWithChoices(item: ConversationItem | undefined): boolean {
+  return item?.kind === "question" && item.choices !== undefined;
+}
+
 /**
  * Where each finished turn ends, by item index: a turn starts at a message the user sent and ends
- * at the item before the next one, or at the last item once the agent stopped working.
+ * at the item before the next one, or at the last item once the agent stopped working. The answer
+ * to a question with choices goes on with the turn that asked it.
  */
 export function turnEnds(
   items: readonly ConversationItem[],
@@ -26,12 +32,13 @@ export function turnEnds(
   let start: ConversationItem | undefined;
   items.forEach((item, index) => {
     if (item.kind === "user_message") {
-      start = item;
+      if (!asksWithChoices(items[index - 1])) start = item;
       return;
     }
     const next = items[index + 1];
-    if (start === undefined || (next === undefined ? turnOpen : next.kind !== "user_message"))
-      return;
+    const finished =
+      next === undefined ? !turnOpen : next.kind === "user_message" && !asksWithChoices(item);
+    if (start === undefined || !finished) return;
     ends.set(index, {
       turn: start.itemId,
       elapsedMs: item.createdAtMs - start.createdAtMs,

@@ -547,3 +547,56 @@ async fn routes_mentions_only_through_a_process_that_advertised_deliveries() {
         let _ = std::fs::remove_file(&reports);
     }
 }
+
+#[tokio::test]
+async fn asks_for_questions_and_answers_them_only_through_a_process_that_advertised_it() {
+    for (release, supported) in [("questions", true), ("current", false)] {
+        let reports = std::env::temp_dir().join(format!(
+            "lervo-decoder-questions-{release}-{}.log",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&reports);
+        let core = reporting(release, &reports);
+        core.command("workspace.list", none()).await.unwrap();
+        let launch = core
+            .command("workspace.start", arguments("go"))
+            .await
+            .unwrap()
+            .launch
+            .unwrap();
+        let mut decoder = core.decoder(&launch);
+        let (input, _) = decoder.send("hi").await;
+        assert_eq!(input, b"hi\n");
+        let answers =
+            std::collections::BTreeMap::from([("Which color?".to_owned(), "Blue".to_owned())]);
+        if !supported {
+            let refused = decoder.answer("req_1", &answers).await.unwrap_err();
+            assert_eq!(refused.code, FailureCode::QuestionNotOpen);
+            assert!(decoder.take_replies().is_empty());
+            continue;
+        }
+        let started = std::fs::read_to_string(&reports).unwrap();
+        assert!(started.contains(r#""questions":true"#), "{started}");
+        let decoded = decoder.output(b"ask\n").await;
+        let Some(Decoded::Conversation(Input::Item {
+            content: Content::Question { text, choices },
+            ..
+        })) = decoded.first()
+        else {
+            panic!("{decoded:?}");
+        };
+        assert_eq!(text, "Which color?");
+        assert!(
+            choices
+                .as_deref()
+                .is_some_and(|json| json.contains("req_1"))
+        );
+        assert!(decoded.contains(&Decoded::Status(SessionEvent::QuestionAsked)));
+        assert_eq!(decoder.take_replies(), b"allow\n");
+        assert!(decoder.take_replies().is_empty());
+        let (bytes, shown) = decoder.answer("req_1", &answers).await.unwrap();
+        assert_eq!(bytes, b"Blue\n");
+        assert_eq!(shown.len(), 1);
+        let _ = std::fs::remove_file(&reports);
+    }
+}

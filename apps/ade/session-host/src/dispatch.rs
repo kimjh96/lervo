@@ -131,6 +131,20 @@ impl<C: Core> Host<C> {
                 )
                 .await;
             }
+            ClientMessage::SessionAnswerMessage(answer) => {
+                let command = Command::Answer {
+                    request: answer.request_id.clone(),
+                    question: answer.question_id.to_string(),
+                    answers: answer
+                        .answers
+                        .iter()
+                        .map(|(question, chosen)| (question.clone(), chosen.to_string()))
+                        .collect(),
+                    reply: Reply::new(output),
+                };
+                self.request(&answer.session_id, &answer.request_id, command, &reply)
+                    .await;
+            }
             ClientMessage::SessionResizeMessage(resize) => {
                 let columns = u16::try_from(resize.columns.get()).unwrap_or(u16::MAX);
                 let rows = u16::try_from(resize.rows.get()).unwrap_or(u16::MAX);

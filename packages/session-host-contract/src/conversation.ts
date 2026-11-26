@@ -9,6 +9,7 @@ import {
 } from "./primitives.js";
 import { imageMarksSchema } from "./image.js";
 import { toolDetailSchema } from "./tool-detail.js";
+import { choicesSchema } from "./choices.js";
 
 const itemStateSchema = { enum: ["streaming", "complete"] } as const;
 const conversationTextSchema = { type: "string", maxLength: 262144 } as const;
@@ -45,7 +46,21 @@ export const userMessageItemSchema = {
   },
 } as const;
 export const agentMessageItemSchema = textItemSchema("AgentMessageItem", "agent_message");
-export const questionItemSchema = textItemSchema("QuestionItem", "question");
+/** The agent's question, with its choices when the person can answer it in the interface. */
+export const questionItemSchema = {
+  title: "QuestionItem",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "itemId", "createdAtMs", "state", "text"],
+  properties: {
+    kind: { type: "string", enum: ["question"] },
+    itemId: identifierSchema,
+    createdAtMs: epochMillisecondsSchema,
+    state: itemStateSchema,
+    text: conversationTextSchema,
+    choices: choicesSchema,
+  },
+} as const;
 
 /** A message another agent session sent this one, such as through Claude Code's SendMessage. */
 export const peerMessageItemSchema = {

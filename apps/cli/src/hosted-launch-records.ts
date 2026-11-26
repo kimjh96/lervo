@@ -47,6 +47,11 @@ export interface HostedLaunchRecord {
    * sessions"). Absent for the lead, whose session writes.
    */
   access?: "read";
+  /**
+   * Whether the conversation's session host answers the agents' questions with choices (Lervo ADE
+   * sessions, "Questions"), so its native sessions ask through the provider's stream.
+   */
+  questions?: true;
 }
 
 /**
@@ -88,7 +93,8 @@ function isRecord(value: unknown): value is HostedLaunchRecord {
       (key) => typeof record[key] === "string",
     ) &&
     (record.conversationMode === "native" || record.conversationMode === "cli") &&
-    (record.access === undefined || record.access === "read")
+    (record.access === undefined || record.access === "read") &&
+    (record.questions === undefined || record.questions === true)
   );
 }
 

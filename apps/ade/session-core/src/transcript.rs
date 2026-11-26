@@ -4,7 +4,8 @@
 //! completes and is then stored at the position it was given when it started.
 
 pub use crate::content::{
-    Content, MAX_IMAGE_MARKS_BYTES, MAX_TOOL_DETAIL_BYTES, NoticeValue, ToolStatus,
+    Content, MAX_CHOICES_BYTES, MAX_IMAGE_MARKS_BYTES, MAX_TOOL_DETAIL_BYTES, NoticeValue,
+    ToolStatus,
 };
 
 /// Bytes of text in one item. The protocol allows 262,144 characters; bytes bound characters.
@@ -237,7 +238,10 @@ mod tests {
         let mut transcript = Transcript::new(0);
         transcript.apply(agent("a"));
         let changes = transcript.apply(Input::Item {
-            content: Content::Question("Which branch?".to_owned()),
+            content: Content::Question {
+                text: "Which branch?".to_owned(),
+                choices: None,
+            },
             created_at_ms: 2,
         });
         assert!(matches!(

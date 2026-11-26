@@ -251,6 +251,22 @@
     "defaultMessage": "From {name}",
     "description": "Above a message another agent session sent this one; {name} is that session's name, such as lervo-b9."
   },
+  "conversation.question.closed": {
+    "defaultMessage": "This question no longer waits for an answer.",
+    "description": "The person chose an answer after the agent's question had closed."
+  },
+  "conversation.question.failed": {
+    "defaultMessage": "The answer did not reach the agent ({code}).",
+    "description": "An answer to an agent's question failed; {code} is the protocol code."
+  },
+  "conversation.question.reply": {
+    "defaultMessage": "Or reply in your own words below",
+    "description": "Under an agent's choices: a reply in the reply card answers instead."
+  },
+  "conversation.question.send": {
+    "defaultMessage": "Send answers",
+    "description": "Sends the chosen answers to an agent's questions with choices."
+  },
   "conversation.queued": {
     "defaultMessage": "Queued · the agent reads it at its next step",
     "description": "Under a reply sent while the agent worked: the agent reads it between steps of its running turn; it fades when the agent's next item arrives."

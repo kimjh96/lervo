@@ -4,7 +4,9 @@
 # picks a release: "older" advertises no commands and ends on `provider.list`, as a release from
 # before the provider list does, "invalid" answers `provider.list` with a malformed result, and
 # "rooms" also advertises `decoder.deliveries` and answers output "mention\n" (`bWVudGlvbgo=`)
-# with a finished turn that delivers a mention.
+# with a finished turn that delivers a mention. "questions" also advertises `decoder.questions`,
+# records each `workspace.start`, answers output "ask\n" (`YXNrCg==`) with a question with
+# choices and the reply "allow\n", and answers `decoder.answer` with "Blue\n".
 # Its second argument, when given, is a file that collects every `session.exited`,
 # `decoder.open`, `decoder.send`, and `decoder.interrupt` it receives (an "older" release ends on a
 # `decoder.open` that names a session and on any `decoder.interrupt`),
@@ -20,6 +22,7 @@ while IFS= read -r line; do
   kind=$(printf '%s' "$line" | sed -n 's/.*"kind":"\([a-z.]*\)".*/\1/p')
   case "$kind" in
     core.command)
+      case "$release:$line" in questions:*'"workspace.start"'*) [ -n "$reports" ] && printf '%s\n' "$line" >> "$reports" ;; esac
       case "$release:$line" in
         *crash*) exit 1 ;;
         *fail*) printf '{"kind":"core.failed","id":%s,"code":"workspace_start_failed","stage":"workstream"}\n' "$id" ;;
@@ -27,6 +30,7 @@ while IFS= read -r line; do
           case "$release" in
             older) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[]}}\n' "$id" ;;
             rooms) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited","decoder.session","decoder.interrupt","decoder.deliveries"]}}\n' "$id" ;;
+            questions) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited","decoder.session","decoder.interrupt","decoder.questions"]}}\n' "$id" ;;
             *) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited","decoder.session","decoder.interrupt"]}}\n' "$id" ;;
           esac ;;
         older:*'"provider.list"'*) exit 1 ;;
@@ -54,8 +58,11 @@ while IFS= read -r line; do
     decoder.send)
       [ -n "$reports" ] && printf '%s\n' "$line" >> "$reports"
       printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"item","content":{"kind":"user_message","text":"hi"},"createdAtMs":1},{"kind":"status","event":"turn_started"}],"input":"aGkK"}\n' "$id" ;;
+    decoder.answer)
+      printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"item","content":{"kind":"user_message","text":"Blue"},"createdAtMs":4}],"input":"Qmx1ZQo="}\n' "$id" ;;
     decoder.output)
       case "$line" in
+        *YXNrCg==*) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"item","content":{"kind":"question","text":"Which color?","choices":{"requestId":"req_1","questions":[{"question":"Which color?","header":"Color","multiSelect":false,"options":[{"label":"Red","description":""},{"label":"Blue","description":""}]}]}},"createdAtMs":3},{"kind":"status","event":"question_asked"}],"input":"YWxsb3cK"}\n' "$id"; continue ;;
         *ZmluaXNoCg==*) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"status","event":"turn_finished"}]}\n' "$id"; continue ;;
         *bWVudGlvbgo=*) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"status","event":"turn_finished"}],"deliveries":[{"deliveryId":"7c1e2d3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f","workspaceId":"wsp_1","agentId":"agt_arin","sessionId":null,"text":"[Lervo room] From Elio (Product Owner):\\n@Arin is it in seconds?"}]}\n' "$id"; continue ;;
       esac

@@ -8,6 +8,7 @@ import type { FromSchema } from "json-schema-to-ts";
 import { imageMarksSchema } from "./image.js";
 import { codeSchema, epochMillisecondsSchema, parametersSchema } from "./primitives.js";
 import { toolDetailSchema } from "./tool-detail.js";
+import { choicesSchema } from "./choices.js";
 
 const textSchema = { type: "string", maxLength: 262144 } as const;
 
@@ -33,7 +34,17 @@ export const decodedContentSchemas = [
     },
   },
   textContent("AgentMessageContent", "agent_message"),
-  textContent("QuestionContent", "question"),
+  {
+    title: "QuestionContent",
+    type: "object",
+    additionalProperties: false,
+    required: ["kind", "text"],
+    properties: {
+      kind: { type: "string", enum: ["question"] },
+      text: textSchema,
+      choices: choicesSchema,
+    },
+  },
   {
     title: "ToolActivityContent",
     type: "object",

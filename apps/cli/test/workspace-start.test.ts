@@ -141,6 +141,24 @@ describe("workspace start", () => {
     ]);
   });
 
+  it("asks through the stream and records it when the session host answers questions", async () => {
+    const fake = ports();
+    const result = await startWorkspace(
+      { ...request, mode: "native", questions: true },
+      fake.value,
+    );
+    const args = result.launch.arguments;
+    expect(args[args.indexOf("--permission-prompt-tool") + 1]).toBe("stdio");
+    expect(fake.records[0]).toMatchObject({ questions: true });
+    // A conversation in the terminal asks in prose.
+    const terminal = ports();
+    const typed = await startWorkspace(
+      { ...request, mode: "cli", questions: true },
+      terminal.value,
+    );
+    expect(typed.launch.arguments).not.toContain("--permission-prompt-tool");
+  });
+
   it("writes the session's settings file, digests it, and records two events", async () => {
     const fake = ports();
     const result = await startWorkspace(request, fake.value);

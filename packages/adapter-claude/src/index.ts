@@ -12,5 +12,6 @@ export * from "./turn-result.js";
 export * from "./login-inspection.js";
 export * from "./hosted-session.js";
 export * from "./hosted-stream.js";
+export * from "./hosted-stream-items.js";
 export * from "./hosted-usage.js";
 export * from "./hosted-transcript.js";

@@ -102,6 +102,8 @@ export async function joinWorkspaceRoom(
       start,
       ...(hooks === undefined ? {} : { hooks }),
       ...(access === "read" ? { access } : {}),
+      // A joined agent asks as the conversation's lead does.
+      ...(previous.questions === true ? { questions: true } : {}),
     }),
     agentId,
   );

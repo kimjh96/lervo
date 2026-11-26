@@ -58,6 +58,18 @@ describe("Claude Code hosted sessions", () => {
     expect(allowed?.some((rule) => rule === "Bash" || rule.startsWith("Write"))).toBe(false);
   });
 
+  it("asks its questions with choices through the stream only when the interface answers them", () => {
+    const intent = {
+      sessionId,
+      mode: "native" as const,
+      workingDirectory: "/work/repo",
+      start: { kind: "new" as const, instruction: "Plan the release." },
+    };
+    expect(adapter.prepareLaunch(intent).arguments).not.toContain("--permission-prompt-tool");
+    const asking = adapter.prepareLaunch({ ...intent, questions: true }).arguments;
+    expect(asking[asking.indexOf("--permission-prompt-tool") + 1]).toBe("stdio");
+  });
+
   it("adds Lervo's start and end handlers through a session-scoped settings file", () => {
     const hooks = {
       settingsPath: "/state/hosted-settings/session.json",

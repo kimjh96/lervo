@@ -581,6 +581,38 @@
       "value": "name"
     }
   ],
+  "conversation.question.closed": [
+    {
+      "type": 0,
+      "value": "This question no longer waits for an answer."
+    }
+  ],
+  "conversation.question.failed": [
+    {
+      "type": 0,
+      "value": "The answer did not reach the agent ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "conversation.question.reply": [
+    {
+      "type": 0,
+      "value": "Or reply in your own words below"
+    }
+  ],
+  "conversation.question.send": [
+    {
+      "type": 0,
+      "value": "Send answers"
+    }
+  ],
   "conversation.queued": [
     {
       "type": 0,

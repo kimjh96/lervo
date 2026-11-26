@@ -140,6 +140,9 @@
           "$ref": "#/$defs/DecoderOutputRequest"
         },
         {
+          "$ref": "#/$defs/DecoderAnswerRequest"
+        },
+        {
           "$ref": "#/$defs/DecoderCloseRequest"
         }
       ]
@@ -1479,6 +1482,45 @@
         }
       }
     },
+    "DecoderAnswerRequest": {
+      "title": "DecoderAnswerRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "decoderId",
+        "requestId",
+        "answers"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "decoder.answer"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decoderId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "answers": {
+          "type": "object",
+          "maxProperties": 4,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      }
+    },
     "DecoderCloseRequest": {
       "title": "DecoderCloseRequest",
       "type": "object",
@@ -1865,6 +1907,71 @@
         "text": {
           "type": "string",
           "maxLength": 262144
+        },
+        "choices": {
+          "title": "Choices",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requestId",
+            "questions"
+          ],
+          "properties": {
+            "requestId": {
+              "$ref": "#/$defs/Identifier"
+            },
+            "questions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "question",
+                  "header",
+                  "multiSelect",
+                  "options"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "maxLength": 1024
+                  },
+                  "header": {
+                    "type": "string",
+                    "maxLength": 1024
+                  },
+                  "multiSelect": {
+                    "type": "boolean"
+                  },
+                  "options": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "label",
+                        "description"
+                      ],
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "maxLength": 1024
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 1024
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

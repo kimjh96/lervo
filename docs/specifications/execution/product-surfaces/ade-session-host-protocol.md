@@ -81,11 +81,12 @@ The session host removes the socket and the token when it shuts down. Its sessio
 | `session.send`        | Sends the user's message, text and up to three images, to the native conversation; `session.sent` or `request.failed` answers it. |
 | `image.read`          | Asks for the bytes of an image a session's message carried, by its identity; `image.data` or `request.failed` answers it.         |
 | `session.interrupt`   | Stops the native conversation's running turn and keeps the session; `session.interrupted` or `request.failed` answers it.         |
+| `session.answer`      | Answers an agent's question with choices by its `questionId`; `session.sent` or `request.failed` answers it.                      |
 | `session.resize`      | Sets the CLI conversation's terminal size.                                                                                        |
 | `session.stop`        | Stops the agent session.                                                                                                          |
 | `conversation.range`  | Requests older or newer conversation items, at most 200 per request.                                                              |
 
-A session host from before `session.interrupt` closes the connection on it, so the interface sends it only to a session host at least as new as itself, and only while the core advertises `decoder.interrupt` ([core link](ade-core-link.md)).
+A session host from before `session.interrupt` closes the connection on it, so the interface sends it only to a session host at least as new as itself, and only while the core advertises `decoder.interrupt` ([core link](ade-core-link.md)). `session.answer` follows the same rule with `decoder.questions` ([Lervo ADE sessions](ade-sessions.md), "Questions").
 
 The interface never names a path or a launch descriptor. `workspace.start` and `session.open` make the session host ask the Lervo core for a launch descriptor and run it, so the interface handles only opaque identifiers.
 
@@ -116,7 +117,7 @@ A conversation item has an opaque `itemId`, a `kind`, a creation time, and a `st
 | `user_message`  | The user's text, and a mark for each image it carried: its format, size, and identity, the SHA-256 of its bytes, never the bytes |
 | `agent_message` | The agent's text, streamed through `conversation.delta`                                                                          |
 | `tool_activity` | The tool name, a status, a count of calls, and an optional tool detail                                                           |
-| `question`      | The agent's question to the user                                                                                                 |
+| `question`      | The agent's question to the user, with `choices` when the user can answer it in the interface                                    |
 | `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`                                                                    |
 | `peer_message`  | A message another agent session sent this one: the sender's session name and the text                                            |
 
@@ -173,5 +174,6 @@ A tool call's `detail` says what the call acted on and what it showed, bounded s
   - `message_empty`: a `session.send` carried neither text nor images;
   - `image_not_found`: the session host keeps no image with the identity `image.read` named;
   - `images_unsupported`: the session cannot carry images. A resident process may not advertise `decoder.images`, and a provider's decoder may not offer it. Nothing was sent;
-  - `interrupt_unsupported`: the session cannot stop a turn and keep running. The CLI conversation stops a turn in its terminal, a provider's decoder may not offer it, and a resident process may not advertise `decoder.interrupt`. The turn goes on.
+  - `interrupt_unsupported`: the session cannot stop a turn and keep running. The CLI conversation stops a turn in its terminal, a provider's decoder may not offer it, and a resident process may not advertise `decoder.interrupt`. The turn goes on;
+  - `question_not_open`: the question a `session.answer` named no longer waits: it was answered, the user replied in a message, its turn ended, or the session cannot answer questions this way. Nothing was sent.
 - A failure that the core reported carries the core's own code in the `coreCode` parameter and, for `workspace.start`, the failed stage in the `stage` parameter. The [core link](ade-core-link.md) defines how the session host reaches the core.

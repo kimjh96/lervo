@@ -18,6 +18,7 @@ const capabilities: HostedSessionCapabilities = {
   systemPromptFile: false,
   resume: false,
   readAccess: false,
+  questions: false,
 };
 const sessionId = "0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c";
 
