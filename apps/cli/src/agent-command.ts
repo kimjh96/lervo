@@ -57,12 +57,9 @@ function output(io: CliIo, value: unknown, json: boolean | undefined, message: s
   io.stdout(json ? `${JSON.stringify(value, null, 2)}\n` : `${message}\n`);
 }
 
-export async function runAgentCommand(args: string[], io: CliIo): Promise<number> {
-  if (args[0] === "mandate") return runAgentMandateCommand(args.slice(1), io);
-  if (args[0] === "context") return runAgentContextCommand(args.slice(1), io);
-  if (["heartbeat", "inspect"].includes(args[0] ?? ""))
-    return await runAgentLivenessCommand(args, io);
-  const parsed = parseArgs({
+/** The agent command's flags, as `parseArgs` reads them. */
+function parseAgentArguments(args: string[]) {
+  return parseArgs({
     args,
     strict: true,
     allowPositionals: true,
@@ -86,180 +83,203 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       clear: { type: "boolean" },
     },
   });
+}
+
+type AgentValues = ReturnType<typeof parseAgentArguments>["values"];
+
+/** One `lervo agent` action: what it does with the flags, in the repository at `root`. */
+type AgentAction = (values: AgentValues, root: string, io: CliIo) => Promise<void>;
+
+/** Lists the repository's agents. */
+async function listAction(values: AgentValues, root: string, io: CliIo): Promise<void> {
+  if (values.write) throw new Error("Agent list is read-only.");
+  const agents = await listAgents(root);
+  output(
+    io,
+    { schemaVersion: 1, agents },
+    values.json,
+    agents.length === 0
+      ? "No repository agents."
+      : agents
+          .map(
+            (agent) =>
+              `${agent.displayName} · ${agent.agentId} · ${agent.roleId} · ${agent.status}${agent.parentAgentId === null ? "" : ` · parent ${agent.parentAgentId}`}`,
+          )
+          .join("\n"),
+  );
+}
+
+/** Hires an agent for a role. */
+async function hireAction(values: AgentValues, root: string, io: CliIo): Promise<void> {
+  if (!values.write) throw new Error("Agent hiring requires --write.");
+  const provider = values.provider ?? "any";
+  if (!["codex", "claude", "any"].includes(provider))
+    throw new Error("The agent provider is invalid.");
+  const agent = await hireAgent(root, {
+    roleId: role(values.role),
+    provider: provider as WorkforceProvider,
+    ...(values.name === undefined ? {} : { displayName: values.name }),
+    responsibilityPaths: values.scope ?? ["*"],
+    ...(values.capability === undefined ? {} : { capabilityPackageIds: values.capability }),
+    ...(values.parent === undefined ? {} : { parentAgentId: values.parent }),
+  });
+  output(
+    io,
+    agent,
+    values.json,
+    `${agent.displayName} (${agent.agentId}) hired as ${agent.roleId}${agent.parentAgentId === null ? "" : ` under ${agent.parentAgentId}`}.`,
+  );
+}
+
+/** Pauses, resumes, or retires an agent. */
+async function statusAction(values: AgentValues, root: string, io: CliIo): Promise<void> {
+  if (
+    !values.write ||
+    values.agent === undefined ||
+    !["active", "suspended", "retired"].includes(values.status ?? "")
+  )
+    throw new Error("Agent status requires exact transition coordinates and --write.");
+  const agent = await mutateWorkforceState(root, (recordEvent) =>
+    changeAgentStatus({
+      repositoryRoot: root,
+      agentId: values.agent!,
+      expectedRevision: revision(values.revision),
+      status: values.status as AgentStatus,
+      recordEvent,
+    }),
+  );
+  output(
+    io,
+    agent,
+    values.json,
+    `Agent ${agent.agentId} is ${agent.status} at revision ${agent.revision}.`,
+  );
+}
+
+/** Renames an agent. */
+async function renameAction(values: AgentValues, root: string, io: CliIo): Promise<void> {
+  if (!values.write || values.agent === undefined || values.name === undefined) {
+    throw new Error("Agent rename requires exact identity, name, revision, and --write.");
+  }
+  const agent = await mutateWorkforceState(root, (recordEvent) =>
+    changeAgentDisplayName({
+      repositoryRoot: root,
+      agentId: values.agent!,
+      displayName: values.name!,
+      expectedRevision: revision(values.revision),
+      recordEvent,
+    }),
+  );
+  output(io, agent, values.json, `${agent.agentId} is now named ${agent.displayName}.`);
+}
+
+/** Sets the model and effort an agent's sessions run with. */
+async function modelAction(values: AgentValues, root: string, io: CliIo): Promise<void> {
+  const tier = values.tier as ModelTier | undefined;
+  const effort = values.effort as ModelEffort | undefined;
+  if (
+    !values.write ||
+    values.agent === undefined ||
+    tier === undefined ||
+    !modelTiers.includes(tier) ||
+    effort === undefined ||
+    !modelEfforts.includes(effort)
+  )
+    throw new Error("Agent model requires exact identity, tier, effort, revision, and --write.");
+  const agent = await mutateWorkforceState(root, (recordEvent) =>
+    changeAgentModel({
+      repositoryRoot: root,
+      agentId: values.agent!,
+      tier,
+      effort,
+      expectedRevision: revision(values.revision),
+      recordEvent,
+    }),
+  );
+  output(
+    io,
+    agent,
+    values.json,
+    `${agent.displayName} now runs on the ${tier} model at ${effort} effort.`,
+  );
+}
+
+/** Sets or clears an agent's image. */
+async function markAction(values: AgentValues, root: string, io: CliIo): Promise<void> {
+  const image = values.image;
+  if (
+    !values.write ||
+    values.agent === undefined ||
+    (image === undefined) === (values.clear !== true)
+  )
+    throw new Error(
+      "Agent mark requires exact identity, either --image or --clear, revision, and --write.",
+    );
+  const expectedRevision = revision(values.revision);
+  const agent =
+    image === undefined
+      ? await clearAgentMark(root, values.agent, expectedRevision)
+      : await setAgentMark(
+          root,
+          values.agent,
+          expectedRevision,
+          (await readFile(resolve(io.cwd, image))).toString("base64"),
+        );
+  output(
+    io,
+    agent,
+    values.json,
+    image === undefined
+      ? `${agent.displayName} shows its first letter again.`
+      : `${agent.displayName} now shows the chosen image.`,
+  );
+}
+
+/** Moves an agent to another role. */
+async function roleAction(values: AgentValues, root: string, io: CliIo): Promise<void> {
+  if (!values.write || values.agent === undefined) {
+    throw new Error("Agent role transition requires exact identity, role, revision, and --write.");
+  }
+  const agent = await mutateWorkforceState(root, (recordEvent) =>
+    changeAgentRole({
+      repositoryRoot: root,
+      agentId: values.agent!,
+      roleId: role(values.role),
+      expectedRevision: revision(values.revision),
+      recordEvent,
+    }),
+  );
+  output(
+    io,
+    agent,
+    values.json,
+    `Agent ${agent.displayName} (${agent.agentId}) now holds role ${agent.roleId} at revision ${agent.revision}.`,
+  );
+}
+
+/** Each `lervo agent` action that changes or reads the workforce, by name. */
+const agentActions: Readonly<Record<string, AgentAction>> = {
+  list: listAction,
+  hire: hireAction,
+  status: statusAction,
+  rename: renameAction,
+  model: modelAction,
+  mark: markAction,
+  role: roleAction,
+};
+
+export async function runAgentCommand(args: string[], io: CliIo): Promise<number> {
+  if (args[0] === "mandate") return runAgentMandateCommand(args.slice(1), io);
+  if (args[0] === "context") return runAgentContextCommand(args.slice(1), io);
+  if (["heartbeat", "inspect"].includes(args[0] ?? ""))
+    return await runAgentLivenessCommand(args, io);
+  const parsed = parseAgentArguments(args);
   if (parsed.values.help) {
     io.stdout(`${agentUsage}\n`);
     return 0;
   }
-  if (parsed.positionals.length !== 1) throw new Error("The agent action is invalid.");
-  const action = parsed.positionals[0];
-  const root = resolve(io.cwd, parsed.values.root ?? ".");
-  if (action === "list") {
-    if (parsed.values.write) throw new Error("Agent list is read-only.");
-    const agents = await listAgents(root);
-    output(
-      io,
-      { schemaVersion: 1, agents },
-      parsed.values.json,
-      agents.length === 0
-        ? "No repository agents."
-        : agents
-            .map(
-              (agent) =>
-                `${agent.displayName} · ${agent.agentId} · ${agent.roleId} · ${agent.status}${agent.parentAgentId === null ? "" : ` · parent ${agent.parentAgentId}`}`,
-            )
-            .join("\n"),
-    );
-    return 0;
-  }
-  if (action === "hire") {
-    if (!parsed.values.write) throw new Error("Agent hiring requires --write.");
-    const provider = parsed.values.provider ?? "any";
-    if (!["codex", "claude", "any"].includes(provider))
-      throw new Error("The agent provider is invalid.");
-    const agent = await hireAgent(root, {
-      roleId: role(parsed.values.role),
-      provider: provider as WorkforceProvider,
-      ...(parsed.values.name === undefined ? {} : { displayName: parsed.values.name }),
-      responsibilityPaths: parsed.values.scope ?? ["*"],
-      ...(parsed.values.capability === undefined
-        ? {}
-        : { capabilityPackageIds: parsed.values.capability }),
-      ...(parsed.values.parent === undefined ? {} : { parentAgentId: parsed.values.parent }),
-    });
-    output(
-      io,
-      agent,
-      parsed.values.json,
-      `${agent.displayName} (${agent.agentId}) hired as ${agent.roleId}${agent.parentAgentId === null ? "" : ` under ${agent.parentAgentId}`}.`,
-    );
-    return 0;
-  }
-  if (action === "status") {
-    if (
-      !parsed.values.write ||
-      parsed.values.agent === undefined ||
-      !["active", "suspended", "retired"].includes(parsed.values.status ?? "")
-    )
-      throw new Error("Agent status requires exact transition coordinates and --write.");
-    const agent = await mutateWorkforceState(root, (recordEvent) =>
-      changeAgentStatus({
-        repositoryRoot: root,
-        agentId: parsed.values.agent!,
-        expectedRevision: revision(parsed.values.revision),
-        status: parsed.values.status as AgentStatus,
-        recordEvent,
-      }),
-    );
-    output(
-      io,
-      agent,
-      parsed.values.json,
-      `Agent ${agent.agentId} is ${agent.status} at revision ${agent.revision}.`,
-    );
-    return 0;
-  }
-  if (action === "rename") {
-    if (
-      !parsed.values.write ||
-      parsed.values.agent === undefined ||
-      parsed.values.name === undefined
-    ) {
-      throw new Error("Agent rename requires exact identity, name, revision, and --write.");
-    }
-    const agent = await mutateWorkforceState(root, (recordEvent) =>
-      changeAgentDisplayName({
-        repositoryRoot: root,
-        agentId: parsed.values.agent!,
-        displayName: parsed.values.name!,
-        expectedRevision: revision(parsed.values.revision),
-        recordEvent,
-      }),
-    );
-    output(io, agent, parsed.values.json, `${agent.agentId} is now named ${agent.displayName}.`);
-    return 0;
-  }
-  if (action === "model") {
-    const tier = parsed.values.tier as ModelTier | undefined;
-    const effort = parsed.values.effort as ModelEffort | undefined;
-    if (
-      !parsed.values.write ||
-      parsed.values.agent === undefined ||
-      tier === undefined ||
-      !modelTiers.includes(tier) ||
-      effort === undefined ||
-      !modelEfforts.includes(effort)
-    )
-      throw new Error("Agent model requires exact identity, tier, effort, revision, and --write.");
-    const agent = await mutateWorkforceState(root, (recordEvent) =>
-      changeAgentModel({
-        repositoryRoot: root,
-        agentId: parsed.values.agent!,
-        tier,
-        effort,
-        expectedRevision: revision(parsed.values.revision),
-        recordEvent,
-      }),
-    );
-    output(
-      io,
-      agent,
-      parsed.values.json,
-      `${agent.displayName} now runs on the ${tier} model at ${effort} effort.`,
-    );
-    return 0;
-  }
-  if (action === "mark") {
-    const image = parsed.values.image;
-    if (
-      !parsed.values.write ||
-      parsed.values.agent === undefined ||
-      (image === undefined) === (parsed.values.clear !== true)
-    )
-      throw new Error(
-        "Agent mark requires exact identity, either --image or --clear, revision, and --write.",
-      );
-    const expectedRevision = revision(parsed.values.revision);
-    const agent =
-      image === undefined
-        ? await clearAgentMark(root, parsed.values.agent, expectedRevision)
-        : await setAgentMark(
-            root,
-            parsed.values.agent,
-            expectedRevision,
-            (await readFile(resolve(io.cwd, image))).toString("base64"),
-          );
-    output(
-      io,
-      agent,
-      parsed.values.json,
-      image === undefined
-        ? `${agent.displayName} shows its first letter again.`
-        : `${agent.displayName} now shows the chosen image.`,
-    );
-    return 0;
-  }
-  if (action === "role") {
-    if (!parsed.values.write || parsed.values.agent === undefined) {
-      throw new Error(
-        "Agent role transition requires exact identity, role, revision, and --write.",
-      );
-    }
-    const agent = await mutateWorkforceState(root, (recordEvent) =>
-      changeAgentRole({
-        repositoryRoot: root,
-        agentId: parsed.values.agent!,
-        roleId: role(parsed.values.role),
-        expectedRevision: revision(parsed.values.revision),
-        recordEvent,
-      }),
-    );
-    output(
-      io,
-      agent,
-      parsed.values.json,
-      `Agent ${agent.displayName} (${agent.agentId}) now holds role ${agent.roleId} at revision ${agent.revision}.`,
-    );
-    return 0;
-  }
-  throw new Error("The agent action is invalid.");
+  const action = parsed.positionals.length === 1 ? parsed.positionals[0]! : "";
+  if (!Object.hasOwn(agentActions, action)) throw new Error("The agent action is invalid.");
+  await agentActions[action]!(parsed.values, resolve(io.cwd, parsed.values.root ?? "."), io);
+  return 0;
 }

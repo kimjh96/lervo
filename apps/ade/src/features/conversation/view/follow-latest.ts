@@ -147,6 +147,28 @@ export function useFollowLatest(input: {
     selfScrolled.current = element.scrollTop;
   }, [scroller, firstItemId, virtualizer]);
 
+  useUserScroll({ scroller, virtualizer, items, anchor, selfScrolled, loaders, setFollowing });
+
+  return { virtualizer, live, placed, follow: () => setFollowing(true) };
+}
+
+/**
+ * Tells the user's scrolls from the view's own (ADE motion, "Following the stream"): only the
+ * user leaves the live end, by moving up with a wheel, a key, or the scroll bar, by however
+ * little; reaching the bottom returns to it, whatever moved the view there. It also keeps the
+ * item the user reads, for `anchor`, and loads pages near either edge.
+ */
+function useUserScroll(input: {
+  scroller: RefObject<HTMLDivElement | null>;
+  virtualizer: Virtualizer<HTMLDivElement, Element>;
+  items: RefObject<readonly ConversationItem[]>;
+  anchor: RefObject<Anchor | null>;
+  /** The position the view last scrolled to itself, whose scroll event is not the user's. */
+  selfScrolled: RefObject<number | null>;
+  loaders: RefObject<{ onLoadEarlier: () => void; onLoadLater: () => void }>;
+  setFollowing: (following: boolean) => void;
+}): void {
+  const { scroller, virtualizer, items, anchor, selfScrolled, loaders, setFollowing } = input;
   useEffect(() => {
     const element = scroller.current;
     if (element === null) return;
@@ -201,7 +223,5 @@ export function useFollowLatest(input: {
       element.removeEventListener("pointerdown", press);
       globalThis.removeEventListener("pointerup", release);
     };
-  }, [scroller, virtualizer]);
-
-  return { virtualizer, live, placed, follow: () => setFollowing(true) };
+  }, [scroller, virtualizer, items, anchor, selfScrolled, loaders, setFollowing]);
 }
