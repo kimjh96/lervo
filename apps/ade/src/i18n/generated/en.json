@@ -2831,6 +2831,60 @@
       "value": "New Project"
     }
   ],
+  "room.conversationStarted": [
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " started "
+    },
+    {
+      "type": 8,
+      "value": "link",
+      "children": [
+        {
+          "type": 1,
+          "value": "title"
+        }
+      ]
+    }
+  ],
+  "room.conversationStartedBy": [
+    {
+      "type": 0,
+      "value": "Started by "
+    },
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " in "
+    },
+    {
+      "type": 8,
+      "value": "link",
+      "children": [
+        {
+          "type": 1,
+          "value": "title"
+        }
+      ]
+    }
+  ],
+  "room.conversationStartedByElsewhere": [
+    {
+      "type": 0,
+      "value": "Started by "
+    },
+    {
+      "type": 1,
+      "value": "agent"
+    }
+  ],
   "room.deliveryFailed": [
     {
       "type": 0,

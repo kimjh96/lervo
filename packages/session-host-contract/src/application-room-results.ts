@@ -34,6 +34,11 @@ export const roomJoinResultSchema = {
     provider: { type: "string", minLength: 1, maxLength: 32 },
     /** Whether the agent's earlier session in the conversation continues. */
     resumed: { type: "boolean" },
+    /**
+     * The session is the conversation's own: the lead of a conversation it started, whose session
+     * opens from the delivered first turn (Lervo ADE rooms, slice 2). Absent for an agent that joins.
+     */
+    lead: { const: true },
   },
 } as const;
 

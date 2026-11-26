@@ -10,7 +10,13 @@ const team = [
 ];
 
 function context(agentId: string, sessions: Record<string, string>): RoomContext {
-  return { workspaceId: "wsp_1", agentId, team, sessions: new Map(Object.entries(sessions)) };
+  return {
+    workspaceId: "wsp_1",
+    projectId: "prj_1",
+    agentId,
+    team,
+    sessions: new Map(Object.entries(sessions)),
+  };
 }
 
 function said(text: string): HostedDecodedEvent[] {
@@ -129,6 +135,47 @@ describe("routing between a conversation's agents", () => {
     expect(room.observe("s-ciel", said("@Elio one more")).deliveries).toEqual([]);
     room.sent("s-elio", undefined, owner("Go on."));
     expect(room.observe("s-elio", said("@Ciel continue")).deliveries).toHaveLength(1);
+  });
+
+  it("opens a conversation an agent started, which shows who started it and from where", () => {
+    const room = router();
+    const start = {
+      workspaceId: "wsp_new",
+      agentId: "agt_ciel",
+      title: "Fix retry budget",
+      text: "Fix the retry budget.",
+      preparedAt: "2026-11-27T00:00:00.000Z",
+    };
+    // A start of another agent is never this session's to open.
+    expect(room.starts("s-ciel", [{ ...start, agentId: "agt_elio" }]).deliveries).toEqual([]);
+    const opened = room.starts("s-ciel", [start]);
+    expect(opened.events).toMatchObject([
+      {
+        content: {
+          kind: "lervo_notice",
+          code: "conversation_started",
+          parameters: { agent: "Ciel", title: "Fix retry budget", workspace: "wsp_new" },
+        },
+      },
+    ]);
+    expect(opened.deliveries).toMatchObject([
+      { workspaceId: "wsp_new", agentId: "agt_ciel", sessionId: null },
+    ]);
+    const text = opened.deliveries[0]?.text ?? "";
+    expect(text).toContain("[Lervo room] From Ciel (Developer):\nFix the retry budget.");
+    expect(text).toContain("You started this conversation for this work, and you lead it.");
+
+    // The new session's first turn echoes the delivery.
+    room.know("s-new", { ...context("agt_ciel", {}), workspaceId: "wsp_new" });
+    const shown = room.sent("s-new", opened.deliveries[0]?.deliveryId, owner(text));
+    expect(shown.map((event) => (event.kind === "item" ? event.content : null))).toEqual([
+      {
+        kind: "lervo_notice",
+        code: "conversation_started_by",
+        parameters: { agent: "Ciel", workspace: "wsp_1" },
+      },
+      { kind: "peer_message", from: "Ciel", text: "Fix the retry budget." },
+    ]);
   });
 
   it("leaves a session outside any conversation untouched", () => {

@@ -19,6 +19,7 @@ import { withLervoCall } from "./lervo-command-detail.js";
 import { summarizeWorkspaceTurns } from "./turn-summary-service.js";
 import { joinWorkspaceRoom, routeRoomTurn } from "./workspace-room.js";
 import { loadRoomContext } from "./room-context.js";
+import { pendingStartsOf, pendingStartsPath } from "./room-starts.js";
 
 const transcripts = new WorkspaceTranscripts();
 
@@ -59,6 +60,7 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   runAgentCommand: runCoreLinkAgentCommand,
   joinRoom: joinWorkspaceRoom,
   loadRoomContext,
+  pendingStarts: (agentId) => pendingStartsOf(pendingStartsPath(), agentId),
   routeRoom: routeRoomTurn,
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,

@@ -1,5 +1,5 @@
 import type { ConversationItem } from "@lervo/session-host-contract";
-import { type ComponentType, lazy, Suspense } from "react";
+import { type ComponentType, lazy, type ReactNode, Suspense } from "react";
 import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
 import { attachedFiles } from "../model/files";
@@ -10,6 +10,7 @@ import { usePacedText } from "./paced";
 import styles from "./renderers.module.css";
 import { ToolLine } from "./ToolLine";
 import { MentionText } from "../../agents";
+import { useWorkspaceStore } from "../../workspaces";
 
 type Renderer<Kind extends ConversationItem["kind"]> = ComponentType<{
   item: Extract<ConversationItem, { kind: Kind }>;
@@ -130,9 +131,53 @@ const roomMessages: Readonly<Record<string, MessageDescriptor>> = {
   room_rejoin_failed: { id: "room.rejoinFailed" },
 };
 
+/**
+ * A room line that names another conversation, which it opens (Lervo ADE rooms, "How an agent
+ * starts a conversation"): the one an agent started from here, or the one this was started in.
+ */
+const startedMessages: Readonly<Record<string, MessageDescriptor>> = {
+  conversation_started: { id: "room.conversationStarted" },
+  conversation_started_by: { id: "room.conversationStartedBy" },
+};
+
+function StartedLine({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
+  const workspaceId = String(item.parameters.workspace ?? "");
+  const known = useWorkspaceStore((store) =>
+    store.workspaces.find((workspace) => workspace.workspaceId === workspaceId),
+  );
+  const select = useWorkspaceStore((store) => store.select);
+  const title =
+    item.code === "conversation_started"
+      ? String(item.parameters.title ?? "")
+      : (known?.title ?? known?.branch ?? null);
+  const agent = String(item.parameters.agent ?? "");
+  if (title === null)
+    return (
+      <p className={styles.roomLine}>
+        <FormattedMessage id="room.conversationStartedByElsewhere" values={{ agent }} />
+      </p>
+    );
+  const link = (chunks: ReactNode) => (
+    <button
+      type="button"
+      className={styles.roomLink}
+      disabled={known === undefined}
+      onClick={() => select(workspaceId)}
+    >
+      {chunks}
+    </button>
+  );
+  return (
+    <p className={styles.roomLine}>
+      <FormattedMessage {...startedMessages[item.code]} values={{ agent, title, link }} />
+    </p>
+  );
+}
+
 function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
   if (item.code === "context_compacted")
     return <CompactionDivider manual={item.parameters.trigger === "manual"} />;
+  if (Object.hasOwn(startedMessages, item.code)) return <StartedLine item={item} />;
   if (Object.hasOwn(roomMessages, item.code))
     return (
       <p className={styles.roomLine}>

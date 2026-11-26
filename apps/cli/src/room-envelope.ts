@@ -12,8 +12,11 @@ export interface RoomEnvelope {
   readonly role: string;
   readonly message: string;
   readonly recent: readonly RoomTurn[];
-  /** Why the turn came: a mention, or the answer to the agent's own mention. */
-  readonly reason: "mention" | "answer";
+  /**
+   * Why the turn came: a mention, the answer to the agent's own mention, or the first turn of a
+   * conversation the agent started for its own work.
+   */
+  readonly reason: "mention" | "answer" | "start";
 }
 
 const MARK = "[Lervo room]";
@@ -54,7 +57,9 @@ export function envelopeText(envelope: RoomEnvelope): string {
   const guide =
     envelope.reason === "answer"
       ? `\n\n${MARK} Continue your work with this answer.`
-      : `\n\n${MARK} Answer here; your answer returns to ${envelope.from}. Mention @Name only when your work needs that agent's role or knowledge.`;
+      : envelope.reason === "start"
+        ? `\n\n${MARK} You started this conversation for this work, and you lead it. Work here; mention @Name only when your work needs that agent's role or knowledge.`
+        : `\n\n${MARK} Answer here; your answer returns to ${envelope.from}. Mention @Name only when your work needs that agent's role or knowledge.`;
   return `${head}\n${envelope.message.trim()}${recalled}${guide}`;
 }
 

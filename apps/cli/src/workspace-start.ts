@@ -113,6 +113,10 @@ export interface WorkspaceStartRequest {
   readonly hooks?: HostedSessionHooks;
   /** The agents the conversation starts with; the first one's session writes. */
   readonly participants?: WorkspaceParticipants;
+  /** The conversation's title, instead of the instruction's first line. */
+  readonly title?: string;
+  /** The team agent that started the conversation and leads it. */
+  readonly startedBy?: string;
 }
 
 export interface WorkspaceStartResult {
@@ -209,7 +213,7 @@ export async function startWorkspace(
   request: WorkspaceStartRequest,
   ports: WorkspaceStartPorts,
 ): Promise<WorkspaceStartResult> {
-  const title = titleFor(request.instruction);
+  const title = titleFor(request.title ?? request.instruction);
   const branch = branchFor(title, request.suffix);
   const workspacePath = workspacePathFor(request.repositoryRoot, branch);
   const intent = {
@@ -302,6 +306,7 @@ export async function startWorkspace(
             agentId: request.participants.agentId,
             participants: [...request.participants.participants],
           }),
+      ...(request.startedBy === undefined ? {} : { startedBy: request.startedBy }),
       ...(base === undefined
         ? {}
         : {

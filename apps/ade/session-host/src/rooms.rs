@@ -63,7 +63,7 @@ impl<C: Core> Host<C> {
         let code = match self.core.command("room.join", arguments).await {
             Ok(CommandOutcome {
                 launch: Some(launch),
-                ..
+                result,
             }) => {
                 // The agent's session may already run, such as when it joined meanwhile.
                 if let Some(handle) = self.running_session(&launch.session_id) {
@@ -79,8 +79,16 @@ impl<C: Core> Host<C> {
                 let started = match messages::identifier(&delivery.delivery_id) {
                     Some(request) => {
                         let _serial = self.lifecycle.lock().await;
-                        let role = Role::Member {
-                            initial_delivery: initial,
+                        // The lead of a conversation it started opens the conversation's own
+                        // session, so the interface opening it finds it running.
+                        let role = if result.get("lead") == Some(&Value::Bool(true)) {
+                            Role::Lead {
+                                initial_delivery: initial,
+                            }
+                        } else {
+                            Role::Member {
+                                initial_delivery: initial,
+                            }
                         };
                         self.start_as(&request, &launch, role).await;
                         self.running_session(&launch.session_id)
