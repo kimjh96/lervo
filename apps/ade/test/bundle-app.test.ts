@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 // @ts-expect-error The bundle build is a plain build script without type declarations.
-import { builtExecutable, hostTarget, stagedName } from "../scripts/bundle-app.mjs";
+import { builtExecutable, hostTarget, stagedName, withAppIcon } from "../scripts/bundle-app.mjs";
 
 describe("the application bundle build", () => {
   it("stages the session host under the name Tauri looks for on the build's target", () => {
@@ -27,5 +27,21 @@ describe("the application bundle build", () => {
     ].join("\n");
     expect(builtExecutable(messages)).toBe("/repo/target/release/lervo-session-host");
     expect(() => builtExecutable(messages.split("\n")[0])).toThrow("no lervo-session-host");
+  });
+
+  it("places the compiled app icon in the app's resources and keeps the rest", () => {
+    const base = {
+      bundle: { externalBin: ["binaries/lervo-session-host"], macOS: { signingIdentity: "-" } },
+    };
+    expect(withAppIcon(base, "/stage/app-icon/Assets.car")).toEqual({
+      bundle: {
+        externalBin: ["binaries/lervo-session-host"],
+        macOS: {
+          signingIdentity: "-",
+          files: { "Resources/Assets.car": "/stage/app-icon/Assets.car" },
+        },
+      },
+    });
+    expect(base.bundle.macOS).toEqual({ signingIdentity: "-" });
   });
 });
