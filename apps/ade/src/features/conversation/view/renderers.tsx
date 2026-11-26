@@ -8,6 +8,7 @@ import { MessageImages } from "./MessageImages";
 import { usePacedText } from "./paced";
 import styles from "./renderers.module.css";
 import { ToolLine } from "./ToolLine";
+import { MentionText } from "../../agents";
 
 type Renderer<Kind extends ConversationItem["kind"]> = ComponentType<{
   item: Extract<ConversationItem, { kind: Kind }>;
@@ -39,7 +40,12 @@ function Paragraphs(props: { text: string; className: string | undefined }) {
 function UserMessage({ item }: { item: Extract<ConversationItem, { kind: "user_message" }> }) {
   const images = item.images ?? [];
   const { text, paths } = attachedFiles(item.text);
-  if (images.length === 0 && paths.length === 0) return <p className={styles.user}>{text}</p>;
+  if (images.length === 0 && paths.length === 0)
+    return (
+      <p className={styles.user}>
+        <MentionText text={text} />
+      </p>
+    );
   return (
     <div className={styles.user}>
       {/* motion: A message arrives live */}
@@ -49,7 +55,11 @@ function UserMessage({ item }: { item: Extract<ConversationItem, { kind: "user_m
       {/* motion: A message arrives live */}
       {paths.length === 0 ? null : <MessageFiles paths={paths} />}
       {/* motion: A message arrives live */}
-      {text.length === 0 ? null : <p className={styles.userText}>{text}</p>}
+      {text.length === 0 ? null : (
+        <p className={styles.userText}>
+          <MentionText text={text} />
+        </p>
+      )}
     </div>
   );
 }
@@ -101,9 +111,25 @@ function CompactionDivider({ manual }: { manual: boolean }) {
   );
 }
 
+/**
+ * What a conversation's room did (Lervo ADE rooms, "The ADE"): a quiet line without a mark or a
+ * source, like a tool line, because it records the agents' coordination rather than speaking.
+ */
+const roomMessages: Readonly<Record<string, MessageDescriptor>> = {
+  room_joined: { id: "room.joined" },
+  room_paused: { id: "room.paused" },
+  room_delivery_failed: { id: "room.deliveryFailed" },
+};
+
 function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
   if (item.code === "context_compacted")
     return <CompactionDivider manual={item.parameters.trigger === "manual"} />;
+  if (Object.hasOwn(roomMessages, item.code))
+    return (
+      <p className={styles.roomLine}>
+        <FormattedMessage {...roomMessages[item.code]} values={{ ...item.parameters }} />
+      </p>
+    );
   const message = Object.hasOwn(noticeMessages, item.code)
     ? noticeMessages[item.code]
     : { id: "notice.unknown" };

@@ -1175,6 +1175,18 @@
     "defaultMessage": "New Project",
     "description": "Title of the window that creates a new project."
   },
+  "room.deliveryFailed": {
+    "defaultMessage": "Lervo could not deliver a mention ({code}).",
+    "description": "A room line: a mention could not reach the mentioned agent; {code} is the core's code."
+  },
+  "room.joined": {
+    "defaultMessage": "{agent} joined · mentioned by {by}",
+    "description": "A room line: an agent joined the conversation because another agent mentioned it."
+  },
+  "room.paused": {
+    "defaultMessage": "Agents paused at {limit} turns in 10 minutes. The agent that started the exchange summarizes it; reply to start again.",
+    "description": "A room line: agent-to-agent mentions reached the exchange budget."
+  },
   "start.error.application_unavailable": {
     "defaultMessage": "Lervo is not reachable on this computer.",
     "description": "The resident Lervo process is not running."

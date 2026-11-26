@@ -1,0 +1,19 @@
+/* The speaker line: a mark, the agent's name, and its role, a step above its turn. */
+.speaker {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
+.name {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.role {
+  color: var(--color-text-secondary);
+}

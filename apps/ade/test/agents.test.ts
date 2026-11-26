@@ -133,3 +133,20 @@ describe("the sidebar's agents", () => {
     expect(agentActivity(elio.agentId, workspaces, { s1: "working" })).toBeNull();
   });
 });
+
+describe("mentions in a conversation's text", () => {
+  it("sets apart exactly the team agents the core would deliver to", async () => {
+    const { mentionParts } = await import("../src/features/agents/model/mentions");
+    const team = [
+      { agentId: "agt_arin", displayName: "Arin" },
+      { agentId: "agt_writer", displayName: "Arin-92AE" },
+    ];
+    expect(mentionParts("@arin, ask @Arin-92AE and mail ops@Arin.dev", team)).toEqual([
+      { agentId: "agt_arin", name: "@arin" },
+      ", ask ",
+      { agentId: "agt_writer", name: "@Arin-92AE" },
+      " and mail ops@Arin.dev",
+    ]);
+    expect(mentionParts("no mention here", team)).toEqual(["no mention here"]);
+  });
+});

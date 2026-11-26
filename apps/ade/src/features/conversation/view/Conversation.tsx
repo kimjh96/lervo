@@ -12,6 +12,8 @@ import { FormattedMessage } from "react-intl";
 
 import { FloatingButton } from "../../../ui/FloatingButton";
 import { Presence } from "../../../ui/Presence";
+import { roomView } from "../model/room";
+import { useRoomStore } from "../model/room-store";
 import { useConversationStore } from "../model/store";
 import styles from "./Conversation.module.css";
 import { ConversationItemView } from "./renderers";
@@ -19,6 +21,7 @@ import { useToolLineToggles } from "./ToolLinesProvider";
 import { queuedReplies, type TurnEnd, turnEnds } from "../model/turns";
 import { useShowsTurnSummaries } from "./TurnSummariesProvider";
 import { TurnSummaryLine } from "./TurnSummaryLine";
+import { SpeakerLine } from "./SpeakerLine";
 
 const NEAR_EDGE_PX = 48;
 /** The key of the conversation's first row. */
@@ -64,7 +67,15 @@ export function Conversation(props: {
   /** When a reply was sent while the agent worked; such replies say they wait until it answers. */
   queuedSince?: number | null | undefined;
 }) {
-  const window = useConversationStore((store) => store.window);
+  // A conversation with joined agents is one timeline of their sessions (Lervo ADE rooms).
+  const lead = useConversationStore((store) => store.window);
+  const leadAgentId = useRoomStore((store) => store.leadAgentId);
+  const members = useRoomStore((store) => store.members);
+  const room = useMemo(
+    () => roomView(lead, leadAgentId, Object.values(members)),
+    [lead, leadAgentId, members],
+  );
+  const window = room.window;
   const arrived = useConversationStore((store) => store.arrived);
   const scroller = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLDivElement>(null);
@@ -286,6 +297,10 @@ export function Conversation(props: {
                 data-arrived={arrived.has(item.itemId) ? "true" : undefined}
                 style={{ transform: `translateY(${row.start}px)` }}
               >
+                {/* motion: A message arrives live */}
+                {room.changes.has(item.itemId) ? (
+                  <SpeakerLine agentId={room.speakers.get(item.itemId) ?? ""} />
+                ) : null}
                 <ConversationItemView item={item} />
                 <Presence className={styles.queued}>
                   {queued.has(item.itemId) ? <FormattedMessage id="conversation.queued" /> : null}

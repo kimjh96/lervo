@@ -2,6 +2,7 @@ import { Lexer, type Token, type Tokens } from "marked";
 import { type ReactNode, useMemo } from "react";
 
 import styles from "./Markdown.module.css";
+import { MentionText } from "../../../agents";
 
 /**
  * An agent's text as Markdown (CommonMark with GitHub's tables and strikethrough). The lexer's
@@ -161,7 +162,11 @@ function span(token: Token, key: number): ReactNode {
       return <br key={key} />;
     case "text": {
       const text = token as Tokens.Text;
-      return text.tokens === undefined ? text.text : <span key={key}>{inline(text.tokens)}</span>;
+      return text.tokens === undefined ? (
+        <MentionText key={key} text={text.text} />
+      ) : (
+        <span key={key}>{inline(text.tokens)}</span>
+      );
     }
     default:
       return "text" in token ? String(token.text) : null;
