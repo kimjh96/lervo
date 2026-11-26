@@ -2,7 +2,11 @@
 // conversation"). The worktree and the lead's launch are prepared here; the session opens when the
 // agent's turn ends, from the delivery the core makes of the pending start.
 import { CommandFailure } from "./command-error-output.js";
-import { conversationsStartedBy, hostedLaunchRecordsPath } from "./hosted-launch-records.js";
+import {
+  conversationsStartedBy,
+  hostedLaunchRecordsPath,
+  latestHostedLaunchOfAgent,
+} from "./hosted-launch-records.js";
 import { AGENT_STARTS_PER_HOUR, pendingStartsPath, recordPendingStart } from "./room-starts.js";
 import {
   startWorkspaceFromInstruction,
@@ -35,9 +39,16 @@ export async function startAgentConversation(
       "conversation_start_limited",
       `An agent starts at most ${AGENT_STARTS_PER_HOUR} conversations an hour.`,
     );
+  // The session host that opens the conversation is the one the agent's own session runs in, so
+  // the new conversation answers questions with choices exactly when the agent's session does.
+  const own = await latestHostedLaunchOfAgent(
+    hostedLaunchRecordsPath(environment),
+    options.startedBy,
+  );
   const result = await startWorkspaceFromInstruction({
     ...options,
     participants: [options.startedBy],
+    ...(own?.questions === true ? { questions: true } : {}),
   });
   const title = titleFor(options.title ?? options.instruction);
   await recordPendingStart(

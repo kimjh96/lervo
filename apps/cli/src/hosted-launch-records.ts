@@ -107,6 +107,14 @@ async function readRecords(path: string): Promise<HostedLaunchRecord[]> {
   return Array.isArray(records) ? records.filter(isRecord) : [];
 }
 
+/** The newest record of any session of `agentId`, or null when it has none. */
+export async function latestHostedLaunchOfAgent(
+  path: string,
+  agentId: string,
+): Promise<HostedLaunchRecord | null> {
+  return (await readRecords(path)).findLast((record) => record.agentId === agentId) ?? null;
+}
+
 /** The kept records of conversations `agentId` started (Lervo ADE rooms, slice 2). */
 export async function conversationsStartedBy(
   path: string,

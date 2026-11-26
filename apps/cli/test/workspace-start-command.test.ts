@@ -453,6 +453,13 @@ describe("conversations an agent starts", () => {
       roleId: "developer",
       origin: "team",
     });
+    // Ciel works in a conversation whose session host answers questions with choices.
+    await startWorkspaceFromInstruction({
+      instruction,
+      repository: app.projectId,
+      participants: [ciel.agentId],
+      questions: true,
+    });
     const started = await startAgentConversation(
       {
         instruction,
@@ -478,6 +485,8 @@ describe("conversations an agent starts", () => {
     });
     expect(opened).toMatchObject({ lead: true, sessionId: started.sessionId, resumed: false });
     expect(opened.launch.arguments).not.toContain("dontAsk");
+    // The conversation it started answers questions with choices, as Ciel's own session does.
+    expect(opened.launch.arguments).toContain("--permission-prompt-tool");
     expect(opened.launch.initialInput).toBe(
       "[Lervo room] From Ciel (Developer):\nFix the retry budget.",
     );
