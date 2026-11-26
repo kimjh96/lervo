@@ -161,6 +161,20 @@ it("declines a second prompt while one runs, and exits after a prompt that overr
   await vi.waitFor(() => expect(onOverrun).toHaveBeenCalledTimes(1));
 });
 
+it("exits when the work after a drained answer left reads running, and not otherwise", async () => {
+  for (const settled of [false, true]) {
+    const onOverrun = vi.fn();
+    const afterDrain = vi.fn(async () => settled);
+    const socketPath = await serverWith(async () => ({ ...answer, afterDrain }), onOverrun);
+    expect(
+      JSON.parse((await exchange(socketPath, JSON.stringify(request()))).slice(1)),
+    ).toMatchObject({ ok: true });
+    await vi.waitFor(() => expect(afterDrain).toHaveBeenCalledTimes(1));
+    await new Promise((done) => setTimeout(done, 20));
+    expect(onOverrun).toHaveBeenCalledTimes(settled ? 0 : 1);
+  }
+});
+
 it("gives up on a prompt that never settles", async () => {
   const onOverrun = vi.fn();
   const socketPath = await serverWith(() => new Promise(() => undefined), onOverrun, 50);

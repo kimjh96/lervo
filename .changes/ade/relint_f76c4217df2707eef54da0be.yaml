@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f76c4217df2707eef54da0be"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "The sidebar's agents and the Conversations heading now arrive together and open their space smoothly, so the conversation rows below slide once instead of jumping."

@@ -151,7 +151,10 @@ export function useRoom(input: {
       if (members.length === 0) return lead;
       const leadName = nameOf(leadAgentId);
       const first = lead === null ? [] : [leadName === null ? lead : named(leadName, lead)];
-      return [...first, ...members].join(", ");
+      return new Intl.ListFormat(intl.locale, { type: "unit", style: "short" }).format([
+        ...first,
+        ...members,
+      ]);
     },
   };
 }

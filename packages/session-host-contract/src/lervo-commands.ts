@@ -18,6 +18,7 @@ export const lervoCommandIds = [
   "agent mandate resolve-preflight",
   "agent mandate revoke",
   "agent mandate scope",
+  "agent model",
   "agent rename",
   "agent role",
   "agent status",

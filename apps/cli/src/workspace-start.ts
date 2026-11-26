@@ -1,6 +1,7 @@
 import { basename, resolve } from "node:path";
 
 import {
+  type HostedEffort,
   HostedLaunchError,
   type HostedConversationMode,
   type HostedLaunch,
@@ -106,6 +107,8 @@ export interface WorkspaceStartRequest {
   readonly model?: string;
   /** Whether the session host answers the agents' questions with choices; native mode only. */
   readonly questions?: true;
+  /** How much the model works before it answers, from the writing agent (ADR-0647). */
+  readonly effort?: HostedEffort;
   /** Lervo's hook handler, when the provider's adapter declares `hooks`. */
   readonly hooks?: HostedSessionHooks;
   /** The agents the conversation starts with; the first one's session writes. */
@@ -215,6 +218,7 @@ export async function startWorkspace(
     workingDirectory: workspacePath,
     start: { kind: "new" as const, instruction: request.instruction },
     ...(request.model === undefined ? {} : { model: request.model }),
+    ...(request.effort === undefined ? {} : { effort: request.effort }),
     ...(request.hooks === undefined ? {} : { hooks: request.hooks }),
     ...(request.questions === true && request.mode === "native" ? { questions: true } : {}),
   };

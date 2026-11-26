@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b3002e85ec1bd80fdf0e94d0"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "A development build run outside its app bundle no longer crashes when an agent finishes in the background; it skips the desktop notification instead."

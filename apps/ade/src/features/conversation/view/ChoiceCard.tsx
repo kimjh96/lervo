@@ -168,6 +168,7 @@ export function QuestionChoices(props: {
       <Presence>
         {failure === null ? null : (
           <InlineAlert size="meta" className={styles.failure}>
+            {/* motion: Inline errors */}
             {failure === "question_not_open" ? (
               <FormattedMessage id="conversation.question.closed" />
             ) : (

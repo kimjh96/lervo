@@ -93,7 +93,7 @@
 
 .close {
   top: var(--space-14);
-  right: var(--space-14);
+  inset-inline-end: var(--space-14);
   width: var(--size-control-md);
   height: var(--size-control-md);
   border-radius: var(--radius-sm);
@@ -109,11 +109,11 @@
 }
 
 .arrow[data-side="previous"] {
-  left: var(--space-16);
+  inset-inline-start: var(--space-16);
 }
 
 .arrow[data-side="next"] {
-  right: var(--space-16);
+  inset-inline-end: var(--space-16);
 }
 
 .arrow:disabled {

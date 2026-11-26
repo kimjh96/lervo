@@ -48,6 +48,12 @@ export function Presence(props: {
    * move (principle 8).
    */
   enterOnMount?: boolean;
+  /**
+   * How content arrives: it fades in, or, for glass such as a floating button, it rises from 0.98
+   * and keeps its glass from the first frame, since WebKit draws no backdrop blur on an element
+   * whose opacity animates (ADE craft rules, 14). Content leaves by fading either way.
+   */
+  arrival?: "fade" | "rise";
 }) {
   const present = shownOf(props.children);
   const key = props.contentKey ?? "content";
@@ -100,6 +106,7 @@ export function Presence(props: {
           className={styles.layer}
           data-leaving={layer.leaving ? "" : undefined}
           data-enter={layer.mounted && !mountEnter ? undefined : ""}
+          data-arrival={props.arrival === "rise" ? "rise" : undefined}
           data-after={layer.after ? "" : undefined}
           aria-hidden={layer.leaving ? true : undefined}
           inert={layer.leaving}

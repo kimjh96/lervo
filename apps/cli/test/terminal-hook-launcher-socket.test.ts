@@ -1,6 +1,16 @@
 import { spawn } from "node:child_process";
 import { createServer, type Server, type Socket } from "node:net";
-import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  rm,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +18,8 @@ import { afterEach, expect, it } from "vitest";
 import { TERMINAL_CONTEXT_ENVIRONMENT } from "../src/terminal-context-server.js";
 import { TERMINAL_CONTEXT_SESSION_NAMES } from "../src/terminal-context-session.js";
 import { inProcessHookFallback } from "../src/terminal-hook-delivery.js";
+import { terminalCachedBaseKey } from "../src/terminal-cached-base.js";
+import { answeredFromCachedBaseSince } from "../src/terminal-cached-base-turn.js";
 import {
   materializeHostTerminalRuntime,
   terminalHookRuntimeStorePath,
@@ -320,3 +332,101 @@ it("sends no prompt to a store that group or others can enter", async () => {
   expect(await launch(f, prompt)).toEqual({ code: 0, stdout: prompt, stderr: "" });
   expect(server.requests).toHaveLength(0);
 });
+
+// ADR-0645: a prompt the server could not take gets the base the server cached for this checkout.
+const hookArgs = ["--provider", "claude", "--contract", "2"];
+const cachedAnswer =
+  '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"cached"}}\n';
+const sessionPrompt = JSON.stringify({
+  hook_event_name: "UserPromptSubmit",
+  session_id: "session-1",
+  prompt: "fix the form",
+});
+
+async function cacheBase(f: Awaited<ReturnType<typeof fixture>>, mode = 0o600) {
+  const environment = Object.fromEntries(
+    TERMINAL_CONTEXT_ENVIRONMENT.map((name) => [name, f.environment[name] ?? null]),
+  ) as Parameters<typeof terminalCachedBaseKey>[2];
+  const directory = resolve(f.store, "base");
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const key = terminalCachedBaseKey(f.cwd, hookArgs, environment);
+  const file = resolve(directory, `${key}.json`);
+  await writeFile(file, cachedAnswer, { mode });
+  await chmod(file, mode);
+  return { directory, key, file };
+}
+
+async function unserved(directory: string) {
+  const names = (await readdir(directory)).filter((name) => name.endsWith(".unserved"));
+  return Promise.all(
+    names.map(async (name) => JSON.parse(await readFile(resolve(directory, name), "utf8"))),
+  );
+}
+
+it.skipIf(process.platform === "win32")(
+  "answers an unserved prompt from the cached base and leaves its markers",
+  async () => {
+    for (const [reason, setup] of [
+      ["no_server", async () => undefined],
+      [
+        "declined_busy",
+        (f: Awaited<ReturnType<typeof fixture>>) =>
+          listen(f.store, (socket) => socket.end(`${JSON.stringify({ declined: "busy" })}\n`)),
+      ],
+      ["unreachable", (f: Awaited<ReturnType<typeof fixture>>) => listen(f.store, () => undefined)],
+    ] as const) {
+      const f = await fixture();
+      const { directory } = await cacheBase(f);
+      await setup(f);
+      expect(await launch(f, sessionPrompt)).toEqual({ code: 0, stdout: cachedAnswer, stderr: "" });
+      const [marker, ...rest] = await unserved(directory);
+      expect(rest).toEqual([]);
+      expect(marker.reason).toBe(reason);
+      expect(marker.age).toBeGreaterThanOrEqual(0);
+      expect(await answeredFromCachedBaseSince("session-1", Date.now() - 60_000, directory)).toBe(
+        true,
+      );
+    }
+  },
+);
+
+it.skipIf(process.platform === "win32")(
+  "runs in process when the cached base cannot stand for the hook",
+  async () => {
+    // Each case caches a fresh base first, then changes one thing.
+    type Setup = (f: Awaited<ReturnType<typeof fixture>>) => Promise<unknown>;
+    const setups: Setup[] = [
+      // A decline the hook itself must answer.
+      (f) =>
+        listen(f.store, (socket) =>
+          socket.end(`${JSON.stringify({ declined: "runtime_mismatch" })}\n`),
+        ),
+      // An old base.
+      async (f) => {
+        const { file } = await cacheBase(f);
+        const old = new Date(Date.now() - 31 * 60_000);
+        await utimes(file, old, old);
+      },
+      // A base others can read.
+      (f) => cacheBase(f, 0o644),
+    ];
+    const cases: [Setup, string?][] = setups.map((setup) => [setup]);
+    cases.push([
+      async () => undefined,
+      JSON.stringify({ hook_event_name: "Stop", session_id: "s" }),
+    ]);
+    for (const [setup, input = sessionPrompt] of cases) {
+      const f = await fixture();
+      const { directory } = await cacheBase(f);
+      await setup(f);
+      expect((await launch(f, input)).stdout).toBe(input);
+      expect(await unserved(directory)).toEqual([]);
+    }
+    // A session whose compared variables differ never matches the base the server wrote.
+    const f = await fixture();
+    await cacheBase(f);
+    expect((await launch(f, sessionPrompt, { XDG_STATE_HOME: resolve(f.home, "s") })).stdout).toBe(
+      sessionPrompt,
+    );
+  },
+);

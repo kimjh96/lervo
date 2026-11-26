@@ -11,8 +11,11 @@
   background: var(--color-surface-input);
 }
 
-/* A floating card lets the content under it show through, blurred. */
+/* A floating card lets the content under it show through, blurred, and is edged and shadowed like
+   every floating surface (ADE craft rules, 1). */
 .card[data-surface="floating"] {
+  border-color: var(--color-border-window);
+  box-shadow: var(--shadow-window);
   background: var(--color-surface-floating);
   backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
 }

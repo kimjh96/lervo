@@ -18,9 +18,9 @@
     },
     {
       "path": "apps/cli/src/terminal-hook-launcher.mjs",
-      "contentHash": "sha256:2acfa9510ee0ba090430baecc035b040e41df5bf1f7f332e5f5f9086a023e3a7",
+      "contentHash": "sha256:899a3d68083e252b199730b2423701b4fcdd9d77b36a9a016b13c3706cb8f93d",
       "responsibility": "Standalone terminal hook launcher: verify and load the runtime, delegate, or ask the context server",
-      "rationale": "Repositories commit this file alone as .lervo/generated/terminal-hooks/runtime-v2.mjs and run it before any runtime exists, so it cannot import sibling modules; its verification, delegation, socket client, launch relay, and the offer outcome it leaves the runtime share the store checks and must ship as one file.",
+      "rationale": "Repositories commit this file alone as .lervo/generated/terminal-hooks/runtime-v2.mjs and run it before any runtime exists, so it cannot import sibling modules; its verification, delegation, socket client, launch relay, the offer outcome it leaves the runtime, and the cached-base answer it prints when the server cannot take a prompt (ADR-0645) share the store checks and must ship as one file.",
       "disposition": "cohesive"
     },
     {
@@ -88,7 +88,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:a82c6f133ca5aad28340f7fbbe13cb636161c3e0e05c97ee1dcceb98ec21393f",
+      "contentHash": "sha256:dec7b74bf9d25f967d07c551edd9b579070bb6f7583eac78a47c993eadad0e50",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, hosted-session, and terminal base-delivery payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
