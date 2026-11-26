@@ -32,7 +32,8 @@ function view(agent: WorkforceAgent, roleNames: Map<string, string>, lervos: Set
     roleId: agent.roleId,
     roleName: roleNames.get(agent.roleId) ?? agent.roleId,
     status: agent.status,
-    origin: lervos.has(agent.agentId) ? "lervo" : "team",
+    // A recorded origin decides; a record from before it falls back to ADR-0643's rule.
+    origin: agent.origin ?? (lervos.has(agent.agentId) ? "lervo" : "team"),
     provider: agent.provider,
     parentAgentId: agent.parentAgentId,
     revision: agent.revision,

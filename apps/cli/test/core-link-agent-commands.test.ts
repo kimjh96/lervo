@@ -2,9 +2,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { registerAgent } from "@lervo/agent-workforce";
+import { listAgents, registerAgent } from "@lervo/agent-workforce";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { pendingAgentOrigins, recordPendingAgentOrigins } from "../src/agent-origin-stage.js";
 import { runCoreLinkAgentCommand } from "../src/core-link-agent-commands.js";
 import { runCoreLinkProjectCommand } from "../src/core-link-project-commands.js";
 
@@ -86,5 +87,37 @@ describe("the core link's agent commands", () => {
     await expect(
       runCoreLinkAgentCommand("agent.hire", { projectId, role: "developer", name: "elio" }),
     ).rejects.toMatchObject({ code: "agent_state_conflict" });
+  });
+
+  it("records each agent's origin once through the upgrade stage, then lists the recorded one", async () => {
+    const { projectId, root } = await project();
+    const steward = await registerAgent({
+      repositoryRoot: root,
+      roleId: "developer",
+      provider: "claude",
+      displayName: "Knowledge Steward",
+    });
+    const worker = await registerAgent({
+      repositoryRoot: root,
+      roleId: "developer",
+      provider: "claude",
+      parentAgentId: steward.agentId,
+    });
+    const hired = (await runCoreLinkAgentCommand("agent.hire", {
+      projectId,
+      role: "developer",
+    })) as {
+      agent: { agentId: string };
+    };
+    const pending = await pendingAgentOrigins(root);
+    // A hire over the core link already records its origin; the steward and its worker do not.
+    expect(pending.get(steward.agentId)).toBe("lervo");
+    expect(pending.get(worker.agentId)).toBe("lervo");
+    expect(pending.has(hired.agent.agentId)).toBe(false);
+    expect(await recordPendingAgentOrigins(root)).toBe(pending.size);
+    expect(await recordPendingAgentOrigins(root)).toBe(0);
+    const origins = new Map((await listAgents(root)).map((agent) => [agent.agentId, agent.origin]));
+    expect(origins.get(steward.agentId)).toBe("lervo");
+    expect(origins.get(hired.agent.agentId)).toBe("team");
   });
 });

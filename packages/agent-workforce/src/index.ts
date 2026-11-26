@@ -39,3 +39,4 @@ export { createConvergenceAssignment } from "./assignment-convergence-creation.j
 export { archiveConvergenceAssignment } from "./assignment-convergence-archive.js";
 export * from "./workforce-source-paths.js";
 export { createPinnedAssignment } from "./assignment-pinned-creation.js";
+export { recordAgentOrigins } from "./agent-origin.js";

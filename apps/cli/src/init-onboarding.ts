@@ -46,6 +46,8 @@ export async function bootstrapOnboarding(root: string): Promise<OnboardingResul
         roleId: "developer",
         provider: "any",
         responsibilityPaths: ["*"],
+        // The project's first developer is the team's (ADR-0643).
+        origin: "team",
         recordEvent: (event: WorkforceEvent) => recordWorkforceEvent(storage, event),
       });
       agents = [agent];

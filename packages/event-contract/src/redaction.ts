@@ -326,6 +326,7 @@ export const eventPayloadAllowlists = {
     "provider",
     "parentAgentId",
     "delegationDepth",
+    "origin",
   ],
   "agent.identity.changed": [
     "changeKind",

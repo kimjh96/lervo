@@ -26,10 +26,18 @@ export interface WorkforceAgent {
   parentAgentId: string | null;
   delegationDepth: number;
   status: AgentStatus;
+  /**
+   * Whether the agent is the team's, hired by the owner, onboarding, or a team agent, or Lervo's
+   * own, hired by a Lervo service such as knowledge convergence (ADR-0643). Absent on a record from
+   * before the field, which the upgrade's origin stage fills.
+   */
+  origin?: AgentOrigin;
   revision: number;
   createdAt: string;
   updatedAt: string;
 }
+
+export type AgentOrigin = "team" | "lervo";
 
 export interface WorkforceCapabilityPackage {
   capabilityId: string;

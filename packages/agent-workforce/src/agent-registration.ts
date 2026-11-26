@@ -1,4 +1,5 @@
 import {
+  type AgentOrigin,
   type WorkforceProvider,
   type WorkforceEventRecorder,
   type WorkforceAgent,
@@ -25,6 +26,8 @@ export async function registerAgentOnce(input: {
   capabilityPackageIds?: string[];
   parentAgentId?: string;
   displayName?: string;
+  /** The team's or Lervo's own (ADR-0643); a caller that hires for a Lervo service says `lervo`. */
+  origin?: AgentOrigin;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAgent> {
@@ -111,6 +114,7 @@ export async function registerAgentOnce(input: {
     parentAgentId: parent?.agentId ?? null,
     delegationDepth,
     status: "active",
+    ...(input.origin === undefined ? {} : { origin: input.origin }),
     revision: 1,
     createdAt,
     updatedAt: createdAt,
@@ -143,6 +147,7 @@ export async function registerAgentOnce(input: {
         provider: agent.provider,
         parentAgentId: agent.parentAgentId,
         delegationDepth,
+        ...(agent.origin === undefined ? {} : { origin: agent.origin }),
       },
     },
   });
@@ -157,6 +162,8 @@ export function registerAgent(input: {
   capabilityPackageIds?: string[];
   parentAgentId?: string;
   displayName?: string;
+  /** The team's or Lervo's own (ADR-0643); a caller that hires for a Lervo service says `lervo`. */
+  origin?: AgentOrigin;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAgent> {

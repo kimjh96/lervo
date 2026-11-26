@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_131a3d19ed3779d6970a251c"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Every agent records whether it is the team's or Lervo's own (origin), and lervo upgrade records it once for agents hired before (ADR-0643)."

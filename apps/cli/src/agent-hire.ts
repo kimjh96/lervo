@@ -28,6 +28,8 @@ export async function hireAgent(root: string, request: AgentHireRequest): Promis
       provider: request.provider,
       ...(request.displayName === undefined ? {} : { displayName: request.displayName }),
       responsibilityPaths: request.responsibilityPaths,
+      // The owner hires the team (ADR-0643); a Lervo service hires its own workers elsewhere.
+      origin: "team",
       ...(request.capabilityPackageIds === undefined
         ? {}
         : { capabilityPackageIds: request.capabilityPackageIds }),
