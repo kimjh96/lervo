@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { commandModifier } from "../../../platform/keyboard";
@@ -6,6 +7,7 @@ import { InlineAlert } from "../../../ui/InlineAlert";
 import { Kbd } from "../../../ui/Kbd";
 import { ListRow } from "../../../ui/ListRow";
 import { useDeparting } from "../../../ui/departing";
+import { useItemSpace } from "../../../ui/space";
 import { StatusDot } from "../../../ui/StatusDot";
 import { Presence } from "../../../ui/Presence";
 import { groupByRepository, visibleStatus } from "../model/decisions";
@@ -14,6 +16,40 @@ import { statusMessages } from "./messages";
 import styles from "./WorkspaceList.module.css";
 
 const workspaceKey = (workspace: { workspaceId: string }) => workspace.workspaceId;
+
+/**
+ * A workspace row: one that arrives while the person watches opens its space and enters; one that
+ * leaves fades and closes its space where it was (ADE motion, "Coming and going" and "Space").
+ */
+function Row(props: { arrived: boolean; leaving: boolean; children: ReactNode }) {
+  const space = useItemSpace<HTMLLIElement>(props.arrived, props.leaving);
+  return (
+    <li
+      ref={space}
+      data-arrived={props.arrived ? "true" : undefined}
+      data-leaving={props.leaving ? "" : undefined}
+      aria-hidden={props.leaving ? true : undefined}
+      inert={props.leaving}
+    >
+      {props.children}
+    </li>
+  );
+}
+
+/** A repository's name, which arrives with its first row and leaves with its last. */
+function Heading(props: { arrived: boolean; leaving: boolean; children: ReactNode }) {
+  const space = useItemSpace<HTMLHeadingElement>(props.arrived, props.leaving);
+  return (
+    <h3
+      ref={space}
+      className={styles.repository}
+      data-arrived={props.arrived ? "true" : undefined}
+      data-leaving={props.leaving ? "" : undefined}
+    >
+      {props.children}
+    </h3>
+  );
+}
 
 /**
  * "New work" and the workspaces, grouped by repository, with each workspace's live status. A row
@@ -59,33 +95,22 @@ export function WorkspaceList() {
       </Presence>
       {groups.map((group) => (
         <div key={group.repositoryName}>
-          <h3
-            className={styles.repository}
-            data-arrived={
-              group.workspaces.every((workspace) => arrived.has(workspace.workspaceId))
-                ? "true"
-                : undefined
-            }
-            data-leaving={
-              group.workspaces.every((workspace) => leaving.has(workspace.workspaceId))
-                ? ""
-                : undefined
-            }
+          <Heading
+            arrived={group.workspaces.every((workspace) => arrived.has(workspace.workspaceId))}
+            leaving={group.workspaces.every((workspace) => leaving.has(workspace.workspaceId))}
           >
             {group.repositoryName}
-          </h3>
+          </Heading>
           <ul className={styles.rows}>
             {group.workspaces.map((workspace) => {
               const status = visibleStatus(statuses[workspace.sessionId]);
               const current = selected === workspace.workspaceId;
               const gone = leaving.has(workspace.workspaceId);
               return (
-                <li
+                <Row
                   key={workspace.workspaceId}
-                  data-arrived={arrived.has(workspace.workspaceId) ? "true" : undefined}
-                  data-leaving={gone ? "" : undefined}
-                  aria-hidden={gone ? true : undefined}
-                  inert={gone}
+                  arrived={arrived.has(workspace.workspaceId)}
+                  leaving={gone}
                 >
                   <ListRow
                     current={current}
@@ -103,7 +128,7 @@ export function WorkspaceList() {
                       </Presence>
                     }
                   />
-                </li>
+                </Row>
               );
             })}
           </ul>

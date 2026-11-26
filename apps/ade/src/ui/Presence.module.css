@@ -15,6 +15,16 @@
   min-width: 0;
 }
 
+/* Each layer takes its content's size, not the place's, so the space can move from the old
+   content's size to the new one's (ADE motion, "Space"). */
+.presence:not([data-inline]) > .layer {
+  align-self: start;
+}
+
+.presence[data-inline] > .layer {
+  justify-self: start;
+}
+
 /* In a place pinned to the bottom, layers keep the bottom edge, so new content stays where it
    first shows while the space shrinks around it. */
 .presence[data-align="end"] > .layer {

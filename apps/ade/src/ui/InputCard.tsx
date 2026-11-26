@@ -32,19 +32,22 @@ export function InputCard(props: {
         props.onSubmit();
       }}
     >
-      {/* motion: Coming and going */}
-      {props.dropHint === undefined ? (
-        props.attachments === undefined ? null : (
-          <div className={styles.attachments}>{props.attachments}</div>
-        )
-      ) : (
-        <div className={styles.attachments}>
-          <span className={styles.dropHint}>
-            <PaperClipIcon size="lg" />
-            {props.dropHint}
-          </span>
-        </div>
-      )}
+      {/* The tray and the drop hint open and close their space with their fade, and crossfade
+          in place when one replaces the other (ADE motion, "Coming and going" and "Space"). */}
+      <Presence contentKey={props.dropHint === undefined ? "attachments" : "drop"}>
+        {props.dropHint === undefined ? (
+          props.attachments === undefined ? null : (
+            <div className={styles.attachments}>{props.attachments}</div>
+          )
+        ) : (
+          <div className={styles.attachments}>
+            <span className={styles.dropHint}>
+              <PaperClipIcon size="lg" />
+              {props.dropHint}
+            </span>
+          </div>
+        )}
+      </Presence>
       {props.children}
     </form>
   );

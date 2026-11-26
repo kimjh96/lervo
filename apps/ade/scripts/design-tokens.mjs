@@ -144,7 +144,15 @@ export function renderMotion(tokens) {
       Number.parseFloat(token.$value),
     ]),
   );
-  const body = JSON.stringify(durations, null, 2);
+  const easings = Object.fromEntries(
+    Object.entries(tokens.motion.easing)
+      .filter(([name]) => !name.startsWith("$"))
+      .map(([name, token]) => [
+        `${name}Easing`,
+        `cubic-bezier(${token.$value.map((value) => String(value)).join(", ")})`,
+      ]),
+  );
+  const body = JSON.stringify({ ...durations, ...easings }, null, 2);
   return `// Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit.\nexport const motion = ${body} as const;\n`;
 }
 
