@@ -14,6 +14,7 @@ import {
   type TerminalContextRequest,
 } from "./terminal-context-server.js";
 import { applyTerminalContextSessionEnvironment } from "./terminal-context-session.js";
+import { terminalContextWarmth } from "./terminal-context-warmth.js";
 import type { TerminalHookDelivery } from "./terminal-hook-delivery.js";
 import {
   createTerminalStageObservation,
@@ -288,13 +289,18 @@ export async function serveTerminalContext(entry: string): Promise<void> {
   let release = () => undefined as void;
   const hash = await runtimeHash(entry);
   const stats = contextStats(hash);
+  let busy = () => false;
+  const warmth = terminalContextWarmth({ busy: () => busy() });
   const server = startTerminalContextServer({
     socketPath: TERMINAL_CONTEXT_SOCKET_NAME,
     runtimeHash: hash,
     onOutcome: stats.outcome,
     onAnswered: stats.answered,
     environment: process.env,
-    run: runServedTerminalHook,
+    run: (request) => {
+      warmth.served(request.cwd);
+      return runServedTerminalHook(request);
+    },
     // Exit so the host starts a fresh server: abandoned work must not reach the next request.
     onOverrun: () => {
       release();
@@ -304,6 +310,8 @@ export async function serveTerminalContext(entry: string): Promise<void> {
   });
   await server.ready;
   release = () => server.releaseSocket();
+  busy = () => server.busy();
+  void warmth.start();
   // Stop accepting at once, and exit once the hook in flight answered and drained; the watchdog
   // above still bounds a hook that never settles.
   // A service manager signals the server and its follower together, and the follower then signals
@@ -312,6 +320,7 @@ export async function serveTerminalContext(entry: string): Promise<void> {
   const stop = () => {
     if (stopping) return;
     stopping = true;
+    warmth.stop();
     void server.finish().then(() => process.exit(0));
   };
   process.on("SIGTERM", stop);
