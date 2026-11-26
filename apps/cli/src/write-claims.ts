@@ -33,8 +33,43 @@ export function claimReading(provider: string): HostedClaimAnswering | null {
   return claimReaders.get(provider) ?? null;
 }
 
-/** Claims a write for the session's conversation. */
-export type WriteClaimer = (request: WriteClaimRequest) => Promise<HostedClaimDecision>;
+/** Who holds a refused path: a live lease, another conversation's changed bytes, or a sealed change. */
+export interface ClaimHolder {
+  readonly agentId: string;
+  readonly displayName: string;
+  readonly roleName: string;
+  readonly origin: "team" | "lervo";
+  readonly workspaceId: string | null;
+  readonly conversationTitle: string | null;
+  readonly kind: "lease" | "changed" | "sealed_change";
+  /** The lease's expiry, or null when no timer frees the path. */
+  readonly until: string | null;
+}
+
+/**
+ * The core's answer to a claim (Lervo ADE coordination, "The claim contract"). A refusal names
+ * its code, the repository-relative paths, the holder, and the message the agent receives.
+ */
+export type ClaimDecision =
+  | { readonly decision: "allow" }
+  | {
+      readonly decision: "deny";
+      readonly code: string;
+      readonly paths: readonly string[];
+      readonly holder: ClaimHolder | null;
+      readonly message: string;
+    }
+  | { readonly decision: "defer"; readonly code: string };
+
+/** Claims a write for the session's conversation: the core's coordination stage. */
+export type WriteClaimer = (request: WriteClaimRequest) => Promise<ClaimDecision>;
+
+/** The provider hook's answer for the core's decision: a refusal carries its message. */
+export function hookDecision(decision: ClaimDecision): HostedClaimDecision {
+  return decision.decision === "deny"
+    ? { decision: "deny", reason: decision.message }
+    : { decision: decision.decision };
+}
 
 /** How long a claim may hold a tool call before the write goes ahead, claimed at the turn's end. */
 export const CLAIM_DECISION_MS = 2000;
@@ -69,13 +104,14 @@ export async function answerPreToolUse(input: {
   const decide = async (): Promise<HostedClaimDecision> => {
     const session = await input.writing(hook.providerSessionId);
     if (session === null) return { decision: "allow" };
-    return input.claim({
+    const decision = await input.claim({
       workspaceId: session.workspaceId,
       agentId: session.agentId,
       providerSessionId: hook.providerSessionId,
       toolUseId: hook.toolUseId,
       intent,
     });
+    return hookDecision(decision);
   };
   let timer: NodeJS.Timeout | undefined;
   const decision = await Promise.race([

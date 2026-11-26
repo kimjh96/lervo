@@ -62,7 +62,13 @@ describe("claims at first write", () => {
       writing: () => Promise.resolve(lead),
       claim: (request) => {
         asked.push(request);
-        return Promise.resolve({ decision: "deny", reason: "Ciel holds src/a.ts." });
+        return Promise.resolve({
+          decision: "deny",
+          code: "path_leased",
+          paths: ["src/a.ts"],
+          holder: null,
+          message: "Ciel holds src/a.ts.",
+        });
       },
     });
     expect(asked).toEqual([
@@ -90,7 +96,13 @@ describe("claims at first write", () => {
     let looked = 0;
     const claim = () => {
       claimed += 1;
-      return Promise.resolve({ decision: "deny" as const, reason: "no" });
+      return Promise.resolve({
+        decision: "deny" as const,
+        code: "path_leased",
+        paths: ["a.ts"],
+        holder: null,
+        message: "no",
+      });
     };
     const base = { answering, fallbackDirectory: "/work/repo", claim };
     expect(
@@ -130,7 +142,17 @@ describe("claims at first write", () => {
         decisionMs: 20,
         claim: () =>
           new Promise((resolve) =>
-            setTimeout(() => resolve({ decision: "deny", reason: "late" }), 500),
+            setTimeout(
+              () =>
+                resolve({
+                  decision: "deny",
+                  code: "path_leased",
+                  paths: ["a.ts"],
+                  holder: null,
+                  message: "late",
+                }),
+              500,
+            ),
           ),
       }),
     ).toBe("{}\n");
