@@ -215,6 +215,9 @@ const fieldLabels = {
   exitCode: "Exit code",
   startedAt: "Started at",
   turnId: "Turn",
+  cacheAgeMilliseconds: "Cached base age (ms)",
+  deliveredAt: "Delivered at",
+  reason: "Reason",
 };
 
 export function eventLabel(type) {

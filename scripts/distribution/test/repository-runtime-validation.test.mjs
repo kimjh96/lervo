@@ -42,7 +42,7 @@ it("keeps selected generated function bodies exactly equal to the full canonical
   }
   const full = functions(compiled.generatedSources.full),
     selected = functions(compiled.generatedSources.selected);
-  expect(full.size).toBe(195);
+  expect(full.size).toBe(196);
   expect(selected.size).toBe(12);
   for (const [name, body] of selected) expect(body, name).toBe(full.get(name));
   expect(compiled.bytes).toEqual(
@@ -144,6 +144,6 @@ it("runs the actual bundled validation facade with exact errors, lazy fallback a
       { encoding: "utf8" },
     ),
   );
-  expect(result.schemas).toBe(195);
+  expect(result.schemas).toBe(196);
   expect(result.cases).toBeGreaterThan(2000);
 }, 30000);

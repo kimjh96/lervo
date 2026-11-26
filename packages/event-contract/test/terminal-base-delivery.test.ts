@@ -13,8 +13,8 @@ function envelope(schemaVersion: number, payload: Record<string, unknown>) {
   return {
     eventId: "evt_basedelivery0001",
     projectId: "prj_base_delivery_1",
-    runId: "run_base_delivery_1",
-    sessionId: "ses_base_delivery_1",
+    runId: `run_basedelivery_${"a".repeat(32)}`,
+    sessionId: `ses_basedelivery_${"a".repeat(32)}`,
     seq: 1,
     type: "terminal.context.base_delivered",
     occurredAt: "2026-11-26T14:00:01.000Z",
