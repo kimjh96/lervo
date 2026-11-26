@@ -117,7 +117,7 @@ describe("event-contract command", () => {
     expect(JSON.parse(applied.stdout.join(""))).toMatchObject({ selectedEventSchemaVersion: 3 });
     for (const args of [
       ["status", "--schema-version", "3"],
-      ["activate", "--schema-version", "15"],
+      ["activate", "--schema-version", "16"],
     ]) {
       const invalid = io(root, evidence);
       expect(await runEventContractCommand(args, invalid.value)).toBe(1);
@@ -148,7 +148,7 @@ describe("event-contract command", () => {
         {
           readerKind: "local",
           capabilities: {
-            readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+            readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
           },
         },
       ],

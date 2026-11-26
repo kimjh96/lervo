@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a54b72a951bc59bf4c3828b2"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Read event schema 15 in the CLI, the Node, and the Hub: five room events record ADE agents mentioning each other in a conversation. Automatic writer activation stays at schema 14."

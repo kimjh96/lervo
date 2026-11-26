@@ -22,7 +22,7 @@ function event(schemaVersion: number) {
 
 describe("event reader compatibility", () => {
   it("reads supported versions without changing their bytes", () => {
-    for (const schemaVersion of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) {
+    for (const schemaVersion of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
       const source = event(schemaVersion);
       expect(readEventEnvelope(source)).toEqual(source);
     }
@@ -45,7 +45,7 @@ describe("event reader compatibility", () => {
   });
 
   it("distinguishes unsupported versions from invalid supported envelopes", () => {
-    expect(() => readEventEnvelope(event(15))).toThrowError(
+    expect(() => readEventEnvelope(event(16))).toThrowError(
       expect.objectContaining({ code: "event_schema_unsupported" }),
     );
     expect(() => readEventEnvelope({ ...event(2), eventId: "invalid" })).toThrowError(
