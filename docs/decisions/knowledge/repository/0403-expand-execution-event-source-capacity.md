@@ -2,6 +2,7 @@
 
 Status: `accepted` (amended 2026-09-17)
 Date: 2026-09-15
+Amended by: [ADR-0554](../../execution/verification/0554-bound-what-a-reader-retains-never-history-length.md) (a longer history selects its most recent window instead of failing)
 
 ## Context
 
@@ -9,7 +10,7 @@ The installed WSL Lervo repository accumulated 8,220 execution-type events, abou
 
 ## Decision
 
-Raise the complete execution-event source count cap from 8,192 to 32,768. Preserve the 100,000 sequence cap, 256 KiB per-event cap, 16 MiB total-byte cap, full chain verification, schema and hash validation, payload privacy allowlist, unique event IDs, and fail-closed behavior. Do not delete, truncate, skip, or overwrite historical events.
+Raise the complete execution-event source count cap from 8,192 to 32,768. Since [ADR-0554](../../execution/verification/0554-bound-what-a-reader-retains-never-history-length.md), the legacy single-corpus adapter (`packages/repository-knowledge/src/execution-event-source.ts`) no longer fails a longer history: it selects the most recent execution events within 32,768 sources and 16 MiB, in path order, and still validates every older execution event. The rest of this decision describes the bounds as first adopted. Preserve the 100,000 sequence cap, 256 KiB per-event cap, 16 MiB total-byte cap, full chain verification, schema and hash validation, payload privacy allowlist, unique event IDs, and fail-closed behavior. Do not delete, truncate, skip, or overwrite historical events.
 
 The count cap is a secondary guard under the byte cap. At the observed average of about 380 bytes per relevant event, 32,768 events occupy about 12 MB, within the 16 MiB bound. A repository approaching either bound needs a separately reviewed compaction or snapshot decision before further admission.
 
