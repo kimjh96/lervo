@@ -395,6 +395,10 @@
     "defaultMessage": "The agent starts in a moment",
     "description": "The reply card placeholder while the agent of work just sent has not started."
   },
+  "conversation.route.failed": {
+    "defaultMessage": "Lervo could not check this reply for mentions ({code}), so only the conversation's lead received it.",
+    "description": "The core could not route the owner's reply to the agents it may mention, so the reply went to the conversation's lead only; {code} is the protocol code."
+  },
   "conversation.stop": {
     "defaultMessage": "Stop",
     "description": "The reply card's button while the agent works, and its accessible name: stops the agent's turn and keeps the conversation."

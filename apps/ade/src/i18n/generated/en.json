@@ -861,6 +861,20 @@
       "value": "The agent starts in a moment"
     }
   ],
+  "conversation.route.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not check this reply for mentions ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": "), so only the conversation's lead received it."
+    }
+  ],
   "conversation.stop": [
     {
       "type": 0,
