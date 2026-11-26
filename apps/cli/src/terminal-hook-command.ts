@@ -37,6 +37,7 @@ import type { CliIo, CliServices } from "./types.js";
 import { resolveTerminalRoots } from "./terminal-roots.js";
 import { requestOpenTerminalTurnSettlement } from "./terminal-turn-settlement.js";
 import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
+import { roomBlock } from "./room-context.js";
 
 export function runTerminalHookCommand(
   args: string[],
@@ -104,10 +105,18 @@ async function executeTerminalHookCommand(
             now: new Date(),
           }),
       ).catch(() => null);
+      // A hosted session with an agent also learns its conversation (Lervo ADE rooms).
+      const room =
+        process.env.LERVO_AGENT_ID === undefined
+          ? null
+          : await withinTerminalDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS, () =>
+              roomBlock(input.providerSessionId),
+            ).catch(() => null);
+      const context = [additionalContext, room].filter((part) => part !== null).join("\n\n");
       io.stdout(
-        additionalContext === null
+        context.length === 0
           ? "{}\n"
-          : `${JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext } })}\n`,
+          : `${JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: context } })}\n`,
       );
       // Schema 12: a resumed session whose last turn no Stop closed settles that turn now.
       await settleOnSessionStart(io.cwd, provider, input).catch(() => false);

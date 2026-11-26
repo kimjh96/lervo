@@ -47,6 +47,7 @@ const started: WorkspaceStartResult = {
 
 /** Each `recordTurnUsage` call: the session and the models it carried. */
 const recordedUsage: [string, (string | null)[]][] = [];
+const elioSession = "3f1e2d3c-4b5a-4c6d-8e9f-0a1b2c3d4e5f";
 
 function handlers(release?: Promise<void>): CoreLinkHandlers {
   return {
@@ -75,6 +76,18 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
         hostedEvents: "recorded",
       };
     },
+    loadRoomContext: async (sessionId) =>
+      sessionId === elioSession
+        ? {
+            workspaceId: started.workspaceId,
+            agentId: "agt_elio",
+            team: [
+              { agentId: "agt_elio", displayName: "Elio", roleName: "Product Owner" },
+              { agentId: "agt_arin", displayName: "Arin", roleName: "Researcher" },
+            ],
+            sessions: new Map([["agt_elio", elioSession]]),
+          }
+        : null,
     routeRoom: async (arguments_) => ({
       agents: String(arguments_.text).includes("@Arin") ? ["agt_arin"] : ["agt_elio"],
     }),
@@ -548,6 +561,56 @@ describe("the core-link server", () => {
     expect(JSON.stringify(written)).not.toContain("the file's text");
     for (const response of written)
       expect(validResponse(response), JSON.stringify(response)).toBe(true);
+  });
+
+  it("delivers a finished turn's mentions only for a decoder the session host routes", async () => {
+    const turn = Buffer.from(
+      [
+        {
+          type: "assistant",
+          message: { model: "m", content: [{ type: "text", text: "@Arin is it in seconds?" }] },
+        },
+        { type: "result", subtype: "success", uuid: "r1", result_index: 0 },
+      ]
+        .map((line) => `${JSON.stringify(line)}\n`)
+        .join(""),
+    ).toString("base64");
+    const { written } = await serve([
+      {
+        kind: "decoder.open",
+        id: 1,
+        decoderId: "dec_room",
+        provider: "claude",
+        sessionId: elioSession,
+        deliveries: true,
+      },
+      { kind: "decoder.send", id: 2, decoderId: "dec_room", text: "Implement retries." },
+      { kind: "decoder.output", id: 3, decoderId: "dec_room", data: turn },
+      // The same session without deliveries answers as before.
+      {
+        kind: "decoder.open",
+        id: 4,
+        decoderId: "dec_plain",
+        provider: "claude",
+        sessionId: elioSession,
+      },
+      { kind: "decoder.output", id: 5, decoderId: "dec_plain", data: turn },
+    ]);
+    const routed = written.find((response) => response.id === 3) as {
+      events: { content?: { kind: string; code?: string } }[];
+      deliveries?: { agentId: string; sessionId: string | null; text: string }[];
+    };
+    expect(routed.deliveries).toEqual([
+      expect.objectContaining({
+        agentId: "agt_arin",
+        sessionId: null,
+        workspaceId: started.workspaceId,
+      }),
+    ]);
+    expect(routed.deliveries?.[0]?.text).toContain("[Lervo room] From Elio (Product Owner):");
+    expect(routed.deliveries?.[0]?.text).toContain("- Owner: Implement retries.");
+    expect(routed.events.some((event) => event.content?.code === "room_joined")).toBe(true);
+    expect(written.find((response) => response.id === 5)).not.toHaveProperty("deliveries");
   });
 
   it("records a named session's turn usage after answering its decoded events", async () => {

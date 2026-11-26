@@ -13,7 +13,10 @@ function escaped(text: string): string {
  * display name, without regard to case, at a word boundary and outside code. A longer name wins
  * over a shorter one it begins with, so `@Arin-92AE` never mentions Arin.
  */
-export function mentionedAgents(text: string, agents: readonly TeamAgent[]): string[] {
+export function mentionedAgents(
+  text: string,
+  agents: readonly Pick<TeamAgent, "agentId" | "displayName">[],
+): string[] {
   const prose = text.replace(CODE, (code) => " ".repeat(code.length));
   const taken = new Set<number>();
   const found: { agentId: string; at: number }[] = [];

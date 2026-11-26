@@ -1377,6 +1377,9 @@
         },
         "sessionId": {
           "$ref": "#/$defs/Identifier"
+        },
+        "deliveries": {
+          "type": "boolean"
         }
       }
     },
@@ -1415,6 +1418,9 @@
           "items": {
             "$ref": "#/$defs/SentImage"
           }
+        },
+        "deliveryId": {
+          "$ref": "#/$defs/Identifier"
         }
       }
     },
@@ -1590,6 +1596,48 @@
         "input": {
           "type": "string",
           "maxLength": 1398104
+        },
+        "deliveries": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "title": "RoomDelivery",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "deliveryId",
+              "workspaceId",
+              "agentId",
+              "sessionId",
+              "text"
+            ],
+            "properties": {
+              "deliveryId": {
+                "$ref": "#/$defs/Identifier"
+              },
+              "workspaceId": {
+                "$ref": "#/$defs/Identifier"
+              },
+              "agentId": {
+                "$ref": "#/$defs/Identifier"
+              },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/Identifier"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536
+              }
+            }
+          }
         }
       }
     },

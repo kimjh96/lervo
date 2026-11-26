@@ -3,6 +3,7 @@ import type { HostedLaunch } from "@lervo/adapter-contract";
 import { lervoAgentIds, loadConvergenceDelegation } from "@lervo/repository-knowledge-runtime";
 
 import { CommandFailure } from "./command-error-output.js";
+import { roleCatalog } from "./role-catalog.js";
 
 /** How many agents one conversation may start with (Lervo ADE agents, "Participants"). */
 const MAXIMUM_PARTICIPANTS = 8;
@@ -49,6 +50,7 @@ export async function resolveParticipants(
 export interface TeamAgent {
   readonly agentId: string;
   readonly displayName: string;
+  readonly roleName: string;
 }
 
 /**
@@ -61,6 +63,10 @@ export async function teamAgents(repositoryRoot: string): Promise<TeamAgent[]> {
   const delegation =
     (await loadConvergenceDelegation(repositoryRoot).catch(() => null))?.delegation ?? null;
   const lervos = lervoAgentIds(agents, delegation);
+  // A malformed role file names no role; the agent keeps its role ID.
+  const { names } = await roleCatalog(repositoryRoot).catch(() => ({
+    names: new Map<string, string>(),
+  }));
   return agents
     .filter(
       (agent) =>
@@ -68,7 +74,11 @@ export async function teamAgents(repositoryRoot: string): Promise<TeamAgent[]> {
         agent.origin !== "lervo" &&
         !(agent.origin === undefined && lervos.has(agent.agentId)),
     )
-    .map((agent) => ({ agentId: agent.agentId, displayName: agent.displayName }));
+    .map((agent) => ({
+      agentId: agent.agentId,
+      displayName: agent.displayName,
+      roleName: names.get(agent.roleId) ?? agent.roleId,
+    }));
 }
 
 /**

@@ -57,6 +57,11 @@ export const decoderOpenRequestSchema = request(
      * host sends it only to a core that advertised `decoder.session`.
      */
     sessionId: identifierSchema,
+    /**
+     * Whether the session host performs the deliveries the decoder's answers carry (Lervo ADE
+     * rooms). It sends it only to a core that advertised `decoder.deliveries`.
+     */
+    deliveries: { type: "boolean" },
   },
   ["decoderId", "provider"],
 );
@@ -76,7 +81,13 @@ export const decoderInterruptRequestSchema = request(
 export const decoderSendRequestSchema = request(
   "DecoderSendRequest",
   "decoder.send",
-  { decoderId: identifierSchema, text: textSchema, images: sentImagesSchema },
+  {
+    decoderId: identifierSchema,
+    text: textSchema,
+    images: sentImagesSchema,
+    /** The delivery this text performs, so the core shows it as its sender's (Lervo ADE rooms). */
+    deliveryId: identifierSchema,
+  },
   ["decoderId", "text"],
 );
 
@@ -140,6 +151,7 @@ export const advertisedCoreRequestNames = [
   "decoder.interrupt",
   "decoder.images",
   "workspace.participants",
+  "decoder.deliveries",
 ] as const;
 
 export const coreLinkRequestSchemas = [
@@ -226,6 +238,21 @@ export const coreFailedResponseSchema = {
   },
 } as const;
 
+/** A turn for an agent of the conversation, which joins first when `sessionId` is null. */
+export const roomDeliverySchema = {
+  title: "RoomDelivery",
+  type: "object",
+  additionalProperties: false,
+  required: ["deliveryId", "workspaceId", "agentId", "sessionId", "text"],
+  properties: {
+    deliveryId: identifierSchema,
+    workspaceId: identifierSchema,
+    agentId: identifierSchema,
+    sessionId: { oneOf: [identifierSchema, { type: "null" }] },
+    text: { type: "string", minLength: 1, maxLength: 65536 },
+  },
+} as const;
+
 export const decoderDecodedResponseSchema = {
   title: "DecoderDecodedResponse",
   type: "object",
@@ -237,6 +264,11 @@ export const decoderDecodedResponseSchema = {
     events: { type: "array", maxItems: 4096, items: decodedEventSchema },
     /** For `decoder.send`: the Base64 bytes to write to the provider's standard input. */
     input: { type: "string", maxLength: 1398104 },
+    /**
+     * Turns for the session host to give other agents of the conversation, only for a decoder
+     * opened with `deliveries` (Lervo ADE rooms, "The core link and the session host").
+     */
+    deliveries: { type: "array", maxItems: 16, items: roomDeliverySchema },
   },
 } as const;
 
