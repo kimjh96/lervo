@@ -35,6 +35,6 @@ This chapter of the [design system](ade-design-system.md) turns the finish the o
 
 ## Verification
 
-17. **Every visual change is checked in the real app.** The change runs in the ADE's real window and is captured state by state, in light and dark. Each motion is recorded and read frame by frame: an opening, closing, or arriving element shows its intermediate frames and never jumps in one frame.
+17. **Every visual change is checked in the real app.** The change runs in the ADE's real window and is captured state by state, in light and dark. A development build opens in either with `LERVO_ADE_APPEARANCE=light` or `dark`, which changes only its window, native material included; the system's appearance and compatibility settings are never changed for a check. Each motion is recorded and read frame by frame: an opening, closing, or arriving element shows its intermediate frames and never jumps in one frame.
 18. **A mockup uses the real tokens and components.** A mockup is built from the token file and the shared components. A direction that cannot be built from them is not approved until they can express it.
 19. **Mechanical rules are checked mechanically.** The motion check (`apps/ade/scripts/check-motion.mjs`) rejects an opening animation that fades an element with a backdrop blur, along with what it already rejects. The design value check rejects literal values.

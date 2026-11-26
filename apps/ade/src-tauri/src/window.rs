@@ -3,7 +3,7 @@
 
 use serde_json::json;
 use tauri::webview::{PageLoadEvent, PageLoadPayload};
-use tauri::{Emitter, Runtime, Webview, WebviewWindow, Window, WindowEvent};
+use tauri::{Emitter, Manager, Runtime, Webview, WebviewWindow, Window, WindowEvent};
 
 /// Shows the window. `public/launch.js` calls it as soon as the document's stylesheets have
 /// loaded, which is when the launch view can paint.
@@ -26,6 +26,22 @@ fn show<R: Runtime>(window: Window<R>) {
     }
     if window.show().is_ok() {
         let _ = window.set_focus();
+    }
+}
+
+/// The appearance a development build was asked to open in, `LERVO_ADE_APPEARANCE=light` or
+/// `dark`, so the window can be checked in both without changing the system's appearance (ADE
+/// craft rules, 17). Only this window changes, with its native material, as the system's own
+/// setting would change it. Release builds ignore it.
+#[cfg(debug_assertions)]
+pub fn apply_development_appearance<R: Runtime>(app: &tauri::App<R>) {
+    let theme = match std::env::var("LERVO_ADE_APPEARANCE").as_deref() {
+        Ok("light") => tauri::Theme::Light,
+        Ok("dark") => tauri::Theme::Dark,
+        _ => return,
+    };
+    for window in app.webview_windows().values() {
+        let _ = window.set_theme(Some(theme));
     }
 }
 
