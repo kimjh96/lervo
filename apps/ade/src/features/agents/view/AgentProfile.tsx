@@ -3,6 +3,7 @@ import { type KeyboardEvent, useMemo, useState } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
 import { failureCode, useApplicationCommands } from "../../../ports";
+import { Button } from "../../../ui/Button";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { ListRow } from "../../../ui/ListRow";
 import { Mark } from "../../../ui/Mark";
@@ -10,7 +11,7 @@ import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
 import { Select } from "../../../ui/Select";
 import { useWorkspaceStore } from "../../workspaces";
-import { renameAgent, setAgentModel } from "../model/controller";
+import { renameAgent, setAgentModel, setAgentStatus } from "../model/controller";
 import { useAgentStore } from "../model/store";
 import styles from "./AgentProfile.module.css";
 
@@ -105,6 +106,8 @@ export function AgentProfile(props: { agentId: string }) {
     change().catch((error: unknown) => setFailure(failureCode(error)));
   };
   const renames = advertised?.includes("agent.rename") === true;
+  const pauses = advertised?.includes("agent.status") === true;
+  const paused = agent.status === "suspended";
   const { model } = agent;
   const choosesModel =
     advertised?.includes("agent.model") === true && model !== undefined && models.length > 0;
@@ -190,6 +193,34 @@ export function AgentProfile(props: { agentId: string }) {
           </div>
         )}
       </section>
+      {/* motion: History loads or a workspace reopens */}
+      {pauses ? (
+        <section className={styles.section}>
+          <div className={styles.actions}>
+            <Button
+              variant="outlined"
+              onClick={() =>
+                run(() =>
+                  setAgentStatus(commands, projectId, agent, paused ? "active" : "suspended"),
+                )
+              }
+            >
+              {paused ? (
+                <FormattedMessage id="agents.profile.resume" />
+              ) : (
+                <FormattedMessage id="agents.profile.pause" />
+              )}
+            </Button>
+          </div>
+          <p className={styles.note}>
+            {paused ? (
+              <FormattedMessage id="agents.profile.paused" />
+            ) : (
+              <FormattedMessage id="agents.profile.pauseNote" />
+            )}
+          </p>
+        </section>
+      ) : null}
       <Presence>
         {failure === null ? null : (
           <InlineAlert size="meta">

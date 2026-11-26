@@ -161,10 +161,34 @@
       "value": "Not in a conversation yet"
     }
   ],
+  "agents.profile.pause": [
+    {
+      "type": 0,
+      "value": "Pause agent"
+    }
+  ],
+  "agents.profile.pauseNote": [
+    {
+      "type": 0,
+      "value": "A paused agent takes no new work and keeps its conversations."
+    }
+  ],
+  "agents.profile.paused": [
+    {
+      "type": 0,
+      "value": "Paused. It takes no new work until you resume it."
+    }
+  ],
   "agents.profile.rename": [
     {
       "type": 0,
       "value": "Rename"
+    }
+  ],
+  "agents.profile.resume": [
+    {
+      "type": 0,
+      "value": "Resume agent"
     }
   ],
   "agents.role": [

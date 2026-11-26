@@ -83,9 +83,25 @@
     "defaultMessage": "Not in a conversation yet",
     "description": "An agent's profile when the agent takes part in no conversation."
   },
+  "agents.profile.pause": {
+    "defaultMessage": "Pause agent",
+    "description": "Pauses the agent, which then takes no new work; resuming undoes it."
+  },
+  "agents.profile.pauseNote": {
+    "defaultMessage": "A paused agent takes no new work and keeps its conversations.",
+    "description": "Under the pause button of a working agent."
+  },
+  "agents.profile.paused": {
+    "defaultMessage": "Paused. It takes no new work until you resume it.",
+    "description": "Under the resume button of a paused agent."
+  },
   "agents.profile.rename": {
     "defaultMessage": "Rename",
     "description": "The agent's name in its profile, which renames it in place when pressed."
+  },
+  "agents.profile.resume": {
+    "defaultMessage": "Resume agent",
+    "description": "Lets a paused agent work again."
   },
   "agents.role": {
     "defaultMessage": " · {role}",

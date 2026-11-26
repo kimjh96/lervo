@@ -51,7 +51,8 @@ Agents work together by mentioning each other directly, by role and by what each
 - **Identity.** The agent's mark at its large size, its name, and its role. Pressing the name renames the agent in place through `agent.rename` (ADE craft rules, 12): the name becomes a field of the same type, Return or leaving the field renames, and Escape keeps the name.
 - **Model and effort.** Two menus, the model from `agents.list`'s `models` and the effort, change them through `agent.model`. A line under them says whether Lervo chose them for the role and that a change applies from the agent's next session. A core that does not advertise `agent.model` shows the model as text.
 - **Conversations.** The conversations the agent takes part in, as the lead or a joined participant; choosing one opens it.
-- **Still to come.** The agent's paths, what it has learned, its image, and retiring it.
+- **Pausing.** "Pause agent" sets the agent suspended through `agent.status`; it takes no new work, keeps its conversations, and shows quieter in the sidebar. "Resume agent" undoes it. Retiring cannot be undone, so the profile does not offer it (invariant 10); `lervo agent status` retires an agent.
+- **Still to come.** The agent's paths, what it has learned, and its image.
 - **Failure.** A failed rename or model change shows one line under the profile: "Lervo could not change the agent (<code>)."
 
 ## Model and effort

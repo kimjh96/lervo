@@ -33,6 +33,7 @@ function AgentRow(props: { agent: AgentSummary }) {
     <div ref={space} data-arrived={arrived ? "true" : undefined} className={styles.agent}>
       <ListRow
         current={open}
+        quiet={agent.status === "suspended"}
         onClick={() => openProfile(agent.agentId)}
         leading={
           <StatusRing

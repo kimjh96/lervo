@@ -86,3 +86,19 @@ export async function hireAgent(
   }
   await showProjectAgents(commands, projectId);
 }
+
+/** Pauses an agent or lets it work again, then lists the project's agents again. */
+export async function setAgentStatus(
+  commands: ApplicationCommands,
+  projectId: string,
+  agent: { agentId: string; revision: number },
+  status: "active" | "suspended",
+): Promise<void> {
+  await commands.run("agent.status", {
+    projectId,
+    agentId: agent.agentId,
+    revision: agent.revision,
+    status,
+  });
+  await showProjectAgents(commands, projectId);
+}
