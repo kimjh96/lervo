@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_10f6bf7e515f776e7751aa5b"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "A conversation can start with chosen team agents (workspace.start participants); its session carries the writing agent as LERVO_AGENT_ID, and workspace.list reports each conversation's agents."

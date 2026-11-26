@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e9940f5f616c7e4d8fda07da"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Lervo's knowledge and practice workers are hired with origin lervo, count against their own bound instead of the team's 256, and their retired records are pruned to the latest 32."
