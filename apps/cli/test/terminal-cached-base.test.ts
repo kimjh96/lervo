@@ -298,3 +298,38 @@ it("does nothing more while the base is fresh and no delivery waits", async () =
   expect((await keep(path, ports({ roots }).value)).refreshed).toBe(false);
   expect(roots).not.toHaveBeenCalled();
 });
+
+it("records a delivery under the identity it wrote before a failed record", async () => {
+  const path = await store();
+  const directory = resolve(path, "base");
+  await mkdir(directory, { recursive: true });
+  const key = terminalCachedBaseKey("/repository", args, environment);
+  const marker = resolve(directory, `${key}.${Date.now()}.41.unserved`);
+  await writeFile(marker, '{"reason":"unreachable","age":7,"padding":"ignored"}');
+  await keep(
+    path,
+    ports({
+      openStorage: async () => {
+        throw new Error("database is locked");
+      },
+    }).value,
+  );
+  const written = JSON.parse(await readFile(marker, "utf8"));
+  expect(Object.keys(written).sort()).toEqual(["age", "id", "reason"]);
+  const { value, append } = ports();
+  await rm(resolve(directory, `${key}.json`));
+  expect((await keep(path, value)).recorded).toBe(1);
+  expect(append.mock.calls[0]![0]).toMatchObject({ eventId: `evt_${written.id}` });
+});
+
+it("sweeps a day-old temporary file a writer left behind", async () => {
+  const path = await store();
+  const directory = resolve(path, "base");
+  await mkdir(directory, { recursive: true });
+  const left = `${"2".repeat(16)}.json.41.${"3".repeat(32)}.tmp`;
+  await writeFile(resolve(directory, left), "{}");
+  const day = new Date(Date.now() - 25 * 60 * 60_000);
+  await utimes(resolve(directory, left), day, day);
+  await keep(path, ports().value);
+  expect(await readdir(directory)).not.toContain(left);
+});
