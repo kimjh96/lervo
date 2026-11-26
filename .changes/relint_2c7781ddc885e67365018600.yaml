@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2c7781ddc885e67365018600"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read event schema 16 in the CLI, the Node, and the Hub: assignment.lease.widened and assignment.claim.refused record claims in ADE conversations, and agent.context.promoted may record a conversation_note. Automatic writer activation stays at schema 14."
