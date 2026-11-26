@@ -22,8 +22,8 @@ ADR-0562 already decided what such a prompt gets: the last cached base block, re
 ## Decision
 
 - **The server keeps the cached base current.**
-  - After a served prompt has answered, finished its records, and drained, the server prepares the checkout's base context, unless that checkout's base is younger than five minutes. This is ADR-0531's base: the AGENTS.md pointer, publication policy, applied owner rules, and the recorded workstream headline. It reads no snapshot and no knowledge, and it gets one second.
-  - The server writes that base as the exact answer line the hook would print, with a notice saying that it is the cached base, when it was prepared, and that the turn records no context. The file is `<store>/base/<key>.json`, replaced atomically, owner-only, and capped like any compact context. `<key>` is the first 16 hex digits of the SHA-256 of the hook's real working directory, its arguments, and the values of the variables the server compares before serving (`HOME`, `CLAUDE_CONFIG_DIR`, `LERVO_USER_STATE_DIRECTORY`, and the rest). Each provider's hook gets its own answer, and a session whose stores differ from the server's never matches one.
+  - After a served prompt has answered, finished its records, and drained, the server prepares the checkout's base context, unless that checkout's base is younger than five minutes. This is ADR-0531's base: the AGENTS.md pointer, publication policy, applied owner rules, and the recorded workstream headline. It reads no snapshot and no knowledge, and it gets one second. A base whose owner rules did not load in that second is not written, so the next served prompt tries again instead of caching a base without them.
+  - The server writes that base as the exact answer line the hook would print, with a notice saying that it is the cached base, when it was prepared, and that the turn records no context. The file is `<store>/base/<key>.json`, replaced atomically, owner-only, and capped like any compact context. `<key>` is the first 16 hex digits of the SHA-256 of the hook's real working directory, its arguments, and the JSON array of the values of the variables the server compares before serving, with `null` for an unset one (`HOME`, `CLAUDE_CONFIG_DIR`, `LERVO_USER_STATE_DIRECTORY`, and the rest). Each provider's hook gets its own answer, and a session whose stores differ from the server's never matches one.
   - The server writes no cached base for a checkout that a workspace claims, and removes any it finds there. Workspace attachment can block an assignment's prompt (`TerminalWorkspaceIsolationError`), and a cached answer would skip that check. A plain checkout has no workspace attachment, so it has nothing to block. Workspace provisioning creates a fresh directory. A claim could meet a cached base only if a removed plain checkout's path were reused for a workspace within 30 minutes while no server ran. The next served prompt there removes that base.
 - **Which prompts get the cached base.** The launcher answers from the cached base only when all of these hold:
   - the offer failed as `no_server`, `unreachable`, or `declined_busy`;
@@ -43,8 +43,8 @@ ADR-0562 already decided what such a prompt gets: the last cached base block, re
   - The event carries the reason, the cache age, and the time. Its actor is `system`, and its run and session are fresh `run_basedelivery_` and `ses_basedelivery_` coordinates. It carries no prompt, path, or session identity.
   - The server records at most 32 markers per prompt. It removes without recording any marker older than 24 hours, any malformed one, and any that falls outside the payload's closed shape. A bad marker never fails the served prompt.
   - Below writer schema 14, the markers are removed unrecorded.
-  - Session turn files older than 24 hours are removed.
-- **What such a turn does not record.** A turn answered from the cached base records no prepared context. A Claude Stop names no turn, so it would otherwise take the session's latest prepared context, an earlier turn that its own Stop already observed, and record that turn's changes again. A Stop whose session turn file is newer than the session's latest prepared context therefore records nothing and answers `{}`.
+  - Files in the base directory older than 24 hours are removed, whatever checkout or session they name.
+- **What such a turn does not record.** A turn answered from the cached base records no prepared context. A Claude Stop names no turn, so it would otherwise take the session's latest prepared context, an earlier turn that its own Stop already observed, and record that turn's changes again. A Stop that names no turn and whose session turn file is newer than the session's latest prepared context therefore records nothing and answers `{}`. A Stop that names its turn, as Codex's does, already matches only that turn's context.
 
 ## Consequences
 
@@ -52,6 +52,7 @@ ADR-0562 already decided what such a prompt gets: the last cached base block, re
 - Turns answered this way have no turn evidence. The `base_delivered` events count them, so coverage reports can name the gap instead of hiding it. They are recorded only when the same checkout is served again, so the count is a lower bound.
 - The cached base can be up to 30 minutes old, and its first line says so. The workstream headline it carries already states that freshness was not inspected.
 - The launcher changes behavior, so its version rises. It must stay within its 16 KiB bound.
+- A prompt answered from the cache does not verify the runtime. A damaged runtime is reported by the next hook that imports it.
 - Event schema 14 adds one event type. Readers ship first, then the writer and launcher, as for schema 13.
 
 ## Verification

@@ -18,9 +18,9 @@
     },
     {
       "path": "apps/cli/src/terminal-hook-launcher.mjs",
-      "contentHash": "sha256:2acfa9510ee0ba090430baecc035b040e41df5bf1f7f332e5f5f9086a023e3a7",
+      "contentHash": "sha256:c3dbc751f0c360931a767ff8c509ae31be77dc4e66ea45238196c57dcf8cbc32",
       "responsibility": "Standalone terminal hook launcher: verify and load the runtime, delegate, or ask the context server",
-      "rationale": "Repositories commit this file alone as .lervo/generated/terminal-hooks/runtime-v2.mjs and run it before any runtime exists, so it cannot import sibling modules; its verification, delegation, socket client, launch relay, and the offer outcome it leaves the runtime share the store checks and must ship as one file.",
+      "rationale": "Repositories commit this file alone as .lervo/generated/terminal-hooks/runtime-v2.mjs and run it before any runtime exists, so it cannot import sibling modules; its verification, delegation, socket client, launch relay, the offer outcome it leaves the runtime, and the cached-base answer it prints when the server cannot take a prompt (ADR-0645) share the store checks and must ship as one file.",
       "disposition": "cohesive"
     },
     {

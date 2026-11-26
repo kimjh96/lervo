@@ -15,6 +15,7 @@ import {
 } from "./terminal-context-server.js";
 import { applyTerminalContextSessionEnvironment } from "./terminal-context-session.js";
 import { terminalContextWarmth } from "./terminal-context-warmth.js";
+import { keepTerminalCachedBase } from "./terminal-cached-base.js";
 import type { TerminalHookDelivery } from "./terminal-hook-delivery.js";
 import {
   createTerminalStageObservation,
@@ -297,9 +298,23 @@ export async function serveTerminalContext(entry: string): Promise<void> {
     onOutcome: stats.outcome,
     onAnswered: stats.answered,
     environment: process.env,
-    run: (request) => {
+    run: async (request) => {
       warmth.served(request.cwd);
-      return runServedTerminalHook(request);
+      const answer = await runServedTerminalHook(request);
+      if (request.kind !== "prompt") return answer;
+      // ADR-0645: a drained prompt records its checkout's cached-base deliveries and refreshes
+      // its base, while the server stays busy, so nothing else shares the process.
+      return {
+        ...answer,
+        afterDrain: async () => {
+          await keepTerminalCachedBase({
+            store: dirname(dirname(entry)),
+            cwd: request.cwd,
+            args: request.args,
+            environment: request.environment,
+          });
+        },
+      };
     },
     // Exit so the host starts a fresh server: abandoned work must not reach the next request.
     onOverrun: () => {
