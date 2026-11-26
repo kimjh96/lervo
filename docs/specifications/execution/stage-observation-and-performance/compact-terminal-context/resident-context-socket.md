@@ -84,7 +84,7 @@ Otherwise the copy runs itself, exactly as before, so a clone without Lervo, a C
 
 - The client runs in the hook launcher, before it loads the 6.9 MB runtime bundle; otherwise the bundle load alone exceeds the 200 millisecond target. It touches nothing unless the store holds a socket, so a host without a server behaves exactly as before, and a newer launcher pulled onto a host with an older CLI keeps working.
 - It reads the hook input, then makes it readable again for the runtime, so a fallback, or an older runtime, reads the same input.
-- It connects with a 150 millisecond timeout and waits at most 100 milliseconds for `A`.
+- It connects with a 150 millisecond timeout and waits at most 500 milliseconds for `A`. Launcher version 4 waited 100 milliseconds: on 2026-11-26, on a Mac with 24 GB of memory and 27.7 GB of swap in use, 17 of the first 35 hook stage observations at writer schema 13 recorded `unreachable`, and an idle server sent `A` after 158–2,200 ms in 4 of 60 probes while its pages came back. A hook that falls back loads the whole runtime cold in its own process, so waiting for a server that is paging back in is cheaper.
 - On a declined line, no listener, a missing `A`, or an error before it sent `G`, it closes the connection and runs the in-process path.
 - After it sent `G`, it waits up to 25 seconds, the provider's hook limit, and does not fall back. If the answer never comes, it prints `{}`, as a failed hook does, and the server's records stand.
 - On `ok` it starts the response's launches, then writes the response's streams and exits with its code. The socket closing after the answer arrived changes nothing.
