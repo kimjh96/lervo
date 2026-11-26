@@ -262,6 +262,34 @@ export async function listRegisteredRepositories(
   return [...(await readRegistry(absoluteRegistryPath(registryPath))).repositories];
 }
 
+/**
+ * Removes this host's entry for a project (ADR-0637 amends ADR-0169). It never touches the
+ * project's files, worktrees, or state; it only leaves this device's discovery index, so the
+ * host's background knowledge maintenance and upgrades no longer reach the project.
+ */
+export async function unregisterRepository(input: {
+  registryPath: string;
+  projectId: string;
+}): Promise<{ change: "unregistered"; registration: RepositoryRegistration }> {
+  if (!projectIdPattern.test(input.projectId))
+    fail("repository_project_invalid", "The project ID is invalid.");
+  const registryPath = absoluteRegistryPath(input.registryPath);
+  const registry = await readRegistry(registryPath);
+  const registration = registry.repositories.find((entry) => entry.projectId === input.projectId);
+  if (registration === undefined)
+    fail("repository_not_registered", "The selected project is not registered on this device.");
+  await writeRegistry(
+    registryPath,
+    validateRepositoryRegistry({
+      schemaVersion: 1,
+      kind: "lervo_repository_registry",
+      repositories: registry.repositories.filter((entry) => entry.projectId !== input.projectId),
+    }),
+    registry,
+  );
+  return { change: "unregistered", registration };
+}
+
 export async function registerRepository(input: {
   registryPath: string;
   repositoryRoot: string;

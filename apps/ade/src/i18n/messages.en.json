@@ -775,6 +775,10 @@
     "defaultMessage": "Resolved the repository",
     "description": "What Lervo did when the agent ran `lervo repository resolve`, as a quiet line in the conversation."
   },
+  "lervo.command.repository.unregister": {
+    "defaultMessage": "Removed the project from this Mac's list",
+    "description": "What Lervo did when the agent ran `lervo repository unregister`, as a quiet line in the conversation. The project's files stay."
+  },
   "lervo.command.research.verify": {
     "defaultMessage": "Verified a research result",
     "description": "What Lervo did when the agent ran `lervo research verify`, as a quiet line in the conversation."

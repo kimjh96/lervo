@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e1a97d082a4c2dcd61527ede"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add lervo repository unregister: it removes this host's registry entry for a project, never its files, so the host's background knowledge maintenance and upgrades no longer reach it."

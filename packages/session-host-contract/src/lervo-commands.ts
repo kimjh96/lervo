@@ -106,6 +106,7 @@ export const lervoCommandIds = [
   "repository register",
   "repository release",
   "repository resolve",
+  "repository unregister",
   "research verify",
   "role list",
   "role show",

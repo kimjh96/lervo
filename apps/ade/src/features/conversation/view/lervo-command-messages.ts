@@ -110,6 +110,7 @@ export const lervoCommandMessages: Readonly<Record<LervoCommandId, MessageDescri
   "repository register": { id: "lervo.command.repository.register" },
   "repository release": { id: "lervo.command.repository.release" },
   "repository resolve": { id: "lervo.command.repository.resolve" },
+  "repository unregister": { id: "lervo.command.repository.unregister" },
   "research verify": { id: "lervo.command.research.verify" },
   "role list": { id: "lervo.command.role.list" },
   "role show": { id: "lervo.command.role.show" },

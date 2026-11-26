@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5243e6681b20a4c49008ee35"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Show a quiet line when an agent runs lervo repository unregister."
