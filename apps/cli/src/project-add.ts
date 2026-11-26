@@ -106,7 +106,23 @@ export async function projectsLocation(): Promise<string> {
   return join(homedir(), "Lervo");
 }
 
-/** Keeps the owner's projects location, which must be an absolute folder Lervo can write. */
+/**
+ * Refuses a projects location inside a Git work tree, where every new project would land inside
+ * another repository. macOS folders ignore case, so the default `~/Lervo` is a checkout cloned
+ * at `~/lervo` (Lervo ADE projects, "Adding a project").
+ */
+async function outsideWorkTree(path: string): Promise<void> {
+  if (await insideGitWorkTree(path))
+    throw new ProjectAddError(
+      "projects_location_invalid",
+      `${path} is inside a Git repository, so projects cannot be created there.`,
+    );
+}
+
+/**
+ * Keeps the owner's projects location, which must be an absolute folder Lervo can write, outside
+ * any Git work tree.
+ */
 export async function setProjectsLocation(path: string): Promise<string> {
   if (!isAbsolute(path) || /[\0\r\n]/u.test(path))
     throw new ProjectAddError(
@@ -115,6 +131,7 @@ export async function setProjectsLocation(path: string): Promise<string> {
     );
   await mkdir(path, { recursive: true });
   await writable(path, "projects_location_invalid");
+  await outsideWorkTree(path);
   // The user state directory must stay owner-only, as the registry beside it requires.
   await mkdir(dirname(locationFile()), { recursive: true, mode: 0o700 });
   await writeFile(
@@ -241,6 +258,7 @@ export async function addProject(
   }
   await mkdir(source.into, { recursive: true });
   await writable(source.into, "projects_location_invalid");
+  await outsideWorkTree(source.into);
   if (source.kind === "clone") {
     const destination = join(source.into, cloneFolderName(source.url));
     if (await exists(destination))

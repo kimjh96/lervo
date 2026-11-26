@@ -137,6 +137,23 @@ describe("adding a project", () => {
     expect(await isFile(join(into, "missing"))).toBe(false);
   });
 
+  it("refuses a projects location inside a Git work tree", async () => {
+    const root = await workspace();
+    // A checkout at ~/lervo is also ~/Lervo on a case-insensitive Mac.
+    const checkout = join(root, "lervo");
+    await mkdir(checkout);
+    git(checkout, "init", "--quiet");
+    const inside = join(checkout, "projects");
+    expect(
+      (await run(["project", "location", "--set", inside, "--write"], root)).value,
+    ).toMatchObject({ error: "projects_location_invalid" });
+    expect(
+      (await run(["project", "add", "--new", "Todo app", "--into", checkout, "--write"], root))
+        .value,
+    ).toMatchObject({ error: "projects_location_invalid" });
+    expect(await isFile(join(checkout, "todo-app"))).toBe(false);
+  });
+
   it("refuses without --write or with two sources", async () => {
     const root = await workspace();
     expect((await run(["project", "add", "--new", "x"], root)).value).toMatchObject({
