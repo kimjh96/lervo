@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { captureRepositorySnapshot } from "@lervo/orchestrator";
 import { afterEach, expect, it } from "vitest";
 
-import { rememberLifecycleRepositorySnapshot } from "../src/terminal-lifecycle-inspection.js";
+import { rememberLifecycleRepositorySnapshot } from "../src/terminal-lifecycle-snapshot.js";
 import { writePreparedRepositorySnapshot } from "../src/terminal-prepared-snapshot.js";
 import { plannedTerminalRepositoryChange } from "../src/terminal-repository-change.js";
 import type { TerminalLifecycleInspection } from "../src/terminal-hook-contract.js";
