@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-26
 Amends: [ADR-0632](0632-build-the-ade-as-the-platform-where-the-core-works.md) (orders the S2 steps after the day of use, and keeps one writer per worktree when several agents share a workspace), [ADR-0633](../providers/hooks/0633-record-a-linked-worktree-in-its-registered-repository.md) (an ADE workspace joins the workforce model once its session carries an agent), [ADR-0169](../../distribution/0169-user-local-repository-registration-and-resolution.md) (the registry also unregisters a project)
+Amended by: [ADR-0642](0642-improve-the-ade-in-daily-use.md) (the S2 steps no longer wait for a day of use)
 Related: [ADR-0205](../orchestration/0205-conflict-safe-repository-agent-workforce.md), [ADR-0222](../orchestration/0222-isolated-agent-workspace-lifecycle.md), [ADR-0386](../../coordination/conversations/0386-organization-teams-and-agent-identities.md), [ADR-0453](../../coordination/conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md), [ADR-0454](../../coordination/conversations/agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md), [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md), [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), [ADR-0613](0613-host-provider-clis-in-a-first-party-development-environment.md)
 
 ## Context
