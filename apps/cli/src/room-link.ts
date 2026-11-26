@@ -84,6 +84,9 @@ export class RoomLink {
     events: readonly HostedDecodedEvent[],
   ): readonly HostedDecodedEvent[] {
     if (sessionId === undefined || !this.delivering.has(decoderId)) return events;
+    // Each turn rereads its conversation, so an agent paused or retired since, by the interface
+    // or the terminal, is no longer mentioned when this turn ends.
+    this.refresh(sessionId);
     return this.router.sent(sessionId, deliveryId, events);
   }
 
