@@ -109,6 +109,8 @@ export type KnowledgePublicationForgeOperation =
  * - `queue`: the base requires a merge queue; the publisher enqueues instead of merging.
  * - `queued`: the pull request is already in the merge queue.
  * - `unknown`: the forge has not computed it yet.
+ * - `release_train`: the host holds the merge while a CLI release train is between its cut and its
+ *   tag; a merge then would move the base and supersede the release's preparation.
  */
 export type KnowledgePublicationMergeGate =
   | "ready"
@@ -119,7 +121,8 @@ export type KnowledgePublicationMergeGate =
   | "draft"
   | "queue"
   | "queued"
-  | "unknown";
+  | "unknown"
+  | "release_train";
 
 /**
  * A closed, privacy-safe cause of one forge failure; the forge's own message never leaves it.

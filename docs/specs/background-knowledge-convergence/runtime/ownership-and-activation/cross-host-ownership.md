@@ -123,6 +123,8 @@ The publication state file, its statuses, and its failure codes are defined in t
 - In both cases the commits enter the [supersession ledger](knowledge-supersession.md) first, so every replicated checkout drops them too.
 - The state becomes `superseded` with one `knowledge_publication_superseded` failure. Its path-free detail gives the conflicting path count, the commit count, whether the local base was reset, and the backup ref.
 
+While the owner host's CLI release follower is paused, a CLI release train is between its cut and its tag. A merge then would move `main` and supersede the release's preparation, so the CLI publisher holds the merge as a gate wait with reason `release_train` and merges once the follower resumes. An unreadable follower control never holds. A Node-hosted publisher has no follower and is not held.
+
 Identical input publishes once. Replay keeps source dates, so an unchanged series replays to the same hash. A remote branch that already holds the same trees on the current base is kept as the published head, so the next cycles only poll its checks. A merge that GitHub refuses because checks are still pending keeps `awaiting_checks`. Every `gh` failure records `gh <step> exit <code> <class>` as its detail:
 
 - Steps: `find`, `create`, `update`, `view`, `close`, `checks`, `rerun`, `merge`, `policy`, `gate`, and `history`.
