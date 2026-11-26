@@ -68,7 +68,7 @@
     "description": "A rename or a model change failed; {code} is the protocol code."
   },
   "agents.profile.image.choose": {
-    "defaultMessage": "Choose Image…",
+    "defaultMessage": "Choose Image",
     "description": "The menu item in an agent's profile that opens the image panel to change the agent's image."
   },
   "agents.profile.image.label": {

@@ -132,7 +132,7 @@
   "agents.profile.image.choose": [
     {
       "type": 0,
-      "value": "Choose Image…"
+      "value": "Choose Image"
     }
   ],
   "agents.profile.image.label": [

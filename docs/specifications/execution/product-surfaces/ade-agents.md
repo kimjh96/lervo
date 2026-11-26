@@ -52,7 +52,7 @@ Agents work together by mentioning each other directly, by role and by what each
 - **Model and effort.** Two menus, the model from `agents.list`'s `models` and the effort, change them through `agent.model`. A line under them says whether Lervo chose them for the role and that a change applies from the agent's next session. A core that does not advertise `agent.model` shows the model as text.
 - **Conversations.** The conversations the agent takes part in, as the lead or a joined participant; choosing one opens it.
 - **Pausing.** "Pause agent" sets the agent suspended through `agent.status`; it takes no new work, keeps its conversations, and shows quieter in the sidebar. "Resume agent" undoes it. Retiring cannot be undone, so the profile does not offer it (invariant 10); `lervo agent status` retires an agent.
-- **Image.** Pressing the agent's large mark opens the image panel, as a project's logo does; an agent with an image first offers "Choose Image…" and "Remove Image" in a menu. The image shows wherever the agent's mark does: the sidebar, the conversation's header, the speaker lines, the mention suggestions, and the participants chip.
+- **Image.** Pressing the agent's large mark opens the image panel, as a project's logo does; an agent with an image first offers "Choose Image" and "Remove Image" in a menu. The image shows wherever the agent's mark does: the sidebar, the conversation's header, the speaker lines, the mention suggestions, and the participants chip.
 - **Still to come.** The agent's paths and what it has learned.
 - **Failure.** A failed rename or model change shows one line under the profile: "Lervo could not change the agent (<code>)."
 
