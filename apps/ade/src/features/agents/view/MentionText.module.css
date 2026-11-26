@@ -7,3 +7,13 @@
   background: color-mix(in srgb, var(--color-accent) 14%, transparent);
   box-decoration-break: clone;
 }
+
+/* A mention in a field: the same pill without padding or weight, which would move the glyphs off
+   the field's own; a ring of the fill stands in for the padding. */
+.inField {
+  border-radius: var(--radius-sm);
+  color: var(--color-text-link);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  box-shadow: 0 0 0 var(--border-width-strong)
+    color-mix(in srgb, var(--color-accent) 14%, transparent);
+}

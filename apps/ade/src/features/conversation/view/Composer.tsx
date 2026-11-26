@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { failureCode, type PreparedImage, useFiles } from "../../../ports";
@@ -8,12 +8,14 @@ import { ArrowUpIcon, StopIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { InputCard, InputField } from "../../../ui/InputCard";
 import { Presence } from "../../../ui/Presence";
+import { MentionText } from "../../agents";
 import styles from "./Composer.module.css";
 import { withAttachedFiles } from "../model/files";
 import { attachmentNoticeValues, useAttachments } from "./attachments";
 import { useOpenImages } from "./ConversationImages";
 import { useDraft } from "./draft";
 import { useFileDrop } from "./file-drop";
+import { type Mentionable, useMentions } from "./mentions";
 
 /** Lines the input grows to before it scrolls. */
 const MAX_LINES = 8;
@@ -36,10 +38,19 @@ export function Composer(props: {
   waiting?: string | undefined;
   /** Whether the session host and the core carry images in a reply. */
   acceptsImages?: boolean | undefined;
+  /** The agents `@` offers: the conversation's, then the rest of the team (Lervo ADE rooms). */
+  mentionables?: readonly Mentionable[] | undefined;
 }) {
   const intl = useIntl();
   const open = useOpenImages();
   const [text, setText] = useDraft(props.draftKey);
+  const field = useRef<HTMLTextAreaElement>(null);
+  const mentions = useMentions({
+    text,
+    setText,
+    field,
+    mentionables: props.mentionables ?? [],
+  });
   const [failure, setFailure] = useState<{ id: string; code: string } | null>(null);
   const files = useFiles();
   const attachments = useAttachments({
@@ -79,7 +90,7 @@ export function Composer(props: {
   const tray = attachments.tray(intl);
   return (
     // Paste reaches the card from its field, where the person pastes.
-    <div className={styles.composer} onPaste={attachments.paste}>
+    <div className={styles.composer} onPaste={attachments.paste} onBlur={mentions.close}>
       <InputCard
         surface="floating"
         layout="inline"
@@ -111,10 +122,22 @@ export function Composer(props: {
           }
           disabled={props.waiting !== undefined}
           value={text}
-          onChange={setText}
+          onChange={(value) => {
+            setText(value);
+            mentions.update();
+          }}
           onSubmit={send}
           onEscape={stop}
+          onKey={mentions.onKey}
+          decorate={
+            props.mentionables === undefined || props.mentionables.length === 0
+              ? undefined
+              : (value) => <MentionText text={value} inField />
+          }
+          suggestions={mentions.aria}
+          ref={field}
         />
+        {mentions.list}
         {/* The button stays; its icon changes in place. */}
         <IconButton
           type={stops ? "button" : "submit"}

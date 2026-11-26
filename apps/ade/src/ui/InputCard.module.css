@@ -90,6 +90,29 @@
   color: transparent;
 }
 
+/* A decorated field's text, drawn behind it with the same metrics so every glyph sits under the
+   field's own; the field's text turns transparent and keeps the caret and the selection. */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  pointer-events: none;
+}
+
+.field[data-decorated] {
+  position: relative;
+  color: transparent;
+  caret-color: var(--color-text-primary);
+}
+
+.field[data-decorated]::selection {
+  color: transparent;
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
 .placeholder {
   position: absolute;
   inset: 0;
@@ -103,6 +126,7 @@
 }
 
 .field[data-size="input"],
+.backdrop[data-size="input"],
 .placeholder[data-size="input"] {
   padding: 0;
   font-size: var(--type-input-size);
@@ -110,6 +134,7 @@
 }
 
 .field[data-size="body"],
+.backdrop[data-size="body"],
 .placeholder[data-size="body"] {
   padding-block: var(--space-6);
   padding-inline: 0;
@@ -119,4 +144,11 @@
 
 .card[data-layout="inline"] > .box {
   flex: 1;
+}
+
+/* The decorated copy reaches a ring's width past the field on either side and pads it back, so a
+   mention's ring at the field's edge is never cut while every glyph stays under the field's. */
+.box > .backdrop {
+  inset-inline: calc(var(--border-width-strong) * -1);
+  padding-inline: var(--border-width-strong);
 }

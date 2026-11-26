@@ -21,6 +21,25 @@
   animation: menu-rise var(--motion-duration-change) var(--motion-easing-standard);
 }
 
+/* A list that hangs above the caret, such as mention suggestions, rises from its bottom edge. */
+.menu[data-above] {
+  transform-origin: bottom left;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.groupLabel {
+  padding-block: var(--space-6) var(--space-4);
+  padding-inline: var(--space-10);
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}
+
 .menu[data-wide] {
   min-width: var(--layout-menu-wide-width);
   max-width: var(--layout-menu-wide-width);

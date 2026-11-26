@@ -2,6 +2,9 @@ import { type KeyboardEvent, type ReactNode, type Ref, useLayoutEffect, useRef }
 
 import { PaperClipIcon } from "./icons";
 import styles from "./InputCard.module.css";
+
+/** Ends a decorated field's copy, so a trailing new line keeps its height as in the field. */
+const LAST_LINE = "\n";
 import { Presence } from "./Presence";
 
 /**
@@ -72,9 +75,23 @@ export function InputField(props: {
   disabled?: boolean | undefined;
   /** Escape outside an input method's composition, such as stopping the agent's turn. */
   onEscape?: (() => void) | undefined;
+  /**
+   * A key the caller handles before the field, such as one that moves through suggestions; it
+   * answers whether it handled the key.
+   */
+  onKey?: ((event: KeyboardEvent<HTMLTextAreaElement>) => boolean) | undefined;
+  /**
+   * Draws the field's text behind it with parts set apart, such as mentions as pills. The field's
+   * own text turns transparent above it, so only what this draws shows, and the caret and the
+   * selection stay the field's.
+   */
+  decorate?: ((value: string) => ReactNode) | undefined;
+  /** The suggestions the field offers as the person types, for assistive technology. */
+  suggestions?: { id: string; expanded: boolean; activeId: string | undefined } | undefined;
   ref?: Ref<HTMLTextAreaElement> | undefined;
 }) {
   const own = useRef<HTMLTextAreaElement | null>(null);
+  const backdrop = useRef<HTMLSpanElement | null>(null);
   const { maxLines, value } = props;
   useLayoutEffect(() => {
     const element = own.current;
@@ -86,6 +103,10 @@ export function InputField(props: {
   }, [maxLines, value]);
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing) return;
+    if (props.onKey?.(event) === true) {
+      event.preventDefault();
+      return;
+    }
     if (event.key === "Escape" && props.onEscape !== undefined) {
       event.preventDefault();
       props.onEscape();
@@ -103,16 +124,29 @@ export function InputField(props: {
   };
   return (
     <span className={styles.box}>
+      {props.decorate === undefined ? null : (
+        <span ref={backdrop} className={styles.backdrop} data-size={props.size} aria-hidden="true">
+          {props.decorate(value)}
+          {LAST_LINE}
+        </span>
+      )}
       <textarea
         ref={attach}
         className={styles.field}
         data-size={props.size}
+        data-decorated={props.decorate === undefined ? undefined : ""}
         aria-label={props.label}
+        aria-autocomplete={props.suggestions === undefined ? undefined : "list"}
+        aria-controls={props.suggestions?.expanded === true ? props.suggestions.id : undefined}
+        aria-activedescendant={props.suggestions?.activeId}
         placeholder={props.placeholder}
         disabled={props.disabled}
         rows={props.rows}
         value={value}
         onChange={(event) => props.onChange(event.target.value)}
+        onScroll={(event) => {
+          if (backdrop.current !== null) backdrop.current.scrollTop = event.currentTarget.scrollTop;
+        }}
         onKeyDown={keyDown}
       />
       <span

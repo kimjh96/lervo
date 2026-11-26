@@ -14,6 +14,8 @@ import { Presence } from "../src/ui/Presence";
 import { SegmentedControl } from "../src/ui/SegmentedControl";
 import { Select } from "../src/ui/Select";
 import { ViewPresence } from "../src/ui/ViewPresence";
+import { Mark } from "../src/ui/Mark";
+import { SuggestionList } from "../src/ui/SuggestionList";
 
 export function PresenceDemo() {
   const [shown, setShown] = useState(true);
@@ -239,6 +241,57 @@ export function PopoverMenuDemo() {
           onClose={() => setAnchor(null)}
         />
       )}
+    </span>
+  );
+}
+
+/** The mention suggestions as an `@` in the reply card opens them, above the control. */
+export function SuggestionListDemo() {
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const [active, setActive] = useState(0);
+  return (
+    <span>
+      <Button
+        variant="outlined"
+        onClick={() => setAnchor(document.activeElement?.getBoundingClientRect() ?? null)}
+      >
+        Type @
+      </Button>
+      <SuggestionList
+        id="catalog-suggestions"
+        label="Agents to mention"
+        open={anchor !== null}
+        anchor={anchor ?? { left: 0, top: 0 }}
+        groups={[
+          {
+            label: "In this conversation",
+            items: [
+              {
+                key: "agt_catalog_1",
+                text: "Arin",
+                detail: "Researcher",
+                leading: <Mark id="agt_catalog_1" name="Arin" src={null} size="sm" shape="round" />,
+              },
+            ],
+          },
+          {
+            label: "Team",
+            items: [
+              {
+                key: "agt_catalog_2",
+                text: "Tarin",
+                detail: "CEO · joins when mentioned",
+                leading: (
+                  <Mark id="agt_catalog_2" name="Tarin" src={null} size="sm" shape="round" />
+                ),
+              },
+            ],
+          },
+        ]}
+        active={active}
+        onActive={setActive}
+        onChoose={() => setAnchor(null)}
+      />
     </span>
   );
 }

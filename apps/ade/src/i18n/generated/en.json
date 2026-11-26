@@ -525,6 +525,34 @@
       "value": "Checked Lervo's version"
     }
   ],
+  "conversation.mention.joins": [
+    {
+      "type": 1,
+      "value": "role"
+    },
+    {
+      "type": 0,
+      "value": " · joins when mentioned"
+    }
+  ],
+  "conversation.mention.label": [
+    {
+      "type": 0,
+      "value": "Agents to mention"
+    }
+  ],
+  "conversation.mention.participants": [
+    {
+      "type": 0,
+      "value": "In this conversation"
+    }
+  ],
+  "conversation.mention.team": [
+    {
+      "type": 0,
+      "value": "Team"
+    }
+  ],
   "conversation.opening": [
     {
       "type": 0,
@@ -1219,6 +1247,20 @@
     {
       "type": 0,
       "value": ")."
+    }
+  ],
+  "conversation.working.agent": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": " · "
+    },
+    {
+      "type": 1,
+      "value": "activity"
     }
   ],
   "images.viewer.close": [
