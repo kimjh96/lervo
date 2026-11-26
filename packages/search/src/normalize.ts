@@ -1,3 +1,4 @@
+import { SEARCH_MAX_SOURCE_CHARACTERS } from "./corpus.js";
 import { SearchError } from "./types.js";
 import { sha256 } from "./integrity.js";
 import { assertText } from "./validation.js";
@@ -10,7 +11,7 @@ export function normalizeSearchText(value: string): string {
 }
 
 export function searchTerms(value: string, code: "corpus_invalid" | "invalid_query"): string[] {
-  const maximum = code === "invalid_query" ? 500 : 131_072;
+  const maximum = code === "invalid_query" ? 500 : SEARCH_MAX_SOURCE_CHARACTERS;
   const normalized = normalizeSearchText(assertText(value, maximum, code));
   const terms = normalized.match(TERM_PATTERN) ?? [];
   if (terms.length === 0 || (code === "invalid_query" && terms.length > MAX_QUERY_TERMS)) {

@@ -121,3 +121,9 @@
   outline: var(--focus-ring-width) solid var(--color-accent);
   outline-offset: var(--focus-ring-offset);
 }
+
+/* A button's label crossfades on one line, so the space moves between the two widths without the
+   words breaking while it does (ADE motion, "Changing in place"). */
+.label {
+  white-space: nowrap;
+}

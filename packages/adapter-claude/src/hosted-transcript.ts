@@ -14,6 +14,7 @@ import {
 import { askedAndAnswered } from "./hosted-questions.js";
 import { compacted, peerMessage } from "./hosted-stream-items.js";
 import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
+import { asRecord } from "./normalization-utils.js";
 
 /** A line longer than this is skipped, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
@@ -42,7 +43,7 @@ const IMAGE_MEDIA_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/
 
 /** The mark of an image block the person sent, or undefined for one the reader cannot tell. */
 function transcriptImage(block: Line): HostedImageMark | undefined {
-  const source = record(block.source);
+  const source = asRecord(block.source);
   const mediaType = text(source?.media_type);
   const data = text(source?.data);
   if (source?.type !== "base64" || data === undefined || mediaType === undefined) return undefined;
@@ -54,12 +55,6 @@ type Line = Record<string, unknown>;
 
 /** The tool Claude Code asks the person's choices with. */
 const ASK_USER_QUESTION = "AskUserQuestion";
-
-function record(value: unknown): Line | undefined {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Line)
-    : undefined;
-}
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
@@ -96,12 +91,12 @@ export class ClaudeTranscriptDecoder {
     if (source.length > MAX_LINE_CHARACTERS) return [];
     let line: Line | undefined;
     try {
-      line = record(JSON.parse(source));
+      line = asRecord(JSON.parse(source));
     } catch {
       return [];
     }
     // A message another session sent is a meta line with the sender in its origin.
-    const peer = line === undefined ? undefined : peerMessage(record(line.origin));
+    const peer = line === undefined ? undefined : peerMessage(asRecord(line.origin));
     if (peer !== undefined) {
       const at = Date.parse(text(line?.timestamp) ?? "");
       return Number.isNaN(at) ? [] : [item(peer, at)];
@@ -117,7 +112,7 @@ export class ClaudeTranscriptDecoder {
       return [];
     const createdAtMs = Date.parse(text(line.timestamp) ?? "");
     if (Number.isNaN(createdAtMs)) return [];
-    const message = record(line.message);
+    const message = asRecord(line.message);
     const content = message?.content;
     if (line.type === "user")
       return this.user(content, createdAtMs, {
@@ -126,7 +121,7 @@ export class ClaudeTranscriptDecoder {
       });
     if (line.type === "assistant") return this.assistant(content, createdAtMs);
     if (line.type === "system" && line.subtype === "compact_boundary")
-      return [item(compacted(record(line.compactMetadata)?.trigger), createdAtMs)];
+      return [item(compacted(asRecord(line.compactMetadata)?.trigger), createdAtMs)];
     return [];
   }
 
@@ -145,7 +140,7 @@ export class ClaudeTranscriptDecoder {
     const items: HostedTranscriptItem[] = [];
     const words: string[] = [];
     const marks: HostedImageMark[] = [];
-    const blocks = content.map(record).filter((block): block is Line => block !== undefined);
+    const blocks = content.map(asRecord).filter((block): block is Line => block !== undefined);
     const results = blocks.filter((block) => block.type === "tool_result").length;
     for (const block of blocks) {
       const value = text(block.text);
@@ -208,7 +203,7 @@ export class ClaudeTranscriptDecoder {
   private assistant(content: unknown, createdAtMs: number): HostedTranscriptItem[] {
     if (!Array.isArray(content)) return [];
     const items: HostedTranscriptItem[] = [];
-    for (const block of content.map(record)) {
+    for (const block of content.map(asRecord)) {
       if (block === undefined) continue;
       if (block.type === "tool_use") {
         const id = text(block.id);

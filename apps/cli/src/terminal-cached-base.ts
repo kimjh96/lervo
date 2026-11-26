@@ -2,10 +2,11 @@
 // it for a prompt the server could not take. The launcher leaves a marker for each such prompt,
 // which the server records as `terminal.context.base_delivered` on its next served prompt there.
 import { randomUUID } from "node:crypto";
-import { lstat, mkdir, open, readdir, readFile, rename, rm } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { listWorkspaces } from "@lervo/agent-workforce";
+import { replaceFile } from "@lervo/filesystem-durability";
 import { baseDeliveryEventSchemaVersion } from "@lervo/event-contract";
 import {
   openProjectStorage,
@@ -64,25 +65,9 @@ export function formatTerminalCachedBase(lines: readonly string[], preparedAt: D
   return `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } })}\n`;
 }
 
-/**
- * Replaces `path` with `content`, synced before the rename, so a marker's identity survives a
- * power loss whenever the store's commit that follows it does.
- */
-async function writeAtomically(path: string, content: string): Promise<void> {
-  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
-  try {
-    const handle = await open(temporary, "wx", 0o600);
-    try {
-      await handle.writeFile(content);
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-    await rename(temporary, path);
-  } finally {
-    await rm(temporary, { force: true });
-  }
-}
+/** Replaces `path` with `content`, synced with its directory, so a marker's identity survives a
+ * power loss whenever the store's commit that follows it does. */
+const writeAtomically = (path: string, content: string) => replaceFile(path, content);
 
 async function ageMilliseconds(path: string, now: number): Promise<number | null> {
   try {
@@ -139,7 +124,7 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
 async function sweepOldFiles(directory: string, now: number): Promise<void> {
   for (const name of await readdir(directory)) {
     // A writer that exited mid-write leaves its `.tmp` beside the file it was replacing.
-    if (!/^[a-f0-9]{16}\.(?:turn|json|retry|\d{13}\.\d{1,10}\.unserved|.+\.tmp)$/u.test(name))
+    if (!/^\.?[a-f0-9]{16}\.(?:turn|json|retry|\d{13}\.\d{1,10}\.unserved|.+\.tmp)$/u.test(name))
       continue;
     const age = await ageMilliseconds(resolve(directory, name), now);
     if (age !== null && age > MARKER_RETENTION_MS)

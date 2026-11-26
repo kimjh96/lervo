@@ -64,6 +64,7 @@ export {
   assertSupervisedResultDelivery,
 } from "./supervised-result-delivery.js";
 export {
+  MAX_MANAGED_INSTRUCTION_BYTES,
   supervisedManagedExecutionFields,
   supervisedManagedRetryCausality,
 } from "./supervised-managed-execution.js";

@@ -8,7 +8,7 @@ import { managedJsonReferenceContract } from "@lervo/adapter-contract";
 import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
 import { createHash } from "node:crypto";
 import { canonicalJson } from "@lervo/event-contract";
-import { readRepositoryFile } from "@lervo/context";
+import { readRepositoryFile, MAX_CONTEXT_SOURCE_BYTES } from "@lervo/context";
 import { resolveRoleContract } from "@lervo/roles";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { OutcomeSupervisionReportV1 } from "@lervo/application-contract";
@@ -349,7 +349,11 @@ export async function assertOwnerReasoningContext(input: {
       `sha256:${createHash("sha256").update(source.text).digest("hex")}` !== source.contentHash
     )
       throw new Error("The stored owner reasoning source text differs from its recorded hash.");
-    const bytes = await readRepositoryFile(input.storage.paths.repositoryRoot, source.path, 131072);
+    const bytes = await readRepositoryFile(
+      input.storage.paths.repositoryRoot,
+      source.path,
+      MAX_CONTEXT_SOURCE_BYTES,
+    );
     if (
       `sha256:${createHash("sha256").update(bytes).digest("hex")}` !== source.contentHash ||
       new TextDecoder("utf-8", { fatal: true }).decode(bytes) !== source.text

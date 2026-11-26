@@ -2,14 +2,9 @@
 // for the core to record against the session (Lervo ADE sessions, "Core records").
 import { type HostedTurnUsage, usageModelName } from "@lervo/adapter-contract";
 import type { ResourceAccountingDescriptor } from "@lervo/schemas";
+import { asRecord } from "./normalization-utils.js";
 
 type Line = Record<string, unknown>;
-
-function record(value: unknown): Line | undefined {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Line)
-    : undefined;
-}
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
@@ -51,10 +46,10 @@ export function turnUsage(line: Line, lastModel: string | undefined): HostedTurn
   const turnKey = text(line.uuid);
   if (turnKey === undefined) return [];
   const resultIndex = count(line.result_index);
-  const perModel = record(line.model_usage_since_last_result);
+  const perModel = asRecord(line.model_usage_since_last_result);
   if (perModel !== undefined)
     return Object.entries(perModel).flatMap(([key, value]) => {
-      const stats = record(value);
+      const stats = asRecord(value);
       if (stats === undefined) return [];
       const cost =
         typeof stats.costUSD === "number" && Number.isFinite(stats.costUSD) && stats.costUSD >= 0
@@ -77,7 +72,7 @@ export function turnUsage(line: Line, lastModel: string | undefined): HostedTurn
         },
       ];
     });
-  const usage = record(line.usage);
+  const usage = asRecord(line.usage);
   if (usage === undefined) return [];
   return [
     {
@@ -89,7 +84,7 @@ export function turnUsage(line: Line, lastModel: string | undefined): HostedTurn
       cacheReadInputTokens: count(usage.cache_read_input_tokens),
       cacheCreationInputTokens: count(usage.cache_creation_input_tokens),
       outputTokens: count(usage.output_tokens),
-      reasoningOutputTokens: optionalCount(record(usage.output_tokens_details)?.thinking_tokens),
+      reasoningOutputTokens: optionalCount(asRecord(usage.output_tokens_details)?.thinking_tokens),
       contextWindow: null,
       costUsd: null,
       costBasis: "unreported",

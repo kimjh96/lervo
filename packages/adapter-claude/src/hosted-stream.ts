@@ -17,6 +17,7 @@ import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./host
 import { ClaudeQuestions } from "./hosted-questions.js";
 import { compacted, peerMessage } from "./hosted-stream-items.js";
 import { CLAUDE_HOSTED_USAGE_ACCOUNTING, turnUsage } from "./hosted-usage.js";
+import { asRecord } from "./normalization-utils.js";
 
 /** A line longer than this is dropped up to its end, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
@@ -27,20 +28,14 @@ const RESUMED: HostedDecodedEvent = { kind: "status", event: "turn_started" };
 
 type Line = Record<string, unknown>;
 
-function record(value: unknown): Line | undefined {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Line)
-    : undefined;
-}
-
 function text(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
 function blocks(line: Line): Line[] {
-  const content = record(line.message)?.content;
+  const content = asRecord(line.message)?.content;
   return Array.isArray(content)
-    ? content.map(record).filter((block): block is Line => block !== undefined)
+    ? content.map(asRecord).filter((block): block is Line => block !== undefined)
     : [];
 }
 
@@ -171,7 +166,7 @@ export class ClaudeHostedStreamDecoder
   private line(source: string): HostedDecodedEvent[] {
     let line: Line | undefined;
     try {
-      line = record(JSON.parse(source));
+      line = asRecord(JSON.parse(source));
     } catch {
       return [];
     }
@@ -179,15 +174,15 @@ export class ClaudeHostedStreamDecoder
     if (line.parent_tool_use_id !== null && line.parent_tool_use_id !== undefined) return [];
     switch (line.type) {
       case "stream_event":
-        return this.streamEvent(record(line.event));
+        return this.streamEvent(asRecord(line.event));
       case "assistant":
-        this.lastModel = text(record(line.message)?.model) ?? this.lastModel;
+        this.lastModel = text(asRecord(line.message)?.model) ?? this.lastModel;
         return this.assistant(line);
       case "user":
         // With replayed user messages, the person's own messages repeat what `send` showed; a
         // message another session sent shows as that session's message.
         if (line.isReplay === true) {
-          const message = peerMessage(record(line.origin));
+          const message = peerMessage(asRecord(line.origin));
           return message === undefined ? [] : [this.item(message)];
         }
         return this.toolResults(line);
@@ -203,7 +198,7 @@ export class ClaudeHostedStreamDecoder
         if (line.subtype === "init")
           this.workingDirectory = text(line.cwd) ?? this.workingDirectory;
         if (line.subtype === "compact_boundary")
-          return [this.item(compacted(record(line.compact_metadata)?.trigger))];
+          return [this.item(compacted(asRecord(line.compact_metadata)?.trigger))];
         return [];
       default:
         return [];
@@ -224,7 +219,7 @@ export class ClaudeHostedStreamDecoder
         this.streamedText = false;
         return this.startTurn();
       case "content_block_start": {
-        const block = record(event.content_block);
+        const block = asRecord(event.content_block);
         if (block?.type === "tool_use") {
           const id = text(block.id);
           const name = text(block.name);
@@ -239,7 +234,7 @@ export class ClaudeHostedStreamDecoder
         return [this.started({ kind: "agent_message", text: text(block.text) ?? "" })];
       }
       case "content_block_delta": {
-        const delta = record(event.delta);
+        const delta = asRecord(event.delta);
         const value = text(delta?.text);
         if (delta?.type !== "text_delta" || index !== this.streamingBlock || !value) return [];
         return [{ kind: "delta", text: value }];

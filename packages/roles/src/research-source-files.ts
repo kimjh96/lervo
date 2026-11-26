@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { roleSha256 } from "./integrity.js";
+import { MAX_RESEARCH_INPUT_BYTES } from "./research-contract.js";
 import {
   assertResearchSourcePolicy,
   researchSourcePolicyPath,
@@ -17,7 +18,7 @@ export async function readResearchSourceFile(
   if (
     !Number.isSafeInteger(maximumBytes) ||
     maximumBytes < 1 ||
-    maximumBytes > 131072 ||
+    maximumBytes > MAX_RESEARCH_INPUT_BYTES ||
     path.startsWith("/") ||
     path.split("/").some((part) => !part || part === "." || part === "..") ||
     /[\\\0\r\n]/u.test(path)

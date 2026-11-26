@@ -133,6 +133,14 @@ export function attributeOperatingAttention(
       waitingSince = item.openedAt;
       recommendation = "Save the losing side to a backup branch and apply the configured side";
       break;
+    // The resident retries a knowledge lifecycle issue within its delegation: the defaults hold.
+    case "knowledge_lifecycle":
+      break;
+    default: {
+      // Every kind is handled above; a new kind fails to compile here until it names its owner.
+      const unhandled: never = item;
+      void unhandled;
+    }
   }
   if (prior?.waitingSince) waitingSince = prior.waitingSince;
   const requiresUserAction = consequence !== null && item.state !== "stale";

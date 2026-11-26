@@ -1,6 +1,9 @@
 import { canonicalJson } from "@lervo/event-contract";
 import { roleSha256 } from "./integrity.js";
 
+/** The most bytes a research brief's inputs, and each source it reads, may hold. */
+export const MAX_RESEARCH_INPUT_BYTES = 128 * 1024;
+
 export interface ResearchSourcePolicyV1 {
   schemaVersion: 1;
   kind: "research.source_policy";
@@ -97,7 +100,7 @@ export function assertResearchInputs(input: ResearchInputsV1, now: string): void
     !Array.isArray(input.sources) ||
     input.sources.length !== input.policy.allowedPaths.length ||
     !Number.isFinite(Date.parse(now)) ||
-    Buffer.byteLength(canonicalJson(input)) > 131072
+    Buffer.byteLength(canonicalJson(input)) > MAX_RESEARCH_INPUT_BYTES
   )
     throw new Error(
       "The research question, source constraints, or input size differs from its policy.",

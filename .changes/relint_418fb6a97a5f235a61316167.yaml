@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_418fb6a97a5f235a61316167"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Read every operating attention kind through one exhaustive table, so a new kind cannot borrow another kind's fields when the CLI prints attention."

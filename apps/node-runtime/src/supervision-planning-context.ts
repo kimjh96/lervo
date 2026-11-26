@@ -4,6 +4,7 @@ import {
   instructionPathsFor,
   readRepositoryFile,
   repositoryFileExists,
+  MAX_CONTEXT_SOURCE_BYTES,
 } from "@lervo/context";
 import { loadDocumentRegistry } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
@@ -87,7 +88,7 @@ async function loadContext(
   let bytes = Buffer.byteLength(workstream.content);
   const observedAt = input.now();
   for (const [path, expectedHash] of expected) {
-    const content = await readRepositoryFile(input.repositoryRoot, path, 131072);
+    const content = await readRepositoryFile(input.repositoryRoot, path, MAX_CONTEXT_SOURCE_BYTES);
     bytes += content.byteLength;
     if (bytes > 256 * 1024) throw new Error("Planning context exceeds its byte bound.");
     const contentHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
