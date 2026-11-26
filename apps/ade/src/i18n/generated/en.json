@@ -2615,6 +2615,20 @@
       "value": ")."
     }
   ],
+  "notice.start.hire_failed": [
+    {
+      "type": 0,
+      "value": "This work started without a Product Owner, because Lervo could not hire one ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
   "notice.turn_stopped": [
     {
       "type": 0,

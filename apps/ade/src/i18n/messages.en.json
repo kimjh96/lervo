@@ -1175,6 +1175,10 @@
     "defaultMessage": "The agent's turn ended without finishing ({subtype}).",
     "description": "Claude Code's result did not succeed."
   },
+  "notice.start.hire_failed": {
+    "defaultMessage": "This work started without a Product Owner, because Lervo could not hire one ({code}).",
+    "description": "A Lervo notice at the top of new work when the Product Owner the start card proposed could not be hired; {code} is the protocol code."
+  },
   "notice.turn_stopped": {
     "defaultMessage": "You stopped the agent's turn. Send a message to continue.",
     "description": "The person stopped the agent's turn; the conversation goes on."
