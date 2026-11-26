@@ -394,7 +394,8 @@ it.skipIf(process.platform === "win32")(
   "runs in process when the cached base cannot stand for the hook",
   async () => {
     // Each case caches a fresh base first, then changes one thing.
-    const cases: [(f: Awaited<ReturnType<typeof fixture>>) => Promise<unknown>, string?][] = [
+    type Setup = (f: Awaited<ReturnType<typeof fixture>>) => Promise<unknown>;
+    const setups: Setup[] = [
       // A decline the hook itself must answer.
       (f) =>
         listen(f.store, (socket) =>
@@ -408,7 +409,8 @@ it.skipIf(process.platform === "win32")(
       },
       // A base others can read.
       (f) => cacheBase(f, 0o644),
-    ].map((setup) => [setup] as [typeof setup]);
+    ];
+    const cases: [Setup, string?][] = setups.map((setup) => [setup]);
     cases.push([
       async () => undefined,
       JSON.stringify({ hook_event_name: "Stop", session_id: "s" }),
