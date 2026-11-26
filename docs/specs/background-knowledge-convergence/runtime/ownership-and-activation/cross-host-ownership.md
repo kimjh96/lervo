@@ -90,6 +90,8 @@ The ownership role, holder, and generation are folded into the ADR-0461 fingerpr
 | `unverifiable`  | `attention`  | `convergence_owner_unverifiable`, `convergence_owner_host_invalid`, or `convergence_owner_transport_missing` |
 | `contended`     | `attention`  | `convergence_owner_contended`                                                                                |
 
+A host is `ineligible` without an active delegation for its provider, as before, and also while its latest provider admission, recorded in `.lervo/state/knowledge/provider-clis.json` within the last hour, admitted none of the providers the delegation allows, as when its provider CLI is logged out. An owner that becomes ineligible releases its lease, records the change with reason `delegation`, and a peer that can do the work claims it. After that hour the record may be stale, so the host contends again; a claim that fails the same way records a fresh admission and yields once more.
+
 A non-owner cycle returns `{ status: "waiting_owner", owner, convergence }`. `convergence` is the read-only debt status. `lervo knowledge convergence status` adds the fence verdict as `owner`. `lervo knowledge convergence owner status` prints the host hash, label, mode, and verdict without contacting the Hub, and never prints the Hub address or token path. For an `unverifiable` or `contended` verdict it adds `remediation`, the exact next step for the recorded cause. For `hub_forbidden`, it names `workspace.read`, `workspace.coordinate`, the project ID, and the Hub destination to grant to the token's principal. The client cannot see the principal ID, so the instruction names the token instead. `lervo knowledge convergence owner release` releases a held Hub lease and yields.
 
 ## Publication
