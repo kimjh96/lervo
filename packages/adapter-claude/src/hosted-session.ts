@@ -3,6 +3,7 @@ import {
   type HostedStreamDecoding,
   type HostedLaunch,
   type HostedLaunchIntent,
+  type HostedModels,
   type HostedSessionAdapter,
   type HostedSessionCapabilities,
   type HostedTerminalHooks,
@@ -110,6 +111,17 @@ export const CLAUDE_HOSTED_ENVIRONMENT: Readonly<Record<string, string>> = {
 const TERMINAL_HOOK_TIMEOUT_SECONDS = 30;
 
 /**
+ * Claude Code's model aliases by tier. An alias always names the latest model of its line, so a
+ * new model needs no change here (`claude --help`, 2026-11-27).
+ */
+export const claudeHostedModels: HostedModels = {
+  frontier: { model: "fable", displayName: "Fable" },
+  strong: { model: "opus", displayName: "Opus" },
+  balanced: { model: "sonnet", displayName: "Sonnet" },
+  fast: { model: "haiku", displayName: "Haiku" },
+};
+
+/**
  * The session-scoped settings: Lervo's handler for the session's start and end, which prints
  * nothing because Claude Code adds a `SessionStart` handler's output to the model's context. With
  * `terminal`, Lervo's terminal hooks join for the events the project's settings lack, and their
@@ -140,6 +152,7 @@ export function createClaudeHostedSessionAdapter(
     provider: "claude",
     displayName: "Claude Code",
     capabilities: claudeHostedCapabilities,
+    models: claudeHostedModels,
     signInState: (environment) => claudeSignInState(executable, environment),
     prepareLaunch(intent: HostedLaunchIntent): HostedLaunch {
       assertHostedLaunchIntent(intent, claudeHostedCapabilities);
@@ -147,7 +160,10 @@ export function createClaudeHostedSessionAdapter(
         intent.start.kind === "new"
           ? ["--session-id", intent.sessionId]
           : ["--resume", intent.sessionId];
-      const model = intent.model === undefined ? [] : ["--model", intent.model];
+      const model = [
+        ...(intent.model === undefined ? [] : ["--model", intent.model]),
+        ...(intent.effort === undefined ? [] : ["--effort", intent.effort]),
+      ];
       const instruction = intent.start.kind === "new" ? intent.start.instruction : null;
       const native = intent.mode === "native";
       const settings = intent.hooks === undefined ? [] : ["--settings", intent.hooks.settingsPath];

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import styles from "./PopoverMenu.module.css";
+import { sizes } from "../design/generated/sizes";
 
 export interface Suggestion {
   readonly key: string;
@@ -22,7 +23,7 @@ export function suggestionId(listId: string, index: number): string {
 }
 
 /** The gap between the caret's line and the list (`space.4`). */
-const LIST_GAP = 4;
+const LIST_GAP = sizes.space["4"];
 
 /**
  * Suggestions for what the person is typing, such as the agents an `@` can mention (Lervo ADE

@@ -115,6 +115,7 @@ function Sheet(props: { kind: "clone" | "new" }) {
         <div className={styles.content}>
           <div className={styles.heading}>
             <h2 id="project-sheet-title" className={styles.title}>
+              {/* motion: Overlays: command palette, menus, popovers */}
               {kind === "clone" ? (
                 <FormattedMessage id="projects.sheet.clone.title" />
               ) : (
@@ -122,6 +123,7 @@ function Sheet(props: { kind: "clone" | "new" }) {
               )}
             </h2>
             <p className={styles.subtitle}>
+              {/* motion: Overlays: command palette, menus, popovers */}
               {kind === "clone" ? (
                 <FormattedMessage id="projects.sheet.clone.subtitle" />
               ) : (
@@ -130,6 +132,7 @@ function Sheet(props: { kind: "clone" | "new" }) {
             </p>
           </div>
           <label className={styles.label}>
+            {/* motion: Overlays: command palette, menus, popovers */}
             {kind === "clone" ? (
               <FormattedMessage id="projects.sheet.clone.field" />
             ) : (
@@ -192,6 +195,7 @@ function Sheet(props: { kind: "clone" | "new" }) {
               <FormattedMessage id="projects.sheet.cancel" />
             </button>
             <button type="button" className={styles.primary} disabled={!ready} onClick={submit}>
+              {/* motion: Overlays: command palette, menus, popovers */}
               {kind === "clone" ? (
                 <FormattedMessage id="projects.sheet.clone.submit" />
               ) : (

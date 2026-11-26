@@ -106,6 +106,7 @@ export function ProjectSwitcher() {
       onPointerEnter={preload}
       onFocus={preload}
     >
+      {/* motion: Renaming in place */}
       {renaming === current.projectId && surface !== null ? (
         <surface.RenameField
           project={current}

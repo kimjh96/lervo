@@ -5,6 +5,7 @@ import { delimiter, isAbsolute, resolve } from "node:path";
 import { createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
 import { createCodexHostedSessionAdapter } from "@lervo/adapter-codex";
 import {
+  type HostedModels,
   hasStreamDecoder,
   type HostedConversationMode,
   hostedConversationModes,
@@ -152,6 +153,16 @@ export async function resolveHostedSessionAdapter(
       { provider },
     );
   return adapter;
+}
+
+/**
+ * The model `provider`'s adapter names for each tier (ADR-0647), or none for a provider that runs
+ * its own default. An agent of any provider is the default provider's. It looks for no CLI.
+ */
+export function hostedProviderModels(provider: string): HostedModels | undefined {
+  const entry =
+    hostedProviders.get(provider) ?? hostedProviders.get(defaultHostedProvider) ?? undefined;
+  return entry?.create(entry.executable).models;
 }
 
 /**

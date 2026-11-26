@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_67d246bf834a24b1680f3435"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Read event schema 14 in the CLI, the Node, and the Hub: terminal.context.base_delivered records a prompt answered from the cached base. Automatic writer activation stays at schema 13."

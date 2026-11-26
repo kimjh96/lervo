@@ -1,7 +1,13 @@
 // The sessions of the agents that joined the open conversation (Lervo ADE rooms, "The ADE").
 import type { HostMessage } from "@lervo/session-host-contract";
 
-import { type ApplicationCommands, RequestFailure, type SessionHost } from "../../../ports";
+import {
+  type ApplicationCommands,
+  failureCode,
+  RequestFailure,
+  type SessionHost,
+} from "../../../ports";
+import { useWorkspaceStore } from "../../workspaces";
 import type { MemberLane } from "./room";
 import { useRoomStore } from "./room-store";
 import { applyAppended, applyDelta, applyPage, emptyWindow, PAGE_ITEMS } from "./window";
@@ -12,9 +18,14 @@ export interface RoomMember {
   readonly sessionId: string;
 }
 
-/** How often, and how many times, a member that the core reopens is looked for. */
-const REOPEN_POLL_MS = 300;
-const REOPEN_POLLS = 20;
+/** How long a member's session may take to start once the core reopened it. */
+const START_WAIT_MS = 6_000;
+
+/** Whether the session host reports the session running: known, and not ended. */
+function running(sessionId: string): boolean {
+  const status = useWorkspaceStore.getState().statuses[sessionId];
+  return status !== undefined && status !== "ended";
+}
 
 /**
  * Follows each joined agent's own session: its newest page, then its live items. A member whose
@@ -31,6 +42,11 @@ export class RoomMembers {
     private readonly commands: ApplicationCommands,
     private readonly workspaceId: string,
     leadAgentId: string | null,
+    /** Waits; injected, so tests and an idle window never depend on real timers. */
+    private readonly schedule: (run: () => void, ms: number) => () => void = (run, ms) => {
+      const timer = setTimeout(run, ms);
+      return () => clearTimeout(timer);
+    },
   ) {
     useRoomStore.setState({ leadAgentId, members: {} });
     this.unsubscribe.push(this.client.onMessage((message) => this.receive(message)));
@@ -65,29 +81,69 @@ export class RoomMembers {
     useRoomStore.setState({ members: { ...members, [member.sessionId]: update(lane) } });
   }
 
+  /**
+   * Attaches to the member's session. A session that does not run, such as after the session
+   * host restarted or stopped it while idle, is resumed by the core through `room.join`; the
+   * host's status report says when it runs. A failure shows as a room line, never silently.
+   */
   private async load(member: RoomMember): Promise<void> {
-    // A session the session host is starting, such as one that just joined, appears shortly.
-    if (await this.attachWithin(member, REOPEN_POLLS / 4)) return;
-    // Otherwise the core resumes the agent's session beside the lead, and the host starts it.
-    await this.commands
-      .run("room.join", { workspaceId: this.workspaceId, agentId: member.agentId })
-      .catch(() => undefined);
-    await this.attachWithin(member, REOPEN_POLLS);
+    try {
+      // A running session attaches at once, even before its status report arrives.
+      if (await this.attached(member)) return;
+      await this.commands.run("room.join", {
+        workspaceId: this.workspaceId,
+        agentId: member.agentId,
+      });
+      await this.started(member.sessionId);
+      await this.attach(member);
+    } catch (failure) {
+      this.failed(member, failureCode(failure));
+    }
   }
 
-  /** Attaches within `polls` tries, waiting between them while the session is not found. */
-  private async attachWithin(member: RoomMember, polls: number): Promise<boolean> {
-    for (let poll = 0; poll < polls && !this.closed; poll += 1) {
-      try {
-        await this.attach(member);
-        return true;
-      } catch (failure) {
-        if (!(failure instanceof RequestFailure) || failure.code !== "session_not_found")
-          return false;
-        await new Promise((resolve) => setTimeout(resolve, REOPEN_POLL_MS));
-      }
+  /** Attaches when the session runs; false when the session host has none. */
+  private async attached(member: RoomMember): Promise<boolean> {
+    try {
+      await this.attach(member);
+      return true;
+    } catch (failure) {
+      if (failure instanceof RequestFailure && failure.code === "session_not_found") return false;
+      throw failure;
     }
-    return false;
+  }
+
+  /** Resolves once the session host reports the session running; rejects after the wait. */
+  private started(sessionId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (running(sessionId)) return resolve();
+      const stop = useWorkspaceStore.subscribe(() => {
+        if (!running(sessionId)) return;
+        stop();
+        cancel();
+        resolve();
+      });
+      const cancel = this.schedule(() => {
+        stop();
+        reject(new RequestFailure("session_not_found"));
+      }, START_WAIT_MS);
+    });
+  }
+
+  /** Shows in the member's lane that its session could not reopen, with the failure's code. */
+  private failed(member: RoomMember, code: string): void {
+    this.lane(member, (lane) => ({
+      ...lane,
+      window: applyAppended(lane.window, [
+        {
+          kind: "lervo_notice",
+          itemId: "rejoin-failed",
+          createdAtMs: Date.now(),
+          state: "complete",
+          code: "room_rejoin_failed",
+          parameters: { code },
+        },
+      ]),
+    }));
   }
 
   private async attach(member: RoomMember): Promise<void> {

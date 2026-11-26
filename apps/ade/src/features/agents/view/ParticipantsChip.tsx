@@ -45,18 +45,16 @@ export function ParticipantsChip(props: {
     .map((id) => candidates.find((agent) => agent.agentId === id))
     .filter((agent): agent is Candidate => agent !== undefined);
   if (chosen.length === 0) return null;
+  const list = (agents: readonly Candidate[]) =>
+    new Intl.ListFormat(intl.locale, { type: "unit", style: "short" }).format(
+      agents.map((agent) => agent.displayName),
+    );
   const names =
     chosen.length <= 2
-      ? chosen.map((agent) => agent.displayName).join(", ")
+      ? list(chosen)
       : intl.formatMessage(
           { id: "agents.participants.more" },
-          {
-            names: chosen
-              .slice(0, 2)
-              .map((agent) => agent.displayName)
-              .join(", "),
-            count: chosen.length - 2,
-          },
+          { names: list(chosen.slice(0, 2)), count: chosen.length - 2 },
         );
   return (
     <>

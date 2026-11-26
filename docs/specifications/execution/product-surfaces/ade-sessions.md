@@ -168,6 +168,15 @@ A finished turn ends with one quiet line of what the core recorded about it (app
 - It calls no model and reads only the repository's store: about 10 to 35 ms and 300 bytes a turn on 2026-11-25, in stores of 90 and 57,000 events.
 - What the core does not record does not show: the owner rules applied to a turn are not yet recorded per turn, so the card does not claim them (invariant 3).
 
+## Owner rules in the conversation
+
+The terminal shows the owner rules Lervo applies as "Lervo applied owner rule" blocks, because Claude Code prints its hooks' output there. The native conversation does not repeat them.
+
+- **Why not.** The blocks are context written for the agent, often several screens per turn, and Lervo cannot observe whether the provider used them (invariant 3). Repeating them would add noise and claim more than Lervo knows.
+- **What shows instead.** A turn's summary names how many owner rules Lervo prepared for the turn, such as "2 owner rules prepared", next to the documents Lervo gave. It never says applied or followed. A rule set Lervo cut for space says so: "2 of 14 owner rules prepared".
+- **Where it comes from.** From event schema 15, `terminal.context.prepared` carries `appliedInstructions`: `status` (`complete`, `incomplete`, or `unavailable` when the rule catalog could not be read), `preparedCount`, and `omittedCount` (null when unavailable). Readers accept it before any writer emits it, as for the room events. `turn.summary` reports it in `given`; a turn recorded before then, or an unavailable catalog, shows no rule count.
+- **Learned rules.** A rule Lervo captures from the conversation is reported where Lervo reports what it learned, never as a block in the conversation.
+
 ## Replies while the agent works
 
 Claude Code reads a reply sent during a turn between the turn's steps, in the same turn, and its stream has no line for the moment it does (checked on 2026-11-26). A reply the person sends while the agent works says _Queued · the agent reads it at its next step_ under its bubble until the agent's next item arrives, then fades. The prompt hook still runs for such a reply, so the core records it as a new prompt and settles the one before it as ended by the next prompt; the conversation shows the same split, with that earlier part's summary line.
@@ -276,7 +285,7 @@ The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/exec
   - `provider_login_unavailable`: the CLI reports no login. This is notice-only.
   - `workspace_in_use`, `workspace_has_changes`, `workspace_use_unverifiable`: retiring a workspace refused and changed nothing. The session host passes each on as `application_failed` with the parameter `coreCode`.
   - `launch_preparation_failed`: the launch stage failed, which `workspace_start_failed` reports with `stage: launch`.
-  - `hosted_events_inactive`: the registered repository's writer selects a schema below 10, so Lervo recorded no hosted session event. The launch goes on, and `hostedEvents` reports `inactive`. `lervo upgrade` activates the current target, schema 13, once every configured reader reads it.
+  - `hosted_events_inactive`: the registered repository's writer selects a schema below 10, so Lervo recorded no hosted session event. The launch goes on, and `hostedEvents` reports `inactive`. `lervo upgrade` activates the current target, schema 14, once every configured reader reads it.
   - `provider_unknown`: no admitted hosted-session adapter has that provider name. The result lists the admitted ones.
   - `conversation_mode_unsupported`: the provider does not declare `nativeConversation`, so only the CLI conversation can start. Nothing changed.
   - `resume_unsupported` and `launch_intent_invalid`: the adapter refused the launch intent before any change.

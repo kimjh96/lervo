@@ -29,6 +29,7 @@ import {
   terminalExecutionRootDigest,
 } from "./terminal-turn-settlement.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
+import { answeredFromCachedBaseSince } from "./terminal-cached-base-turn.js";
 
 export function latestTerminalTurnDeclaration(
   events: ProjectStorage["events"],
@@ -204,6 +205,16 @@ export async function preparedTerminalTurnExpectation(
   try {
     const context = findLatestPreparedContext(storage.events, coordinates, provider, hint);
     if (context === null) return null;
+    // ADR-0645: a turn the launcher answered from the cached base prepared nothing, so the
+    // session's latest context is an earlier turn's. Its own Stop observed it; or, when the owner
+    // interrupted it, the session's open-turn marker still names it, and the next prepared prompt
+    // or session start settles it as usual. A Stop that names its turn already matched that turn's
+    // own context.
+    if (
+      coordinates.providerTurnDigest === null &&
+      (await answeredFromCachedBaseSince(providerSessionId, Date.parse(context.occurredAt)))
+    )
+      return null;
     return preparedTurnExpectationFromContext(context, provider, providerSessionId);
   } finally {
     await storage.close();
