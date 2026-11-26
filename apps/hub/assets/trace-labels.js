@@ -234,6 +234,7 @@ const fieldLabels = {
   limit: "Turn limit",
   openerAgentId: "Agent that opened the exchange",
   occurredAt: "Occurred at",
+  appliedInstructions: "Owner rules prepared",
 };
 
 export function eventLabel(type) {

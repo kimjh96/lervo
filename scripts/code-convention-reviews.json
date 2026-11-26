@@ -88,7 +88,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:c19d82dc3fe26ba0f9a9ce95a3c3b070cb619aaaa7ed9fe9a4184b81119721a5",
+      "contentHash": "sha256:bd0bd5b626b78a1040aae4faea3c668126f1b9e2b18e0757a37fed2a7a223d76",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, hosted-session, terminal base-delivery, and room payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/schemas/src/event.ts",
-      "contentHash": "sha256:c2ae06b53fc4565af86c7a561202767df8966d4620f7d0d7ddf5288d2e26f5b6",
+      "contentHash": "sha256:51e1b6a5313697ce059be8377f616d5ecb4f403cea5b4a74adc14a243683303f",
       "responsibility": "Versioned event envelope schema and types",
       "rationale": "The module defines the event envelope schema once and the cumulative event type list of every schema version, with one discriminated branch and one envelope type per version. Each new version adds one list, one branch, and one type. Cross-version invariants, such as the schema-11 resource usage boundary, are defined in their payload modules and only listed here. Validation, redaction, persistence, and reader capabilities stay outside it.",
       "disposition": "cohesive"
@@ -263,7 +263,7 @@
     },
     {
       "path": "packages/schemas/src/terminal-observation-event.ts",
-      "contentHash": "sha256:efb9bed4ef2283445cdf79a6514dc8409cf9a19dcaa2a30eb9faee6f0db4034e",
+      "contentHash": "sha256:7707b0870e0b381883f7fa025c4beba843f7e6703c3c15df0de3ac929d20e9e9",
       "responsibility": "Declarative terminal observation event schemas",
       "rationale": "The module declares one terminal evidence lifecycle. Pointer fields, identities, reference kinds, and paired counts are additive. Equivalent nullable scalar schemas keep compiled validation within the measured hook bundle budget. Detection, persistence, privacy enforcement, and reporting remain separate.",
       "disposition": "cohesive"

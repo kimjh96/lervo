@@ -1076,6 +1076,7 @@ export const eventPayloadAllowlists = {
     "assignmentId",
     "leaseGeneration",
     "writerSessionId",
+    "appliedInstructions",
   ],
   "terminal.turn.declared": [
     "declarationId",

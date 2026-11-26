@@ -17,7 +17,10 @@ import { terminalBaseDeliveryEventTypes } from "./terminal-base-delivery-event.j
 import { roomEventTypes } from "./room-event.js";
 import { planLedgerEventTypes } from "./plan-ledger-event.js";
 import { resourceUsageBeforeV11 } from "./resource-usage-event.js";
-import { terminalTurnObservedBeforeV12 } from "./terminal-observation-event.js";
+import {
+  terminalContextPreparedBeforeV15,
+  terminalTurnObservedBeforeV12,
+} from "./terminal-observation-event.js";
 import { executionStagesObservedBeforeV13 } from "./execution-observability-event.js";
 
 export const eventTypesV1 = [
@@ -208,7 +211,11 @@ export const eventTypesV12 = eventTypesV11;
 export const eventTypesV13 = eventTypesV12;
 /** ADR-0645: the launcher answered an unserved prompt from the checkout's cached base. */
 export const eventTypesV14 = [...eventTypesV13, ...terminalBaseDeliveryEventTypes] as const;
-/** ADR-0641: agents mentioning each other in an ADE conversation. */
+/**
+ * ADR-0641: agents mentioning each other in an ADE conversation. `terminal.context.prepared` may
+ * also count the owner rules Lervo prepared, which `terminalContextPreparedBeforeV15` keeps out of
+ * older envelope versions.
+ */
 export const eventTypesV15 = [...eventTypesV14, ...roomEventTypes] as const;
 export const eventTypes = eventTypesV15;
 
@@ -279,6 +286,7 @@ const eventEnvelopeInvariants = [
   resourceUsageBeforeV11,
   terminalTurnObservedBeforeV12,
   executionStagesObservedBeforeV13,
+  terminalContextPreparedBeforeV15,
 ] as const;
 
 export const eventEnvelopeV1Schema = {
