@@ -1751,6 +1751,30 @@
       "value": "Superseded a plan item"
     }
   ],
+  "lervo.command.project.mark.clear": [
+    {
+      "type": 0,
+      "value": "Cleared the project's logo"
+    }
+  ],
+  "lervo.command.project.mark.set": [
+    {
+      "type": 0,
+      "value": "Set the project's logo"
+    }
+  ],
+  "lervo.command.project.rename": [
+    {
+      "type": 0,
+      "value": "Renamed the project"
+    }
+  ],
+  "lervo.command.project.show": [
+    {
+      "type": 0,
+      "value": "Read the project's name and logo"
+    }
+  ],
   "lervo.command.repository.hold": [
     {
       "type": 0,

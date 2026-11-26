@@ -723,6 +723,22 @@
     "defaultMessage": "Superseded a plan item",
     "description": "What Lervo did when the agent ran `lervo plan supersede`, as a quiet line in the conversation."
   },
+  "lervo.command.project.mark.clear": {
+    "defaultMessage": "Cleared the project's logo",
+    "description": "What Lervo did when the agent ran `lervo project mark clear`, as a quiet line in the conversation."
+  },
+  "lervo.command.project.mark.set": {
+    "defaultMessage": "Set the project's logo",
+    "description": "What Lervo did when the agent ran `lervo project mark set`, as a quiet line in the conversation."
+  },
+  "lervo.command.project.rename": {
+    "defaultMessage": "Renamed the project",
+    "description": "What Lervo did when the agent ran `lervo project rename`, as a quiet line in the conversation."
+  },
+  "lervo.command.project.show": {
+    "defaultMessage": "Read the project's name and logo",
+    "description": "What Lervo did when the agent ran `lervo project show`, as a quiet line in the conversation."
+  },
   "lervo.command.repository.hold": {
     "defaultMessage": "Put a hold on the repository",
     "description": "What Lervo did when the agent ran `lervo repository hold`, as a quiet line in the conversation."
