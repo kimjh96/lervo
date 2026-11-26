@@ -43,3 +43,29 @@ export { recordAgentOrigins } from "./agent-origin.js";
 export { pruneRetiredLervoAgents, RETAINED_RETIRED_LERVO_AGENTS } from "./agent-retention.js";
 export * from "./agent-mark.js";
 export * from "./agent-model.js";
+export {
+  CONVERSATION_TASK_TYPE,
+  CONVERSATION_WRITE_PATH_LIMIT,
+  MAXIMUM_CLAIM_PATHS_PER_CALL,
+  MAXIMUM_CONVERSATION_EXPECTED_PATHS,
+  isConversationTaskType,
+} from "./assignment-path-bounds.js";
+export {
+  judgeAssignmentPathConflicts,
+  type AssignmentPathConflictInput,
+  type AssignmentPathRefusal,
+  type AssignmentPathRefusalCode,
+  type ChangedPathHolder,
+} from "./assignment-path-conflict.js";
+export { claimPathDigest } from "./claim-path-digest.js";
+export type { ConversationClaimMode } from "./conversation-lease-widening-plan.js";
+export type {
+  ConversationLeaseEvent,
+  ConversationLeaseEventRecorder,
+} from "./conversation-lease-events.js";
+export { CONVERSATION_LEASE_MS } from "./conversation-lease-claim-transition.js";
+export {
+  widenConversationLease,
+  type WidenConversationLeaseInput,
+  type WidenConversationLeaseResult,
+} from "./conversation-lease-widening.js";

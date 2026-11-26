@@ -1,6 +1,7 @@
 import type { FromSchema } from "json-schema-to-ts";
 
 import {
+  MAX_CONTEXT_SOURCE_BYTES,
   documentIdSchema,
   eventIdSchema,
   repositoryRelativePathSchema,
@@ -40,7 +41,7 @@ const preparedDocumentSchema = {
     path: repositoryRelativePathSchema,
     contentHash: sha256Schema,
     scope: { type: "string", enum: ["full", "prefix"] },
-    deliveredByteCount: { type: "integer", minimum: 1, maximum: 131072 },
+    deliveredByteCount: { type: "integer", minimum: 1, maximum: MAX_CONTEXT_SOURCE_BYTES },
     assurance: { type: "string", enum: ["unreviewed", "human_reviewed"] },
     freshness: { type: "string", enum: ["current", "stale", "unknown"] },
   },

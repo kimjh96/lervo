@@ -41,7 +41,7 @@ Every request carries a positive integer `id`, and the resident process answers 
 | `transcript.read`   | Reads a page of the provider's own transcript of a workspace's session.    | `transcript.page` with items and `complete`, or `core.failed`        |
 | `session.exited`    | Reports that a hosted session's process ended, with its exit code.         | `core.result` with `status`, or `core.failed`                        |
 
-- `workspace.list` answers `{workspaces, commands}`. `workspaces` are the host's workspaces with a hosted launch whose worktree still exists, newest first and at most 100. Each holds:
+- `workspace.list` answers `{workspaces, commands}`. `workspaces` are the host's workspaces with a hosted launch whose worktree still exists, at most 100, latest activity first: when the conversation began, or when an agent last joined it. Reopening a conversation, or resuming a joined agent's session, keeps its place, so opening a conversation never moves it; each launch record keeps that time as `listedAt`. Each holds:
   - `workspaceId`, `projectId`, `repositoryName`, `branch`, and `title` (the workstream title, or null);
   - `provider` and `conversationMode`, the last mode;
   - `conversationModes`, the modes its provider offers, or only the last mode when no adapter admits the provider;

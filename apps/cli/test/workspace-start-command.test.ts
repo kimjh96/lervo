@@ -221,6 +221,31 @@ describe("lervo workspace start and open", () => {
     });
   });
 
+  it("keeps a reopened conversation's place in the list", async () => {
+    const app = await fixture();
+    const start = async (text: string) => {
+      const started = io(app.root, text);
+      expect(
+        await runCli(["workspace", "start", "--repository", app.projectId, "--json"], started.io),
+        started.stdout.join("") + started.stderr.join(""),
+      ).toBe(0);
+      return (JSON.parse(started.stdout.join("")) as { workspaceId: string }).workspaceId;
+    };
+    const first = await start("Fix the login form");
+    const second = await start("Tidy the footer");
+    const order = async () => (await listWorkspaces()).workspaces.map((item) => item.workspaceId);
+    expect(await order()).toEqual([second, first]);
+    // Opening the older conversation resumes its session, which is no activity.
+    await openWorkspace(first);
+    expect(await order()).toEqual([second, first]);
+    const { records } = JSON.parse(
+      await readFile(resolve(app.state, "hosted-launches.json"), "utf8"),
+    ) as { records: { workspaceId: string; preparedAt: string; listedAt?: string }[] };
+    const [started, reopened] = records.filter((record) => record.workspaceId === first);
+    expect(reopened?.listedAt).toBe(started?.preparedAt);
+    expect(reopened!.preparedAt > started!.preparedAt).toBe(true);
+  });
+
   it("refuses a repository with no commit yet under its own code", async () => {
     const app = await fixture({ noCommit: true });
     const started = io(app.root, instruction);
