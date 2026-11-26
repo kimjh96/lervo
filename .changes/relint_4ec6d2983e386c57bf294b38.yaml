@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4ec6d2983e386c57bf294b38"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A host whose delegated providers are all unadmitted, such as a logged-out Claude CLI, yields the knowledge convergence lease so a host that can do the work claims it."
