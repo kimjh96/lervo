@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_992a48a9b22ef4d3bf94b8a5"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Report each served hook's answer latency by kind in context-stats.json, so a canary sees what the provider waited for apart from the records that follow."

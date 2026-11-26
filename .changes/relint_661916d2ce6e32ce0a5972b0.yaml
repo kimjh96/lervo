@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_661916d2ce6e32ce0a5972b0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Answer a served non-worker Stop before its records, and relay launches the records ask for to the provider's session through a detached relay the client leaves behind."
