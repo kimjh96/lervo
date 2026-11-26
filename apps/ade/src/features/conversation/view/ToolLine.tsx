@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import { FormattedMessage } from "react-intl";
 
 import { ChevronDownIcon } from "../../../ui/icons";
+import { Presence } from "../../../ui/Presence";
 import { LervoSentence } from "./LervoSentence";
 import { toolCountMessages, toolMessages } from "./messages";
 import styles from "./ToolLine.module.css";
@@ -152,8 +153,8 @@ function PreviewLines(props: {
 
 /**
  * One tool call as a quiet line: the tool, what it acted on, and its result. A call with output
- * or a change opens at once to its preview, which fades in; its height never animates (ADE
- * motion, "Disclosure"). A line without detail, such as one stored before details existed, shows
+ * or a change opens to its preview. Opening and closing move the details' space with their fade
+ * (ADE motion, "Disclosure"). A line without detail, such as one stored before details existed, shows
  * the tool and its status. `ToolLinesProvider` keeps which lines are open.
  */
 export function ToolLine({ item }: { item: ToolItem }) {
@@ -206,18 +207,21 @@ export function ToolLine({ item }: { item: ToolItem }) {
         </span>
         {summary}
       </button>
-      {/* motion: Disclosure: tool activity, details */}
-      {opened ? (
-        <PreviewLines
-          command={lervo === undefined ? undefined : detail.subject.text}
-          search={
-            lervo?.hits === undefined
-              ? undefined
-              : { hits: lervo.hits, found: lervo.found ?? lervo.hits.length }
-          }
-          preview={detail.preview}
-        />
-      ) : null}
+      {/* Opened details open their space and fade in; closed ones fade out and close it. Details
+          open in loaded history show at once (ADE motion, "Disclosure"). */}
+      <Presence enterOnMount={false}>
+        {opened ? (
+          <PreviewLines
+            command={lervo === undefined ? undefined : detail.subject.text}
+            search={
+              lervo?.hits === undefined
+                ? undefined
+                : { hits: lervo.hits, found: lervo.found ?? lervo.hits.length }
+            }
+            preview={detail.preview}
+          />
+        ) : null}
+      </Presence>
     </div>
   );
 }

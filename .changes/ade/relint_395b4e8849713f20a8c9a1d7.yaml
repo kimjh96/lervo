@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_395b4e8849713f20a8c9a1d7"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Space opens and closes with what comes and goes: notices, errors, the attachment tray, tool details, and workspace rows slide the content around them instead of jumping."
