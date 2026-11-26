@@ -12,6 +12,7 @@ import { readRepositoryFile, repositoryFileExists } from "./filesystem.js";
 import { compareCanonicalText } from "./paths.js";
 import { resolveInstructionScope, type InstructionApplicability } from "./instruction-scope.js";
 import { ContextPreparationError } from "./types.js";
+import { MAX_CONTEXT_SOURCE_BYTES } from "./source-limits.js";
 
 export const GENERATED_INSTRUCTION_DIRECTORY = "docs/instructions/generated";
 const RULE_FILE = /^rule_[a-f0-9]{24}\.md$/u;
@@ -82,7 +83,7 @@ export async function readInstructionSource(
   expectedPaths: readonly string[] | null,
   targets: InstructionTargets = {},
 ): Promise<InstructionSource> {
-  const bytes = await readRepositoryFile(root, path, 131072);
+  const bytes = await readRepositoryFile(root, path, MAX_CONTEXT_SOURCE_BYTES);
   let content: string;
   try {
     content = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);

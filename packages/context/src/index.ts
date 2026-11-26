@@ -1,6 +1,7 @@
 export * from "./discovery.js";
 export * from "./collections.js";
 export * from "./evidence.js";
+export * from "./source-limits.js";
 export * from "./filesystem.js";
 export * from "./freshness.js";
 export * from "./generated-source-exclusions.js";

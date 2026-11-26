@@ -1,7 +1,7 @@
 import { isAbsolute } from "node:path";
 import { parseArgs } from "node:util";
 import { FileSystemCas } from "@lervo/cas";
-import { verifyResearchBrief, type ResearchInputsV1 } from "@lervo/roles";
+import { MAX_RESEARCH_INPUT_BYTES, verifyResearchBrief, type ResearchInputsV1 } from "@lervo/roles";
 import type { CliIo } from "./types.js";
 
 export const researchUsage =
@@ -46,7 +46,7 @@ export async function runResearchCommand(
     const cas = await FileSystemCas.openReadOnly(root);
     const original = await cas.get(`lervo-cas://sha256/${inputHash!.slice(7)}`);
     const result = await cas.get(`lervo-cas://sha256/${artifactHash!.slice(7)}`);
-    if (original.byteLength > 131072 || result.byteLength > 65536)
+    if (original.byteLength > MAX_RESEARCH_INPUT_BYTES || result.byteLength > 65536)
       throw new Error("The research verification inputs exceed their byte bounds.");
     const decoder = new TextDecoder("utf-8", { fatal: true });
     const {

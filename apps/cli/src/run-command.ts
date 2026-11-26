@@ -1,6 +1,8 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
+import { MAX_MANAGED_INSTRUCTION_BYTES } from "@lervo/work-controller";
+
 import type { ManagedRunOutcome, RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
 import { runSupervisedManagedCommand } from "./supervised-run-command.js";
@@ -142,8 +144,8 @@ export async function runManagedCommand(
       return 1;
     }
     try {
-      const input = await io.stdin(131072);
-      if (Buffer.byteLength(input, "utf8") > 131072)
+      const input = await io.stdin(MAX_MANAGED_INSTRUCTION_BYTES);
+      if (Buffer.byteLength(input, "utf8") > MAX_MANAGED_INSTRUCTION_BYTES)
         throw new Error("The managed task request is too large.");
       instructions = input.trim();
     } catch {
@@ -159,7 +161,7 @@ export async function runManagedCommand(
     expectedPaths.length === 0 ||
     verificationSuiteIds.length === 0 ||
     instructions.length === 0 ||
-    Buffer.byteLength(instructions, "utf8") > 131072 ||
+    Buffer.byteLength(instructions, "utf8") > MAX_MANAGED_INSTRUCTION_BYTES ||
     !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(roleId) ||
     roleId.length > 100 ||
     (workforceCoordinates.some((value) => value !== undefined) &&
