@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
-import { useApplicationCommands } from "../../../ports";
+import { useApplicationCommands, useFiles } from "../../../ports";
 import { IconButton } from "../../../ui/IconButton";
-import { ImageTray } from "../../../ui/ImageTray";
+import { AttachmentTray } from "../../../ui/AttachmentTray";
 import { ArrowUpIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { InputCard, InputField } from "../../../ui/InputCard";
@@ -11,10 +11,11 @@ import { Select } from "../../../ui/Select";
 import { Presence } from "../../../ui/Presence";
 import { useHostIsCurrent } from "../../connection";
 import {
+  attachmentNoticeValues,
   ConversationImagesProvider,
-  imageNoticeValues,
+  useAttachments,
+  useFileDrop,
   useOpenImages,
-  usePastedImages,
 } from "../../conversation";
 import { chooseProvider, useProviderStore } from "../../providers";
 import { useWorkspaceStore } from "../../workspaces";
@@ -37,7 +38,7 @@ const readNothing = () => Promise.reject(new Error("image_not_found"));
 /**
  * The start screen: one instruction, the repository, and the agent; Lervo does the rest. Images
  * pasted with the instruction wait above it and go with the first message (image mockup,
- * "5").
+ * "5"); other files pasted or dropped wait beside them and go as their paths (file mockup, "5").
  */
 export function StartScreen() {
   return (
@@ -50,6 +51,7 @@ export function StartScreen() {
 function StartForm() {
   const intl = useIntl();
   const open = useOpenImages();
+  const files = useFiles();
   const commands = useApplicationCommands();
   const repositories = useWorkspaceStore((store) => store.repositories);
   const newWork = useWorkspaceStore((store) => store.newWorkRequests);
@@ -68,17 +70,21 @@ function StartForm() {
   const coreTakesImages = useWorkspaceStore(
     (store) => store.advertisedCommands?.includes("decoder.images") === true,
   );
-  const returned = useStartStore((store) => store.returnedImages);
-  const images = usePastedImages({
-    accepts: hostIsCurrent && coreTakesImages,
+  const returnedImages = useStartStore((store) => store.returnedImages);
+  const returnedFiles = useStartStore((store) => store.returnedFiles);
+  const attachments = useAttachments({
+    acceptsImages: hostIsCurrent && coreTakesImages,
     resetKey: "start",
-    initial: returned,
+    initialImages: returnedImages,
+    initialFiles: returnedFiles,
   });
+  const dragging = useFileDrop(attachments.drop);
   useEffect(() => {
-    if (returned.length > 0) useStartStore.setState({ returnedImages: [] });
-  }, [returned]);
-  const ready = canStart({ ...draft, repository }) && !images.preparing;
-  const tray = images.tray(intl);
+    if (returnedImages.length > 0 || returnedFiles.length > 0)
+      useStartStore.setState({ returnedImages: [], returnedFiles: [] });
+  }, [returnedImages, returnedFiles]);
+  const ready = canStart({ ...draft, repository }, attachments.holds) && !attachments.preparing;
+  const tray = attachments.tray(intl);
 
   // The input takes focus when the screen opens and on each "New work".
   useEffect(() => input.current?.focus(), [newWork]);
@@ -87,13 +93,14 @@ function StartForm() {
     if (!ready) return;
     const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
     const chosen = { ...draft, repository, provider: provider?.provider ?? "" };
-    void startWork(commands, chosen, name, images.take());
+    const taken = attachments.take();
+    void startWork(commands, chosen, name, taken.images, taken.files);
   };
 
   return (
     <div className={styles.start}>
       {/* Paste reaches the card from its field, where the person pastes. */}
-      <div className={styles.column} onPaste={images.paste}>
+      <div className={styles.column} onPaste={attachments.paste}>
         <h1 className={styles.question}>
           <FormattedMessage id="start.question" />
         </h1>
@@ -101,16 +108,19 @@ function StartForm() {
           surface="input"
           layout="stacked"
           onSubmit={submit}
+          dropHint={dragging ? intl.formatMessage({ id: "conversation.files.drop" }) : undefined}
           attachments={
             /* motion: Coming and going */
-            tray.length === 0 ? undefined : (
-              <ImageTray
-                images={tray}
-                removeLabel={(index) =>
-                  intl.formatMessage({ id: "conversation.images.remove" }, { number: index + 1 })
-                }
-                onRemove={images.remove}
-                onOpen={(index) => open(tray, index)}
+            tray.images.length === 0 && tray.files.length === 0 ? undefined : (
+              <AttachmentTray
+                images={tray.images}
+                files={tray.files}
+                onRemove={attachments.remove}
+                onOpenImage={(index) => open(tray.images, index)}
+                onOpenFile={(key) => {
+                  const path = attachments.pathOf(key);
+                  if (path !== undefined) files.reveal(path);
+                }}
               />
             )
           }
@@ -180,9 +190,9 @@ function StartForm() {
         </Presence>
         <Presence className={styles.error}>
           {/* motion: Inline errors */}
-          {images.notice !== null && error === null ? (
+          {attachments.notice !== null && error === null ? (
             <InlineAlert size="note">
-              <FormattedMessage {...images.notice} values={imageNoticeValues} />
+              <FormattedMessage {...attachments.notice} values={attachmentNoticeValues} />
             </InlineAlert>
           ) : error === null ? null : (
             <InlineAlert size="note">

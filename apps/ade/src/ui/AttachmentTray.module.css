@@ -1,5 +1,5 @@
-/* Images waiting in an input card: 56 px thumbnails above its field, each with a remove button
-   that shows on hover and keyboard focus. */
+/* What waits in an input card: 56 px image thumbnails, then file chips of the same height, above
+   its field; each remove button shows on hover and keyboard focus. */
 .tray {
   display: flex;
   flex-wrap: wrap;
@@ -13,6 +13,11 @@
   position: relative;
   width: var(--size-thumbnail);
   height: var(--size-thumbnail);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.file {
+  display: flex;
   animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
@@ -105,6 +110,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tile,
+  .file,
   .tile[data-preparing]::after {
     animation: none;
   }

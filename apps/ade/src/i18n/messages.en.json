@@ -51,6 +51,34 @@
     "defaultMessage": "Writing a reply",
     "description": "The working line while the agent streams a reply."
   },
+  "conversation.files.detail": {
+    "defaultMessage": "{folder}{kind, select, none {} other { · {kind}}}",
+    "description": "The quiet line under a file waiting in a card: the folder it is in, then its size or that it is a folder, such as \"Downloads · 84 KB\". {kind} is \"none\" when neither is known."
+  },
+  "conversation.files.drop": {
+    "defaultMessage": "Drop to attach",
+    "description": "Inside the card that takes files while they are dragged over the window."
+  },
+  "conversation.files.folder": {
+    "defaultMessage": "Folder",
+    "description": "In the line under an attached folder, in place of a file's size."
+  },
+  "conversation.files.label": {
+    "defaultMessage": "{name}, in {folder}",
+    "description": "The accessible name of an attached file's chip: its name and the folder it is in. It shows the file in Finder."
+  },
+  "conversation.files.missing": {
+    "defaultMessage": "Moved or deleted",
+    "description": "Under the name of a file a sent message named, when no file is at its path anymore."
+  },
+  "conversation.files.remove": {
+    "defaultMessage": "Remove {name}",
+    "description": "The accessible name of the button that takes an attached file out of the next message."
+  },
+  "conversation.files.tooMany": {
+    "defaultMessage": "A message takes up to {files} files.",
+    "description": "Under the card when more files were pasted or dropped than one message carries; {files} is the limit."
+  },
   "conversation.images.alt": {
     "defaultMessage": "Image {number} of {count}{sized, select, yes {, {width} × {height}} other {}}",
     "description": "The text of an image in a message bubble, for screen readers: its place among the message's images and its size when known. It opens the image at full size."

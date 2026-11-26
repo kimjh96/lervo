@@ -85,6 +85,89 @@
       "value": "Writing a reply"
     }
   ],
+  "conversation.files.detail": [
+    {
+      "type": 1,
+      "value": "folder"
+    },
+    {
+      "type": 5,
+      "value": "kind",
+      "options": {
+        "none": {
+          "value": []
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": " · "
+            },
+            {
+              "type": 1,
+              "value": "kind"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "conversation.files.drop": [
+    {
+      "type": 0,
+      "value": "Drop to attach"
+    }
+  ],
+  "conversation.files.folder": [
+    {
+      "type": 0,
+      "value": "Folder"
+    }
+  ],
+  "conversation.files.label": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": ", in "
+    },
+    {
+      "type": 1,
+      "value": "folder"
+    }
+  ],
+  "conversation.files.missing": [
+    {
+      "type": 0,
+      "value": "Moved or deleted"
+    }
+  ],
+  "conversation.files.remove": [
+    {
+      "type": 0,
+      "value": "Remove "
+    },
+    {
+      "type": 1,
+      "value": "name"
+    }
+  ],
+  "conversation.files.tooMany": [
+    {
+      "type": 0,
+      "value": "A message takes up to "
+    },
+    {
+      "type": 1,
+      "value": "files"
+    },
+    {
+      "type": 0,
+      "value": " files."
+    }
+  ],
   "conversation.images.alt": [
     {
       "type": 0,

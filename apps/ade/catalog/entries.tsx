@@ -15,8 +15,9 @@ import { StatusDot } from "../src/ui/StatusDot";
 import { Waiting } from "../src/ui/Waiting";
 import { WorkingLine } from "../src/ui/WorkingLine";
 import {
+  AttachmentTrayDemo,
   CardDemo,
-  ImageTrayDemo,
+  FileChipDemo,
   ImageViewerDemo,
   PresenceDemo,
   SegmentedDemo,
@@ -53,16 +54,33 @@ export const entries: readonly Entry[] = [
     variants: [
       { name: "Input, stacked", render: () => <CardDemo surface="input" layout="stacked" /> },
       { name: "Floating, inline", render: () => <CardDemo surface="floating" layout="inline" /> },
+      {
+        name: "Files dragged over the window",
+        render: () => <CardDemo surface="floating" layout="inline" dropHint="Drop to attach" />,
+      },
     ],
   },
   {
-    module: "ImageTray",
-    name: "Image tray",
+    module: "AttachmentTray",
+    name: "Attachment tray",
     purpose:
-      "Images waiting in an input card to go with its text, as thumbnails above the field; each opens at full size and has a remove button on hover and focus.",
-    use: ["Images pasted into the reply card or the instruction of new work"],
-    avoid: ["Images already sent, which show in their message bubble", "Files that are not images"],
-    variants: [{ name: "Ready and preparing", render: () => <ImageTrayDemo /> }],
+      "What waits in an input card to go with its text, on one row above the field: image thumbnails that open at full size, then file chips of the same height; each has a remove button on hover and focus.",
+    use: ["Images and files pasted or dropped into the reply card or the instruction of new work"],
+    avoid: ["Images and files already sent, which show in their message bubble"],
+    variants: [{ name: "Images and files", render: () => <AttachmentTrayDemo /> }],
+  },
+  {
+    module: "FileChip",
+    name: "File chip",
+    purpose:
+      "A file attached by path: a type badge, its name, and a quiet line under it; it shows the file in Finder, and a missing file is faint and does not open.",
+    use: ["Files waiting in an attachment tray (tray)", "Files a sent message named (message)"],
+    avoid: ["Images, which show as themselves", "Links and commands"],
+    variants: [
+      { name: "Tray", render: () => <FileChipDemo size="tray" /> },
+      { name: "Message", render: () => <FileChipDemo size="message" /> },
+      { name: "Moved or deleted", render: () => <FileChipDemo size="message" missing /> },
+    ],
   },
   {
     module: "ImageViewer",

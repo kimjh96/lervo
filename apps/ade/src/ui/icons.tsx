@@ -99,3 +99,21 @@ export function BranchIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** A folder: a file attachment that is a folder. */
+export function FolderIcon(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.8}>
+      <path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2h7.4a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
+    </Icon>
+  );
+}
+
+/** A paper clip: files being attached, such as while they are dragged over the window. */
+export function PaperClipIcon(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.8}>
+      <path d="M8 12.5l5.6-5.6a3 3 0 0 1 4.2 4.2l-7 7a5 5 0 0 1-7-7l6.3-6.3" />
+    </Icon>
+  );
+}

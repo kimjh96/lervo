@@ -4,6 +4,7 @@ export {
   useApplicationCommands,
   useClipboard,
   useDrafts,
+  useFiles,
   useHostReplacement,
   useImages,
   useListCache,
@@ -11,6 +12,7 @@ export {
 } from "./context";
 export type { Clipboard } from "./clipboard";
 export type { Drafts } from "./drafts";
+export type { AttachedFile, FileDrag, Files } from "./files";
 export { ImageFailure, type Images, type PreparedImage } from "./images";
 export type { ListCache, Lists } from "./lists";
 export type { Notifier } from "./notifier";

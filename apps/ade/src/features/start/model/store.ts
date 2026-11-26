@@ -1,7 +1,7 @@
 import type { ImageMark } from "@lervo/session-host-contract";
 import { create } from "zustand";
 
-import type { PreparedImage } from "../../../ports";
+import type { AttachedFile, PreparedImage } from "../../../ports";
 import type { StartDraft } from "./start";
 
 /** Why a start failed, as the session host or the core reported it. */
@@ -42,6 +42,8 @@ interface StartStore {
   readonly error: StartFailure | null;
   /** The images of a start that failed, which the start screen puts back with the instruction. */
   readonly returnedImages: readonly PreparedImage[];
+  /** The files of a start that failed, which the start screen puts back too. */
+  readonly returnedFiles: readonly AttachedFile[];
 }
 
 /**
@@ -54,4 +56,5 @@ export const useStartStore = create<StartStore>(() => ({
   pending: null,
   error: null,
   returnedImages: [],
+  returnedFiles: [],
 }));

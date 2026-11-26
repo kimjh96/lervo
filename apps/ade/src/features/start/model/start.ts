@@ -1,5 +1,10 @@
-import { type ApplicationCommands, type PreparedImage, RequestFailure } from "../../../ports";
-import { remember, sentImages } from "../../conversation";
+import {
+  type ApplicationCommands,
+  type AttachedFile,
+  type PreparedImage,
+  RequestFailure,
+} from "../../../ports";
+import { remember, sentImages, withAttachedFiles } from "../../conversation";
 import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces";
 import { useStartStore } from "./store";
 
@@ -14,9 +19,9 @@ export interface StartDraft {
   readonly provider: string;
 }
 
-/** A draft the core can run: an instruction and a repository. */
-export function canStart(draft: StartDraft): boolean {
-  return draft.instruction.trim().length > 0 && draft.repository.length > 0;
+/** A draft the core can run: an instruction, or attachments to go alone, and a repository. */
+export function canStart(draft: StartDraft, attached = false): boolean {
+  return (draft.instruction.trim().length > 0 || attached) && draft.repository.length > 0;
 }
 
 let starts = 0;
@@ -26,18 +31,23 @@ let starts = 0;
  * the agent with the instruction. The pending workspace shows at once, while the core works, and
  * the new workspace takes its place when it exists, with the core's notice when it started without
  * something, such as the upstream it could not fetch. A failure returns to the start screen with
- * the instruction and the failure's code and stage, unchanged. Nothing is selected if the user
- * moved on meanwhile.
+ * the instruction, its images and files, and the failure's code and stage, unchanged. Files go as
+ * their paths at the end of the instruction. Nothing is selected if the user moved on meanwhile.
  */
 export async function startWork(
   commands: ApplicationCommands,
   draft: StartDraft,
   repositoryName: string,
   images: readonly PreparedImage[] = [],
+  files: readonly AttachedFile[] = [],
 ): Promise<void> {
   starts += 1;
   const id = starts;
-  const instruction = draft.instruction.trim();
+  const typed = draft.instruction.trim();
+  const instruction = withAttachedFiles(
+    typed,
+    files.map((file) => file.path),
+  );
   const current = () => useStartStore.getState().pending?.id === id;
   // The first message draws its images from the cache, under the identity the session host uses.
   // Work without images shows its pending workspace at once, without waiting a turn.
@@ -60,6 +70,7 @@ export async function startWork(
     draft: { ...draft, instruction: "" },
     error: null,
     returnedImages: [],
+    returnedFiles: [],
   });
   try {
     // The session host takes the images out and sends them with the first message.
@@ -84,8 +95,9 @@ export async function startWork(
     if (current())
       useStartStore.setState((store) => ({
         pending: null,
-        draft: { ...store.draft, instruction },
+        draft: { ...store.draft, instruction: typed },
         returnedImages: images,
+        returnedFiles: files,
         error: {
           code: failure instanceof RequestFailure ? failure.code : "workspace_start_failed",
           stage: typeof stage === "string" ? stage : null,

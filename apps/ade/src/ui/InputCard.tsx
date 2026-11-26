@@ -1,5 +1,6 @@
 import { type KeyboardEvent, type ReactNode, type Ref, useLayoutEffect, useRef } from "react";
 
+import { PaperClipIcon } from "./icons";
 import styles from "./InputCard.module.css";
 import { Presence } from "./Presence";
 
@@ -7,7 +8,9 @@ import { Presence } from "./Presence";
  * A card that holds a text field and its actions, such as the instruction card of the start
  * screen or the reply card of a conversation. `surface` says what it sits on: `input` on the
  * window, `floating` over content that shows through it blurred. `layout` puts the actions
- * under the field (`stacked`) or beside it (`inline`). The card shows the field's focus.
+ * under the field (`stacked`) or beside it (`inline`). The card shows the field's focus. While
+ * files are dragged over the window, `dropHint` says that the card takes them: its border turns to
+ * the accent and the hint takes the place of what waits.
  */
 export function InputCard(props: {
   surface: "input" | "floating";
@@ -15,6 +18,7 @@ export function InputCard(props: {
   onSubmit: () => void;
   /** What waits to go with the text, such as pasted images, on its own line above the field. */
   attachments?: ReactNode;
+  dropHint?: string | undefined;
   children: ReactNode;
 }) {
   return (
@@ -22,14 +26,24 @@ export function InputCard(props: {
       className={styles.card}
       data-surface={props.surface}
       data-layout={props.layout}
+      data-dropping={props.dropHint === undefined ? undefined : ""}
       onSubmit={(event) => {
         event.preventDefault();
         props.onSubmit();
       }}
     >
       {/* motion: Coming and going */}
-      {props.attachments === undefined ? null : (
-        <div className={styles.attachments}>{props.attachments}</div>
+      {props.dropHint === undefined ? (
+        props.attachments === undefined ? null : (
+          <div className={styles.attachments}>{props.attachments}</div>
+        )
+      ) : (
+        <div className={styles.attachments}>
+          <span className={styles.dropHint}>
+            <PaperClipIcon size="lg" />
+            {props.dropHint}
+          </span>
+        </div>
       )}
       {props.children}
     </form>

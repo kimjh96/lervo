@@ -5,7 +5,8 @@ import { useState } from "react";
 import { Button } from "../src/ui/Button";
 import { IconButton } from "../src/ui/IconButton";
 import { ArrowUpIcon } from "../src/ui/icons";
-import { ImageTray } from "../src/ui/ImageTray";
+import { AttachmentTray } from "../src/ui/AttachmentTray";
+import { FileChip } from "../src/ui/FileChip";
 import { ImageViewer } from "../src/ui/ImageViewer";
 import { InputCard, InputField } from "../src/ui/InputCard";
 import { Presence } from "../src/ui/Presence";
@@ -57,12 +58,21 @@ export function SegmentedDemo(props: { disabled?: boolean }) {
   );
 }
 
-export function CardDemo(props: { surface: "input" | "floating"; layout: "stacked" | "inline" }) {
+export function CardDemo(props: {
+  surface: "input" | "floating";
+  layout: "stacked" | "inline";
+  dropHint?: string;
+}) {
   const [text, setText] = useState("");
   const stacked = props.layout === "stacked";
   return (
     <div style={{ width: "var(--layout-start-max-width)" }}>
-      <InputCard surface={props.surface} layout={props.layout} onSubmit={() => setText("")}>
+      <InputCard
+        surface={props.surface}
+        layout={props.layout}
+        dropHint={props.dropHint}
+        onSubmit={() => setText("")}
+      >
         <InputField
           size={stacked ? "input" : "body"}
           rows={stacked ? 3 : 1}
@@ -109,21 +119,69 @@ export function samplePicture(hue: number): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-export function ImageTrayDemo() {
+export function AttachmentTrayDemo() {
   const [images, setImages] = useState([
-    { key: "a", src: samplePicture(220), alt: "Image 1, 1568 × 980" },
-    { key: "b", src: samplePicture(150), alt: "Image 2, 1200 × 800" },
-    { key: "c", src: samplePicture(20), alt: "Preparing image 3", preparing: true },
+    {
+      key: "a",
+      src: samplePicture(220),
+      alt: "Image 1, 1568 × 980",
+      removeLabel: "Remove image 1",
+    },
+    {
+      key: "c",
+      src: samplePicture(20),
+      alt: "Preparing image 2",
+      removeLabel: "Remove image 2",
+      preparing: true,
+    },
+  ]);
+  const [files, setFiles] = useState([
+    {
+      key: "f",
+      name: "report.pdf",
+      detail: "Downloads · 1.2 MB",
+      badge: "PDF",
+      folder: false,
+      label: "report.pdf, in Downloads",
+      removeLabel: "Remove report.pdf",
+    },
+    {
+      key: "g",
+      name: "design-handoff",
+      detail: "Documents · Folder",
+      badge: "",
+      folder: true,
+      label: "design-handoff, in Documents",
+      removeLabel: "Remove design-handoff",
+    },
   ]);
   return (
-    <div style={{ width: "360px" }}>
-      <ImageTray
+    <div style={{ width: "var(--layout-start-max-width)" }}>
+      <AttachmentTray
         images={images}
-        removeLabel={(index) => `Remove image ${index + 1}`}
-        onRemove={(key) => setImages(images.filter((image) => image.key !== key))}
-        onOpen={() => undefined}
+        files={files}
+        onRemove={(key) => {
+          setImages(images.filter((image) => image.key !== key));
+          setFiles(files.filter((file) => file.key !== key));
+        }}
+        onOpenImage={() => undefined}
+        onOpenFile={() => undefined}
       />
     </div>
+  );
+}
+
+export function FileChipDemo(props: { size: "tray" | "message"; missing?: boolean }) {
+  return (
+    <FileChip
+      size={props.size}
+      name="signups-2026-11.csv"
+      detail={props.missing ? "Moved or deleted" : "Desktop"}
+      badge="CSV"
+      missing={props.missing}
+      label="signups-2026-11.csv, in Desktop"
+      onOpen={() => undefined}
+    />
   );
 }
 
