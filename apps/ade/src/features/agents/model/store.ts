@@ -13,8 +13,6 @@ export interface AgentState {
   readonly loaded: boolean;
   /** The failure code of the last list or hire, or null. */
   readonly failure: string | null;
-  /** Whether "N run by Lervo" is open. */
-  readonly lervoOpen: boolean;
   /** Agents that arrived in the latest list of the same project, such as one just hired. */
   readonly arrived: ReadonlySet<string>;
 }
@@ -26,6 +24,5 @@ export const useAgentStore = create<AgentState>(() => ({
   roles: [],
   loaded: false,
   failure: null,
-  lervoOpen: false,
   arrived: new Set(),
 }));

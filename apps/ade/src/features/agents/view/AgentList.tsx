@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useApplicationCommands } from "../../../ports";
-import { ChevronDownIcon, PlusIcon } from "../../../ui/icons";
+import { PlusIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { ListRow } from "../../../ui/ListRow";
 import { Mark } from "../../../ui/Mark";
@@ -13,12 +13,12 @@ import { SectionHeading } from "../../../ui/SectionHeading";
 import { useItemSpace } from "../../../ui/space";
 import { useWorkspaceStore } from "../../workspaces";
 import { hireAgent, showProjectAgents } from "../model/controller";
-import { lervoAgents, managesAgents, productOwnerRole, teamAgents } from "../model/decisions";
+import { managesAgents, productOwnerRole, teamAgents } from "../model/decisions";
 import { useAgentStore } from "../model/store";
 import styles from "./AgentList.module.css";
 import { roleSummary } from "./role-summary";
 
-function AgentRow(props: { agent: AgentSummary; quiet?: boolean }) {
+function AgentRow(props: { agent: AgentSummary }) {
   const intl = useIntl();
   const { agent } = props;
   const arrived = useAgentStore((store) => store.arrived.has(agent.agentId));
@@ -28,7 +28,6 @@ function AgentRow(props: { agent: AgentSummary; quiet?: boolean }) {
     <div ref={space} data-arrived={arrived ? "true" : undefined} className={styles.agent}>
       <ListRow
         current={false}
-        quiet={props.quiet}
         leading={
           <Mark id={agent.agentId} name={agent.displayName} src={null} size="sm" shape="round" />
         }
@@ -46,9 +45,9 @@ function AgentRow(props: { agent: AgentSummary; quiet?: boolean }) {
 }
 
 /**
- * The selected project's agents under the switcher (Lervo ADE agents, "The sidebar"): the team in
- * the order it was hired, Lervo's own agents folded into one row that opens in place, and the plus
- * that hires by role from the interface's own menu, hung below it. A project without team agents
+ * The selected project's team under the switcher (Lervo ADE agents, "The sidebar"), in the order it
+ * was hired, and the plus that hires by role from the interface's own menu, hung below it. Lervo's
+ * own maintenance agents are not the team and do not show. A project without team agents
  * offers one row that hires a product owner. An older core that answers no agent command shows
  * nothing.
  */
@@ -57,7 +56,7 @@ export function AgentList(props: { projectId: string | null }) {
   const commands = useApplicationCommands();
   const advertised = useWorkspaceStore((store) => store.advertisedCommands);
   const managed = managesAgents(advertised);
-  const { agents, roles, loaded, failure, lervoOpen, projectId: shown } = useAgentStore();
+  const { agents, roles, loaded, failure, projectId: shown } = useAgentStore();
   const [menuAt, setMenuAt] = useState<{ rect: DOMRect; byKey: boolean } | null>(null);
   const { projectId } = props;
 
@@ -70,7 +69,6 @@ export function AgentList(props: { projectId: string | null }) {
   // Nothing shows until the first list is known, so no heading stands over nothing.
   if (!managed || projectId === null || !loaded || shown === null) return null;
   const team = teamAgents(agents);
-  const lervos = lervoAgents(agents);
   const owner = productOwnerRole(roles);
   const hire = (roleId: string) => void hireAgent(commands, shown, roleId);
 
@@ -101,31 +99,6 @@ export function AgentList(props: { projectId: string | null }) {
                 leading={<PlusIcon size="md" />}
                 label={<FormattedMessage id="agents.hireProductOwner" />}
               />
-            ) : null}
-          </Presence>
-          <Presence>
-            {lervos.length === 0 ? null : (
-              <ListRow
-                current={false}
-                quiet
-                expanded={lervoOpen}
-                onClick={() => useAgentStore.setState({ lervoOpen: !lervoOpen })}
-                leading={
-                  <span className={styles.disclosure} data-open={lervoOpen ? "" : undefined}>
-                    <ChevronDownIcon size="sm" />
-                  </span>
-                }
-                label={<FormattedMessage id="agents.lervo" values={{ count: lervos.length }} />}
-              />
-            )}
-          </Presence>
-          <Presence>
-            {lervoOpen && lervos.length > 0 ? (
-              <div>
-                {lervos.map((agent) => (
-                  <AgentRow key={agent.agentId} agent={agent} quiet />
-                ))}
-              </div>
             ) : null}
           </Presence>
         </div>

@@ -8,10 +8,6 @@ export const managesAgents = (advertised: readonly string[] | null): boolean =>
 export const teamAgents = (agents: readonly AgentSummary[]): AgentSummary[] =>
   agents.filter((agent) => agent.origin === "team");
 
-/** Lervo's own agents, which maintain repository knowledge. */
-export const lervoAgents = (agents: readonly AgentSummary[]): AgentSummary[] =>
-  agents.filter((agent) => agent.origin === "lervo");
-
 /** The role "Hire a Product Owner" hires, when the project can hire it. */
 export const productOwnerRole = (roles: readonly HireableRole[]): HireableRole | undefined =>
   roles.find((role) => role.roleId === "product-owner");

@@ -31,16 +31,6 @@
       "value": "Agents"
     }
   ],
-  "agents.lervo": [
-    {
-      "type": 1,
-      "value": "count"
-    },
-    {
-      "type": 0,
-      "value": " run by Lervo"
-    }
-  ],
   "agents.role": [
     {
       "type": 0,

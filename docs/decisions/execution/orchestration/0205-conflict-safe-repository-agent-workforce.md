@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-25
+- Amended by: [ADR-0643](0643-record-which-agents-are-lervos-own.md) (agents record whether they are the team's or Lervo's own)
 
 ## Context
 

@@ -11,15 +11,14 @@ Agents work together by mentioning each other directly, by role and by what each
 
 | Slice | Delivers                                                                                                                                                               |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | The sidebar's agents, Lervo's own agents folded into one row, hiring by role, and "Hire a Product Owner" in a project without agents.                                  |
+| 1     | The sidebar's team, hiring by role, and "Hire a Product Owner" in a project without agents.                                                                            |
 | 2     | A new conversation's participants, a hosted session that carries its writer agent's identity, participants in the conversation's header, and the speaker on each turn. |
 | 3     | An agent's profile: what it works on, its paths, what it has learned, its image, renaming in place, and retiring.                                                      |
 
 ## Team agents and Lervo's agents
 
-- A project's agents are its team agents: those the owner hired, Lervo's onboarding developer, and those team agents hired. Lervo's own agents, which maintain repository knowledge, are listed apart.
-- An agent is Lervo's when it is the knowledge convergence delegation's parent agent (`.lervo/knowledge/convergence-delegation.json`), descends from that agent, carries the name of a convergence or practice worker (`Knowledge <role> <hash>`, `Practice <role> <hash>`), or is the "Knowledge Steward". The core decides this, as its staffing count already does (`convergence-roster.ts`); the ADE never guesses from names.
-- The agent registry keeps its records unchanged. The origin is derived when the core lists agents, so no stored record, event, or supervision hash changes.
+- A project's agents are its team agents: those the owner hired, Lervo's onboarding developer, and those team agents hired. Lervo's own agents, which maintain repository knowledge, are not the team and the sidebar does not show them ([ADR-0643](../../../decisions/execution/orchestration/0643-record-which-agents-are-lervos-own.md)).
+- Each agent records its `origin`, `team` or `lervo`, when it is hired. Until a record carries it, the core applies ADR-0643's rule: the knowledge convergence delegation's parent and everything under it, the "Knowledge Steward" and everything under it, and convergence or practice workers by name (`Knowledge <role> <hash>`, `Practice <role> <hash>`) are Lervo's. The ADE never guesses from names.
 
 ## Core link
 
@@ -31,7 +30,7 @@ Agents work together by mentioning each other directly, by role and by what each
 
 ## The ADE
 
-- **The sidebar.** Below the project switcher, "Agents" lists the selected project's team agents, each with its round mark, name, and role, in the order they were hired. A dot shows an agent's status once sessions carry agents (slice 2): working, or needs the owner. Lervo's agents fold into one quiet row, "N run by Lervo", which opens and closes in place like a disclosure (ADE motion, principle 12). "Conversations" follows with the project's workspaces; its heading shows only over rows, so no heading stands over nothing. The agents show once the project's first list is known, and switching projects keeps the shown list until the next one arrives, then crossfades it (ADE craft rules, 13). The list reloads with the workspace lists, on every connection and after each change.
+- **The sidebar.** Below the project switcher, "Agents" lists the selected project's team agents, each with its round mark, name, and role, in the order they were hired. A dot shows an agent's status once sessions carry agents (slice 2): working, or needs the owner. Lervo's own agents do not show; one that stops or needs the owner surfaces through Lervo's health and attention reports. "Conversations" follows with the project's workspaces; its heading shows only over rows, so no heading stands over nothing. The agents show once the project's first list is known, and switching projects keeps the shown list until the next one arrives, then crossfades it (ADE craft rules, 13). The list reloads with the workspace lists, on every connection and after each change.
 - **Hiring.** The plus beside "Agents" opens the interface's own menu directly below it (ADE craft rules, 10 and 15): each hireable role with one line on what it does, and "This Project" beside a repository role. A built-in role's line is a short summary in the ADE's message catalog; a project's own role shows the first sentence of its description. Choosing a role hires at once; the new agent appears in the list. Writing or changing roles is asked of the product owner or Lervo in a conversation, not edited in a form.
 - **No agents yet.** A project without team agents shows one quiet row, "Hire a Product Owner", which hires one. It is offered, never required: a conversation still starts, with a developer as its participant (slice 2).
 - **Arrival.** An agent hired while the person watches arrives with the space it takes (ADE motion, principle 12); the agents of a project's first list are already there.

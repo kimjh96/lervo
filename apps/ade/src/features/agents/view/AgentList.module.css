@@ -18,18 +18,6 @@
   color: var(--color-text-tertiary);
 }
 
-/* The disclosure chevron of "N run by Lervo" points right when closed and down when open. */
-.disclosure {
-  display: grid;
-  place-items: center;
-  transform: rotate(-90deg);
-  transition: transform var(--motion-duration-change) var(--motion-easing-standard);
-}
-
-.disclosure[data-open] {
-  transform: none;
-}
-
 .failure {
   margin-block: var(--space-8) 0;
   margin-inline: var(--space-10);

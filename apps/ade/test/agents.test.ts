@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { hireAgent, showProjectAgents } from "../src/features/agents/model/controller";
 import {
   firstSentence,
-  lervoAgents,
   managesAgents,
   productOwnerRole,
   teamAgents,
@@ -70,15 +69,13 @@ beforeEach(() => {
     roles: [],
     loaded: false,
     failure: null,
-    lervoOpen: false,
   });
 });
 
 describe("the sidebar's agents", () => {
-  it("splits the team from Lervo's agents and reads roles as one line", () => {
+  it("keeps the team apart from Lervo's agents and reads roles as one line", () => {
     const agents = [agent("Elio", "team"), agent("Steward", "lervo"), agent("Ciel", "team")];
     expect(teamAgents(agents).map((item) => item.displayName)).toEqual(["Elio", "Ciel"]);
-    expect(lervoAgents(agents).map((item) => item.displayName)).toEqual(["Steward"]);
     expect(productOwnerRole(roles)?.name).toBe("Product Owner");
     expect(firstSentence("Builds and fixes. Within its paths.")).toBe("Builds and fixes.");
     expect(firstSentence("No period here")).toBe("No period here");
