@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_834504c6821a5fee608d159c"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add lervo project add (from a folder, a clone link, or a name alone, with git init and lervo init when needed) and lervo project location, so a project can be added in one command."

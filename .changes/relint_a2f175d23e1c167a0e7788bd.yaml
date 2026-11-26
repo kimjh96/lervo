@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a2f175d23e1c167a0e7788bd"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add lervo project show, rename, and mark set|clear: a project's display name and optional logo live in .lervo/project-profile.json beside the manifest, so renaming never stales a host's registry entry."

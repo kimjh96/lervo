@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1ea7340840bacdf7348a9fae"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "On macOS, Claude sign-in checks and stored-login runs find the keychain login again: the login environment keeps USER and sets CLAUDE_CONFIG_DIR only for a non-default directory, so a signed-in owner is no longer reported as signed out."

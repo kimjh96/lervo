@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_026222b30c2204d4fc9a3222"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "An older installed CLI no longer puts its terminal hook runtime back over a newer one's, and a Stop no longer starts its worker from a binding older than the CLI that published the host runtime."
