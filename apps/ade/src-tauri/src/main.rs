@@ -33,6 +33,11 @@ fn main() -> ExitCode {
         .plugin(measure::plugin(measurement.as_ref()))
         .manage(relay)
         .manage(measurement)
+        .setup(|_app| {
+            #[cfg(debug_assertions)]
+            window::apply_development_appearance(_app);
+            Ok(())
+        })
         .on_page_load(window::on_page_load)
         .on_window_event(window::on_window_event)
         .invoke_handler(tauri::generate_handler![
