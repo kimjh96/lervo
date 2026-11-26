@@ -1,5 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -134,7 +134,7 @@ async function assignmentBytes(root: string, assignmentId: string): Promise<stri
 }
 
 describe("conversation assignments", () => {
-  it("creates only a conversation assignment without paths and bounds it at 10,000", async () => {
+  it("creates only a conversation assignment without paths and writes at most 128", async () => {
     const root = await repository();
     const base = {
       repositoryRoot: root,
@@ -152,7 +152,7 @@ describe("conversation assignments", () => {
     const many = Array.from({ length: 129 }, (_, index) => `src/f${index}.ts`);
     await expect(
       createAssignment({ ...base, taskType: CONVERSATION_TASK_TYPE, expectedPaths: many }),
-    ).resolves.toMatchObject({ taskType: CONVERSATION_TASK_TYPE });
+    ).rejects.toMatchObject({ code: "assignment_invalid" });
     await expect(
       createAssignment({ ...base, taskType: "implementation", expectedPaths: many }),
     ).rejects.toMatchObject({ code: "assignment_invalid" });
@@ -342,7 +342,7 @@ describe("widening a conversation lease", () => {
     });
   });
 
-  it("judges other conversations' changed paths and skips its own workspace", async () => {
+  it("judges other conversations' changed paths and skips its own workspace and assignment", async () => {
     const root = await repository();
     const { lead, assignment } = await conversation(root);
     const other = await registerAgent({ repositoryRoot: root, roleId: "developer" });
@@ -369,6 +369,13 @@ describe("widening a conversation lease", () => {
           holderWorkspaceId: OWN_WORKSPACE,
           code: "path_changed_unsealed",
         },
+        {
+          path: "src/mine.ts",
+          holderAgentId: lead.agentId,
+          holderWorkspaceId: OTHER_WORKSPACE,
+          holderAssignmentId: assignment.assignmentId,
+          code: "path_awaiting_integration",
+        },
       ],
     });
     expect(result.addedPaths).toEqual(["src/mine.ts"]);
@@ -378,18 +385,81 @@ describe("widening a conversation lease", () => {
     ]);
   });
 
-  it("restores the assignment bytes when the widening event fails", async () => {
+  it("restores the bytes and keeps the refusals when the widening event fails", async () => {
     const root = await repository();
+    const held = await holder(root, ["src/held.ts"]);
     const { lead, assignment } = await conversation(root);
     const before = await assignmentBytes(root, assignment.assignmentId);
-    await expect(
-      widen(root, lead, assignment, [], {
-        recordEvent: () => {
-          throw new Error("event store unavailable");
-        },
-      }),
-    ).rejects.toMatchObject({ code: "workforce_write_failed" });
+    const refused: ConversationLeaseEvent[] = [];
+    const result = await widen(root, lead, assignment, [], {
+      mode: "reconcile",
+      detection: undefined,
+      paths: ["src/free.ts", "src/held.ts"],
+      recordEvent: (event) => {
+        if (event.type === "assignment.lease.widened") throw new Error("event store unavailable");
+        refused.push(event);
+      },
+    });
+    expect(result).toMatchObject({
+      status: "deferred",
+      addedPaths: [],
+      refusals: [{ code: "path_leased", path: "src/held.ts", holderAgentId: held.agent.agentId }],
+      refusalsRecorded: true,
+    });
+    expect(refused.map((event) => event.type)).toEqual(["assignment.claim.refused"]);
     expect(await assignmentBytes(root, assignment.assignmentId)).toBe(before);
+  });
+
+  it("renews a covered claim's lease only when less than 5 minutes remain", async () => {
+    const root = await repository();
+    const { lead, assignment } = await conversation(root);
+    const widened = await widen(root, lead, assignment, [], { paths: ["src/net"] });
+    const events: ConversationLeaseEvent[] = [];
+    const early = await widen(root, lead, widened.assignment, events, {
+      paths: ["src/net/a.ts"],
+      now: new Date(NOW.getTime() + 2 * 60_000),
+    });
+    expect(early).toMatchObject({ status: "covered", leaseRenewed: false });
+    expect(events).toEqual([]);
+    const late = new Date(NOW.getTime() + 7 * 60_000);
+    const renewed = await widen(root, lead, widened.assignment, events, {
+      paths: ["src/net/a.ts"],
+      now: late,
+    });
+    expect(renewed).toMatchObject({ status: "covered", leaseRenewed: true, addedPaths: [] });
+    expect(renewed.assignment.revision).toBe(widened.assignment.revision);
+    expect(renewed.assignment.lease!.expiresAt).toBe(
+      new Date(late.getTime() + 10 * 60_000).toISOString(),
+    );
+    expect(events).toEqual([
+      {
+        type: "assignment.lease.renewed",
+        occurredAt: late.toISOString(),
+        actorAgentId: lead.agentId,
+        payload: {
+          assignmentId: assignment.assignmentId,
+          agentId: lead.agentId,
+          leaseId: assignment.lease!.leaseId,
+          generation: assignment.lease!.generation,
+          expiresAt: renewed.assignment.lease!.expiresAt,
+        },
+      },
+    ]);
+  });
+
+  it("records at most 32 refusal events per call and counts the rest", async () => {
+    const root = await repository();
+    await holder(root, ["src/held"]);
+    const { lead, assignment } = await conversation(root);
+    const events: ConversationLeaseEvent[] = [];
+    const result = await widen(root, lead, assignment, events, {
+      mode: "reconcile",
+      detection: undefined,
+      paths: Array.from({ length: 40 }, (_, index) => `src/held/f${index}.ts`),
+    });
+    expect(result.refusals).toHaveLength(40);
+    expect(result.omittedRefusalEvents).toBe(8);
+    expect(events).toHaveLength(32);
   });
 
   it("refuses a claim from another session or for a non-conversation assignment", async () => {
@@ -398,9 +468,15 @@ describe("widening a conversation lease", () => {
     await expect(
       widen(root, lead, assignment, [], { sessionId: `ses_terminal_${"b".repeat(24)}` }),
     ).rejects.toMatchObject({ code: "assignment_lease_conflict" });
-    await expect(widen(root, lead, assignment, [], { paths: ["."] })).rejects.toMatchObject({
-      code: "assignment_invalid",
-    });
+    for (const path of [".", "*", "src/*.ts", "src/a?.ts", "src/[ab].ts", "src/../a.ts"])
+      await expect(widen(root, lead, assignment, [], { paths: [path] })).rejects.toMatchObject({
+        code: "assignment_invalid",
+      });
+    await expect(
+      widen(root, lead, assignment, [], {
+        paths: Array.from({ length: 2_001 }, (_, index) => `src/f${index}.ts`),
+      }),
+    ).rejects.toMatchObject({ code: "assignment_invalid" });
     const held = await holder(root, ["src/other.ts"]);
     await expect(
       widen(root, held.agent, held.assignment, [], { sessionId: "ses_holder_session_01" }),
@@ -436,33 +512,79 @@ describe("widening a conversation lease", () => {
   });
 });
 
-describe("a conversation lease past 10,000 entries", () => {
-  const halves = [
-    ...Array.from({ length: 5_000 }, (_, index) => `src/a/f${index}.ts`),
-    ...Array.from({ length: 5_000 }, (_, index) => `src/b/f${index}.ts`),
-  ];
+describe("a conversation lease at its bounds", () => {
+  /** Writes a record as a later release that writes up to 10,000 entries would. */
+  async function writeExpectedPaths(root: string, assignmentId: string, paths: string[]) {
+    const home = await resolveRepositoryCoordinationHome(root);
+    const file = resolve(home.workforce, "assignments", `${assignmentId}.json`);
+    const record = JSON.parse(await readFile(file, "utf8")) as WorkforceAssignment;
+    record.expectedPaths = [...paths].sort();
+    await writeFile(file, `${JSON.stringify(record, null, 2)}\n`);
+  }
 
-  it("coalesces the deepest directory that overlaps no other holder", async () => {
+  it("reads a 10,000-entry conversation record that a later release writes", async () => {
+    const root = await repository();
+    const { assignment } = await conversation(root);
+    await writeExpectedPaths(
+      root,
+      assignment.assignmentId,
+      Array.from({ length: 10_000 }, (_, index) => `src/d${index % 50}/f${index}.ts`),
+    );
+    expect((await listAssignments(root)).map((item) => item.expectedPaths.length)).toEqual([
+      10_000,
+    ]);
+  });
+
+  it("coalesces at 128 entries the deepest directory that overlaps no other holder", async () => {
     const root = await repository();
     const { lead, assignment } = await conversation(root);
     const filled = await widen(root, lead, assignment, [], {
       mode: "reconcile",
       detection: undefined,
-      paths: halves,
+      paths: [
+        ...Array.from({ length: 64 }, (_, index) => `src/a/f${index}.ts`),
+        ...Array.from({ length: 64 }, (_, index) => `src/b/f${index}.ts`),
+      ],
     });
-    expect(filled.assignment.expectedPaths).toHaveLength(10_000);
-    expect((await listAssignments(root)).map((item) => item.expectedPaths.length)).toEqual([
-      10_000,
-    ]);
+    expect(filled.assignment.expectedPaths).toHaveLength(128);
     const events: ConversationLeaseEvent[] = [];
     const result = await widen(root, lead, filled.assignment, events, {
       paths: ["src/a/new.ts"],
     });
     expect(result.status).toBe("widened");
-    expect(result.assignment.expectedPaths).toHaveLength(5_001);
+    expect(result.assignment.expectedPaths).toHaveLength(65);
     expect(result.assignment.expectedPaths[0]).toBe("src/a");
     expect(result.assignment.expectedPaths.some((path) => path.startsWith("src/a/"))).toBe(false);
-    expect(events[0]!.payload).toMatchObject({ expectedPathCount: 5_001, addedPathCount: 1 });
+    expect(events[0]!.payload).toMatchObject({ expectedPathCount: 65, addedPathCount: 1 });
+  });
+
+  it("refuses the 129th path with lease_path_limit when nothing can coalesce", async () => {
+    const root = await repository();
+    const { lead, assignment } = await conversation(root, ["."]);
+    const filled = await widen(root, lead, assignment, [], {
+      mode: "reconcile",
+      detection: undefined,
+      paths: Array.from({ length: 128 }, (_, index) => `f${index}.ts`),
+    });
+    expect(filled.assignment.expectedPaths).toHaveLength(128);
+    const events: ConversationLeaseEvent[] = [];
+    const result = await widen(root, lead, filled.assignment, events, { paths: ["f128.ts"] });
+    expect(result).toMatchObject({
+      status: "refused",
+      refusals: [
+        {
+          code: "lease_path_limit",
+          path: "f128.ts",
+          holderAgentId: null,
+          holderAssignmentId: null,
+          holderWorkspaceId: null,
+        },
+      ],
+    });
+    expect(result.assignment.expectedPaths).toHaveLength(128);
+    expect(events.map((event) => event.payload)).toMatchObject([
+      { code: "lease_path_limit", pathDigest: pathDigest("f128.ts") },
+    ]);
   });
 
   it("refuses with lease_path_limit when every candidate overlaps another holder", async () => {
@@ -472,27 +594,37 @@ describe("a conversation lease past 10,000 entries", () => {
     const filled = await widen(root, lead, assignment, [], {
       mode: "reconcile",
       detection: undefined,
-      paths: halves,
-    });
-    const events: ConversationLeaseEvent[] = [];
-    const result = await widen(root, lead, filled.assignment, events, {
-      paths: ["src/a/new.ts"],
-    });
-    expect(result).toMatchObject({
-      status: "refused",
-      refusals: [
-        {
-          code: "lease_path_limit",
-          path: "src/a/new.ts",
-          holderAgentId: null,
-          holderAssignmentId: null,
-          holderWorkspaceId: null,
-        },
+      paths: [
+        ...Array.from({ length: 64 }, (_, index) => `src/a/f${index}.ts`),
+        ...Array.from({ length: 64 }, (_, index) => `src/b/f${index}.ts`),
       ],
     });
-    expect(result.assignment.expectedPaths).toHaveLength(10_000);
-    expect(events.map((event) => event.payload)).toMatchObject([
-      { code: "lease_path_limit", pathDigest: pathDigest("src/a/new.ts") },
-    ]);
+    const result = await widen(root, lead, filled.assignment, [], { paths: ["src/a/new.ts"] });
+    expect(result).toMatchObject({
+      status: "refused",
+      refusals: [{ code: "lease_path_limit", path: "src/a/new.ts" }],
+    });
+  });
+
+  it("reconciles 10,000 paths into a 9,000-entry lease in short lock holds", async () => {
+    const root = await repository();
+    const { lead, assignment } = await conversation(root);
+    await writeExpectedPaths(
+      root,
+      assignment.assignmentId,
+      Array.from({ length: 9_000 }, (_, index) => `src/m${index % 90}/old${index}.ts`),
+    );
+    const started = performance.now();
+    const result = await widen(root, lead, assignment, [], {
+      mode: "reconcile",
+      detection: undefined,
+      paths: Array.from({ length: 10_000 }, (_, index) => `src/n${index % 30}/new${index}.ts`),
+    });
+    const elapsed = performance.now() - started;
+    expect(result.status).toBe("widened");
+    expect(result.assignment.expectedPaths).toHaveLength(120);
+    expect(result.addedPaths).toHaveLength(10_000);
+    // Five lock holds of 2,000 paths each; the quadratic judgment took 27 to 74 seconds here.
+    expect(elapsed).toBeLessThan(5_000);
   });
 });

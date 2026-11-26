@@ -8,12 +8,16 @@ const WORKSPACE_ID = /^wsp_[a-f0-9]{24}$/u;
 
 /**
  * A claimed path under the workforce path policy: repository-relative and normalized, never `.` or
- * `*`, which would block every other agent. A trailing `/` naming a directory is dropped.
+ * `*`, which would block every other agent. A trailing `/` naming a directory is dropped. A glob
+ * character is refused: the handler claims the deepest directory before a wildcard instead.
  */
 export function normalizeClaimPath(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const path = value.replace(/\/+$/u, "");
-  return path !== "." && path !== "*" && safePath(path) && repositoryPathWithinScope(path, ".")
+  return path !== "." &&
+    !/[*?[\]]/u.test(path) &&
+    safePath(path) &&
+    repositoryPathWithinScope(path, ".")
     ? path
     : null;
 }

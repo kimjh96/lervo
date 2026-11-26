@@ -1,5 +1,5 @@
-import { repositoryPathScopesOverlap, repositoryPathWithinScope } from "@lervo/work-controller";
 import { assignmentAccessMode } from "./assignment-access-mode.js";
+import { PathScopeIndex } from "./path-scope-index.js";
 import type { WorkforceAssignment } from "./types.js";
 
 /** Why a claim of a path was refused (Lervo ADE coordination, "Conflicts"). */
@@ -31,76 +31,65 @@ export interface ChangedPathHolder {
   code: "path_changed_unsealed" | "path_awaiting_integration";
 }
 
-export interface AssignmentPathConflictInput {
+export interface AssignmentPathHolderInput {
   /** The claiming assignment, which never conflicts with itself. */
   claimant: Pick<WorkforceAssignment, "assignmentId" | "accessMode">;
-  paths: readonly string[];
   assignments: readonly WorkforceAssignment[];
   now: Date;
-  /** When given, a path outside every scope is refused with `outside_responsibility`. */
-  responsibilityPaths?: readonly string[];
   changedPathHolders?: readonly ChangedPathHolder[];
   /** The claimant's own conversation, whose changed paths never conflict with its claims. */
   claimantWorkspaceId?: string | null;
 }
 
-/** Another assignment's live write lease, the holder every claim judges against. */
-export function liveWriteLeaseHolders(
-  claimantAssignmentId: string,
-  assignments: readonly WorkforceAssignment[],
-  now: Date,
-): WorkforceAssignment[] {
-  return assignments.filter(
-    (item) =>
-      item.assignmentId !== claimantAssignmentId &&
-      item.status === "leased" &&
-      item.lease !== null &&
-      Date.parse(item.lease.expiresAt) > now.getTime() &&
-      assignmentAccessMode(item) === "write",
-  );
-}
-
-/** Changed paths of other conversations: a conversation's own generations never conflict. */
-export function foreignChangedPathHolders(
-  holders: readonly ChangedPathHolder[],
-  claimantWorkspaceId: string | null | undefined,
-): ChangedPathHolder[] {
-  return holders.filter(
-    (holder) =>
-      claimantWorkspaceId === undefined ||
-      claimantWorkspaceId === null ||
-      holder.holderWorkspaceId !== claimantWorkspaceId,
-  );
+export interface AssignmentPathConflictInput extends AssignmentPathHolderInput {
+  paths: readonly string[];
+  /** When given, a path outside every scope is refused with `outside_responsibility`. */
+  responsibilityPaths?: readonly string[];
 }
 
 /**
- * The one conflict judgment for every claim (ADR-0205 path exclusion): a conversation's claim, its
- * reconciliation, and `claimAssignment`. It returns each refusal, sorted by path and code; an empty
- * list means every path is claimable. A read-only claimant and read-only leases never conflict.
+ * Every holder a claim is judged against, indexed once: other assignments' live write leases and
+ * other conversations' changed paths. A read-only claimant and read-only leases hold nothing.
  */
-export function judgeAssignmentPathConflicts(
-  input: AssignmentPathConflictInput,
-): AssignmentPathRefusal[] {
-  const claimantWrites = assignmentAccessMode(input.claimant) === "write";
-  const leases = claimantWrites
-    ? liveWriteLeaseHolders(input.claimant.assignmentId, input.assignments, input.now)
-    : [];
-  const changed = claimantWrites
-    ? foreignChangedPathHolders(input.changedPathHolders ?? [], input.claimantWorkspaceId)
-    : [];
-  const refusals: AssignmentPathRefusal[] = [];
-  for (const path of input.paths) {
-    if (
-      input.responsibilityPaths !== undefined &&
-      !input.responsibilityPaths.some((scope) => repositoryPathWithinScope(path, scope))
-    )
-      refusals.push(refusal("outside_responsibility", path, null, null, null));
-    for (const lease of leases)
-      if (lease.expectedPaths.some((held) => repositoryPathScopesOverlap(path, held)))
-        refusals.push(refusal("path_leased", path, lease.lease!.agentId, lease.assignmentId, null));
-    for (const holder of changed)
-      if (repositoryPathScopesOverlap(path, holder.path))
-        refusals.push(
+export class AssignmentPathHolders {
+  readonly #leases = new PathScopeIndex<WorkforceAssignment>();
+  readonly #changed = new PathScopeIndex<ChangedPathHolder>();
+
+  constructor(input: AssignmentPathHolderInput) {
+    if (assignmentAccessMode(input.claimant) !== "write") return;
+    const now = input.now.getTime();
+    for (const item of input.assignments)
+      if (
+        item.assignmentId !== input.claimant.assignmentId &&
+        item.status === "leased" &&
+        item.lease !== null &&
+        Date.parse(item.lease.expiresAt) > now &&
+        assignmentAccessMode(item) === "write"
+      )
+        for (const path of item.expectedPaths) this.#leases.add(path, item);
+    for (const holder of input.changedPathHolders ?? [])
+      if (
+        holder.holderAssignmentId !== input.claimant.assignmentId &&
+        (input.claimantWorkspaceId == null ||
+          holder.holderWorkspaceId !== input.claimantWorkspaceId)
+      )
+        this.#changed.add(holder.path, holder);
+  }
+
+  overlaps(path: string): boolean {
+    return this.#leases.overlaps(path) || this.#changed.overlaps(path);
+  }
+
+  refusals(path: string): AssignmentPathRefusal[] {
+    return [
+      ...this.#leases
+        .overlapping(path)
+        .map((lease) =>
+          refusal("path_leased", path, lease.lease!.agentId, lease.assignmentId, null),
+        ),
+      ...this.#changed
+        .overlapping(path)
+        .map((holder) =>
           refusal(
             holder.code,
             path,
@@ -108,7 +97,27 @@ export function judgeAssignmentPathConflicts(
             holder.holderAssignmentId ?? null,
             holder.holderWorkspaceId,
           ),
-        );
+        ),
+    ];
+  }
+}
+
+/**
+ * The one conflict judgment for every claim (ADR-0205 path exclusion): a conversation's claim, its
+ * reconciliation, and `claimAssignment`. It returns each refusal once per path, code, and holder,
+ * sorted; an empty list means every path is claimable.
+ */
+export function judgeAssignmentPathConflicts(
+  input: AssignmentPathConflictInput,
+  holders: AssignmentPathHolders = new AssignmentPathHolders(input),
+): AssignmentPathRefusal[] {
+  const responsibility =
+    input.responsibilityPaths === undefined ? null : PathScopeIndex.of(input.responsibilityPaths);
+  const refusals: AssignmentPathRefusal[] = [];
+  for (const path of input.paths) {
+    if (responsibility !== null && !responsibility.covers(path))
+      refusals.push(refusal("outside_responsibility", path, null, null, null));
+    refusals.push(...holders.refusals(path));
   }
   return dedupeRefusals(refusals);
 }
@@ -123,24 +132,23 @@ function refusal(
   return { code, path, holderAgentId, holderAssignmentId, holderWorkspaceId };
 }
 
-/** One refusal per path, code, and holder, in path order. */
+/** One refusal per path, code, and holder, in that order. */
 function dedupeRefusals(refusals: readonly AssignmentPathRefusal[]): AssignmentPathRefusal[] {
-  const unique = new Map<string, AssignmentPathRefusal>();
-  for (const item of refusals) unique.set(refusalKey(item).join("\0"), item);
-  return [...unique.values()].sort((left, right) => {
-    const a = refusalKey(left);
-    const b = refusalKey(right);
-    const index = a.findIndex((value, position) => value !== b[position]);
-    return index === -1 ? 0 : a[index]! < b[index]! ? -1 : 1;
-  });
-}
-
-function refusalKey(item: AssignmentPathRefusal): string[] {
-  return [
-    item.path,
-    item.code,
-    item.holderAgentId ?? "",
-    item.holderAssignmentId ?? "",
-    item.holderWorkspaceId ?? "",
-  ];
+  const unique = new Map<string, { key: string[]; refusal: AssignmentPathRefusal }>();
+  for (const item of refusals) {
+    const key = [
+      item.path,
+      item.code,
+      item.holderAgentId ?? "",
+      item.holderAssignmentId ?? "",
+      item.holderWorkspaceId ?? "",
+    ];
+    unique.set(key.join("\0"), { key, refusal: item });
+  }
+  return [...unique.values()]
+    .sort((left, right) => {
+      const index = left.key.findIndex((value, position) => value !== right.key[position]);
+      return index === -1 ? 0 : left.key[index]! < right.key[index]! ? -1 : 1;
+    })
+    .map((item) => item.refusal);
 }

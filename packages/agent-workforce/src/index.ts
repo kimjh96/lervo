@@ -45,6 +45,8 @@ export * from "./agent-mark.js";
 export * from "./agent-model.js";
 export {
   CONVERSATION_TASK_TYPE,
+  CONVERSATION_WRITE_PATH_LIMIT,
+  MAXIMUM_CLAIM_PATHS_PER_CALL,
   MAXIMUM_CONVERSATION_EXPECTED_PATHS,
   isConversationTaskType,
 } from "./assignment-path-bounds.js";
@@ -61,8 +63,8 @@ export type {
   ConversationLeaseEvent,
   ConversationLeaseEventRecorder,
 } from "./conversation-lease-events.js";
+export { CONVERSATION_LEASE_MS } from "./conversation-lease-claim-transition.js";
 export {
-  CONVERSATION_LEASE_MS,
   widenConversationLease,
   type WidenConversationLeaseInput,
   type WidenConversationLeaseResult,

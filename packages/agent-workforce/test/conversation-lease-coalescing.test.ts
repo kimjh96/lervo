@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { coalesceLeaseEntries, minimalPathCover } from "../src/conversation-lease-coalescing.js";
+import { PathScopeIndex } from "../src/path-scope-index.js";
+
+function held(paths: string[]): (path: string) => boolean {
+  const index = PathScopeIndex.of(paths);
+  return (path) => index.overlaps(path);
+}
 
 describe("conversation lease coalescing", () => {
   it("keeps a set that fits and drops paths a directory already covers", () => {
@@ -12,7 +18,7 @@ describe("conversation lease coalescing", () => {
       coalesceLeaseEntries({
         entries: ["src/b.ts", "src/a.ts"],
         limit: 2,
-        heldPaths: [],
+        isHeld: held([]),
         responsibilityPaths: ["."],
       }),
     ).toEqual(["src/a.ts", "src/b.ts"]);
@@ -21,10 +27,10 @@ describe("conversation lease coalescing", () => {
   it("takes the deepest candidate first, breaking ties by path order", () => {
     const entries = ["src/a/x/1.ts", "src/a/x/2.ts", "src/b/y/1.ts", "src/b/y/2.ts", "top.ts"];
     expect(
-      coalesceLeaseEntries({ entries, limit: 4, heldPaths: [], responsibilityPaths: ["."] }),
+      coalesceLeaseEntries({ entries, limit: 4, isHeld: held([]), responsibilityPaths: ["."] }),
     ).toEqual(["src/a/x", "src/b/y/1.ts", "src/b/y/2.ts", "top.ts"]);
     expect(
-      coalesceLeaseEntries({ entries, limit: 2, heldPaths: [], responsibilityPaths: ["."] }),
+      coalesceLeaseEntries({ entries, limit: 2, isHeld: held([]), responsibilityPaths: ["."] }),
     ).toEqual(["src", "top.ts"]);
   });
 
@@ -34,7 +40,7 @@ describe("conversation lease coalescing", () => {
       coalesceLeaseEntries({
         entries,
         limit: 3,
-        heldPaths: ["src/a/held.ts"],
+        isHeld: held(["src/a/held.ts"]),
         responsibilityPaths: ["src"],
       }),
     ).toEqual(["src/a/1.ts", "src/a/2.ts", "src/b"]);
@@ -42,7 +48,7 @@ describe("conversation lease coalescing", () => {
       coalesceLeaseEntries({
         entries,
         limit: 1,
-        heldPaths: [],
+        isHeld: held([]),
         responsibilityPaths: ["src/a", "src/b"],
       }),
     ).toBeNull();
@@ -50,7 +56,7 @@ describe("conversation lease coalescing", () => {
       coalesceLeaseEntries({
         entries,
         limit: 1,
-        heldPaths: ["src/c.ts"],
+        isHeld: held(["src/c.ts"]),
         responsibilityPaths: ["src"],
       }),
     ).toBeNull();

@@ -1,13 +1,12 @@
-import { repositoryPathWithinScope } from "@lervo/work-controller";
-import { MAXIMUM_CONVERSATION_EXPECTED_PATHS } from "./assignment-path-bounds.js";
+import { CONVERSATION_WRITE_PATH_LIMIT } from "./assignment-path-bounds.js";
 import {
-  foreignChangedPathHolders,
+  AssignmentPathHolders,
   judgeAssignmentPathConflicts,
-  liveWriteLeaseHolders,
   type AssignmentPathRefusal,
   type ChangedPathHolder,
 } from "./assignment-path-conflict.js";
 import { coalesceLeaseEntries } from "./conversation-lease-coalescing.js";
+import { PathScopeIndex } from "./path-scope-index.js";
 import type { WorkforceAssignment } from "./types.js";
 
 /**
@@ -24,7 +23,10 @@ export interface ConversationLeaseWideningPlan {
   refusals: AssignmentPathRefusal[];
 }
 
-/** The pure decision of one claim: which paths the lease gains and which are refused. */
+/**
+ * The pure decision of one claim: which paths the lease gains and which are refused. Every scope is
+ * indexed once, so the decision costs the paths times their depth, not paths times entries.
+ */
 export function planConversationLeaseWidening(input: {
   assignment: WorkforceAssignment;
   paths: readonly string[];
@@ -35,23 +37,25 @@ export function planConversationLeaseWidening(input: {
   changedPathHolders?: readonly ChangedPathHolder[];
   claimantWorkspaceId?: string | null;
 }): ConversationLeaseWideningPlan {
-  const uncovered = input.paths.filter(
-    (path) =>
-      !input.assignment.expectedPaths.some((entry) => repositoryPathWithinScope(path, entry)),
-  );
+  const held = PathScopeIndex.of(input.assignment.expectedPaths);
+  const uncovered = input.paths.filter((path) => !held.covers(path));
   if (uncovered.length === 0) return { entries: null, claimedPaths: [], refusals: [] };
-  const changedPathHolders = foreignChangedPathHolders(
-    input.changedPathHolders ?? [],
-    input.claimantWorkspaceId,
-  );
-  const refusals = judgeAssignmentPathConflicts({
+  const holderInput = {
     claimant: input.assignment,
-    paths: uncovered,
     assignments: input.assignments,
     now: input.now,
-    responsibilityPaths: input.responsibilityPaths,
-    changedPathHolders,
-  });
+    ...(input.changedPathHolders === undefined
+      ? {}
+      : { changedPathHolders: input.changedPathHolders }),
+    ...(input.claimantWorkspaceId === undefined
+      ? {}
+      : { claimantWorkspaceId: input.claimantWorkspaceId }),
+  };
+  const holders = new AssignmentPathHolders(holderInput);
+  const refusals = judgeAssignmentPathConflicts(
+    { ...holderInput, paths: uncovered, responsibilityPaths: input.responsibilityPaths },
+    holders,
+  );
   const refused = new Set(refusals.map((item) => item.path));
   const claimable =
     input.mode === "request"
@@ -62,13 +66,8 @@ export function planConversationLeaseWidening(input: {
   if (claimable.length === 0) return { entries: null, claimedPaths: [], refusals };
   const entries = coalesceLeaseEntries({
     entries: [...input.assignment.expectedPaths, ...claimable],
-    limit: MAXIMUM_CONVERSATION_EXPECTED_PATHS,
-    heldPaths: [
-      ...liveWriteLeaseHolders(input.assignment.assignmentId, input.assignments, input.now).flatMap(
-        (holder) => holder.expectedPaths,
-      ),
-      ...changedPathHolders.map((holder) => holder.path),
-    ],
+    limit: CONVERSATION_WRITE_PATH_LIMIT,
+    isHeld: (path) => holders.overlaps(path),
     responsibilityPaths: input.responsibilityPaths,
   });
   if (entries === null)

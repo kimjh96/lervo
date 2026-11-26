@@ -13,7 +13,7 @@ import {
   HASH,
 } from "./workforce-state-validation.js";
 import { workforceLimits } from "./limits.js";
-import { isConversationTaskType, maximumExpectedPaths } from "./assignment-path-bounds.js";
+import { isConversationTaskType, maximumWrittenExpectedPaths } from "./assignment-path-bounds.js";
 
 /** Pure creation preflight; storage and role lookup remain with the orchestrator. */
 export function validateAssignmentCreation(
@@ -38,7 +38,7 @@ export function validateAssignmentCreation(
     !boundedStrings(input.acceptanceCriteria, 32) ||
     !boundedStrings(verificationSuiteIds, 32) ||
     !boundedStrings(approvalRequirements, 32) ||
-    !boundedStrings(expectedPaths, maximumExpectedPaths(input.taskType)) ||
+    !boundedStrings(expectedPaths, maximumWrittenExpectedPaths(input.taskType)) ||
     !expectedPaths.every(safePath) ||
     input.acceptanceCriteria.length === 0 ||
     verificationSuiteIds.length === 0 ||
