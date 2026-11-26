@@ -555,6 +555,10 @@
     "defaultMessage": "Set the scope of an agent's mandate",
     "description": "What Lervo did when the agent ran `lervo agent mandate scope`, as a quiet line in the conversation."
   },
+  "lervo.command.agent.model": {
+    "defaultMessage": "Changed an agent's model",
+    "description": "What Lervo did when the agent ran `lervo agent model`, as a quiet line in the conversation."
+  },
   "lervo.command.agent.rename": {
     "defaultMessage": "Renamed an agent",
     "description": "What Lervo did when the agent ran `lervo agent rename`, as a quiet line in the conversation."

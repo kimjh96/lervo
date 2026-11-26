@@ -16,6 +16,7 @@ import {
   withAgentDisplayIdentity,
 } from "./agent-display-identity.js";
 import { transition, retryConcurrent } from "./workforce-state-io.js";
+import { roleModel } from "./agent-model.js";
 
 export async function registerAgentOnce(input: {
   repositoryRoot: string;
@@ -120,6 +121,8 @@ export async function registerAgentOnce(input: {
     delegationDepth,
     status: "active",
     ...(input.origin === undefined ? {} : { origin: input.origin }),
+    // A team agent runs on what its role's work asks; Lervo's own run under Lervo's model routes.
+    ...(input.origin === "lervo" ? {} : { model: roleModel(input.roleId) }),
     revision: 1,
     createdAt,
     updatedAt: createdAt,
@@ -153,6 +156,9 @@ export async function registerAgentOnce(input: {
         parentAgentId: agent.parentAgentId,
         delegationDepth,
         ...(agent.origin === undefined ? {} : { origin: agent.origin }),
+        ...(agent.model === undefined
+          ? {}
+          : { modelTier: agent.model.tier, effort: agent.model.effort }),
       },
     },
   });

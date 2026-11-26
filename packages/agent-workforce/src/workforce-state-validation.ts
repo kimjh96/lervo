@@ -10,6 +10,9 @@ import {
   type WorkforceHandoffTriggerProvenance,
   type WorkforceHandoff,
   type WorkforceAssignment,
+  type AgentModel,
+  modelEfforts,
+  modelTiers,
 } from "./types.js";
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
@@ -153,10 +156,23 @@ export function validAgent(agent: unknown, projectId: string): agent is Workforc
     value.delegationDepth <= workforceLimits.maximumDelegationDepth &&
     ["active", "suspended", "retired"].includes(value.status) &&
     (value.origin === undefined || value.origin === "team" || value.origin === "lervo") &&
+    (value.model === undefined || validAgentModel(value.model)) &&
     Number.isSafeInteger(value.revision) &&
     value.revision >= 1 &&
     validTime(value.createdAt) &&
     validTime(value.updatedAt)
+  );
+}
+
+/** Whether `value` is an agent's model: a known tier and effort, and who chose them. */
+export function validAgentModel(value: unknown): value is AgentModel {
+  if (value === null || typeof value !== "object") return false;
+  const model = value as Record<string, unknown>;
+  return (
+    Object.keys(model).length === 3 &&
+    (modelTiers as readonly unknown[]).includes(model.tier) &&
+    (modelEfforts as readonly unknown[]).includes(model.effort) &&
+    (model.source === "role" || model.source === "owner")
   );
 }
 
