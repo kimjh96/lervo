@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b7026cb34fa6fe539815299c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A conversation rebuilt from Claude Code's transcript shows an agent's choice question as its question and the chosen answers as the person's message, not as a tool line."
