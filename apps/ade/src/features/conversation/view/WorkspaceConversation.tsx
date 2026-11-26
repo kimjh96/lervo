@@ -13,6 +13,7 @@ import { laneOf } from "../model/questions";
 import type { ConversationSource } from "../model/source";
 import { StandInConversation } from "../model/stand-in-conversation";
 import { useConversationStore } from "../model/store";
+import { turnSummarizer } from "../model/turn-summaries";
 import { BaseNotice } from "./BaseNotice";
 import { ConversationPane } from "./ConversationPane";
 import { activityMessages } from "./messages";
@@ -98,10 +99,7 @@ export function WorkspaceConversation(props: {
     () =>
       workspaceId === null || sessionId === null || !coreSummarizes
         ? undefined
-        : async (window: { startedAtMs: number; endedAtMs?: number }) => {
-            const result = await commands.run("turn.summary", { workspaceId, turns: [window] });
-            return result.turns[0] ?? null;
-          },
+        : turnSummarizer(commands, workspaceId),
     [commands, workspaceId, sessionId, coreSummarizes],
   );
   // The source asked to stop: the working line says so until the turn ends, which its notice

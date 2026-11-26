@@ -1443,6 +1443,20 @@
       "pluralType": "cardinal"
     }
   ],
+  "conversation.turn.summaryFailed": [
+    {
+      "type": 0,
+      "value": "Lervo could not read this turn's summary ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
   "conversation.turn.took": [
     {
       "type": 6,

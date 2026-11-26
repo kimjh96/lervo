@@ -543,6 +543,10 @@
     "defaultMessage": "{count, plural, one {# document found} other {# documents found}}",
     "description": "How many documents the agent's Lervo searches found in the turn, on the turn summary line."
   },
+  "conversation.turn.summaryFailed": {
+    "defaultMessage": "Lervo could not read this turn's summary ({code}).",
+    "description": "A quiet line at a turn's end when the core could not read the turn's summary; {code} is the protocol code. Reopening the conversation asks again."
+  },
   "conversation.turn.took": {
     "defaultMessage": "{minutes, plural, =0 {{seconds}s} other {{minutes}m {seconds}s}}",
     "description": "How long the turn took from the person's message to its last item, first on the turn summary line."
