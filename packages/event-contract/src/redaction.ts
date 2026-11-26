@@ -1202,6 +1202,7 @@ export const eventPayloadAllowlists = {
     "environmentProfileDigest",
     "repositoryProfile",
     "stages",
+    "delivery",
   ],
 } as const satisfies Record<EventType, readonly string[]>;
 

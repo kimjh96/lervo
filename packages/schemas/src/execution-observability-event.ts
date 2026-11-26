@@ -154,6 +154,47 @@ export const terminalHookFailureReasons = [
 ] as const;
 export type TerminalHookFailureReason = (typeof terminalHookFailureReasons)[number];
 
+/**
+ * Why a terminal hook ran in its own process instead of the resident context server (schema 13):
+ * no socket existed, the server declined with one of its closed reasons, the socket did not answer
+ * in time, the socket was switched off, the launcher did not offer this request, or the launcher
+ * reported no outcome at all, as an older launcher does.
+ */
+export const terminalHookDeliveryFallbacks = [
+  "no_server",
+  "declined_runtime_mismatch",
+  "declined_environment_mismatch",
+  "declined_busy",
+  "declined_request_too_large",
+  "declined_invalid_request",
+  "unreachable",
+  "disabled",
+  "not_offered",
+  "unreported",
+] as const;
+
+/**
+ * How a terminal hook's answer reached the provider (schema 13). A served hook names how long the
+ * provider waited for its answer when it answered before this record, as ADR-0636 allows; a hook
+ * that ran in its own process names why it was not served.
+ */
+export const terminalHookDeliverySchema = {
+  type: "object",
+  properties: {
+    channel: { type: "string", enum: ["context_server", "in_process"] },
+    answerMilliseconds: { type: "number", minimum: 0, maximum: 600000 },
+    fallback: { type: "string", enum: terminalHookDeliveryFallbacks },
+  },
+  required: ["channel"],
+  additionalProperties: false,
+  if: { properties: { channel: { type: "string", const: "context_server" } } },
+  then: { properties: { fallback: false } },
+  else: {
+    required: ["fallback"],
+    properties: { fallback: { type: "string" }, answerMilliseconds: false },
+  },
+} as const;
+
 const executionStagesObservedProperties = {
   executionMode: { type: "string", enum: ["managed", "unmanaged_terminal"] },
   workId: { anyOf: [workIdSchema, { type: "null" }] },
@@ -161,6 +202,7 @@ const executionStagesObservedProperties = {
     anyOf: [{ type: "string", pattern: "^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$" }, { type: "null" }],
   },
   failureReason: { type: "string", enum: terminalHookFailureReasons },
+  delivery: terminalHookDeliverySchema,
   terminalHook: {
     anyOf: [{ type: "string", enum: ["UserPromptSubmit", "Stop"] }, { type: "null" }],
   },
@@ -215,6 +257,22 @@ export const executionStagesObservedEventPayloadSchema = {
     },
   ],
   additionalProperties: false,
+} as const;
+
+/** Keeps a stage observation's `delivery` out of the envelope versions older readers accept. */
+export const executionStagesObservedBeforeV13 = {
+  if: {
+    properties: {
+      type: { const: "execution.stages.observed" },
+      schemaVersion: { type: "integer", maximum: 12 },
+    },
+    required: ["type", "schemaVersion"],
+  },
+  then: {
+    properties: {
+      payload: { type: "object", propertyNames: { not: { const: "delivery" } } },
+    },
+  },
 } as const;
 
 export type WorkCausalityRecordedEventPayload = FromSchema<
