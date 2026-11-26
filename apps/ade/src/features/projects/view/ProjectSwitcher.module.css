@@ -1,0 +1,81 @@
+/* The project switcher (Lervo ADE projects, "The switcher"): the selected project's row, and the
+   list of projects it shows below it. */
+.switcher {
+  display: flex;
+  flex-direction: column;
+  padding-block: 0 var(--space-6);
+  padding-inline: var(--space-10);
+}
+
+.name {
+  font-weight: var(--font-weight-medium);
+}
+
+.trailing {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.chevron {
+  display: inline-flex;
+  color: var(--color-text-tertiary);
+  transition: transform var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.chevron[data-expanded="true"] {
+  transform: rotate(180deg);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-block: var(--space-4) 0;
+}
+
+.projects {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-block: 0;
+  margin-inline: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A name edited in place keeps the row's size, so nothing around it moves. */
+.renaming {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+  padding-block: var(--space-8);
+  padding-inline: var(--space-10);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-selected);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--type-list-size);
+  line-height: var(--type-list-line-height);
+  background: transparent;
+  outline: none;
+}
+
+.failure {
+  margin-block: var(--space-6) 0;
+  margin-inline: var(--space-10);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}

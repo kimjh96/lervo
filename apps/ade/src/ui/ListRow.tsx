@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import styles from "./ListRow.module.css";
 
@@ -13,7 +13,13 @@ export function ListRow(props: {
   quiet?: boolean | undefined;
   leading?: ReactNode;
   trailing?: ReactNode;
-  onClick: () => void;
+  /** Set on a row that shows or hides a list below it, such as the project switcher. */
+  expanded?: boolean;
+  /** The row's accessible name when the label alone does not say what it does. */
+  accessibleName?: string;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  onDoubleClick?: () => void;
+  onContextMenu?: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <button
@@ -21,7 +27,11 @@ export function ListRow(props: {
       className={styles.row}
       data-quiet={props.quiet === true ? "true" : undefined}
       aria-current={props.current ? "page" : undefined}
+      aria-expanded={props.expanded}
+      aria-label={props.accessibleName}
       onClick={props.onClick}
+      onDoubleClick={props.onDoubleClick}
+      onContextMenu={props.onContextMenu}
     >
       {props.leading}
       <span className={styles.label}>{props.label}</span>

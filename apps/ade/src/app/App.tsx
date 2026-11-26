@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { createIntl, RawIntlProvider } from "react-intl";
 
 import { bindConnection, bindHostUpdate } from "../features/connection";
+import { bindProjects } from "../features/projects";
 import { bindProviders } from "../features/providers";
 import { bindStart, bindStartDraft } from "../features/start";
 import { bindWorkspaces, notificationMessages, useWorkspaceStore } from "../features/workspaces";
@@ -22,7 +23,8 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
   const { adapters, notifier } = props;
   const launched = useLaunched();
   useEffect(() => {
-    const { host, replacement, commands, drafts, lists } = adapters;
+    const { host, replacement, commands, drafts, lists, projects, images, files, choosers } =
+      adapters;
     const unbind = [
       bindConnection(host),
       bindHostUpdate(replacement),
@@ -35,6 +37,7 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
         text: (kind, title) => ({ title, body: intl.formatMessage(notificationMessages[kind]) }),
       }),
       bindProviders({ client: host, commands }),
+      bindProjects({ commands, lists, memory: projects, images, files, choosers }),
       bindStart(),
       bindStartDraft(drafts),
     ];

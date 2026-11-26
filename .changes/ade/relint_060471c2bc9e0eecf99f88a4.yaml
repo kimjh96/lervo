@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_060471c2bc9e0eecf99f88a4"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Projects in the sidebar: a switcher with each project's logo or first letter, its workspaces only, Command-1 to 9, in-place rename, and a context menu to change the logo, show the folder, or remove the project from Lervo. New work goes into the selected project."

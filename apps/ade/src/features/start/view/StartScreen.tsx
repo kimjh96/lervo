@@ -17,6 +17,7 @@ import {
   useFileDrop,
   useOpenImages,
 } from "../../conversation";
+import { useCurrentProject } from "../../projects";
 import { chooseProvider, useProviderStore } from "../../providers";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
@@ -36,7 +37,7 @@ const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
 const readNothing = () => Promise.reject(new Error("image_not_found"));
 
 /**
- * The start screen: one instruction, the repository, and the agent; Lervo does the rest. Images
+ * The start screen: one instruction and the agent, in the switcher's project; Lervo does the rest. Images
  * pasted with the instruction wait above it and go with the first message (image mockup,
  * "5"); other files pasted or dropped wait beside them and go as their paths (file mockup, "5").
  */
@@ -60,7 +61,9 @@ function StartForm() {
   const draft = useStartStore((store) => store.draft);
   const error = useStartStore((store) => store.error);
   const setDraft = (next: StartDraft) => useStartStore.setState({ draft: next, error: null });
-  const repository = draft.repository || repositories[0]?.projectId || "";
+  // New work goes into the project the switcher shows.
+  const project = useCurrentProject();
+  const repository = project?.projectId ?? "";
   const provider = chooseProvider(registry, draft.provider);
   // The registry holds only providers with the native conversation; one needs no choice.
   const offered = registry.status === "loaded" ? registry.providers : [];
@@ -91,7 +94,8 @@ function StartForm() {
 
   const submit = () => {
     if (!ready) return;
-    const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
+    // The manifest name, which the workspace list reports for the workspace that results.
+    const name = project?.name ?? "";
     const chosen = { ...draft, repository, provider: provider?.provider ?? "" };
     const taken = attachments.take();
     void startWork(commands, chosen, name, taken.images, taken.files);
@@ -136,16 +140,6 @@ function StartForm() {
             onSubmit={submit}
           />
           <div className={styles.bar}>
-            <Presence as="span">
-              {repositories.length === 0 ? null : (
-                <Select
-                  label={intl.formatMessage({ id: "start.repository.label" })}
-                  value={repository}
-                  options={repositories.map((item) => ({ value: item.projectId, text: item.name }))}
-                  onChange={(value) => setDraft({ ...draft, repository: value })}
-                />
-              )}
-            </Presence>
             <Presence as="span">
               {offered.length < 2 || provider === null ? null : (
                 <Select

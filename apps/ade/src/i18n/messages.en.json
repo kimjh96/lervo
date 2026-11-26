@@ -983,6 +983,62 @@
     "defaultMessage": "Needs you",
     "description": "A desktop notification: the agent asked the user something."
   },
+  "projects.add": {
+    "defaultMessage": "Add project",
+    "description": "The last row of the project list; it opens the folder panel."
+  },
+  "projects.add.title": {
+    "defaultMessage": "Choose a project folder",
+    "description": "Title of the system panel that chooses a folder to add as a project."
+  },
+  "projects.current": {
+    "defaultMessage": "{name}, switch project",
+    "description": "Accessible name of the switcher row; {name} is the selected project's name."
+  },
+  "projects.failed": {
+    "defaultMessage": "The project could not change ({code}).",
+    "description": "A project change failed; {code} is the protocol code."
+  },
+  "projects.label": {
+    "defaultMessage": "Projects",
+    "description": "Accessible name of the project switcher and its list."
+  },
+  "projects.logo.title": {
+    "defaultMessage": "Choose a logo",
+    "description": "Title of the system panel that chooses a project's logo image."
+  },
+  "projects.menu.logo": {
+    "defaultMessage": "Change logo",
+    "description": "Context menu item: choose an image as the project's logo."
+  },
+  "projects.menu.logo.clear": {
+    "defaultMessage": "Remove logo",
+    "description": "Context menu item: show the project's first letter again instead of its logo."
+  },
+  "projects.menu.remove": {
+    "defaultMessage": "Remove from Lervo",
+    "description": "Context menu item: remove the project from this Mac's project list."
+  },
+  "projects.menu.remove.note": {
+    "defaultMessage": "Files stay where they are.",
+    "description": "A disabled note under Remove from Lervo: removing never deletes the project's files."
+  },
+  "projects.menu.rename": {
+    "defaultMessage": "Rename",
+    "description": "Context menu item: edit the project's name in place."
+  },
+  "projects.menu.reveal": {
+    "defaultMessage": "Show in Finder",
+    "description": "Context menu item: show the project's folder in Finder."
+  },
+  "projects.needsYou": {
+    "defaultMessage": "Another project needs you",
+    "description": "Text equivalent of the dot on the switcher: a workspace of another project needs the user."
+  },
+  "projects.rename.label": {
+    "defaultMessage": "Project name",
+    "description": "Accessible label of the field that edits a project's name in place."
+  },
   "start.error.application_unavailable": {
     "defaultMessage": "Lervo is not reachable on this computer.",
     "description": "The resident Lervo process is not running."
@@ -1030,10 +1086,6 @@
   "start.question": {
     "defaultMessage": "What should Lervo do?",
     "description": "The start screen heading."
-  },
-  "start.repository.label": {
-    "defaultMessage": "Repository",
-    "description": "The accessible label of the repository choice."
   },
   "start.repository.none": {
     "defaultMessage": "Register a repository with lervo repository register to start work.",

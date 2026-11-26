@@ -1,10 +1,13 @@
 import { createContext, type ReactNode, useContext } from "react";
 
+import type { Choosers } from "./choosers";
 import type { Clipboard } from "./clipboard";
 import type { Drafts } from "./drafts";
 import type { Files } from "./files";
 import type { Images } from "./images";
 import type { ListCache } from "./lists";
+import type { Menus } from "./menus";
+import type { ProjectMemory } from "./project-memory";
 import type { ApplicationCommands, HostReplacement, SessionHost } from "./session-host";
 
 /** The adapters the composition root gives the views. */
@@ -17,6 +20,9 @@ export interface Adapters {
   readonly clipboard: Clipboard;
   readonly images: Images;
   readonly files: Files;
+  readonly choosers: Choosers;
+  readonly menus: Menus;
+  readonly projects: ProjectMemory;
 }
 
 const AdaptersContext = createContext<Adapters | null>(null);
@@ -60,6 +66,21 @@ export function useImages(): Images {
 /** Files attached to a message by path. */
 export function useFiles(): Files {
   return useAdapters().files;
+}
+
+/** The system's open panel. */
+export function useChoosers(): Choosers {
+  return useAdapters().choosers;
+}
+
+/** The system's context menu. */
+export function useMenus(): Menus {
+  return useAdapters().menus;
+}
+
+/** The selected project and kept marks between launches. */
+export function useProjectMemory(): ProjectMemory {
+  return useAdapters().projects;
 }
 
 /** Where unsent text survives reloads. */

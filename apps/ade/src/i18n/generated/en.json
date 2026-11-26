@@ -2239,6 +2239,102 @@
       "value": "Needs you"
     }
   ],
+  "projects.add": [
+    {
+      "type": 0,
+      "value": "Add project"
+    }
+  ],
+  "projects.add.title": [
+    {
+      "type": 0,
+      "value": "Choose a project folder"
+    }
+  ],
+  "projects.current": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": ", switch project"
+    }
+  ],
+  "projects.failed": [
+    {
+      "type": 0,
+      "value": "The project could not change ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "projects.label": [
+    {
+      "type": 0,
+      "value": "Projects"
+    }
+  ],
+  "projects.logo.title": [
+    {
+      "type": 0,
+      "value": "Choose a logo"
+    }
+  ],
+  "projects.menu.logo": [
+    {
+      "type": 0,
+      "value": "Change logo"
+    }
+  ],
+  "projects.menu.logo.clear": [
+    {
+      "type": 0,
+      "value": "Remove logo"
+    }
+  ],
+  "projects.menu.remove": [
+    {
+      "type": 0,
+      "value": "Remove from Lervo"
+    }
+  ],
+  "projects.menu.remove.note": [
+    {
+      "type": 0,
+      "value": "Files stay where they are."
+    }
+  ],
+  "projects.menu.rename": [
+    {
+      "type": 0,
+      "value": "Rename"
+    }
+  ],
+  "projects.menu.reveal": [
+    {
+      "type": 0,
+      "value": "Show in Finder"
+    }
+  ],
+  "projects.needsYou": [
+    {
+      "type": 0,
+      "value": "Another project needs you"
+    }
+  ],
+  "projects.rename.label": [
+    {
+      "type": 0,
+      "value": "Project name"
+    }
+  ],
   "start.error.application_unavailable": [
     {
       "type": 0,
@@ -2350,12 +2446,6 @@
     {
       "type": 0,
       "value": "What should Lervo do?"
-    }
-  ],
-  "start.repository.label": [
-    {
-      "type": 0,
-      "value": "Repository"
     }
   ],
   "start.repository.none": [

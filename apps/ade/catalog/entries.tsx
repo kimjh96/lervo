@@ -9,6 +9,7 @@ import { IconButton } from "../src/ui/IconButton";
 import { ArrowUpIcon, ChevronDownIcon, PlusIcon, StopIcon, TrashIcon } from "../src/ui/icons";
 import { InlineAlert } from "../src/ui/InlineAlert";
 import { Kbd } from "../src/ui/Kbd";
+import { Mark } from "../src/ui/Mark";
 import { ListRow } from "../src/ui/ListRow";
 import { PaneHeader } from "../src/ui/PaneHeader";
 import { StatusDot } from "../src/ui/StatusDot";
@@ -232,6 +233,28 @@ export const entries: readonly Entry[] = [
     use: ["Beside an action that has a shortcut"],
     avoid: ["Explaining shortcuts in prose", "Decoration without a working shortcut"],
     variants: [{ name: "Default", render: () => <Kbd>⌘N</Kbd> }],
+  },
+  {
+    module: "Mark",
+    name: "Identity mark",
+    purpose: "A project's or an agent's logo, or its first letter on a color chosen by its ID.",
+    use: ["Beside the name of a project or an agent, which carries the accessible name"],
+    avoid: ["Standing alone without the name", "Status or decoration"],
+    variants: [
+      {
+        name: "First letter, list",
+        render: () => <Mark id="prj_lervo" name="lervo" src={null} size="sm" />,
+      },
+      {
+        name: "First letter, switcher",
+        render: () => <Mark id="prj_argo" name="Argo" src={null} size="md" />,
+      },
+      { name: "Hangul", render: () => <Mark id="prj_todo" name="할 일 앱" src={null} size="md" /> },
+      {
+        name: "Agent",
+        render: () => <Mark id="agt_elio" name="Elio" src={null} size="md" shape="round" />,
+      },
+    ],
   },
   {
     module: "InlineAlert",

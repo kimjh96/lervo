@@ -2,14 +2,17 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./app/App";
+import { restoreProjects } from "./features/projects";
 import { restoreWorkspaces } from "./features/workspaces";
+import { shellChoosers } from "./platform/choosers";
 import { webClipboard } from "./platform/clipboard";
 import { shellFiles } from "./platform/files";
 import { bindFirstClick } from "./platform/first-click";
 import { canvasImages } from "./platform/images";
+import { shellMenus } from "./platform/menus";
 import { tauriNotifier } from "./platform/notifications";
 import { SessionHostClient, SessionHostCommands, tauriTransport } from "./platform/session-host";
-import { localDrafts, localLists } from "./platform/storage";
+import { localDrafts, localLists, localProjects } from "./platform/storage";
 import { bindVisibility } from "./platform/visibility";
 // `index.html` links the document's styles (`ui/base.css`, `app/global.css`, `app/launch.css`),
 // so they apply before this script runs.
@@ -38,10 +41,14 @@ const adapters = {
   clipboard: webClipboard(),
   images: canvasImages(),
   files: shellFiles(),
+  choosers: shellChoosers(),
+  menus: shellMenus(),
+  projects: localProjects(),
 };
 host.start();
 // The lists kept from the last launch show at once; the core's answer replaces them.
 restoreWorkspaces(adapters.lists);
+restoreProjects(adapters.projects);
 
 createRoot(container).render(
   <StrictMode>

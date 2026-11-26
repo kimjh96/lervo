@@ -20,4 +20,12 @@ export class ImageFailure extends Error {
 export interface Images {
   /** Rejects with an `ImageFailure`. */
   prepare(file: Blob): Promise<PreparedImage>;
+  /**
+   * A project mark from an image: its center square, at most 512 pixels a side and at least 16,
+   * as Base64 PNG, or JPEG when the PNG would pass the core's 512 KiB (Lervo ADE projects).
+   * Rejects with an `ImageFailure`.
+   */
+  prepareMark(file: Blob): Promise<string>;
+  /** A small copy of an image's center square, `side` pixels a side, as a PNG data URL. */
+  thumbnail(file: Blob, side: number): Promise<string>;
 }

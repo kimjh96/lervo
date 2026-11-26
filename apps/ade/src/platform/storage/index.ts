@@ -98,3 +98,4 @@ export function localDrafts(
 }
 
 export { localLists } from "./lists";
+export { localProjects } from "./projects";

@@ -195,6 +195,8 @@ On 2026-11-23 the owner tried the app built from `main` and found two problems.
 
 `apps/ade/scripts/check-bundle-size.mjs` runs in `pnpm ade:check` on every pull request. On 2026-11-23, after the terminal left and the start screen read the provider registry, the start screen loads 99.5 KB of gzip JavaScript against a 120 KB budget. The largest lazy chunk, the Markdown renderer, is 16 KB against 160 KB.
 
+On 2026-11-26 the start screen had grown to 121.1 KB, and the project switcher would have taken it to 124.4 KB. The conversation became one lazy chunk instead (`features/conversation/view/LazyConversation.tsx`), 23.6 KB gzip, which the frame loads right after the first paint, so opening a workspace never waits for it. The project list, its menu, and its name field are a second lazy chunk of 1.6 KB, loaded when the switcher is first pointed at. The start screen now loads 104.7 KB, with space motion included. Several lazy entries that import one another made Rolldown split shared modules into extra preloaded chunks, which cost more than they saved; one entry per surface avoids that.
+
 **The harness.** `apps/ade/scripts/measure-webview.mjs` runs the webview scenarios against the release shell and the scripted core of `session-host/examples/interface`, one window per scenario. Its header lists the builds it needs.
 
 - **The shell's part.** Only with `LERVO_ADE_MEASURE=<scenario>` and `LERVO_ADE_MEASURE_OUT=<path>` does the shell tell the page its scenario and accept its report.
