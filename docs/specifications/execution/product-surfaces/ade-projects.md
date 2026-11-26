@@ -30,7 +30,8 @@ The core adds a project from one of three sources, each in one command, and then
 
 - `--into` defaults to the projects location: `~/Lervo` until the owner chooses another, which the core keeps in the user state directory as `projects-location.json` (`lervo project location --set <absolute-path> --write`).
 - For a new project, the ADE proposes the name from the instruction. The folder name keeps the instruction's ASCII words, joined by hyphens and at most 40 characters, or else is `project-<yyyymmdd>-<4 hex>`. The display name is the instruction's first words, as a workspace title is, at most 80 characters. Both change later.
-- An existing folder at the destination is never reused for a clone or a new project (`project_folder_exists`). A clone that fails leaves no folder behind (`project_clone_failed`). Git runs without prompts, as `lervo workspace start` runs it.
+- An existing folder at the destination is never reused for a clone or a new project (`project_folder_exists`). A clone or a new project that fails leaves no folder behind (`project_clone_failed`, or the failing step's code).
+- A new project gets its first commit, "Start the project with Lervo", with what Lervo wrote there, the profile included, so the first workspace has a commit to start from. It uses the owner's Git identity, or `Lervo <lervo@localhost.invalid>` when none is configured, and is reported after the fact as an effect notice (`project_first_commit`) whose undo removes the commit and keeps the files. A folder of the owner's files is never committed for them: a project with no commit yet refuses new work with `repository_has_no_commit` until the owner commits. Git runs without prompts, as `lervo workspace start` runs it.
 - `lervo init` runs with its onboarding, so the project starts with a developer, as a terminal run does.
 
 ## Renaming, marking, and unregistering
@@ -81,6 +82,7 @@ The core adds a project from one of three sources, each in one command, and then
 | `project_folder_exists`      | The destination of a clone or a new project already exists.                                                    |
 | `project_clone_failed`       | Git could not clone the link; nothing was left behind.                                                         |
 | `project_init_failed`        | `lervo init` could not set up the folder as a Lervo project; the folder stays as it was apart from `git init`. |
+| `repository_has_no_commit`   | The project has no commit yet, so no workspace can start from one; the owner commits its files first.          |
 | `project_name_invalid`       | The display name is empty, too long, or has control characters.                                                |
 | `project_mark_invalid`       | The image's format, signature, size, or dimensions are outside the bound.                                      |
 | `project_profile_invalid`    | The profile file exists but does not match its schema.                                                         |

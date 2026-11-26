@@ -36,7 +36,7 @@ function io(cwd: string, stdin = "") {
 }
 
 /** A registered Lervo repository whose project manifest is committed unless `uncommitted`. */
-async function fixture(options: { uncommitted?: boolean } = {}) {
+async function fixture(options: { uncommitted?: boolean; noCommit?: boolean } = {}) {
   const root = await realpath(await mkdtemp(resolve(tmpdir(), "lervo-workspace-start-")));
   roots.push(root);
   const repository = resolve(root, "app");
@@ -57,7 +57,7 @@ async function fixture(options: { uncommitted?: boolean } = {}) {
   expect(await runCli(["init", "--root", repository, "--name", "app"], io(root).io)).toBe(0);
   if (!options.uncommitted) await git(repository, "add", "-A");
   else await git(repository, "add", "README.md");
-  await git(repository, "commit", "-m", "base");
+  if (!options.noCommit) await git(repository, "commit", "-m", "base");
   const registered = io(root);
   expect(
     await runCli(
@@ -213,6 +213,16 @@ describe("lervo workspace start and open", () => {
         mode: "cli",
       },
     });
+  });
+
+  it("refuses a repository with no commit yet under its own code", async () => {
+    const app = await fixture({ noCommit: true });
+    const started = io(app.root, instruction);
+    expect(
+      await runCli(["workspace", "start", "--repository", app.projectId, "--json"], started.io),
+    ).toBe(1);
+    const failure = JSON.parse(started.stdout.join("")) as { error: { code: string } };
+    expect(failure.error.code).toBe("repository_has_no_commit");
   });
 
   it("removes the worktree and branch when the workstream stage fails", async () => {
