@@ -2,6 +2,8 @@ import type { ConversationItem } from "@lervo/session-host-contract";
 import { type ComponentType, lazy, Suspense } from "react";
 import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
+import { attachedFiles } from "../model/files";
+import { MessageFiles } from "./MessageFiles";
 import { MessageImages } from "./MessageImages";
 import { usePacedText } from "./paced";
 import styles from "./renderers.module.css";
@@ -30,17 +32,24 @@ function Paragraphs(props: { text: string; className: string | undefined }) {
 }
 
 /**
- * The user's message in its bubble, with the images it carried above its text (approved image
- * mockup, "A"; Lervo ADE sessions, "Images in a message").
+ * The user's message in its bubble, with the images it carried and then the files it named above
+ * its text (approved image mockup, "A"; file mockup, "A"; Lervo ADE sessions, "Images in a
+ * message" and "Files in a message").
  */
 function UserMessage({ item }: { item: Extract<ConversationItem, { kind: "user_message" }> }) {
   const images = item.images ?? [];
-  if (images.length === 0) return <p className={styles.user}>{item.text}</p>;
+  const { text, paths } = attachedFiles(item.text);
+  if (images.length === 0 && paths.length === 0) return <p className={styles.user}>{text}</p>;
   return (
     <div className={styles.user}>
-      <MessageImages images={images} alone={item.text.length === 0} />
       {/* motion: A message arrives live */}
-      {item.text.length === 0 ? null : <p className={styles.userText}>{item.text}</p>}
+      {images.length === 0 ? null : (
+        <MessageImages images={images} alone={text.length === 0 && paths.length === 0} />
+      )}
+      {/* motion: A message arrives live */}
+      {paths.length === 0 ? null : <MessageFiles paths={paths} />}
+      {/* motion: A message arrives live */}
+      {text.length === 0 ? null : <p className={styles.userText}>{text}</p>}
     </div>
   );
 }

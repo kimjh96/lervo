@@ -4,6 +4,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod files;
 mod host_link;
 mod host_program;
 mod login_path;
@@ -40,7 +41,11 @@ fn main() -> ExitCode {
             measure::measure_report,
             measure::measure_hide,
             measure::measure_opaque,
-            notifications::notify
+            notifications::notify,
+            files::pasted_files,
+            files::describe_files,
+            files::read_image_file,
+            files::reveal_file
         ])
         .run(tauri::generate_context!());
     match result {

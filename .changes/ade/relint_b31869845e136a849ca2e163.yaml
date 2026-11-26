@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b31869845e136a849ca2e163"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Paste or drop files and folders into the reply card and the instruction of new work: they wait as file chips beside images, go to the agent as their paths, and show as chips in the message."

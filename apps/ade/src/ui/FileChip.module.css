@@ -1,0 +1,139 @@
+/* A file attached by path: a type badge, then its name over a quiet line (file mockup, "A").
+   In a card it stands as tall as an image thumbnail, so both share one row. */
+.chip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  box-sizing: border-box;
+  width: calc(var(--size-thumbnail) * 4);
+  height: var(--size-thumbnail);
+  padding: 0 var(--space-12) 0 var(--space-8);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: start;
+  background: var(--color-surface-input);
+  cursor: pointer;
+}
+
+.chip[data-size="message"] .open {
+  width: calc(var(--size-thumbnail) * 3.5);
+  height: calc(var(--size-thumbnail) - var(--space-8));
+  background: var(--color-surface-floating);
+}
+
+.open:hover:not(:disabled) {
+  border-color: var(--color-border-default);
+}
+
+.open:disabled {
+  cursor: default;
+}
+
+.open:focus-visible,
+.remove:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* The badge: a page with a folded corner and the extension at its foot, or a folder. */
+.badge {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: end center;
+  box-sizing: border-box;
+  width: var(--size-control-lg);
+  height: calc(var(--size-control-lg) + var(--space-6));
+  padding-bottom: var(--space-6);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--type-caption-size);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-surface-user-message);
+}
+
+.badge::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-bottom-left-radius: var(--radius-sm);
+  background: var(--color-border-default);
+  content: "";
+}
+
+.badge[data-folder] {
+  place-items: center;
+  padding: 0;
+}
+
+.badge[data-folder]::before {
+  content: none;
+}
+
+.chip[data-size="message"] .badge {
+  width: var(--size-control-md);
+  height: calc(var(--size-control-md) + var(--space-6));
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name,
+.detail {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.name {
+  font-size: var(--type-note-size);
+  line-height: var(--type-note-line-height);
+}
+
+.detail {
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}
+
+.chip[data-missing] .badge,
+.chip[data-missing] .name {
+  opacity: var(--opacity-disabled);
+}
+
+.remove {
+  position: absolute;
+  top: calc(-1 * var(--space-8));
+  right: calc(-1 * var(--space-8));
+  display: grid;
+  place-items: center;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  padding: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-opaque);
+  cursor: pointer;
+  visibility: hidden;
+}
+
+/* As on an image thumbnail, the remove button shows at once on hover and on keyboard focus. */
+.chip:hover .remove,
+.chip:focus-within .remove {
+  visibility: visible;
+}

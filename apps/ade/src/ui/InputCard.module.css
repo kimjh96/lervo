@@ -43,6 +43,22 @@
   min-width: 0;
 }
 
+/* Files dragged over the window: the card that takes them shows it with its accent border, a faint
+   accent tint, and one line in place of what waits. */
+.card[data-dropping] {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface-input));
+}
+
+.dropHint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding-block: var(--space-6) var(--space-10);
+  color: var(--color-accent);
+  font-size: var(--type-note-size);
+}
+
 /* The card shows the focus of its field, which draws no ring of its own. */
 .card:has(.field:focus-visible) {
   border-color: var(--color-accent);

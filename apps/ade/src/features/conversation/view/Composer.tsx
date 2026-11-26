@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { failureCode, type PreparedImage } from "../../../ports";
+import { failureCode, type PreparedImage, useFiles } from "../../../ports";
 import { IconButton } from "../../../ui/IconButton";
-import { ImageTray } from "../../../ui/ImageTray";
+import { AttachmentTray } from "../../../ui/AttachmentTray";
 import { ArrowUpIcon, StopIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { InputCard, InputField } from "../../../ui/InputCard";
 import { Presence } from "../../../ui/Presence";
 import styles from "./Composer.module.css";
+import { withAttachedFiles } from "../model/files";
+import { attachmentNoticeValues, useAttachments } from "./attachments";
 import { useOpenImages } from "./ConversationImages";
 import { useDraft } from "./draft";
-import { imageNoticeValues, usePastedImages } from "./pasted-images";
+import { useFileDrop } from "./file-drop";
 
 /** Lines the input grows to before it scrolls. */
 const MAX_LINES = 8;
@@ -22,7 +24,8 @@ const MAX_LINES = 8;
  * send puts the text back. While the agent's turn can be stopped, the empty card's button stops
  * it and Escape does too; typed text turns the button back into send, so a reply can still go.
  * Pasted images wait as thumbnails above the field and go with the next reply, which may be images
- * alone (image mockup, "1").
+ * alone (image mockup, "1"). Other files, pasted or dropped anywhere on the window, wait as chips
+ * beside them and go as their paths at the end of the text (file mockup, "A").
  */
 export function Composer(props: {
   onSend: (text: string, images: readonly PreparedImage[]) => Promise<void>;
@@ -38,10 +41,12 @@ export function Composer(props: {
   const open = useOpenImages();
   const [text, setText] = useDraft(props.draftKey);
   const [failure, setFailure] = useState<{ id: string; code: string } | null>(null);
-  const images = usePastedImages({
-    accepts: props.acceptsImages === true,
+  const files = useFiles();
+  const attachments = useAttachments({
+    acceptsImages: props.acceptsImages === true,
     resetKey: props.draftKey,
   });
+  const dragging = useFileDrop(attachments.drop);
   const { onStop } = props;
   const stop =
     onStop === undefined
@@ -52,39 +57,46 @@ export function Composer(props: {
             setFailure({ id: "conversation.stop.failed", code: failureCode(error) });
           });
         };
-  const empty = text.trim().length === 0 && images.ready.length === 0;
-  const stops = stop !== undefined && empty && !images.preparing;
+  const empty = text.trim().length === 0 && !attachments.holds;
+  const stops = stop !== undefined && empty && !attachments.preparing;
   const send = () => {
     const value = text.trim();
-    if ((value.length === 0 && images.ready.length === 0) || images.preparing) return;
-    const sending = images.take();
+    if (empty || attachments.preparing) return;
+    const sending = attachments.take();
     setText("");
     setFailure(null);
-    images.clearNotice();
-    props.onSend(value, sending).catch((error: unknown) => {
+    attachments.clearNotice();
+    const message = withAttachedFiles(
+      value,
+      sending.files.map((file) => file.path),
+    );
+    props.onSend(message, sending.images).catch((error: unknown) => {
       setText(value);
-      images.restore(sending);
+      attachments.restore(sending);
       setFailure({ id: "conversation.reply.failed", code: failureCode(error) });
     });
   };
-  const tray = images.tray(intl);
+  const tray = attachments.tray(intl);
   return (
     // Paste reaches the card from its field, where the person pastes.
-    <div className={styles.composer} onPaste={images.paste}>
+    <div className={styles.composer} onPaste={attachments.paste}>
       <InputCard
         surface="floating"
         layout="inline"
         onSubmit={send}
+        dropHint={dragging ? intl.formatMessage({ id: "conversation.files.drop" }) : undefined}
         attachments={
           /* motion: Coming and going */
-          tray.length === 0 ? undefined : (
-            <ImageTray
-              images={tray}
-              removeLabel={(index) =>
-                intl.formatMessage({ id: "conversation.images.remove" }, { number: index + 1 })
-              }
-              onRemove={images.remove}
-              onOpen={(index) => open(tray, index)}
+          tray.images.length === 0 && tray.files.length === 0 ? undefined : (
+            <AttachmentTray
+              images={tray.images}
+              files={tray.files}
+              onRemove={attachments.remove}
+              onOpenImage={(index) => open(tray.images, index)}
+              onOpenFile={(key) => {
+                const path = attachments.pathOf(key);
+                if (path !== undefined) files.reveal(path);
+              }}
             />
           )
         }
@@ -106,7 +118,7 @@ export function Composer(props: {
         {/* The button stays; its icon changes in place. */}
         <IconButton
           type={stops ? "button" : "submit"}
-          disabled={!stops && (empty || images.preparing)}
+          disabled={!stops && (empty || attachments.preparing)}
           label={
             stops
               ? intl.formatMessage({ id: "conversation.stop" })
@@ -122,9 +134,9 @@ export function Composer(props: {
       </InputCard>
       <Presence className={styles.error}>
         {failure === null ? (
-          images.notice === null ? null : (
+          attachments.notice === null ? null : (
             <InlineAlert size="meta">
-              <FormattedMessage {...images.notice} values={imageNoticeValues} />
+              <FormattedMessage {...attachments.notice} values={attachmentNoticeValues} />
             </InlineAlert>
           )
         ) : (

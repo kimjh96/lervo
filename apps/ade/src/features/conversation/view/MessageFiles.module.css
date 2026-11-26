@@ -1,0 +1,11 @@
+/* The files a user message named, inside its bubble above the text, under any images. */
+.files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  white-space: normal;
+}
+
+.files:not(:last-child) {
+  margin-bottom: var(--space-8);
+}

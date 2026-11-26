@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { restoreWorkspaces } from "./features/workspaces";
 import { webClipboard } from "./platform/clipboard";
+import { shellFiles } from "./platform/files";
 import { bindFirstClick } from "./platform/first-click";
 import { canvasImages } from "./platform/images";
 import { tauriNotifier } from "./platform/notifications";
@@ -36,6 +37,7 @@ const adapters = {
   lists: localLists(),
   clipboard: webClipboard(),
   images: canvasImages(),
+  files: shellFiles(),
 };
 host.start();
 // The lists kept from the last launch show at once; the core's answer replaces them.
