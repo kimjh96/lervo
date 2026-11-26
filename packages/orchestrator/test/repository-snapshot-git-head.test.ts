@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { gitHeadFromFiles } from "../src/repository-snapshot-git.js";
+import { gitCheckedOutBranchFromFiles, gitHeadFromFiles } from "../src/repository-snapshot-git.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -65,4 +65,34 @@ it("leaves an unborn branch, a repository override, and a broken HEAD to git", a
   vi.unstubAllEnvs();
   await writeFile(resolve(root, ".git", "HEAD"), "ref: ../outside\n");
   expect(await gitHeadFromFiles(root)).toBeUndefined();
+});
+
+it("names the checked-out branch as git symbolic-ref --short HEAD does", async () => {
+  const symbolic = (cwd: string) => {
+    try {
+      return git(cwd, "symbolic-ref", "--quiet", "--short", "HEAD");
+    } catch {
+      return null;
+    }
+  };
+  // An unborn branch is named too.
+  const unborn = await repository();
+  expect(await gitCheckedOutBranchFromFiles(unborn)).toBe(symbolic(unborn));
+  const root = await committed();
+  git(root, "checkout", "--quiet", "-b", "feature/nested.name");
+  expect(await gitCheckedOutBranchFromFiles(root)).toBe("feature/nested.name");
+  expect(await gitCheckedOutBranchFromFiles(root)).toBe(symbolic(root));
+  const worktree = `${root}-branch-worktree`;
+  roots.push(worktree);
+  git(root, "worktree", "add", "--quiet", "-b", "side", worktree);
+  expect(await gitCheckedOutBranchFromFiles(worktree)).toBe("side");
+  git(root, "checkout", "--quiet", "--detach");
+  expect(await gitCheckedOutBranchFromFiles(root)).toBeNull();
+  expect(symbolic(root)).toBeNull();
+  // Anything else is Git's to answer.
+  vi.stubEnv("GIT_DIR", resolve(root, ".git"));
+  expect(await gitCheckedOutBranchFromFiles(worktree)).toBeUndefined();
+  vi.unstubAllEnvs();
+  await writeFile(resolve(root, ".git", "HEAD"), "ref: refs/remotes/origin/main\n");
+  expect(await gitCheckedOutBranchFromFiles(root)).toBeUndefined();
 });
