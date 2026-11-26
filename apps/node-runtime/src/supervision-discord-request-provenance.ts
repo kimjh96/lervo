@@ -37,8 +37,8 @@ function hasNaturalGoalIntent(path: string, event: ConversationInboundEvent): bo
     let effect: unknown;
     try {
       effect = JSON.parse(String(row.effect_json));
-    } catch {
-      throw new Error("The Discord goal intent evidence is invalid.");
+    } catch (error) {
+      throw new Error("The Discord goal intent evidence is invalid.", { cause: error });
     }
     if (
       row.message_hash !== event.content.contentHash ||
@@ -104,8 +104,8 @@ export async function readDiscordGoalRequesterProvenance(
   try {
     event = JSON.parse(row.event_json) as ConversationInboundEvent;
     assertConversationInboundEvent(event);
-  } catch {
-    throw new Error("The Discord ingress evidence is invalid.");
+  } catch (error) {
+    throw new Error("The Discord ingress evidence is invalid.", { cause: error });
   }
   if (
     !["pending", "leased", "completed"].includes(String(row.status)) ||

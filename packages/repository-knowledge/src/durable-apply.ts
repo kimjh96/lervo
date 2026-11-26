@@ -523,11 +523,15 @@ async function applyOperationsUnderGate<T>(input: DurableApplyInput<T>): Promise
       throw new RepositoryKnowledgeError(
         "knowledge_recovery_required",
         "The previous knowledge materialization transaction must be recovered first.",
+        undefined,
+        { cause: error },
       );
     }
     throw new RepositoryKnowledgeError(
       "knowledge_apply_failed",
       "The knowledge materialization transaction could not be started.",
+      undefined,
+      { cause: error },
     );
   }
   let interrupted = false;
@@ -598,11 +602,15 @@ async function applyOperationsUnderGate<T>(input: DurableApplyInput<T>): Promise
       throw new RepositoryKnowledgeError(
         "knowledge_recovery_required",
         "Interrupted knowledge materialization requires explicit recovery.",
+        undefined,
+        { cause: error },
       );
     if (eventRecorded || journal.phase === "committed")
       throw new RepositoryKnowledgeError(
         "knowledge_finalization_failed",
         "Transaction cleanup did not complete after the materialization event.",
+        undefined,
+        { cause: error },
       );
     try {
       await rollback(root, transaction, journal);

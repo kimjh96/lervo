@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { ContextQualityEvidence, ContextQualityRequest } from "@lervo/schemas";
 
 import { ContextQualityError } from "./quality-request.js";
+import { MAX_CONTEXT_SOURCE_BYTES } from "./source-limits.js";
 
 export interface ContextQualitySourceBytes {
   sourceId: string;
@@ -21,7 +22,9 @@ export function validateQualitySections(
 ) {
   if (
     sources.length > 64 ||
-    sources.some((s) => !(s.bytes instanceof Uint8Array) || s.bytes.byteLength > 131072) ||
+    sources.some(
+      (s) => !(s.bytes instanceof Uint8Array) || s.bytes.byteLength > MAX_CONTEXT_SOURCE_BYTES,
+    ) ||
     sources.reduce((n, s) => n + s.bytes.byteLength, 0) > request.profile.maximumRetainedBytes
   )
     throw new ContextQualityError("context_budget_exceeded");

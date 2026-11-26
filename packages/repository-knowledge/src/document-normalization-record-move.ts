@@ -39,10 +39,12 @@ async function readNormalizationRecord(
       throw new Error("invalid source path");
     }
     return { bytes, value: value as MovableNormalizationRecord | null };
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "A document normalization lifecycle record cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   } finally {
     await handle?.close();

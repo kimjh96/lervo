@@ -58,8 +58,8 @@ async function readEvidence(
   }
   try {
     return JSON.parse(content);
-  } catch {
-    throw new Error("Activation evidence must be valid JSON.");
+  } catch (error) {
+    throw new Error("Activation evidence must be valid JSON.", { cause: error });
   }
 }
 

@@ -80,8 +80,8 @@ export async function readBoundWorkstreamState(
       let value: unknown;
       try {
         value = JSON.parse(imported);
-      } catch {
-        throw new Error("The imported workstream snapshot is not valid JSON.");
+      } catch (error) {
+        throw new Error("The imported workstream snapshot is not valid JSON.", { cause: error });
       }
       if (
         !validateSchema("workstreamSnapshot", value).valid ||
@@ -103,8 +103,8 @@ export async function readBoundWorkstreamState(
   let value: unknown;
   try {
     value = JSON.parse(content);
-  } catch {
-    throw new Error("The bound workstream snapshot is not valid JSON.");
+  } catch (error) {
+    throw new Error("The bound workstream snapshot is not valid JSON.", { cause: error });
   }
   if (!validateSchema("workstreamSnapshot", value).valid || `${canonicalJson(value)}\n` !== content)
     throw new Error("The bound workstream snapshot is not canonical.");

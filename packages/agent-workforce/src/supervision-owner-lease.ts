@@ -30,8 +30,11 @@ interface LeaseRow {
 }
 
 export class SupervisionLeaseError extends Error {
-  constructor(readonly code: "lease_invalid" | "lease_lost" | "lease_capacity") {
-    super(`The supervision owner lease failed: ${code}.`);
+  constructor(
+    readonly code: "lease_invalid" | "lease_lost" | "lease_capacity",
+    options?: ErrorOptions,
+  ) {
+    super(`The supervision owner lease failed: ${code}.`, options);
     this.name = "SupervisionLeaseError";
   }
 }
@@ -112,8 +115,8 @@ export class SQLiteSupervisionOwnerLeaseStore {
         let fileIdentity: string | null;
         try {
           fileIdentity = processLock.acquire();
-        } catch {
-          throw new SupervisionLeaseError("lease_invalid");
+        } catch (error) {
+          throw new SupervisionLeaseError("lease_invalid", { cause: error });
         }
         if (fileIdentity === null) return null;
         if (previous !== undefined && previous.released === 0) {
@@ -317,8 +320,8 @@ export class SQLiteSupervisionOwnerLeaseStore {
           new SupervisionProcessLock(this.path, row.supervision_id).identity()
         )
           throw new SupervisionLeaseError("lease_lost");
-      } catch {
-        throw new SupervisionLeaseError("lease_lost");
+      } catch (error) {
+        throw new SupervisionLeaseError("lease_lost", { cause: error });
       }
     }
     return row;

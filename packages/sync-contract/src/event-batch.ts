@@ -60,7 +60,7 @@ function assertNoUnsupportedEventVersions(batch: unknown): void {
       assertReadableEventEnvelope(event);
     } catch (error) {
       if (error instanceof EventContractError && error.code === "event_schema_unsupported") {
-        throw new SyncContractError("event_schema_unsupported", error.message);
+        throw new SyncContractError("event_schema_unsupported", error.message, { cause: error });
       }
     }
   }
@@ -71,7 +71,7 @@ export function assertSyncableEvent(event: EventEnvelope): void {
     assertReadableEventEnvelope(event);
   } catch (error) {
     if (error instanceof EventContractError && error.code === "event_schema_unsupported") {
-      throw new SyncContractError("event_schema_unsupported", error.message);
+      throw new SyncContractError("event_schema_unsupported", error.message, { cause: error });
     }
     throw new SyncContractError(
       "invalid_event_batch",

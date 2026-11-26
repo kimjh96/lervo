@@ -37,10 +37,12 @@ export function splitMarkdownHeadingSubtree(
   let root: PositionedNode;
   try {
     root = fromMarkdown(content) as PositionedNode;
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_unit_extraction_failed",
       "Markdown cannot be parsed safely as CommonMark structure.",
+      undefined,
+      { cause: error },
     );
   }
   const headings = (root.children ?? []).filter((node) => node.type === "heading");

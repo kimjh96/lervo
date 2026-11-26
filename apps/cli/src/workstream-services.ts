@@ -1,3 +1,6 @@
+import { lstat } from "node:fs/promises";
+import { resolve } from "node:path";
+
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   clearCurrentWorkstreamProjection,
@@ -132,7 +135,16 @@ export async function verifiedCurrentWorkstream(
     if (event === null) return null;
     state = await restoreRecordedWorkstream(storage, event, root);
   }
-  if (event === null) throw new Error("The current workstream has no committed snapshot event.");
+  if (event === null) {
+    // A linked worktree that records into its own store, because this process does not see its
+    // repository as registered, finds the projection `lervo workspace start` left but none of the
+    // events it recorded into the registered repository.
+    if (root === storage.paths.repositoryRoot && (await isLinkedWorktree(root)))
+      throw new Error(
+        "The current workstream's events are in the registered repository's store, but this linked worktree records into its own: run Lervo with the registry the workspace was started with (LERVO_USER_STATE_DIRECTORY), or register the main checkout.",
+      );
+    throw new Error("The current workstream has no committed snapshot event.");
+  }
   const payload = event.payload as Record<string, unknown>;
   if (
     payload.workstreamId !== state.snapshot.workstreamId ||
@@ -173,4 +185,9 @@ export async function verifiedCurrentWorkstream(
     }
   }
   return state.snapshot;
+}
+
+/** A linked worktree keeps `.git` as a file naming its directory in the main repository. */
+async function isLinkedWorktree(root: string): Promise<boolean> {
+  return (await lstat(resolve(root, ".git")).catch(() => null))?.isFile() === true;
 }

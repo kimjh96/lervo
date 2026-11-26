@@ -275,7 +275,9 @@ class HubTraceQueryReader {
       };
     } catch (error) {
       if ((error as { code?: unknown })?.code === "work_not_found") {
-        throw new HubTraceError("work_not_found", "The requested Hub work trace was not found.");
+        throw new HubTraceError("work_not_found", "The requested Hub work trace was not found.", {
+          cause: error,
+        });
       }
       throw new HubTraceError(
         "source_inconsistent",

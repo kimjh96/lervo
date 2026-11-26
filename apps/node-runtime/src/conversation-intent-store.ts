@@ -233,8 +233,8 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
     } else {
       try {
         effect = JSON.parse(String(current.effect_json)) as ConversationIntentResolution["effect"];
-      } catch {
-        throw new Error("The stored conversation intent effect is invalid.");
+      } catch (error) {
+        throw new Error("The stored conversation intent effect is invalid.", { cause: error });
       }
     }
     if (
@@ -264,8 +264,8 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       let observedModelIds: unknown;
       try {
         observedModelIds = JSON.parse(String(current.observed_model_ids_json));
-      } catch {
-        throw new Error("The stored conversation model identity is invalid.");
+      } catch (error) {
+        throw new Error("The stored conversation model identity is invalid.", { cause: error });
       }
       if (
         (current.requested_model !== null && typeof current.requested_model !== "string") ||

@@ -56,7 +56,7 @@ export function resolveConvergenceAssetDispositions(
       delegation.verification.map((suite) => suite.suiteId),
       maximumDispositions,
     );
-  } catch {
-    throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
+  } catch (error) {
+    throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable", { cause: error });
   }
 }

@@ -63,8 +63,11 @@ export type RemoteCommandDeliveryErrorCode =
   | "invalid_delivery_confirmation";
 
 export class RemoteCommandDeliveryError extends Error {
-  constructor(readonly code: RemoteCommandDeliveryErrorCode) {
-    super(code);
+  constructor(
+    readonly code: RemoteCommandDeliveryErrorCode,
+    options?: ErrorOptions,
+  ) {
+    super(code, options);
     this.name = "RemoteCommandDeliveryError";
   }
 }

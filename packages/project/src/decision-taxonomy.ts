@@ -202,16 +202,17 @@ export async function loadDecisionTaxonomy(root: string): Promise<DecisionTaxono
   let content: string;
   try {
     content = await readFile(path, "utf8");
-  } catch {
+  } catch (error) {
     throw new LervoProjectError(
       "not_initialized",
       `${path} cannot be read. Run lervo init to install the tracked decision taxonomy.`,
+      { cause: error },
     );
   }
   try {
     return validateDecisionTaxonomy(parse(content));
   } catch (error) {
     if (error instanceof LervoProjectError) throw error;
-    throw new LervoProjectError("invalid_yaml", `${path} is not valid YAML.`);
+    throw new LervoProjectError("invalid_yaml", `${path} is not valid YAML.`, { cause: error });
   }
 }

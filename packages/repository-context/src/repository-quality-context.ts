@@ -12,6 +12,7 @@ import {
   ContextQualityError,
   readRepositoryFile,
   taskQueryProjectorBuild,
+  MAX_CONTEXT_SOURCE_BYTES,
 } from "@lervo/context";
 import { loadProjectManifest } from "@lervo/project";
 import { sha256 } from "@lervo/repository-knowledge";
@@ -203,8 +204,9 @@ async function prepareWithoutRecording(input: RepositoryQualityInput) {
                 (async () => {
                   for (const candidate of input.candidates) {
                     if (
-                      sha256(await readRepositoryFile(root, candidate.path, 131072)) !==
-                      candidate.contentHash
+                      sha256(
+                        await readRepositoryFile(root, candidate.path, MAX_CONTEXT_SOURCE_BYTES),
+                      ) !== candidate.contentHash
                     )
                       throw new ContextQualityError("context_binding_stale");
                   }

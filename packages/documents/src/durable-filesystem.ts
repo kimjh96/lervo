@@ -86,6 +86,7 @@ export async function ensureSafeDirectoryPath(
           throw new DocumentMigrationError(
             "migration_conflict",
             "The migration directory cannot be created safely.",
+            { cause: error },
           );
         }
       }

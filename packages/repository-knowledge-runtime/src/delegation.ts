@@ -39,8 +39,8 @@ export async function loadConvergenceDelegation(
   let value: unknown;
   try {
     value = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes));
-  } catch {
-    throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
+  } catch (error) {
+    throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable", { cause: error });
   }
   const delegation = parseConvergenceDelegation(value);
   const contentHash = sha256(bytes);

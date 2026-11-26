@@ -119,10 +119,11 @@ export class ManagedWriteController {
             requestedPath: normalizedPath,
             evaluatedAt: occurredAt,
           });
-        } catch {
+        } catch (error) {
           throw new ManagedContextError(
             "approval_verification_failed",
             "Failed to revalidate the approval source immediately before the file write.",
+            { cause: error },
           );
         }
         if (result.approved) {

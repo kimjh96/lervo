@@ -241,10 +241,12 @@ async function safeFile(
     )
       throw new Error("registry changed");
     return { contentHash: sha256(bytes), byteCount: bytes.byteLength };
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The knowledge registry cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   } finally {
     await handle?.close();

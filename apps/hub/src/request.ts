@@ -33,7 +33,11 @@ export type HubTraceHttpRoute =
   | { kind: "work"; encodedProjectId: string; encodedWorkId: string }
   | { kind: "run"; encodedProjectId: string; encodedRunId: string };
 
-export class InvalidHubHttpRequestError extends Error {}
+export class InvalidHubHttpRequestError extends Error {
+  constructor(options?: ErrorOptions) {
+    super(undefined, options);
+  }
+}
 
 export function matchHubTraceRoute(pathname: string): HubTraceHttpRoute | null {
   const segments = pathname.split("/");
@@ -126,8 +130,8 @@ function decodedId(value: string, pattern: RegExp): string {
   let decoded: string;
   try {
     decoded = decodeURIComponent(value);
-  } catch {
-    throw new InvalidHubHttpRequestError();
+  } catch (error) {
+    throw new InvalidHubHttpRequestError({ cause: error });
   }
   if (!pattern.test(decoded)) throw new InvalidHubHttpRequestError();
   return decoded;
@@ -146,8 +150,8 @@ function decodedCursor<T>(
   if (value === undefined) return undefined;
   try {
     return decoder(value);
-  } catch {
-    throw new InvalidHubHttpRequestError();
+  } catch (error) {
+    throw new InvalidHubHttpRequestError({ cause: error });
   }
 }
 
@@ -229,8 +233,8 @@ export function knowledgeGraphQuery(
   if (!knowledgeGraphNodeKinds.includes(focus.kind)) throw new InvalidHubHttpRequestError();
   try {
     assertKnowledgeGraphNode(focus);
-  } catch {
-    throw new InvalidHubHttpRequestError();
+  } catch (error) {
+    throw new InvalidHubHttpRequestError({ cause: error });
   }
   const requestedLimit = limit(parameters);
   const after = decodedCursor(singleQueryValue(parameters, "cursor"), decodeKnowledgeGraphCursor);

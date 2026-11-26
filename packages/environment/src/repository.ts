@@ -32,7 +32,7 @@ async function loadYamlFile(
     stat = await lstat(path);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT")
-      throw new EnvironmentError(notFoundCode, `${label} was not found.`);
+      throw new EnvironmentError(notFoundCode, `${label} was not found.`, { cause: error });
     throw error;
   }
   if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 256 * 1024)
@@ -43,6 +43,7 @@ async function loadYamlFile(
     throw new EnvironmentError(
       invalidCode,
       `Could not read ${label} YAML: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
 }
@@ -191,6 +192,7 @@ export async function loadEnvironmentObservations(
       throw new EnvironmentError(
         "invalid_environment_observation",
         `Could not read the environment observation JSON: ${entry.name}`,
+        { cause: error },
       );
     }
     const source = await loadEnvironmentSource(repositoryRoot, observation.sourceId);

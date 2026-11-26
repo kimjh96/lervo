@@ -7,6 +7,7 @@ import {
   selectEvidenceSections,
   type InstructionSource,
   type ContextQualitySourceBytes,
+  MAX_CONTEXT_SOURCE_BYTES,
 } from "@lervo/context";
 import { canonicalHash } from "@lervo/search";
 import type { ContextQualityEvidence, ContextQualityRequest } from "@lervo/schemas";
@@ -85,7 +86,7 @@ export async function prepareRepositoryQualityEvidence(input: {
     if (sources.length >= 64 || sections.length >= 64) break;
     const sourceId = documentIdForPath(candidate.path);
     if (sources.some((source) => source.sourceId === sourceId)) continue;
-    const bytes = await readRepositoryFile(input.root, candidate.path, 131072);
+    const bytes = await readRepositoryFile(input.root, candidate.path, MAX_CONTEXT_SOURCE_BYTES);
     const selected = selectEvidenceSections({
       bytes,
       expectedHash: candidate.contentHash,

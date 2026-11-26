@@ -3,6 +3,9 @@ import type { SupervisedManagedExecution } from "@lervo/application-contract";
 import { assertWorkResponsibility, operatingInteger } from "./operating-contract-validation.js";
 import { operatingContractHash } from "./operating-mandate-admission.js";
 
+/** The most bytes a managed task's instructions may hold, from `lervo run` to the effect. */
+export const MAX_MANAGED_INSTRUCTION_BYTES = 128 * 1024;
+
 export function supervisedManagedExecutionFields(effect: SupervisedManagedExecution) {
   assertWorkResponsibility(effect.responsibility);
   if (
@@ -17,7 +20,7 @@ export function supervisedManagedExecutionFields(effect: SupervisedManagedExecut
     !["low", "medium", "high"].includes(effect.risk) ||
     typeof effect.instructions !== "string" ||
     effect.instructions.trim().length === 0 ||
-    Buffer.byteLength(effect.instructions, "utf8") > 131072 ||
+    Buffer.byteLength(effect.instructions, "utf8") > MAX_MANAGED_INSTRUCTION_BYTES ||
     !operatingInteger(effect.reservedTokens, 1)
   )
     throw new TypeError("The supervised managed execution payload is invalid.");

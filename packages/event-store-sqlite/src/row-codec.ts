@@ -29,8 +29,10 @@ function parseJsonObject(value: string, field: string): Record<string, unknown> 
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);
-  } catch {
-    throw new EventStoreError("integrity_failed", `${field} JSON cannot be read.`);
+  } catch (error) {
+    throw new EventStoreError("integrity_failed", `${field} JSON cannot be read.`, {
+      cause: error,
+    });
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new EventStoreError("integrity_failed", `${field} must be a JSON object.`);
@@ -67,11 +69,12 @@ export function rowToEvent(row: SqliteRow): EventEnvelope {
     assertReadableEventEnvelope(candidate);
   } catch (error) {
     if (error instanceof EventContractError && error.code === "event_schema_unsupported") {
-      throw new EventStoreError("event_schema_unsupported", error.message);
+      throw new EventStoreError("event_schema_unsupported", error.message, { cause: error });
     }
     throw new EventStoreError(
       "integrity_failed",
       "The stored event does not satisfy a readable event schema.",
+      { cause: error },
     );
   }
   if (candidate.eventHash !== computeEventHash(eventWithoutHash(candidate)))

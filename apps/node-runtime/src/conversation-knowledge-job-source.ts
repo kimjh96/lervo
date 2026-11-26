@@ -13,8 +13,9 @@ export class ConversationKnowledgeJobSourceError extends Error {
   constructor(
     readonly code: "knowledge_job_source_invalid" | "knowledge_job_source_unavailable",
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "ConversationKnowledgeJobSourceError";
   }
 }
@@ -55,10 +56,11 @@ export async function readConversationKnowledgeJobSource(input: {
   let content: Uint8Array;
   try {
     content = await input.artifacts.get(`lervo-cas://sha256/${hash.slice(7)}`);
-  } catch {
+  } catch (error) {
     throw new ConversationKnowledgeJobSourceError(
       "knowledge_job_source_unavailable",
       "The knowledge job manifest artifact is unavailable.",
+      { cause: error },
     );
   }
   if (
@@ -73,10 +75,11 @@ export async function readConversationKnowledgeJobSource(input: {
   let manifest: RepositoryWorkSourceManifest;
   try {
     manifest = parseRepositoryWorkSourceManifest(content);
-  } catch {
+  } catch (error) {
     throw new ConversationKnowledgeJobSourceError(
       "knowledge_job_source_invalid",
       "The knowledge job manifest artifact is malformed.",
+      { cause: error },
     );
   }
   if (

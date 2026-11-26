@@ -21,8 +21,8 @@ interface CharacterRange {
 export class ManagedContextReferenceError extends Error {
   readonly code: "commonmark_parse_failed" | "json_parse_failed" | "reference_not_standalone";
 
-  constructor(code: ManagedContextReferenceError["code"], message: string) {
-    super(message);
+  constructor(code: ManagedContextReferenceError["code"], message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "ManagedContextReferenceError";
     this.code = code;
   }
@@ -99,6 +99,7 @@ export function projectManagedContextReferences(
     throw new ManagedContextReferenceError(
       "commonmark_parse_failed",
       `Managed context references could not be parsed as CommonMark: ${error instanceof Error ? error.message : "unknown parser failure"}`,
+      { cause: error },
     );
   }
 
