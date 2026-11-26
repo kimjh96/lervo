@@ -56,6 +56,14 @@ async function walk(root, current, files) {
   }
 }
 
+/** The production sources both convention checks read, sorted, repository-relative. */
+export async function productionSources(repositoryRoot) {
+  const sourcePaths = [];
+  for (const sourceRoot of ["apps", "packages", "scripts"])
+    await walk(repositoryRoot, resolve(repositoryRoot, sourceRoot), sourcePaths);
+  return sourcePaths.sort();
+}
+
 function validReview(review) {
   return (
     review !== null &&
@@ -88,10 +96,7 @@ export async function inspectCodeConventionReviews(input) {
       issues: ["The code-convention review registry does not satisfy schema v1."],
     };
   }
-  const sourcePaths = [];
-  for (const sourceRoot of ["apps", "packages", "scripts"])
-    await walk(repositoryRoot, resolve(repositoryRoot, sourceRoot), sourcePaths);
-  sourcePaths.sort();
+  const sourcePaths = await productionSources(repositoryRoot);
   const files = [];
   for (const path of sourcePaths) {
     const absolute = resolve(repositoryRoot, path);
