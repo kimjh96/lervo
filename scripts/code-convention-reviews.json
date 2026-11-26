@@ -151,9 +151,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:52bbd3306d52567d5142efcb0fe20a5898364d31d305f185186f9f3623c08f66",
+      "contentHash": "sha256:2990b50e8a725dbdc3a9474dfa95d49610e8ac5fad35394670216aa43b74b160",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, and tool ownership remain separate modules. The public compiler now delegates complete-coverage admission to the pure shared guard before provider calls; configured preparation and apply use the complete scanner. ADR-0604 only reclassifies a lifecycle mismatch at the same snapshot as a stale candidate; no independent scan or persistence policy is added.",
+      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, tool ownership, and protected Markdown fragments are separate modules. The compiler delegates complete-coverage admission to the shared guard before provider calls; preparation and apply use the complete scanner. ADR-0604 only reclassifies a lifecycle mismatch at the same snapshot as a stale candidate; no independent scan or persistence policy is added.",
       "disposition": "cohesive"
     },
     {
