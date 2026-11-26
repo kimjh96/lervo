@@ -20,6 +20,7 @@ export const lervoCommandMessages: Readonly<Record<LervoCommandId, MessageDescri
   "agent mandate resolve-preflight": { id: "lervo.command.agent.mandate.resolve_preflight" },
   "agent mandate revoke": { id: "lervo.command.agent.mandate.revoke" },
   "agent mandate scope": { id: "lervo.command.agent.mandate.scope" },
+  "agent model": { id: "lervo.command.agent.model" },
   "agent rename": { id: "lervo.command.agent.rename" },
   "agent role": { id: "lervo.command.agent.role" },
   "agent status": { id: "lervo.command.agent.status" },

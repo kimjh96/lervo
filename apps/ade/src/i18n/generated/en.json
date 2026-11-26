@@ -1479,6 +1479,12 @@
       "value": "Set the scope of an agent's mandate"
     }
   ],
+  "lervo.command.agent.model": [
+    {
+      "type": 0,
+      "value": "Changed an agent's model"
+    }
+  ],
   "lervo.command.agent.rename": [
     {
       "type": 0,
