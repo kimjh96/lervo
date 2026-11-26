@@ -93,6 +93,8 @@ export const lervoCommandIds = [
   "plan move",
   "plan start",
   "plan supersede",
+  "project add",
+  "project location",
   "project mark clear",
   "project mark set",
   "project rename",

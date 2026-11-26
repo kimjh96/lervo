@@ -19,9 +19,17 @@ import {
 } from "@lervo/repository-registry";
 
 import { noticeEffect } from "./effect-notice.js";
+import {
+  addProject,
+  ProjectAddError,
+  projectsLocation,
+  setProjectsLocation,
+} from "./project-add.js";
 import type { CliIo } from "./types.js";
 
 export const projectUsage = [
+  "  lervo project add (--folder <absolute-path> | --clone <url> [--into <absolute-path>] | --new <display-name> [--into <absolute-path>]) --write [--json]",
+  "  lervo project location [--set <absolute-path> --write] [--json]",
   "  lervo project show --project <project-id> [--registry <absolute-path>] [--json]",
   "  lervo project rename --project <project-id> --name <display-name> --write [--registry <absolute-path>] [--json]",
   "  lervo project mark set --project <project-id> --image <file> --write [--registry <absolute-path>] [--json]",
@@ -36,6 +44,11 @@ function parse(args: string[]) {
     options: {
       project: { type: "string" },
       name: { type: "string" },
+      folder: { type: "string" },
+      clone: { type: "string" },
+      new: { type: "string" },
+      into: { type: "string" },
+      set: { type: "string" },
       image: { type: "string" },
       registry: { type: "string" },
       write: { type: "boolean" },
@@ -97,11 +110,64 @@ async function report(
   });
 }
 
+/** `add` and `location`, which need no registered project (Lervo ADE projects, "Adding a project"). */
+async function runProjectSetup(
+  verb: "add" | "location",
+  values: ReturnType<typeof parse>["values"],
+  io: CliIo,
+): Promise<number> {
+  const json = values.json === true;
+  const print = (value: object, text: string) => {
+    io.stdout(json ? `${JSON.stringify(value)}\n` : `${text}\n`);
+    return 0;
+  };
+  if (verb === "location") {
+    if (values.set === undefined) {
+      const path = await projectsLocation();
+      return print({ path }, path);
+    }
+    if (values.write !== true)
+      throw new ProjectCommandError("write_required", "Setting the location needs --write.");
+    const path = await setProjectsLocation(values.set);
+    return print({ path }, path);
+  }
+  if (values.write !== true)
+    throw new ProjectCommandError("write_required", "Adding a project needs --write.");
+  const chosen = [values.folder, values.clone, values.new].filter((value) => value !== undefined);
+  if (chosen.length !== 1)
+    throw new ProjectCommandError(
+      "project_argument_missing",
+      "Give exactly one of --folder, --clone, or --new.",
+    );
+  const into = values.into ?? (await projectsLocation());
+  const added = await addProject(
+    values.folder !== undefined
+      ? { kind: "folder", path: values.folder }
+      : values.clone !== undefined
+        ? { kind: "clone", url: values.clone, into }
+        : { kind: "new", name: values.new!, into },
+  );
+  const { registration } = added;
+  return print(
+    {
+      projectId: registration.projectId,
+      name: registration.name,
+      displayName: added.displayName,
+      root: registration.repositoryRoot,
+      source: added.source,
+      gitInitialized: added.gitInitialized,
+      lervoInitialized: added.lervoInitialized,
+    },
+    `${added.displayName} is a project at ${registration.repositoryRoot}`,
+  );
+}
+
 async function run(args: string[], io: CliIo): Promise<number> {
   const parsed = parse(args);
   const [verb, sub] = parsed.positionals;
   const values = parsed.values;
   const json = values.json === true;
+  if (verb === "add" || verb === "location") return runProjectSetup(verb, values, io);
   const projectId = required(values.project, "--project");
   const { root, name } = await locate(projectId, values.registry);
   const output = (value: object, text: string) => {
@@ -161,6 +227,7 @@ export async function runProjectCommand(args: string[], io: CliIo): Promise<numb
   } catch (error) {
     const code =
       error instanceof ProjectProfileError ||
+      error instanceof ProjectAddError ||
       error instanceof RepositoryRegistryError ||
       error instanceof ProjectCommandError
         ? error.code

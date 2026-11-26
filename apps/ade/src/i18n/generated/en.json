@@ -1751,6 +1751,18 @@
       "value": "Superseded a plan item"
     }
   ],
+  "lervo.command.project.add": [
+    {
+      "type": 0,
+      "value": "Added a project"
+    }
+  ],
+  "lervo.command.project.location": [
+    {
+      "type": 0,
+      "value": "Checked where new projects go"
+    }
+  ],
   "lervo.command.project.mark.clear": [
     {
       "type": 0,
