@@ -100,3 +100,11 @@
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-semibold);
 }
+
+/* A room line: what the agents' coordination did, quiet and without a source. */
+.roomLine {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}

@@ -90,6 +90,20 @@ describe("routing between a conversation's agents", () => {
     expect(done.deliveries.map((item) => item.agentId)).toEqual(["agt_elio"]);
   });
 
+  it("takes naming the agent that asked as the answer, so the exchange ends there", () => {
+    const room = router();
+    room.know("s-arin", context("agt_arin", { agt_elio: "s-elio", agt_arin: "s-arin" }));
+    room.sent("s-elio", undefined, owner("Check the capital."));
+    const asked = room.observe("s-elio", said("@Arin what is the capital of Australia?"));
+    room.sent("s-arin", asked.deliveries[0]?.deliveryId, []);
+    const answered = room.observe("s-arin", said("@Elio, it is Canberra."));
+    expect(answered.deliveries.map((item) => item.agentId)).toEqual(["agt_elio"]);
+    expect(answered.deliveries[0]?.text).toContain("[Lervo room] Answer from Arin (Researcher):");
+    room.sent("s-elio", answered.deliveries[0]?.deliveryId, []);
+    // Elio owes Arin nothing, so telling the owner ends the exchange.
+    expect(room.observe("s-elio", said("Arin says it is Canberra.")).deliveries).toEqual([]);
+  });
+
   it("pauses at the exchange budget, asks the opener to summarize, and resumes on the owner's turn", () => {
     const room = router();
     room.sent("s-elio", undefined, owner("Discuss the plan."));

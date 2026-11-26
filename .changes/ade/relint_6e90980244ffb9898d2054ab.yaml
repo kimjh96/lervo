@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6e90980244ffb9898d2054ab"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "A conversation with several agents reads as one timeline: each agent's turns interleave by time, a line names the speaker when it changes, room lines show joins and pauses, and mentions show as quiet pills."

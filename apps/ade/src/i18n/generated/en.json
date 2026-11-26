@@ -2571,6 +2571,48 @@
       "value": "New Project"
     }
   ],
+  "room.deliveryFailed": [
+    {
+      "type": 0,
+      "value": "Lervo could not deliver a mention ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "room.joined": [
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " joined · mentioned by "
+    },
+    {
+      "type": 1,
+      "value": "by"
+    }
+  ],
+  "room.paused": [
+    {
+      "type": 0,
+      "value": "Agents paused at "
+    },
+    {
+      "type": 1,
+      "value": "limit"
+    },
+    {
+      "type": 0,
+      "value": " turns in 10 minutes. The agent that started the exchange summarizes it; reply to start again."
+    }
+  ],
   "start.error.application_unavailable": [
     {
       "type": 0,

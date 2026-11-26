@@ -1,0 +1,9 @@
+/* A mention: the agent's name on a faint accent fill, a step heavier than the text around it. */
+.mention {
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-link);
+  font-weight: var(--font-weight-medium);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  box-decoration-break: clone;
+}
