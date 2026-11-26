@@ -34,8 +34,8 @@ export interface PreparedRepositoryWorkSourceManifest {
 export class RepositoryWorkSourceManifestError extends Error {
   readonly code = "repository_source_manifest_invalid";
 
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "RepositoryWorkSourceManifestError";
   }
 }
@@ -98,8 +98,10 @@ export function parseRepositoryWorkSourceManifest(
   try {
     text = new TextDecoder("utf8", { fatal: true }).decode(content);
     parsed = JSON.parse(text);
-  } catch {
-    throw new RepositoryWorkSourceManifestError("The source manifest is not valid UTF-8 JSON.");
+  } catch (error) {
+    throw new RepositoryWorkSourceManifestError("The source manifest is not valid UTF-8 JSON.", {
+      cause: error,
+    });
   }
   if (
     !record(parsed) ||

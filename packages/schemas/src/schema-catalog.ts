@@ -32,6 +32,10 @@ import {
   roomParticipantJoinedEventPayloadSchema,
 } from "./room-event.js";
 import {
+  assignmentClaimRefusedEventPayloadSchema,
+  assignmentLeaseWidenedEventPayloadSchema,
+} from "./coordination-event.js";
+import {
   contextQualityPreparedEventPayloadSchema,
   contextQualityVerifiedEventPayloadSchema,
 } from "./context-quality-event.js";
@@ -497,6 +501,8 @@ export const schemaCatalog = {
   roomMentionDeliveredEventPayload: roomMentionDeliveredEventPayloadSchema,
   roomMentionFailedEventPayload: roomMentionFailedEventPayloadSchema,
   roomExchangePausedEventPayload: roomExchangePausedEventPayloadSchema,
+  assignmentLeaseWidenedEventPayload: assignmentLeaseWidenedEventPayloadSchema,
+  assignmentClaimRefusedEventPayload: assignmentClaimRefusedEventPayloadSchema,
   terminalSkillObservedEventPayload: terminalSkillObservedEventPayloadSchema,
   terminalSkillTurnAssessedEventPayload: terminalSkillTurnAssessedEventPayloadSchema,
   workstreamSnapshot: workstreamSnapshotSchema,

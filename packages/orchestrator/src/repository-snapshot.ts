@@ -200,7 +200,9 @@ export async function captureRepositorySnapshotWithCache(input: {
       entries = await stats(() => readdir(directory, { withFileTypes: true }));
     } catch (error) {
       if (error instanceof RepositorySnapshotError) throw error;
-      throw new RepositorySnapshotError("Could not read the repository snapshot.");
+      throw new RepositorySnapshotError("Could not read the repository snapshot.", {
+        cause: error,
+      });
     }
     live();
     // A nested `.git` marks another checkout, such as a linked worktree, with its own snapshot.

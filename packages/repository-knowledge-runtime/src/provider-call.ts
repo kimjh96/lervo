@@ -90,7 +90,8 @@ export async function withKnowledgeProviderAdmission<T>(input: {
     if (error instanceof KnowledgeProviderAvailabilityError)
       await pauseKnowledgeProviderFailure(context, error);
     if (controller.signal.aborted) {
-      if (context.signal.aborted) throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
+      if (context.signal.aborted)
+        throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled", { cause: error });
       throw controller.signal.reason;
     }
     throw error;

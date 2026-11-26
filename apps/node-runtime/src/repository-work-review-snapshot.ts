@@ -47,8 +47,8 @@ export type RepositoryWorkReviewSnapshot =
 export class RepositoryWorkReviewSnapshotError extends Error {
   readonly code = "review_source_limit_exceeded";
 
-  constructor() {
-    super("The repository review source exceeds its byte bound.");
+  constructor(options?: ErrorOptions) {
+    super("The repository review source exceeds its byte bound.", options);
     this.name = "RepositoryWorkReviewSnapshotError";
   }
 }
@@ -184,7 +184,7 @@ export async function readRepositoryWorkReviewSnapshot(input: {
       error instanceof RepositoryWorkReviewSnapshotError ||
       error instanceof RepositoryWorkGitBlobLimitError
     )
-      throw new RepositoryWorkReviewSnapshotError();
+      throw new RepositoryWorkReviewSnapshotError({ cause: error });
     if (error instanceof UnsupportedReviewSourceKindError)
       return {
         status: "needs_review",

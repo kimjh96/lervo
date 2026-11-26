@@ -88,10 +88,12 @@ async function readSidecar(
     if (value === null || typeof value !== "object" || Array.isArray(value))
       throw new Error("invalid sidecar");
     return { bytes, value };
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The target concept sidecar cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   } finally {
     await handle?.close();

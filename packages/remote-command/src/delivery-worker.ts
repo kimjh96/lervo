@@ -167,8 +167,8 @@ function parseLeases(input: {
   for (const lease of leases) {
     try {
       assertRemoteCommandLease({ destinationId: input.destinationId, lease });
-    } catch {
-      throw new RemoteCommandDeliveryError("invalid_lease_response");
+    } catch (error) {
+      throw new RemoteCommandDeliveryError("invalid_lease_response", { cause: error });
     }
     if (
       lease.leasedTo !== input.nodeId ||
@@ -189,8 +189,8 @@ async function sendAcknowledgement(input: {
   let response: unknown;
   try {
     response = await input.options.transport.acknowledgeRemoteCommand(input.acknowledgement);
-  } catch {
-    throw new RemoteCommandDeliveryError("hub_unavailable");
+  } catch (error) {
+    throw new RemoteCommandDeliveryError("hub_unavailable", { cause: error });
   }
   const body = authenticatedRemoteCommandBody({
     response,
@@ -202,8 +202,8 @@ async function sendAcknowledgement(input: {
       acknowledgement: input.acknowledgement,
       confirmation: body,
     });
-  } catch {
-    throw new RemoteCommandDeliveryError("invalid_delivery_confirmation");
+  } catch (error) {
+    throw new RemoteCommandDeliveryError("invalid_delivery_confirmation", { cause: error });
   }
   return structuredClone(body);
 }

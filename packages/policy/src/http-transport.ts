@@ -59,8 +59,8 @@ async function boundedJson(response: Response, maxBytes: number): Promise<unknow
   }
   try {
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-  } catch {
-    throw new Error("The policy Hub response is not UTF-8 JSON.");
+  } catch (error) {
+    throw new Error("The policy Hub response is not UTF-8 JSON.", { cause: error });
   }
 }
 

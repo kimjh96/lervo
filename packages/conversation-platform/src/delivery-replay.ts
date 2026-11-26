@@ -56,7 +56,9 @@ export async function deliverPlatformMessageWithReplay(input: {
   } catch (error) {
     if (error instanceof PlatformDeliveryRejectedError) {
       await input.replay.markRejected(coordinate);
-      throw new ConversationPlatformError("platform_delivery_failed", input.rejectedMessage);
+      throw new ConversationPlatformError("platform_delivery_failed", input.rejectedMessage, {
+        cause: error,
+      });
     }
     await input.replay.markUnknown(coordinate).catch(() => undefined);
     if (error instanceof ConversationPlatformError) throw error;

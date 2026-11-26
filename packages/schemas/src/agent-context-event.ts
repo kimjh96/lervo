@@ -39,6 +39,7 @@ export const agentContextPromotedEventPayloadSchema = {
         "decision_rationale",
         "relationship",
         "expertise",
+        "conversation_note",
       ],
     },
     subjectKey: contextSubjectKeySchema,
@@ -125,6 +126,29 @@ export const agentContextHandoffRecordedEventPayloadSchema = {
     "recordedAt",
   ],
   additionalProperties: false,
+} as const;
+
+/**
+ * Schema 16: an agent's own note after a turn it published in a conversation (ADR-0454, Lervo ADE
+ * rooms, "Memory from conversation"). Older envelope versions refuse the kind, so a reader that
+ * reports 15 never meets it.
+ */
+export const agentContextPromotedBeforeV16 = {
+  if: {
+    properties: {
+      type: { const: "agent.context.promoted" },
+      schemaVersion: { type: "integer", maximum: 15 },
+    },
+    required: ["type", "schemaVersion"],
+  },
+  then: {
+    properties: {
+      payload: {
+        type: "object",
+        properties: { memoryKind: { not: { const: "conversation_note" } } },
+      },
+    },
+  },
 } as const;
 
 export type AgentContextPromotedEventPayload = FromSchema<

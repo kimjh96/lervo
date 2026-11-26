@@ -37,12 +37,16 @@ async function readCandidateBytes(path: string, allowMissing = false): Promise<B
       throw new RepositoryKnowledgeError(
         "knowledge_source_unsafe",
         "The durable-instruction candidate does not exist.",
+        undefined,
+        { cause: error },
       );
     }
     if (error instanceof RepositoryKnowledgeError) throw error;
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "The durable-instruction candidate cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   } finally {
     await handle?.close();
@@ -156,10 +160,12 @@ export async function loadDurableInstructionCandidate(input: {
   let value: unknown;
   try {
     value = JSON.parse(bytes.toString("utf8"));
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "The durable-instruction candidate is not valid JSON.",
+      undefined,
+      { cause: error },
     );
   }
   const candidate = validateDurableInstructionCandidate(value);

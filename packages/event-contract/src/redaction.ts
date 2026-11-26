@@ -7,6 +7,10 @@ import {
   terminalBaseDeliveryPayloadSchemas,
 } from "./terminal-base-delivery-payload.js";
 import { roomPayloadAllowlists, roomPayloadSchemas } from "./room-payload.js";
+import {
+  coordinationPayloadAllowlists,
+  coordinationPayloadSchemas,
+} from "./coordination-payload.js";
 import { planLedgerPayloadAllowlists, planLedgerPayloadSchemas } from "./plan-ledger-payload.js";
 import { practicePayloadAllowlists, practicePayloadSchemas } from "./practice-payload.js";
 import {
@@ -71,6 +75,7 @@ export const eventPayloadAllowlists = {
   ...hostedSessionPayloadAllowlists,
   ...terminalBaseDeliveryPayloadAllowlists,
   ...roomPayloadAllowlists,
+  ...coordinationPayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -1263,8 +1268,9 @@ export class RedactionError extends Error {
     readonly code: RedactionErrorCode,
     readonly path: string,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "RedactionError";
   }
 }
@@ -1394,8 +1400,10 @@ export function sanitizeEventPayload(
     validateKnowledgeJobAssignmentPayload(type, sanitized);
     validateAssignmentAccessModePayload(type, sanitized);
     validateConvergenceAssignmentPayload(type, sanitized);
-  } catch {
-    throw new RedactionError("invalid_payload", "$", "The event payload coordinates are invalid.");
+  } catch (error) {
+    throw new RedactionError("invalid_payload", "$", "The event payload coordinates are invalid.", {
+      cause: error,
+    });
   }
   const schemaName = eventPayloadSchemas[type];
   const invalidSchema = schemaName !== undefined && !validateSchema(schemaName, sanitized).valid;
@@ -1571,6 +1579,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   ...hostedSessionPayloadSchemas,
   ...terminalBaseDeliveryPayloadSchemas,
   ...roomPayloadSchemas,
+  ...coordinationPayloadSchemas,
   "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
   "work.causality.recorded": "workCausalityRecordedEventPayload",
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",

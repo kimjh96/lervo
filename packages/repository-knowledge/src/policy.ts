@@ -164,16 +164,23 @@ export async function loadRepositoryKnowledgePolicy(
   let bytes: string;
   try {
     bytes = await readFile(path, "utf8");
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       `${path} cannot be read. Run lervo init first.`,
+      undefined,
+      { cause: error },
     );
   }
   try {
     return validateRepositoryKnowledgePolicy(parse(bytes));
   } catch (error) {
     if (error instanceof RepositoryKnowledgeError) throw error;
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${path} is not valid YAML.`);
+    throw new RepositoryKnowledgeError(
+      "knowledge_source_unsafe",
+      `${path} is not valid YAML.`,
+      undefined,
+      { cause: error },
+    );
   }
 }

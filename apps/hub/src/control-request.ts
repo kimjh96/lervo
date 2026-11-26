@@ -23,8 +23,8 @@ export function matchHubControlRoute(pathname: string): {
   try {
     projectId = decodeURIComponent(parts[4]!);
     deliveryId = decodeURIComponent(parts[6]!);
-  } catch {
-    throw new InvalidHubHttpRequestError();
+  } catch (error) {
+    throw new InvalidHubHttpRequestError({ cause: error });
   }
   if (!PROJECT_ID.test(projectId) || !DELIVERY_ID.test(deliveryId)) {
     throw new InvalidHubHttpRequestError();

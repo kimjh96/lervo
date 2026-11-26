@@ -40,7 +40,7 @@ describe("owner rules Lervo prepared for a terminal turn (schema 15)", () => {
   };
 
   it("is readable from schema 15, while a prepared context without it stays readable", () => {
-    for (let schemaVersion = 1; schemaVersion <= 15; schemaVersion++) {
+    for (let schemaVersion = 1; schemaVersion <= 16; schemaVersion++) {
       expect(validateSchema("event", envelope(schemaVersion, counted)).valid).toBe(
         schemaVersion >= 15,
       );

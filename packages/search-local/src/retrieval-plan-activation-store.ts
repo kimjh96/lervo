@@ -81,6 +81,7 @@ export async function recordSearchRetrievalPlanActivation(
       throw new SearchLocalError(
         "retrieval_plan_activation_conflict",
         "Another retrieval-plan transition already started from the same selection.",
+        { cause: error },
       );
     }
     throw error;

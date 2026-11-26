@@ -28,7 +28,7 @@ export async function readBoundedJsonBody(
   try {
     const text = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks));
     return JSON.parse(text);
-  } catch {
-    throw new InvalidHubHttpRequestError();
+  } catch (error) {
+    throw new InvalidHubHttpRequestError({ cause: error });
   }
 }

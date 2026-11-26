@@ -23,8 +23,8 @@ function delegation(value: string): { target: DelegationTarget; task: string } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);
-  } catch {
-    throw new Error("The delegation specification is not valid JSON.");
+  } catch (error) {
+    throw new Error("The delegation specification is not valid JSON.", { cause: error });
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error("The delegation specification must be an object.");

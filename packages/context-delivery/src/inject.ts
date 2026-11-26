@@ -67,10 +67,11 @@ export async function injectLoadedContext(
   let rawReceipt: unknown;
   try {
     rawReceipt = await input.injectContext(adapterSession, adapterEnvelope);
-  } catch {
+  } catch (error) {
     throw new ContextDeliveryError(
       "injection_failed",
       "The adapter did not complete controlled context input.",
+      { cause: error },
     );
   }
   await assertFreshSnapshot(input, now());

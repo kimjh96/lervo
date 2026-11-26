@@ -144,6 +144,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
       throw new ClaudeAdapterError(
         "provider_process_failed",
         "The Claude Agent SDK could not be started.",
+        { cause: error },
       );
     }
     connected = new ClaudeSdkAgentClient(options, warm, abortController);
@@ -234,6 +235,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
       throw new ClaudeAdapterError(
         "capability_activation_failed",
         "Claude capability activation could not be confirmed.",
+        { cause: error },
       );
     }
   }
@@ -246,10 +248,11 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
     if (this.query === undefined) return;
     try {
       await this.query.interrupt();
-    } catch {
+    } catch (error) {
       throw new ClaudeAdapterError(
         "provider_process_failed",
         "The Claude turn could not be interrupted.",
+        { cause: error },
       );
     }
   }
@@ -268,11 +271,12 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
       } else {
         await this.finishQueryWithinDeadline();
       }
-    } catch {
+    } catch (error) {
       this.abortController.abort();
       throw new ClaudeAdapterError(
         "provider_process_failed",
         "The Claude Agent SDK could not be stopped.",
+        { cause: error },
       );
     } finally {
       this.abortController.abort();

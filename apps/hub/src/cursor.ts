@@ -27,8 +27,8 @@ function decode(value: string, kind: CursorKind): Record<string, unknown> {
   let text: string;
   try {
     text = Buffer.from(value, "base64url").toString("utf8");
-  } catch {
-    throw new Error("The cursor format is invalid.");
+  } catch (error) {
+    throw new Error("The cursor format is invalid.", { cause: error });
   }
   if (Buffer.from(text, "utf8").toString("base64url") !== value) {
     throw new Error("The cursor format is invalid.");
@@ -36,8 +36,8 @@ function decode(value: string, kind: CursorKind): Record<string, unknown> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
-  } catch {
-    throw new Error("The cursor format is invalid.");
+  } catch (error) {
+    throw new Error("The cursor format is invalid.", { cause: error });
   }
   if (
     typeof parsed !== "object" ||

@@ -24,6 +24,7 @@ export function projectManagedJsonContextReferences(
     throw new ManagedContextReferenceError(
       "json_parse_failed",
       "The structured managed result is not valid JSON.",
+      { cause: error },
     );
   }
   // Keep number lexemes and duplicate keys intact; reserialize only changed string values.

@@ -30,7 +30,9 @@ export function prepareConvergenceAssetManifestPlan(
     );
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT")
-      throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
+      throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable", {
+        cause: error,
+      });
     current = null;
   }
   return {

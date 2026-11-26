@@ -68,9 +68,9 @@ describe("agents mentioning each other in a conversation (schema 15, ADR-0641)",
   it("are event types only from schema 15", () => {
     expect(roomEventSchemaVersion).toBe(15);
     for (const type of types)
-      for (let schemaVersion = 1; schemaVersion <= 15; schemaVersion++)
+      for (let schemaVersion = 1; schemaVersion <= 16; schemaVersion++)
         expect(validateSchema("event", envelope(type, schemaVersion, payloads[type])).valid).toBe(
-          schemaVersion === 15,
+          schemaVersion >= 15,
         );
   });
 

@@ -68,6 +68,7 @@ export async function loadVerificationSuite(
       throw new VerificationError(
         "verification_suite_not_found",
         `Verification suite ${suiteId} was not found.`,
+        { cause: error },
       );
     }
     throw new VerificationError(

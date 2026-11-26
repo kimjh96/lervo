@@ -14,6 +14,7 @@ async function requireRealDirectory(path: string, label: string): Promise<void> 
       throw new ProjectStorageError(
         "storage_layout_invalid",
         `${label} ${path} does not exist. Run lervo init first.`,
+        { cause: error },
       );
     }
     throw error;
