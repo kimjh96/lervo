@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d1ed6b3243315ebd4c189791"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Sidebar rows line their labels up at one edge, project logos keep one shape at both sizes, New work shows once a project exists, and the start screen no longer shifts while the lists load."

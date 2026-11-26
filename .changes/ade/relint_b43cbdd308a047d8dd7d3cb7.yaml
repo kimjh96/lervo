@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b43cbdd308a047d8dd7d3cb7"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Show a quiet line when an agent runs lervo project show, rename, or mark set|clear."
