@@ -1,3 +1,4 @@
+import { useAgentStore } from "../../agents";
 import { useWorkspaceStore, type Workspace } from "../../workspaces";
 import { settleStart } from "./start";
 import { type PendingStart, useStartStore } from "./store";
@@ -23,10 +24,23 @@ export type Surface =
       readonly workspace: Workspace;
       /** The pending start this workspace continues, if it was just created from it. */
       readonly continuing: PendingStart | null;
+    }
+  | {
+      readonly kind: "agent";
+      readonly key: string;
+      readonly background: "none";
+      readonly agentId: string;
     };
 
 /** The surface for the selected workspace and the pending start. */
-export function surfaceOf(selected: Workspace | undefined, pending: PendingStart | null): Surface {
+export function surfaceOf(
+  selected: Workspace | undefined,
+  pending: PendingStart | null,
+  profile: string | null = null,
+): Surface {
+  // An agent's profile shows while no conversation is chosen (Lervo ADE agents, "The profile").
+  if (selected === undefined && profile !== null)
+    return { kind: "agent", key: `agent-${profile}`, background: "none", agentId: profile };
   if (selected === undefined)
     return pending === null
       ? { kind: "start", key: "start", background: "none" }
@@ -48,7 +62,8 @@ export function useSurface(): Surface {
     store.workspaces.find((workspace) => workspace.workspaceId === store.selected),
   );
   const pending = useStartStore((store) => store.pending);
-  return surfaceOf(selected, pending);
+  const profile = useAgentStore((store) => store.profile);
+  return surfaceOf(selected, pending, profile);
 }
 
 /**

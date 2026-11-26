@@ -26,7 +26,7 @@ export function Mark(props: {
   name: string;
   /** The image as a URL the webview draws, such as a data URL; null shows the first letter. */
   src: string | null;
-  size: "sm" | "md";
+  size: "sm" | "md" | "lg";
   shape?: "square" | "round";
 }) {
   return (

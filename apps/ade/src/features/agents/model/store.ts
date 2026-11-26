@@ -1,5 +1,7 @@
-import type { AgentSummary, HireableRole } from "@lervo/session-host-contract";
+import type { AgentModelChoice, AgentSummary, HireableRole } from "@lervo/session-host-contract";
 import { create } from "zustand";
+
+import { useWorkspaceStore } from "../../workspaces";
 
 /** The selected project's agents and the roles it can hire (Lervo ADE agents, "The sidebar"). */
 export interface AgentState {
@@ -15,6 +17,10 @@ export interface AgentState {
   readonly failure: string | null;
   /** Agents that arrived in the latest list of the same project, such as one just hired. */
   readonly arrived: ReadonlySet<string>;
+  /** The models a team agent can run on, most capable first (ADR-0647). */
+  readonly models: readonly AgentModelChoice[];
+  /** The agent whose profile the main area shows, or null. */
+  readonly profile: string | null;
 }
 
 export const useAgentStore = create<AgentState>(() => ({
@@ -25,4 +31,38 @@ export const useAgentStore = create<AgentState>(() => ({
   loaded: false,
   failure: null,
   arrived: new Set(),
+  models: [],
+  profile: null,
 }));
+
+/** Shows an agent's profile in the main area, in place of a conversation or the start screen. */
+export function openProfile(agentId: string): void {
+  useWorkspaceStore.getState().select(null);
+  useAgentStore.setState({ profile: agentId });
+}
+
+/**
+ * Closes the profile when the person turns elsewhere: to a conversation, to new work, or to
+ * another project's agents. Returns the unsubscribe function.
+ */
+export function bindProfile(): () => void {
+  const workspaces = useWorkspaceStore.subscribe((state, previous) => {
+    if (
+      (state.selected !== null && state.selected !== previous.selected) ||
+      state.newWorkRequests !== previous.newWorkRequests
+    )
+      closeProfile();
+  });
+  const agents = useAgentStore.subscribe((state, previous) => {
+    if (state.projectId !== previous.projectId) closeProfile();
+  });
+  return () => {
+    workspaces();
+    agents();
+  };
+}
+
+/** Closes the profile, as choosing a conversation, new work, or another project does. */
+export function closeProfile(): void {
+  if (useAgentStore.getState().profile !== null) useAgentStore.setState({ profile: null });
+}

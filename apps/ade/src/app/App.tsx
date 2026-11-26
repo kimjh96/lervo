@@ -4,6 +4,7 @@ import { createIntl, RawIntlProvider } from "react-intl";
 import { bindConnection, bindHostUpdate } from "../features/connection";
 import { bindProjects } from "../features/projects";
 import { bindProviders } from "../features/providers";
+import { bindProfile } from "../features/agents";
 import { bindStart, bindStartDraft } from "../features/start";
 import { bindWorkspaces, notificationMessages, useWorkspaceStore } from "../features/workspaces";
 import { chooseLocale, defaultLocale, messagesFor } from "../i18n/catalog";
@@ -39,6 +40,7 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
       bindProviders({ client: host, commands }),
       bindProjects({ commands, lists, memory: projects, images, files, choosers }),
       bindStart(),
+      bindProfile(),
       bindStartDraft(drafts),
     ];
     // ⌘N (Ctrl+N elsewhere) opens the start screen, as the "New work" row shows.

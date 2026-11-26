@@ -1,0 +1,109 @@
+/* An agent's profile (Lervo ADE agents, "The profile"): one column on the window glass, its
+   identity first, then what it runs on and where it works. */
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-32);
+  width: 100%;
+  max-width: var(--layout-start-max-width);
+  margin-inline: auto;
+  padding-block: var(--space-48) var(--space-36);
+  padding-inline: var(--space-24);
+}
+
+/* Everything starts at the edge where the list rows start their labels (craft rules, 5). */
+.identity {
+  display: flex;
+  gap: var(--space-16);
+  align-items: center;
+  padding-inline: var(--space-10);
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font: inherit;
+}
+
+/* The name and its field share one type, size, and place, so renaming never moves the line. */
+.name {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--type-title-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-title-line-height);
+  white-space: nowrap;
+  text-align: start;
+  text-overflow: ellipsis;
+  background: transparent;
+  cursor: text;
+}
+
+.name:focus-visible {
+  border-radius: var(--radius-sm);
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.name[data-editing] {
+  border-radius: var(--radius-sm);
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.role {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-note-size);
+  line-height: var(--type-note-line-height);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.model {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.value {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--type-body-size);
+}
+
+.note {
+  margin: 0;
+  padding-inline: var(--space-10);
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+  text-wrap: balance;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-8);
+  padding-inline: var(--space-10);
+}
