@@ -24,7 +24,7 @@ import {
   TERMINAL_CACHED_BASE_DIRECTORY,
   terminalCachedBaseNameDigest,
 } from "./terminal-cached-base-turn.js";
-import { TERMINAL_CONTEXT_ENVIRONMENT } from "./terminal-context-server.js";
+import { TERMINAL_CONTEXT_ENVIRONMENT } from "./terminal-context-request.js";
 import { resolveTerminalRoots } from "./terminal-roots.js";
 
 /** The launcher prints a cached base younger than this; the server refreshes it well before. */

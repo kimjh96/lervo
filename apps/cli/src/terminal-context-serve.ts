@@ -8,11 +8,11 @@ import { handOffDetachedLaunches, type DetachedLaunch } from "./detached-knowled
 import { TERMINAL_HOOK_BUDGET_MS } from "./terminal-hook-budget.js";
 import { runTerminalHookCommand } from "./terminal-hook-command.js";
 import {
-  startTerminalContextServer,
   TERMINAL_CONTEXT_SOCKET_NAME,
   type TerminalContextAnswer,
   type TerminalContextRequest,
-} from "./terminal-context-server.js";
+} from "./terminal-context-request.js";
+import { startTerminalContextServer } from "./terminal-context-server.js";
 import { applyTerminalContextSessionEnvironment } from "./terminal-context-session.js";
 import { terminalContextWarmth } from "./terminal-context-warmth.js";
 import { keepTerminalCachedBase } from "./terminal-cached-base.js";
@@ -222,7 +222,7 @@ function contextStats(runtime: string) {
     served: 0,
     /** Served hooks by the launcher that sent them: the host's or a repository's copy. */
     servedBy: {} as Record<string, number>,
-    /** Served hooks by kind: `prompt` or `stop`. */
+    /** Served hooks by kind: `prompt`, `stop`, or `tool`. */
     servedKinds: {} as Record<string, number>,
     declined: {} as Record<string, number>,
     lastServedAt: null as string | null,
@@ -299,6 +299,8 @@ export async function serveTerminalContext(entry: string): Promise<void> {
     onAnswered: stats.answered,
     environment: process.env,
     run: async (request) => {
+      // A claim is no prompt to come: it neither warms a checkout nor keeps its base.
+      if (request.kind === "tool") return runServedTerminalHook(request);
       warmth.served(request.cwd);
       const answer = await runServedTerminalHook(request);
       if (request.kind !== "prompt") return answer;

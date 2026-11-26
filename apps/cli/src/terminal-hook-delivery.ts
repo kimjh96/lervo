@@ -2,7 +2,7 @@
 // stage observation (execution-stages-observed.md#hook-delivery-schema-13).
 import type { terminalHookDeliveryFallbacks } from "@lervo/schemas";
 
-import type { TerminalContextDecline } from "./terminal-context-server.js";
+import type { TerminalContextDecline } from "./terminal-context-request.js";
 
 type Fallback = (typeof terminalHookDeliveryFallbacks)[number];
 export type TerminalHookDelivery =

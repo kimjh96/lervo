@@ -6,10 +6,12 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import {
   effectiveTerminalContextEnvironment,
-  startTerminalContextServer,
   terminalContextEnvironment,
   type TerminalContextAnswer,
   type TerminalContextRequest,
+} from "../src/terminal-context-request.js";
+import {
+  startTerminalContextServer,
   type TerminalContextServer,
 } from "../src/terminal-context-server.js";
 
@@ -300,8 +302,17 @@ it("serves a Stop as it serves a prompt, and runs only the hook a request's kind
     launches: [{ entry: "/cli/bin.js", args: ["settle-turns"], cwd: "/work", env: {} }],
   });
   expect(run).toHaveBeenCalledWith(stop);
+  const claimInput = '{"hook_event_name":"PreToolUse","session_id":"s","tool_name":"Edit"}';
+  const claim = request({ kind: "tool", input: claimInput });
+  expect(JSON.parse((await exchange(socketPath, JSON.stringify(claim))).slice(1))).toMatchObject({
+    ok: true,
+  });
+  expect(run).toHaveBeenCalledWith(claim);
   for (const mismatched of [
     request({ kind: "stop" }),
+    request({ kind: "tool" }),
+    request({ kind: "tool", input: stopInput }),
+    request({ input: claimInput }),
     request({ input: stopInput }),
     { ...request(), kind: "session" },
     request({ input: "not json" }),
@@ -309,7 +320,7 @@ it("serves a Stop as it serves a prompt, and runs only the hook a request's kind
     expect(await exchange(socketPath, JSON.stringify(mismatched))).toBe(
       `${JSON.stringify({ declined: "invalid_request" })}\n`,
     );
-  expect(run).toHaveBeenCalledTimes(1);
+  expect(run).toHaveBeenCalledTimes(2);
 });
 
 it("accepts only a well-formed session environment and umask", async () => {

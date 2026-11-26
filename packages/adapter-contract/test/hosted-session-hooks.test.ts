@@ -27,11 +27,9 @@ describe("a hosted session's hooks", () => {
     expect(terminal({ events: [{ name: "Stop" }, { name: "Stop" }] })).not.toBeNull();
     expect(terminal({ events: [{ name: "PreToolUse" }] })).not.toBeNull();
     expect(terminal({ events: [{ name: "PreToolUse", matcher: "edit" }] })).not.toBeNull();
-    expect(
-      terminal({
-        events: [{ name: "PreToolUse", matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash" }],
-      }),
-    ).toBeNull();
+    const claim = { name: "PreToolUse", matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash" };
+    expect(terminal({ events: [claim] })).not.toBeNull();
+    expect(terminal({ events: [claim], claimCommand: "lervo --claim" })).toBeNull();
     expect(terminal({ events: [{ name: "Stop", matcher: "resume" }] })).not.toBeNull();
     expect(terminal({ events: [{ name: "SessionStart", matcher: "resume; rm" }] })).not.toBeNull();
   });

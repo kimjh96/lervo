@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, it } from "vitest";
-import { TERMINAL_CONTEXT_ENVIRONMENT } from "../src/terminal-context-server.js";
+import { TERMINAL_CONTEXT_ENVIRONMENT } from "../src/terminal-context-request.js";
 import { TERMINAL_CONTEXT_SESSION_NAMES } from "../src/terminal-context-session.js";
 import { inProcessHookFallback } from "../src/terminal-hook-delivery.js";
 import { terminalCachedBaseKey } from "../src/terminal-cached-base.js";
@@ -70,12 +70,21 @@ async function listen(
   return { requests };
 }
 
-function launch(f: Awaited<ReturnType<typeof fixture>>, input: string, extra = {}) {
-  const child = spawn(process.execPath, [source, "--provider", "claude", "--contract", "2"], {
-    cwd: f.cwd,
-    env: { ...f.environment, ...extra },
-    stdio: "pipe",
-  });
+function launch(
+  f: Awaited<ReturnType<typeof fixture>>,
+  input: string,
+  extra = {},
+  flags: string[] = [],
+) {
+  const child = spawn(
+    process.execPath,
+    [source, "--provider", "claude", "--contract", "2", ...flags],
+    {
+      cwd: f.cwd,
+      env: { ...f.environment, ...extra },
+      stdio: "pipe",
+    },
+  );
   let stdout = "";
   let stderr = "";
   child.stdout.on("data", (chunk) => (stdout += chunk.toString()));
@@ -305,6 +314,35 @@ it("sends only prompts and Stops, and nothing when the socket is switched off", 
     stderr: "",
   });
   expect(server.requests).toHaveLength(0);
+});
+
+it("serves a claim as the tool kind, and defers an unserved one without loading the runtime", async () => {
+  const f = await fixture();
+  const claim = JSON.stringify({
+    hook_event_name: "PreToolUse",
+    session_id: "s",
+    tool_name: "Edit",
+    tool_input: { file_path: "a.ts" },
+  });
+  // No server: the fixture runtime would echo the input, so an empty answer shows it never ran.
+  expect(await launch(f, claim, {}, ["--claim"])).toEqual({ code: 0, stdout: "", stderr: "" });
+  expect(await launch(f, claim, { LERVO_TERMINAL_CONTEXT_SOCKET: "0" }, ["--claim"])).toEqual({
+    code: 0,
+    stdout: "",
+    stderr: "",
+  });
+  const server = await listen(
+    f.store,
+    commitThen({ ok: true, stdout: "denied\n", stderr: "", exitCode: 0 }),
+  );
+  expect(await launch(f, claim, {}, ["--claim"])).toEqual({
+    code: 0,
+    stdout: "denied\n",
+    stderr: "",
+  });
+  expect(server.requests).toMatchObject([
+    { kind: "tool", args: ["--provider", "claude", "--contract", "2", "--claim"] },
+  ]);
 });
 
 it("never falls back once committed: a lost answer prints an empty context", async () => {
