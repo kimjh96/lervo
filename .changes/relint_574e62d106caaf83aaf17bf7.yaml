@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_574e62d106caaf83aaf17bf7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Terminal skill telemetry now reads Claude Code transcripts from the directory CLAUDE_CONFIG_DIR names, instead of refusing them as outside the provider's directory."
