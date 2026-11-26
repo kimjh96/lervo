@@ -1,7 +1,9 @@
-<!-- lervo-release package="@lervo/cli" version="0.56.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.56.1" schema="1" -->
 
 ## What's changed
 
-- Carry images in a hosted Claude session's messages: the core link takes them for decoder.send, advertises decoder.images, and Claude transcripts read back image marks.
-- Never drop a prompt over hook input Lervo cannot read: empty prompts are accepted, long prompts are cut to 64 KiB, and rejected input exits 0 with a recorded failure.
-- Read event types through their index and the current workstream newest first, so a prompt hook no longer scans or decodes the whole event history.
+- Answer a served prompt as soon as its context is prepared and record it afterwards, so the context server no longer makes the provider wait for its records.
+- Check Git ignore rules only for a turn's changed paths and reuse the Stop's lifecycle snapshot, so a changed turn's Stop no longer spends about 900 ms re-reading the repository.
+- Fix the built CLI hanging at startup on an import cycle that the lifecycle snapshot reuse introduced, by moving the snapshot hand-off into its own module.
+- Name each image mark by the SHA-256 of its bytes, so the ADE finds the image its session host kept, also in a conversation read back from Claude Code's transcript.
+- Store each prepared prompt snapshot once under its content hash, so a prompt writes a small pointer instead of rewriting megabytes, and retained snapshots shrink from about 140 MB.

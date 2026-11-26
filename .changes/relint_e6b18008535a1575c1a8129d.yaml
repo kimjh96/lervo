@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e6b18008535a1575c1a8129d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Answer a served prompt as soon as its context is prepared and record it afterwards, so the context server no longer makes the provider wait for its records."

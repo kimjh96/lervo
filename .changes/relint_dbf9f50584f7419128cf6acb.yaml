@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_dbf9f50584f7419128cf6acb"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Store each prepared prompt snapshot once under its content hash, so a prompt writes a small pointer instead of rewriting megabytes, and retained snapshots shrink from about 140 MB."
