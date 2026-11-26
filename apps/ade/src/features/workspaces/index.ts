@@ -3,5 +3,5 @@ export { visibleStatus } from "./model/decisions";
 export { type RetireStep, retireWorkspace } from "./model/retire";
 export { useWorkspaceStore } from "./model/store";
 export type { Repository, Workspace } from "./model/types";
-export { notificationMessages } from "./view/messages";
+export { notificationMessages, statusMessages } from "./view/messages";
 export { WorkspaceList } from "./view/WorkspaceList";

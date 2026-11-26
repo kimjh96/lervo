@@ -1,3 +1,4 @@
+import { ParticipantMarks } from "../../agents";
 import { PaneHeader } from "../../../ui/PaneHeader";
 import { Presence } from "../../../ui/Presence";
 import { useWorkspaceStore } from "../../workspaces";
@@ -43,12 +44,15 @@ export function WorkspaceHeader(props: {
             </span>
           )
         ) : (
-          <WorkspaceControls
-            key={workspace.workspaceId}
-            workspaceId={workspace.workspaceId}
-            branch={workspace.branch}
-            retirable={retirable}
-          />
+          <span className={styles.controls}>
+            <ParticipantMarks participants={workspace.participants} />
+            <WorkspaceControls
+              key={workspace.workspaceId}
+              workspaceId={workspace.workspaceId}
+              branch={workspace.branch}
+              retirable={retirable}
+            />
+          </span>
         )}
       </Presence>
     </PaneHeader>

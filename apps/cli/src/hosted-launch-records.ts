@@ -36,6 +36,12 @@ export interface HostedLaunchRecord {
    * Absent when the project hooks every event.
    */
   terminalHooks?: { events: string[]; via: "launcher" | "cli" };
+  /**
+   * The agent whose session this is, and every agent the conversation started with (Lervo ADE
+   * agents, "Participants and sessions"). Absent for a conversation started without agents.
+   */
+  agentId?: string;
+  participants?: string[];
 }
 
 /**

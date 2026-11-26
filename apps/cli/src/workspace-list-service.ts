@@ -35,6 +35,9 @@ export interface WorkspaceSummary {
   conversationModes: ("native" | "cli")[];
   sessionId: string;
   preparedAt: string;
+  /** The writing agent and every agent the conversation started with, when it started with any. */
+  agentId?: string;
+  participants?: string[];
 }
 
 /** The host's registered repositories, by name. */
@@ -122,6 +125,8 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
       conversationModes: hostedProviderModes(record.provider) ?? [record.conversationMode],
       sessionId: record.sessionId,
       preparedAt: record.preparedAt,
+      ...(record.agentId === undefined ? {} : { agentId: record.agentId }),
+      ...(record.participants === undefined ? {} : { participants: record.participants }),
     });
   }
   return { workspaces };

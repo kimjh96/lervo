@@ -21,6 +21,7 @@ import { settingsFileDigest } from "./hosted-session-settings.js";
 import { type HostedTerminalHookPlan, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
 import { workspacesHome } from "./workspaces-home.js";
+import { type WorkspaceParticipants, withAgentEnvironment } from "./workspace-participants.js";
 
 const OBJECTIVE_CHARACTERS = 8192;
 const SLUG_CHARACTERS = 40;
@@ -105,6 +106,8 @@ export interface WorkspaceStartRequest {
   readonly model?: string;
   /** Lervo's hook handler, when the provider's adapter declares `hooks`. */
   readonly hooks?: HostedSessionHooks;
+  /** The agents the conversation starts with; the first one's session writes. */
+  readonly participants?: WorkspaceParticipants;
 }
 
 export interface WorkspaceStartResult {
@@ -261,10 +264,13 @@ export async function startWorkspace(
       intent.hooks === undefined || ports.terminalHooks === undefined
         ? undefined
         : await ports.terminalHooks(placement.workspacePath);
-    const launch = ports.adapter.prepareLaunch(
-      terminal === undefined || intent.hooks === undefined
-        ? intent
-        : { ...intent, hooks: { ...intent.hooks, terminal } },
+    const launch = withAgentEnvironment(
+      ports.adapter.prepareLaunch(
+        terminal === undefined || intent.hooks === undefined
+          ? intent
+          : { ...intent, hooks: { ...intent.hooks, terminal } },
+      ),
+      request.participants?.agentId,
     );
     if (launch.settingsFile !== null) await ports.writeSettings(launch.settingsFile);
     const written =
@@ -282,6 +288,12 @@ export async function startWorkspace(
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
       ...(written === undefined ? {} : { terminalHooks: written }),
+      ...(request.participants === undefined
+        ? {}
+        : {
+            agentId: request.participants.agentId,
+            participants: [...request.participants.participants],
+          }),
       ...(base === undefined
         ? {}
         : {

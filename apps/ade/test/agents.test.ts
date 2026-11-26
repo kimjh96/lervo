@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { hireAgent, showProjectAgents } from "../src/features/agents/model/controller";
 import {
+  agentActivity,
+  defaultParticipants,
   firstSentence,
+  toggleParticipant,
   managesAgents,
   productOwnerRole,
   teamAgents,
@@ -106,5 +109,27 @@ describe("the sidebar's agents", () => {
     const refusing = core({ prj_a: [] });
     await hireAgent(refusing.commands, "prj_a", "astronaut");
     expect(useAgentStore.getState().failure).toBe("role_not_found");
+  });
+
+  it("chooses default participants, toggles them, and reads each agent's activity", () => {
+    const elio = { ...agent("Elio", "team"), roleId: "product-owner" };
+    const ciel = agent("Ciel", "team");
+    expect(defaultParticipants([ciel, elio])).toEqual([elio.agentId]);
+    expect(defaultParticipants([ciel])).toEqual([ciel.agentId]);
+    expect(defaultParticipants([])).toEqual([]);
+    expect(toggleParticipant([elio.agentId], ciel.agentId)).toEqual([elio.agentId, ciel.agentId]);
+    expect(toggleParticipant([elio.agentId, ciel.agentId], elio.agentId)).toEqual([ciel.agentId]);
+    // The last participant stays.
+    expect(toggleParticipant([ciel.agentId], ciel.agentId)).toEqual([ciel.agentId]);
+    const workspace = (sessionId: string, agentId: string) =>
+      ({ workspaceId: `wsp_${sessionId}`, sessionId, agentId }) as unknown as Parameters<
+        typeof agentActivity
+      >[1][number];
+    const workspaces = [workspace("s1", ciel.agentId), workspace("s2", ciel.agentId)];
+    expect(agentActivity(ciel.agentId, workspaces, { s1: "working", s2: "idle" })).toBe("working");
+    expect(agentActivity(ciel.agentId, workspaces, { s1: "working", s2: "needs_user" })).toBe(
+      "needsYou",
+    );
+    expect(agentActivity(elio.agentId, workspaces, { s1: "working" })).toBeNull();
   });
 });

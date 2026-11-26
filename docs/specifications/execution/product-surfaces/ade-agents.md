@@ -38,10 +38,12 @@ Agents work together by mentioning each other directly, by role and by what each
 
 ## Participants and sessions (slice 2)
 
-- The start card's chip names the new conversation's participants: the product owner by default, or a developer in a project without one. It opens a menu of the project's team agents to choose several.
-- `workspace.start` accepts `participants`, agent IDs of the project's active team agents, advertised as a core request name so an older core is never sent it. The first participant writes; the others read or work under their own assignments (ADR-0222's one writer per worktree generation).
-- The hosted session carries its writer agent in the hosted launch record and in `LERVO_AGENT_ID` in the provider process's environment, so hooks and turn evidence attribute its work. The closed launch schema does not change.
-- The conversation's header shows the participants' marks. When the speaking agent changes, its mark, name, and role precede its turn. Collaboration records, such as context passed between agents or paths claimed, show as quiet lines.
+- The start card's chip names the new conversation's participants, with their marks: the product owner by default, else the first team agent. It opens the interface's own menu below it, where each team agent is a choice that toggles and the menu stays open; the last participant cannot be removed. A project without team agents shows no chip and starts the conversation without agents.
+- `workspace.start` accepts `participants`, 1 to 8 distinct agent IDs of the project's active team agents (`participant_invalid` otherwise), and the core advertises `workspace.participants` so an older core is never sent it. The first participant writes; the others read or work under their own assignments (ADR-0222's one writer per worktree generation).
+- The hosted launch record keeps `agentId`, the writing agent, and `participants`. The provider process's environment carries `LERVO_AGENT_ID`, at the start and when the conversation reopens, so hooks and turn evidence can attribute its work. The closed launch schema does not change; the variable rides the launch's environment.
+- `workspace.list` reports each conversation's `agentId` and `participants`.
+- The conversation's header shows the participants' marks, the writing agent first. An agent in the sidebar shows the status of the conversations whose session is its own: needs the owner when any does, working when any works.
+- When the speaking agent changes, its mark, name, and role precede its turn; collaboration records, such as context passed between agents or paths claimed, show as quiet lines. These arrive with S2g, when more than one agent speaks in a conversation.
 
 ## State, events, privacy, and failure meaning
 
