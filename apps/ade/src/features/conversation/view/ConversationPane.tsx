@@ -17,7 +17,7 @@ import styles from "./ConversationPane.module.css";
 import { type AnswerQuestion, QuestionAnswers } from "./questions-context";
 import { ToolLinesProvider } from "./ToolLinesProvider";
 import { TurnSummariesProvider, type TurnWindow } from "./TurnSummariesProvider";
-import type { Mentionable } from "./mentions";
+import type { Mentionable } from "../model/mentionables";
 
 /**
  * The conversation with its dock: the working line while the agent works, and the reply card.

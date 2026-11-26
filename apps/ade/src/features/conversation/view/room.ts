@@ -3,45 +3,14 @@ import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 
 import type { ApplicationCommands, SessionHost } from "../../../ports";
-import { teamAgents, useAgentStore } from "../../agents";
+import { useAgentStore } from "../../agents";
 import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
+import { mentionablesOf } from "../model/mentionables";
 import { RoomMembers } from "../model/room-members";
+import { routeTurn } from "../model/room-routing";
 import { useRoomStore } from "../model/room-store";
-import type { Mentionable } from "./mentions";
 import { activityMessages } from "./messages";
-
-/**
- * Gives the owner's turn to the agents it mentions beyond the lead (Lervo ADE rooms, "Routing"):
- * a joined agent's session, or a new one that joins with the turn. True when the lead is not among
- * them, so the turn does not go to the lead too.
- */
-async function routeToMembers(input: {
-  host: SessionHost;
-  commands: ApplicationCommands;
-  room: RoomMembers | null;
-  workspaceId: string;
-  leadAgentId: string;
-  text: string;
-}): Promise<boolean> {
-  const { host, commands, room, workspaceId, leadAgentId, text } = input;
-  const routed = await commands.run("room.route", { workspaceId, text }).catch(() => null);
-  const agents = routed?.agents ?? [];
-  const others = agents.filter((agentId) => agentId !== leadAgentId);
-  for (const agentId of others) {
-    const member = room?.sessionOf(agentId);
-    const delivered =
-      member !== undefined &&
-      (await host
-        .request({ kind: "session.send", sessionId: member, text })
-        .then(() => true)
-        .catch(() => false));
-    if (delivered) continue;
-    const joined = await commands.run("room.join", { workspaceId, agentId, instruction: text });
-    room?.follow({ agentId, sessionId: joined.sessionId });
-  }
-  return others.length > 0 && !agents.includes(leadAgentId);
-}
 
 /**
  * A conversation's room: it follows each joined agent's session, refreshes the list when an agent
@@ -67,23 +36,11 @@ export function useRoom(input: {
   const statuses = useWorkspaceStore((store) => store.statuses);
   const agents = useAgentStore((store) => store.agents);
 
-  // The reply card's `@` offers the conversation's agents first, then the rest of the team.
   const participants = workspace?.participants;
-  const mentionables = useMemo((): Mentionable[] => {
-    if (!coreRooms) return [];
-    const team = teamAgents(agents);
-    const here = participants ?? [];
-    const of = (participant: boolean) =>
-      team
-        .filter((agent) => here.includes(agent.agentId) === participant)
-        .map((agent) => ({
-          agentId: agent.agentId,
-          displayName: agent.displayName,
-          roleName: agent.roleName,
-          participant,
-        }));
-    return [...of(true), ...of(false)];
-  }, [agents, participants, coreRooms]);
+  const mentionables = useMemo(
+    () => (coreRooms ? mentionablesOf(agents, participants ?? []) : []),
+    [agents, participants, coreRooms],
+  );
 
   const memberKey = (workspace?.sessions ?? [])
     .filter((session) => session.access === "read")
@@ -117,7 +74,7 @@ export function useRoom(input: {
     route: (text: string): Promise<boolean> =>
       workspaceId === null || sessionId === null || !coreRooms || leadAgentId === null
         ? Promise.resolve(false)
-        : routeToMembers({ host, commands, room: room.current, workspaceId, leadAgentId, text }),
+        : routeTurn({ host, commands, room: room.current, workspaceId, leadAgentId, text }),
     /**
      * The working line: the lead's activity as before, or, while joined agents work too, each
      * working agent and what it does on the one line, so the conversation never moves.

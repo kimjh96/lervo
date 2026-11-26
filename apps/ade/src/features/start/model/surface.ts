@@ -1,5 +1,5 @@
-import { useAgentStore } from "../../agents";
-import { useWorkspaceStore, type Workspace } from "../../workspaces";
+import { useAgentStore } from "../../agents/model";
+import { useWorkspaceStore, type Workspace } from "../../workspaces/model";
 import { settleStart } from "./start";
 import { type PendingStart, useStartStore } from "./store";
 
