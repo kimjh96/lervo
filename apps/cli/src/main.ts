@@ -24,6 +24,7 @@ import { migrateUsage, runMigrateCommand } from "./migrate-command.js";
 import { knowledgeUsage, runKnowledgeCommand } from "./knowledge-command.js";
 import { roleUsage, runRoleCommand } from "./role-command.js";
 import { researchUsage, runResearchCommand } from "./research-command.js";
+import { projectUsage, runProjectCommand } from "./project-command.js";
 import { repositoryUsage, runRepositoryCommand } from "./repository-command.js";
 import { runManagedCommand, runUsage } from "./run-command.js";
 import { runSearchCommand, searchUsage } from "./search-command.js";
@@ -64,6 +65,7 @@ ${capabilityUsage}
 ${environmentUsage}
 ${eventContractUsage}
 ${repositoryUsage}
+${projectUsage}
 ${terminalUsage}
 ${workstreamUsage}
 ${planUsage}
@@ -118,6 +120,7 @@ export async function runCli(
   if (command === "environment") return runEnvironmentCommand(args.slice(1), io, services);
   if (command === "event-contract") return runEventContractCommand(args.slice(1), io);
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);
+  if (command === "project") return runProjectCommand(args.slice(1), io);
   if (command === "terminal") return runTerminalCommand(args.slice(1), io, services);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
   if (command === "plan") return runPlanCommand(args.slice(1), io);
