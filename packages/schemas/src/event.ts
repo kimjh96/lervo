@@ -16,6 +16,7 @@ import { hostedSessionEventTypes } from "./hosted-session-event.js";
 import { planLedgerEventTypes } from "./plan-ledger-event.js";
 import { resourceUsageBeforeV11 } from "./resource-usage-event.js";
 import { terminalTurnObservedBeforeV12 } from "./terminal-observation-event.js";
+import { executionStagesObservedBeforeV13 } from "./execution-observability-event.js";
 
 export const eventTypesV1 = [
   "run.requested",
@@ -198,7 +199,12 @@ export const eventTypesV11 = eventTypesV10;
  * `terminalTurnObservedBeforeV12` keeps out of older envelope versions.
  */
 export const eventTypesV12 = eventTypesV11;
-export const eventTypes = eventTypesV12;
+/**
+ * No new type. `execution.stages.observed` may say how a terminal hook's answer was delivered,
+ * which `executionStagesObservedBeforeV13` keeps out of older envelope versions.
+ */
+export const eventTypesV13 = eventTypesV12;
+export const eventTypes = eventTypesV13;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -266,6 +272,7 @@ const eventEnvelopeInvariants = [
   },
   resourceUsageBeforeV11,
   terminalTurnObservedBeforeV12,
+  executionStagesObservedBeforeV13,
 ] as const;
 
 export const eventEnvelopeV1Schema = {
@@ -348,6 +355,7 @@ export const eventEnvelopeSchema = {
     { properties: { type: { enum: eventTypesV10 }, schemaVersion: { const: 10 } } },
     { properties: { type: { enum: eventTypesV11 }, schemaVersion: { const: 11 } } },
     { properties: { type: { enum: eventTypesV12 }, schemaVersion: { const: 12 } } },
+    { properties: { type: { enum: eventTypesV13 }, schemaVersion: { const: 13 } } },
   ],
 } as const;
 
@@ -393,7 +401,11 @@ export type EventEnvelopeV12 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> &
   schemaVersion: 12;
   type: (typeof eventTypesV12)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV12, "schemaVersion"> & {
+export type EventEnvelopeV13 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 13;
+  type: (typeof eventTypesV13)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV13, "schemaVersion"> & {
   schemaVersion:
     | EventEnvelopeV1["schemaVersion"]
     | EventEnvelopeV2["schemaVersion"]
@@ -406,7 +418,8 @@ export type EventEnvelope = Omit<EventEnvelopeV12, "schemaVersion"> & {
     | 9
     | 10
     | 11
-    | 12;
+    | 12
+    | 13;
 };
 /**
  * `T` with its `events` typed as non-empty `EventEnvelope`s, keeping every other property and any
@@ -418,4 +431,4 @@ export type WithEnvelopeEvents<T> = {
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV12)[number];
+export type EventType = (typeof eventTypesV13)[number];

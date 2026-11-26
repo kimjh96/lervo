@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_206596f9117cb7e8943654f5"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Read event schema 13 in the CLI, the Node, and the Hub: execution.stages.observed can say how a terminal hook's answer was delivered, with its answer time or why it ran in its own process. Automatic writer activation stays at schema 12."

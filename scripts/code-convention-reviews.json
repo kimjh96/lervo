@@ -88,7 +88,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:04982e7d4d8b550bb9a8283d3607d726aad07442e8c54ea7c4af7c4a0603eb34",
+      "contentHash": "sha256:f04e7349b78f67088b2772c968768b58d3cbe6818396e2019e63d9add217a8ca",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, and hosted-session payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/schemas/src/event.ts",
-      "contentHash": "sha256:7bde9079900979bba87e5d043f33ec86d1774575954bcf8b929bb1d308e7ab85",
+      "contentHash": "sha256:7baa3dbeed3629b8495018cfd12de2921c9ebcf26421d2f680c24d36c64a9e3f",
       "responsibility": "Versioned event envelope schema and types",
       "rationale": "The module defines the event envelope schema once and the cumulative event type list of every schema version, with one discriminated branch and one envelope type per version. Each new version adds one list, one branch, and one type. Cross-version invariants, such as the schema-11 resource usage boundary, are defined in their payload modules and only listed here. Validation, redaction, persistence, and reader capabilities stay outside it.",
       "disposition": "cohesive"
