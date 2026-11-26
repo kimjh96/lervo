@@ -12,6 +12,8 @@ import type {
   ExecutionStagesObservedEventPayload,
 } from "@lervo/schemas";
 
+import type { TerminalHookDelivery } from "./terminal-hook-delivery.js";
+
 export interface TerminalStageObservationPort {
   readonly deadlineMs?: number;
   readonly observationDeadlineMs?: number;
@@ -21,6 +23,8 @@ export interface TerminalStageObservationPort {
    * its work, so a long-lived caller can wait for the work before it reuses its process.
    */
   trackWork?(work: Promise<unknown>): void;
+  /** How the hook's answer reached the provider, recorded from writer schema 13. */
+  delivery?(): TerminalHookDelivery | undefined;
   measure<T>(stageId: ExecutionStageId, operation: () => Promise<T>): Promise<T>;
   measureChild<T>(
     stageId: ExecutionStageId,

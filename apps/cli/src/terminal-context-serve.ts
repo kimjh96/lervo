@@ -14,6 +14,7 @@ import {
   type TerminalContextRequest,
 } from "./terminal-context-server.js";
 import { applyTerminalContextSessionEnvironment } from "./terminal-context-session.js";
+import type { TerminalHookDelivery } from "./terminal-hook-delivery.js";
 import {
   createTerminalStageObservation,
   type CreateTerminalStageObservation,
@@ -31,7 +32,7 @@ const OVERRUN_MILLISECONDS = TERMINAL_HOOK_BUDGET_MS / 2;
  * that fails or reaches its deadline settles its measurement, and a degraded answer goes out, while
  * sibling stages' work may still run; the server waits for that work before the next request.
  */
-function trackingStageWork(): {
+function trackingStageWork(delivery: () => TerminalHookDelivery): {
   create: CreateTerminalStageObservation;
   /** Whether all of it settled within `milliseconds`. */
   drain: (milliseconds: number) => Promise<boolean>;
@@ -57,6 +58,7 @@ function trackingStageWork(): {
       const port = createTerminalStageObservation(digest);
       // Everything else, deadlines and settling included, comes from the hook's own observation.
       const observed = Object.create(port) as TerminalStageObservationPort;
+      observed.delivery = delivery;
       observed.trackWork = (pending) => {
         work.add(pending);
         void pending.then(
@@ -83,7 +85,13 @@ export async function runServedTerminalHook(
   request: TerminalContextRequest,
 ): Promise<TerminalContextAnswer> {
   const startedAt = performance.now() - request.elapsed;
-  const observation = trackingStageWork();
+  // What the provider waited for, as the server's stats count it; known only after an early answer.
+  let answerMilliseconds: number | undefined;
+  const observation = trackingStageWork(() =>
+    answerMilliseconds === undefined
+      ? { channel: "context_server" }
+      : { channel: "context_server", answerMilliseconds },
+  );
   let stdout = "";
   let stderr = "";
   const launches: DetachedLaunch[] = [];
@@ -128,6 +136,7 @@ export async function runServedTerminalHook(
       },
       stdin: async () => request.input,
       answer: (message) => {
+        answerMilliseconds = Math.min(600_000, Math.round(performance.now() - startedAt));
         phase = "recording";
         early(message);
       },

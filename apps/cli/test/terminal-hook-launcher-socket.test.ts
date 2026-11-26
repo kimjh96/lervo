@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { TERMINAL_CONTEXT_ENVIRONMENT } from "../src/terminal-context-server.js";
 import { TERMINAL_CONTEXT_SESSION_NAMES } from "../src/terminal-context-session.js";
+import { inProcessHookFallback } from "../src/terminal-hook-delivery.js";
 import {
   materializeHostTerminalRuntime,
   terminalHookRuntimeStorePath,
@@ -22,7 +23,7 @@ afterEach(async () => {
   await Promise.all(cleanups.splice(0).map((cleanup) => cleanup()));
 });
 
-async function fixture() {
+async function fixture(runtime = runtimeContent) {
   // Short: the store holds a Unix socket, whose path is limited to about a hundred bytes.
   const home = await realpath(await mkdtemp(resolve(tmpdir(), "lvl-")));
   const cwd = resolve(home, "repository");
@@ -30,7 +31,7 @@ async function fixture() {
   const environment: NodeJS.ProcessEnv = { ...process.env, HOME: home, USERPROFILE: home };
   delete environment.LERVO_TERMINAL_CONTEXT_SOCKET;
   const store = terminalHookRuntimeStorePath(environment, process.platform, home);
-  await materializeHostTerminalRuntime({ store, runtimeContent, assets: [] });
+  await materializeHostTerminalRuntime({ store, runtimeContent: runtime, assets: [] });
   cleanups.push(() => rm(home, { recursive: true, force: true }));
   return { home, cwd, environment, store };
 }
@@ -120,6 +121,42 @@ it("falls back with the same input when the server declines", async () => {
   await listen(f.store, (socket) => socket.end(`${JSON.stringify({ declined: "busy" })}\n`));
   expect(await launch(f, prompt)).toEqual({ code: 0, stdout: prompt, stderr: "" });
 });
+
+// This fixture runtime prints what the launcher left about its offer (schema 13 `delivery`).
+const offerRuntime =
+  '#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify(globalThis[Symbol.for("lervo.terminalHook.offer")] ?? null));\n';
+
+async function fallbackAfter(
+  setup: (f: Awaited<ReturnType<typeof fixture>>) => Promise<unknown>,
+  input = prompt,
+) {
+  const f = await fixture(offerRuntime);
+  await setup(f);
+  const result = await launch(f, input);
+  expect(result.code).toBe(0);
+  return inProcessHookFallback(JSON.parse(result.stdout), f.environment, process.platform);
+}
+
+it.skipIf(process.platform === "win32")(
+  "leaves the runtime why a hook was not served",
+  async () => {
+    expect(
+      await fallbackAfter((f) =>
+        listen(f.store, (socket) => socket.end(`${JSON.stringify({ declined: "busy" })}\n`)),
+      ),
+    ).toBe("declined_busy");
+    expect(await fallbackAfter(async () => undefined)).toBe("no_server");
+    // Accepted but never answered: the launcher gives up before the commit.
+    expect(await fallbackAfter((f) => listen(f.store, () => undefined))).toBe("unreachable");
+    // An input the launcher never offers.
+    expect(
+      await fallbackAfter(
+        (f) => listen(f.store, commitThen({ ok: true, stdout: "", exitCode: 0 })),
+        JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt: "x".repeat(210 * 1024) }),
+      ),
+    ).toBe("not_offered");
+  },
+);
 
 it("sends a Stop with the session's values, and starts the launches the answer names", async () => {
   const f = await fixture();

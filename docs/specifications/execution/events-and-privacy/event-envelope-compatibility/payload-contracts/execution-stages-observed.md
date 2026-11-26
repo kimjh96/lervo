@@ -25,4 +25,4 @@ A terminal hook either runs inside the resident context server or in its own pro
 
 No other key is allowed in `delivery`. It carries no path, socket name, prompt, or session data. An absent `delivery` claims nothing: older writers and hooks that recorded no delivery look the same. Below schema 13 the envelope refuses the field, so older readers never receive it.
 
-This release only reads `delivery`; no writer records it yet.
+A terminal hook records `delivery` only when the repository's writer selects schema 13 or later; the event then carries schema version 13. An older writer records the stages alone, as schema 2. A served hook records `context_server`, with `answerMilliseconds` when it answered before its records. A hook in its own process maps what launcher version 4 left about its offer: nothing at all is `unreported`, or `disabled` when the socket is switched off; a launcher that found no socket is `no_server`, and one that found a socket but did not offer the request is `not_offered`; a decline line names its reason; any other connection state is `unreachable`. Launchers before version 4 leave nothing, so their hooks record `unreported`.
