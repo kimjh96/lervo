@@ -1,0 +1,207 @@
+import type { ConversationItem } from "@lervo/session-host-contract";
+import { useVirtualizer, type Virtualizer } from "@tanstack/react-virtual";
+import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+
+/** The key of the conversation's first row. */
+const FIRST_ROW = "first-row";
+const NEAR_EDGE_PX = 48;
+/** The most frames a list stays hidden while its measured height settles. */
+const PLACE_FRAMES = 12;
+/** How close to the bottom counts as the live end, so a bounce at the bottom stays there. */
+const LIVE_END_PX = 4;
+/** How long after a wheel, key, or drag a scroll counts as the user's. */
+const USER_SCROLL_MS = 300;
+const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "]);
+
+/** Where the reader is: the first visible item and how far its top sits above the viewport. */
+interface Anchor {
+  readonly itemId: string;
+  readonly offset: number;
+}
+
+/**
+ * The conversation's virtualized list, following its live end (ADE motion, "Following the
+ * stream"): only items near the viewport mount, and their heights are measured once per item. The
+ * newest text stays in view until the user scrolls up, by however little; the item the user reads
+ * stays in place when items are added or dropped above it; and pages load near either edge. The
+ * list is `placed` once its measured height settles at the end, so its first layout never shows.
+ */
+export function useFollowLatest(input: {
+  scroller: RefObject<HTMLDivElement | null>;
+  items: readonly ConversationItem[];
+  hasEarlier: boolean;
+  hasLater: boolean;
+  /** Shows the list at once, when the view continues one already on screen. */
+  continues: boolean;
+  /** The floating dock's height, which the list keeps room for below its last item. */
+  dockHeight: number;
+  /** Counts the tool lines the user opened or closed, which must not move the view. */
+  toggles: number;
+  onLoadEarlier: () => void;
+  onLoadLater: () => void;
+}): {
+  virtualizer: Virtualizer<HTMLDivElement, Element>;
+  live: boolean;
+  placed: "now" | "arrive" | null;
+  follow: () => void;
+} {
+  const { scroller } = input;
+  // The interface does not use the React Compiler, so the virtualizer's unmemoizable functions
+  // need no compiler support.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer({
+    count: input.items.length,
+    getScrollElement: () => scroller.current,
+    estimateSize: () => 72,
+    // The conversation's first item keeps one key, so the session's copy of the first message
+    // replaces the stand-in of work just sent in place instead of mounting its row again.
+    getItemKey: (index) =>
+      index === 0 && !input.hasEarlier ? FIRST_ROW : (input.items[index]?.itemId ?? index),
+    overscan: 8,
+  });
+  const items = useRef(input.items);
+  items.current = input.items;
+  const anchor = useRef<Anchor | null>(null);
+  /** The position the view last scrolled to itself, whose scroll event is not the user's. */
+  const selfScrolled = useRef<number | null>(null);
+  const loaders = useRef(input);
+  loaders.current = input;
+  const [following, setFollowing] = useState(true);
+  const [placed, setPlaced] = useState<"now" | "arrive" | null>(null);
+  const hasItems = input.items.length > 0;
+  const live = following && !input.hasLater;
+  const liveNow = useRef(live);
+  liveNow.current = live;
+  const last = input.items.at(-1);
+  const lastLength = last !== undefined && "text" in last ? last.text.length : 0;
+  const totalSize = virtualizer.getTotalSize();
+  const firstItemId = input.items[0]?.itemId;
+  const firstShown = useRef(firstItemId);
+  /** The list's height when the user last opened or closed a tool line, until it is measured. */
+  const toggledAt = useRef<number | null>(null);
+
+  // A tool line the user opens or closes stays under the pointer, so the next measured height
+  // does not move the view to the end.
+  useLayoutEffect(() => {
+    if (input.toggles > 0) toggledAt.current = virtualizer.getTotalSize();
+  }, [input.toggles, virtualizer]);
+
+  // While following, the newest text stays in view as items arrive and heights are measured.
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    if (!live || element === null) return;
+    if (toggledAt.current !== null) {
+      if (totalSize === toggledAt.current) return;
+      toggledAt.current = null;
+      // The opened line leaves the end below the view: the user is reading, and the view stops
+      // following until they return to the end. A line closed at the end stays at the end.
+      if (element.scrollHeight - element.scrollTop - element.clientHeight > LIVE_END_PX)
+        setFollowing(false);
+      return;
+    }
+    element.scrollTop = element.scrollHeight;
+    selfScrolled.current = element.scrollTop;
+  }, [scroller, live, input.items.length, lastLength, totalSize, input.dockHeight]);
+
+  // The list shows once its items are measured and it rests at its end, so the estimated first
+  // layout and the scroll to the end never show; it then arrives with the view. A list that
+  // continues one already on screen, such as new work's first message, shows at once.
+  useLayoutEffect(() => {
+    if (placed !== null || !hasItems) return;
+    if (input.continues) {
+      setPlaced("now");
+      return;
+    }
+    // Each frame follows the end until the measured height stops changing.
+    let frames = 0;
+    let previous = -1;
+    let frame = 0;
+    const settle = () => {
+      const element = scroller.current;
+      if (element === null) return;
+      if (liveNow.current) {
+        element.scrollTop = element.scrollHeight;
+        selfScrolled.current = element.scrollTop;
+      }
+      frames += 1;
+      if (element.scrollHeight === previous || frames >= PLACE_FRAMES) setPlaced("arrive");
+      else frame = requestAnimationFrame(settle);
+      previous = element.scrollHeight;
+    };
+    frame = requestAnimationFrame(settle);
+    return () => cancelAnimationFrame(frame);
+  }, [scroller, placed, hasItems, input.continues]);
+
+  // When items are added or dropped above the reader, the item they read stays where it was. Only
+  // a change of the first item moves items; leaving the live end must not move the view.
+  useLayoutEffect(() => {
+    const previous = firstShown.current;
+    firstShown.current = firstItemId;
+    const element = scroller.current;
+    const reading = anchor.current;
+    if (previous === firstItemId || liveNow.current || element === null || reading === null) return;
+    const index = items.current.findIndex((item) => item.itemId === reading.itemId);
+    const start = virtualizer.measurementsCache[index]?.start;
+    if (start === undefined) return;
+    element.scrollTop = start + reading.offset;
+    selfScrolled.current = element.scrollTop;
+  }, [scroller, firstItemId, virtualizer]);
+
+  useEffect(() => {
+    const element = scroller.current;
+    if (element === null) return;
+    let dragging = false;
+    let userAt = Number.NEGATIVE_INFINITY;
+    let previousTop = element.scrollTop;
+    const remember = () => {
+      const top = element.scrollTop;
+      const row = virtualizer.getVirtualItems().find((candidate) => candidate.end > top);
+      const item = row === undefined ? undefined : items.current[row.index];
+      anchor.current =
+        row === undefined || item === undefined
+          ? null
+          : { itemId: item.itemId, offset: top - row.start };
+    };
+    // Only the user leaves the live end, by moving up with a wheel, a key, or the scroll bar, by
+    // however little. Scrolls the view makes itself, such as following new text or correcting
+    // measured heights, never count. The user returns to the live end by reaching the bottom.
+    const user = () => (userAt = performance.now());
+    const key = (event: KeyboardEvent) => {
+      if (SCROLL_KEYS.has(event.key)) user();
+    };
+    const press = () => {
+      dragging = true;
+      user();
+    };
+    const release = () => (dragging = false);
+    const scrolled = () => {
+      remember();
+      const top = element.scrollTop;
+      const movedUp = top < previousTop;
+      previousTop = top;
+      const own = selfScrolled.current !== null && Math.abs(top - selfScrolled.current) < 1;
+      selfScrolled.current = null;
+      const byUser = !own && (dragging || performance.now() - userAt < USER_SCROLL_MS);
+      const bottom = element.scrollHeight - top - element.clientHeight;
+      // At the bottom the view is at the live end, whatever moved it there.
+      if (bottom <= LIVE_END_PX) setFollowing(true);
+      else if (byUser && movedUp) setFollowing(false);
+      if (bottom < NEAR_EDGE_PX) loaders.current.onLoadLater();
+      if (top < NEAR_EDGE_PX) loaders.current.onLoadEarlier();
+    };
+    element.addEventListener("scroll", scrolled, { passive: true });
+    element.addEventListener("wheel", user, { passive: true });
+    element.addEventListener("keydown", key);
+    element.addEventListener("pointerdown", press);
+    globalThis.addEventListener("pointerup", release);
+    return () => {
+      element.removeEventListener("scroll", scrolled);
+      element.removeEventListener("wheel", user);
+      element.removeEventListener("keydown", key);
+      element.removeEventListener("pointerdown", press);
+      globalThis.removeEventListener("pointerup", release);
+    };
+  }, [scroller, virtualizer]);
+
+  return { virtualizer, live, placed, follow: () => setFollowing(true) };
+}

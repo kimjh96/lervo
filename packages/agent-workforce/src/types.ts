@@ -38,6 +38,11 @@ export interface WorkforceAgent {
    * Lervo's model routes, and on a team agent hired before the field, whose role then decides.
    */
   model?: AgentModel;
+  /**
+   * The image the owner chose for the agent (Lervo ADE agents, "The profile"), stored once as a
+   * repository asset by its hash, as a project's mark is. Absent until the owner chooses one.
+   */
+  mark?: AgentMark;
   revision: number;
   createdAt: string;
   updatedAt: string;
@@ -55,6 +60,12 @@ export type ModelTier = (typeof modelTiers)[number];
 /** How much the model thinks and works before it answers, lowest first. */
 export const modelEfforts = ["low", "medium", "high", "xhigh", "max"] as const;
 export type ModelEffort = (typeof modelEfforts)[number];
+
+/** An agent's image, as a project's mark: the asset's hash and format. */
+export interface AgentMark {
+  sha256: string;
+  mediaType: "image/png" | "image/jpeg" | "image/webp";
+}
 
 export interface AgentModel {
   tier: ModelTier;

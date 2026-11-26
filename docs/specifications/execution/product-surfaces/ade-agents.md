@@ -52,7 +52,8 @@ Agents work together by mentioning each other directly, by role and by what each
 - **Model and effort.** Two menus, the model from `agents.list`'s `models` and the effort, change them through `agent.model`. A line under them says whether Lervo chose them for the role and that a change applies from the agent's next session. A core that does not advertise `agent.model` shows the model as text.
 - **Conversations.** The conversations the agent takes part in, as the lead or a joined participant; choosing one opens it.
 - **Pausing.** "Pause agent" sets the agent suspended through `agent.status`; it takes no new work, keeps its conversations, and shows quieter in the sidebar. "Resume agent" undoes it. Retiring cannot be undone, so the profile does not offer it (invariant 10); `lervo agent status` retires an agent.
-- **Still to come.** The agent's paths, what it has learned, and its image.
+- **Image.** Pressing the agent's large mark opens the image panel, as a project's logo does; an agent with an image first offers "Choose Image" and "Remove Image" in a menu. The image shows wherever the agent's mark does: the sidebar, the conversation's header, the speaker lines, the mention suggestions, and the participants chip.
+- **Still to come.** The agent's paths and what it has learned.
 - **Failure.** A failed rename or model change shows one line under the profile: "Lervo could not change the agent (<code>)."
 
 ## Model and effort
@@ -65,9 +66,16 @@ Agents work together by mentioning each other directly, by role and by what each
 - `agent.status` (`projectId`, `agentId`, `revision`, `status`) pauses an agent (`suspended`) or lets it work again (`active`), as `lervo agent status` does. Retiring cannot be undone, so it stays a terminal command (invariant 10), and the core link refuses `retired` with `agent_argument_invalid`.
 - The agent's profile (slice 3) shows the model and effort and changes them.
 
+## The agent's image
+
+- An agent's image is bounded and stored as a project's mark is ([Lervo ADE projects](ade-projects.md)): PNG, JPEG, or WebP, at most 512 KiB, each side between 16 and 1,024 pixels, which the ADE prepares at most 512 pixels square. The bytes are stored once by their SHA-256 at `.lervo/assets/agents/<sha256>.<png|jpg|webp>`, a folder of its own, so a project changing its mark never removes an image an agent shows. The agent record keeps `mark` (`sha256`, `mediaType`), and an image no agent shows any longer is removed.
+- `agents.list` reports each agent's `mark`, or null. `agent.mark.set` (`projectId`, `agentId`, `revision`, `data` in Base64) and `agent.mark.clear` (`projectId`, `agentId`, `revision`) change it and return the agent; `agent.mark.read` (`projectId`, `agentId`) returns the image's hash, format, and Base64 bytes, or null. `lervo agent mark --agent <id> (--image <file> | --clear) --revision <n> --write` does the same in the terminal.
+- The ADE keeps a thumbnail of each image by its hash, in the same bounded cache as project marks, so an agent's image shows at once on the next launch.
+
 ## State, events, privacy, and failure meaning
 
 - Slice 1 adds no stored state and no event type. `agents.list` reads the registry, the role catalog, and the convergence delegation. `agent.hire` records the existing `agent.registered` event.
+- An image change records the existing `agent.identity.changed` with `changeKind: "mark"`, `previousMarkSha256`, and `markSha256` (each null when there is none). The image's bytes never enter an event.
 - Agent names and role names are repository-local operational data, already readable by `lervo agent list`.
 
 | Code                        | Meaning                                                                     |
@@ -76,8 +84,8 @@ Agents work together by mentioning each other directly, by role and by what each
 | `role_not_found`            | The role is neither built in nor a repository role of the project.          |
 | `agent_name_conflict`       | Another agent of the project already has that name, compared ignoring case. |
 | `workforce_busy`            | The registry stayed locked by another writer after the core's retries.      |
+| `agent_mark_invalid`        | The image's format, signature, size, or dimensions are outside the bound.   |
 
 ## Open items
 
-- How an agent's image is stored and replicated, which slice 3 settles with the project mark's approach.
 - Whether suspended agents show in the sidebar, dimmed, or only in the profile.

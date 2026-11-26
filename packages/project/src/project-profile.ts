@@ -43,7 +43,8 @@ export const MAXIMUM_MARK_BYTES = 512 * 1024;
 const MINIMUM_MARK_SIDE = 16;
 const MAXIMUM_MARK_SIDE = 1024;
 
-const extensions: Record<ProjectMarkMediaType, string> = {
+/** The file extension each mark format is stored under. */
+export const MARK_EXTENSIONS: Readonly<Record<ProjectMarkMediaType, string>> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
@@ -159,7 +160,7 @@ function parseProfile(value: unknown): ProjectProfileV1 | null {
     mark === undefined ||
     typeof mark.sha256 !== "string" ||
     !/^[0-9a-f]{64}$/u.test(mark.sha256) ||
-    !Object.hasOwn(extensions, mark.mediaType)
+    !Object.hasOwn(MARK_EXTENSIONS, mark.mediaType)
   )
     return null;
   return {
@@ -195,10 +196,11 @@ export async function readProjectProfile(root: string): Promise<ProjectProfileRe
 
 /** The repository-relative path of a mark's image. */
 export function markAssetPath(mark: ProjectMark): string {
-  return `${PROJECT_ASSETS_DIRECTORY}/${mark.sha256}.${extensions[mark.mediaType]}`;
+  return `${PROJECT_ASSETS_DIRECTORY}/${mark.sha256}.${MARK_EXTENSIONS[mark.mediaType]}`;
 }
 
-async function writeAtomically(path: string, content: string | Uint8Array): Promise<void> {
+/** Writes `content` over `path` so a reader sees the old bytes or the new, never a mix. */
+export async function writeAtomically(path: string, content: string | Uint8Array): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   const temporary = `${path}.${randomBytes(6).toString("hex")}.tmp`;
   try {

@@ -41,4 +41,5 @@ export * from "./workforce-source-paths.js";
 export { createPinnedAssignment } from "./assignment-pinned-creation.js";
 export { recordAgentOrigins } from "./agent-origin.js";
 export { pruneRetiredLervoAgents, RETAINED_RETIRED_LERVO_AGENTS } from "./agent-retention.js";
+export * from "./agent-mark.js";
 export * from "./agent-model.js";

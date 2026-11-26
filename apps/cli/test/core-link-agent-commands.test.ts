@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -24,6 +24,15 @@ afterEach(async () => {
   else process.env.LERVO_USER_STATE_DIRECTORY = previous;
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
+
+/** A PNG header of `side` pixels square, which is all the mark check reads. */
+function pngBase64(side: number): string {
+  const bytes = new Uint8Array(64);
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
+  new DataView(bytes.buffer).setUint32(16, side);
+  new DataView(bytes.buffer).setUint32(20, side);
+  return Buffer.from(bytes).toString("base64");
+}
 
 interface Listed {
   agents: { displayName: string; roleId: string; roleName: string; origin: string }[];
@@ -187,6 +196,71 @@ describe("the core link's agent commands", () => {
         status: "retired",
       }),
     ).rejects.toMatchObject({ code: "agent_argument_invalid" });
+  });
+
+  it("sets, reads, and clears an agent's image, and keeps another agent's when they share it", async () => {
+    const { projectId, root } = await project();
+    type Changed = { agent: { agentId: string; revision: number; mark: unknown } };
+    const hire = async (name: string) =>
+      (
+        (await runCoreLinkAgentCommand("agent.hire", {
+          projectId,
+          role: "developer",
+          name,
+        })) as Changed
+      ).agent;
+    const ciel = await hire("Ciel");
+    const arin = await hire("Arin");
+    const image = pngBase64(64);
+    const marked = (await runCoreLinkAgentCommand("agent.mark.set", {
+      projectId,
+      agentId: ciel.agentId,
+      revision: ciel.revision,
+      data: image,
+    })) as Changed;
+    const mark = marked.agent.mark as { sha256: string; mediaType: string };
+    expect(mark).toMatchObject({ mediaType: "image/png" });
+    await expect(
+      stat(join(root, ".lervo/assets/agents", `${mark.sha256}.png`)),
+    ).resolves.toBeTruthy();
+    expect(
+      await runCoreLinkAgentCommand("agent.mark.read", { projectId, agentId: ciel.agentId }),
+    ).toEqual({ projectId, agentId: ciel.agentId, image: { ...mark, data: image } });
+    // Arin shows the same image; clearing Ciel's keeps the file Arin still shows.
+    await runCoreLinkAgentCommand("agent.mark.set", {
+      projectId,
+      agentId: arin.agentId,
+      revision: arin.revision,
+      data: image,
+    });
+    const cleared = (await runCoreLinkAgentCommand("agent.mark.clear", {
+      projectId,
+      agentId: ciel.agentId,
+      revision: marked.agent.revision,
+    })) as Changed;
+    expect(cleared.agent.mark).toBeNull();
+    await expect(
+      stat(join(root, ".lervo/assets/agents", `${mark.sha256}.png`)),
+    ).resolves.toBeTruthy();
+    expect(
+      await runCoreLinkAgentCommand("agent.mark.read", { projectId, agentId: ciel.agentId }),
+    ).toEqual({ projectId, agentId: ciel.agentId, image: null });
+    // A file that is no image is refused, and a stale revision conflicts.
+    await expect(
+      runCoreLinkAgentCommand("agent.mark.set", {
+        projectId,
+        agentId: ciel.agentId,
+        revision: cleared.agent.revision,
+        data: Buffer.from("not an image").toString("base64"),
+      }),
+    ).rejects.toMatchObject({ code: "agent_mark_invalid" });
+    await expect(
+      runCoreLinkAgentCommand("agent.mark.clear", {
+        projectId,
+        agentId: ciel.agentId,
+        revision: ciel.revision,
+      }),
+    ).rejects.toMatchObject({ code: "agent_state_conflict" });
   });
 
   it("records each agent's origin once through the upgrade stage, then lists the recorded one", async () => {

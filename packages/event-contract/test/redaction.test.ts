@@ -376,6 +376,21 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
   });
 
+  it("keeps an agent image change's hashes and drops the image itself", () => {
+    const payload = {
+      changeKind: "mark",
+      agentId: `agt_${"a".repeat(24)}`,
+      previousMarkSha256: null,
+      markSha256: "b".repeat(64),
+      revision: 2,
+    };
+    const result = sanitizeEventPayload("agent.identity.changed", {
+      ...payload,
+      data: "private image bytes",
+    });
+    expect(result.payload).toEqual(payload);
+  });
+
   it("keeps assignment role-binding migration coordinates without task or role prose", () => {
     const payload = {
       assignmentId: `asn_${"a".repeat(24)}`,

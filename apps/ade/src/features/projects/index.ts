@@ -9,13 +9,15 @@ export {
 } from "./model/add";
 export {
   bindProjects,
+  bytesOf,
+  keepMark,
   closeProjectSheet,
   type ProjectDependencies,
   restoreProjects,
   selectProject,
 } from "./model/controller";
 export { currentProject, managesProjects, projectName } from "./model/decisions";
-export { useAddDependencies, useCurrentProject } from "./model/hooks";
+export { useAddDependencies, useCurrentProject, useMarkThumbnail } from "./model/hooks";
 export { type ProjectSource, projectSourceOf } from "./model/sources";
 export { useProjectStore } from "./model/store";
 export { useAddProject } from "./view/add-project";

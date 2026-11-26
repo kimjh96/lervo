@@ -15,7 +15,7 @@
     "build": "pnpm -r --sort --workspace-concurrency=1 run build",
     "check": "pnpm quality:check && pnpm evaluation:natural-language:check && pnpm release:completion:check && pnpm architecture:check && pnpm typecheck && pnpm build && pnpm test && pnpm release:metadata:check && pnpm smoke:built-cli && pnpm smoke:built-hub && pnpm smoke:hub-distribution && pnpm smoke:built-node && pnpm smoke:node-distribution && pnpm smoke:packed-cli && pnpm smoke:registry-publish && pnpm docs:check && pnpm brand:check",
     "commit:lint": "commitlint",
-    "code-convention:check": "node scripts/quality/check-code-convention.mjs",
+    "code-convention:check": "node scripts/quality/check-code-convention.mjs && node scripts/quality/check-function-length.mjs",
     "repository-scripts:check": "node scripts/quality/check-script-architecture.mjs && node scripts/quality/check-test-source-aliases.mjs",
     "docs:check": "node scripts/quality/check-docs.mjs",
     "evaluation:grounding:run": "node scripts/evaluation/run-grounding-evaluation.mjs",

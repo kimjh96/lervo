@@ -1,5 +1,4 @@
-import { useAgentStore } from "../../agents";
-import { Mark } from "../../../ui/Mark";
+import { useAgentStore, AgentMark } from "../../agents";
 import styles from "./SpeakerLine.module.css";
 
 /**
@@ -13,7 +12,7 @@ export function SpeakerLine(props: { agentId: string }) {
   if (agent === undefined) return null;
   return (
     <p className={styles.speaker}>
-      <Mark id={agent.agentId} name={agent.displayName} src={null} size="sm" shape="round" />
+      <AgentMark agent={agent} size="sm" />
       <span className={styles.name}>{agent.displayName}</span>
       <span className={styles.role}>{agent.roleName}</span>
     </p>
