@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { EventDraft, EventDraftV1 } from "@lervo/event-contract";
+import type { EventDraftV1 } from "@lervo/event-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { EventEnvelope } from "@lervo/schemas";
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
@@ -94,7 +94,7 @@ export function terminalEventDraft(input: {
   type: EventDraftV1["type"];
   occurredAt: string;
   payload: Readonly<Record<string, unknown>>;
-}): EventDraft {
+}): EventDraftV1 {
   return {
     eventId: input.eventId ?? newTerminalIdentifier("evt"),
     projectId: input.projectId,

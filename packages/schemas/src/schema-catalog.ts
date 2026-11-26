@@ -23,6 +23,7 @@ import {
   terminalSessionLaunchedEventPayloadSchema,
   terminalSessionLaunchPreparedEventPayloadSchema,
 } from "./hosted-session-event.js";
+import { terminalContextBaseDeliveredEventPayloadSchema } from "./terminal-base-delivery-event.js";
 import {
   contextQualityPreparedEventPayloadSchema,
   contextQualityVerifiedEventPayloadSchema,
@@ -322,6 +323,7 @@ export const schemaCatalog = {
   resourceAccountingDescriptor: resourceAccountingDescriptorSchema,
   workExecutionReport: workExecutionReportSchema,
   executionStagesObservedEventPayload: executionStagesObservedEventPayloadSchema,
+  terminalContextBaseDeliveredEventPayload: terminalContextBaseDeliveredEventPayloadSchema,
   executionEnvironmentProfile: executionEnvironmentProfileSchema,
   projectRegistrationRequest: projectRegistrationRequestSchema,
   projectRegistrationResponse: projectRegistrationResponseSchema,

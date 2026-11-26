@@ -47,13 +47,13 @@ describe("how a terminal hook's answer was delivered (schema 13)", () => {
   const fallback = { ...observed, delivery: { channel: "in_process", fallback: "declined_busy" } };
 
   // Stage observations exist from schema 2.
-  it("is readable only from schema 13, while observations without it stay readable", () => {
-    for (const schemaVersion of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) {
+  it("is readable from schema 13, while observations without it stay readable", () => {
+    for (const schemaVersion of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) {
       expect(validateSchema("event", envelope(schemaVersion, served)).valid).toBe(
-        schemaVersion === 13,
+        schemaVersion >= 13,
       );
       expect(validateSchema("event", envelope(schemaVersion, fallback)).valid).toBe(
-        schemaVersion === 13,
+        schemaVersion >= 13,
       );
       expect(validateSchema("event", envelope(schemaVersion, observed)).valid).toBe(true);
     }
