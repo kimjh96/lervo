@@ -1,5 +1,9 @@
-//! The user's login-shell `PATH`. An application opened from the Dock or a launcher inherits a
-//! minimal `PATH`, so the session host would not find `lervo` or the provider CLIs without it.
+//! The user's shell `PATH`. An application opened from the Dock or a launcher inherits a minimal
+//! `PATH`, so the session host would not find `lervo` or the provider CLIs without it.
+//!
+//! The shell runs as an interactive login shell, as editors resolve the shell environment. Many
+//! people add `~/.local/bin`, where Lervo's CLI installs, and node managers such as nvm in the
+//! interactive startup file (`~/.zshrc`, `~/.bashrc`), which a non-interactive login shell skips.
 
 use std::process::{Command, Stdio};
 use std::sync::{Arc, OnceLock};
@@ -30,14 +34,22 @@ impl LoginPath {
     }
 }
 
-/// The `PATH` of a login shell, or `None` when the shell does not answer in time.
-fn login_path() -> Option<String> {
-    let shell = std::env::var("SHELL")
+/// The user's shell: `SHELL`, or on macOS its default login shell when the application was opened
+/// without one.
+fn user_shell() -> Option<String> {
+    std::env::var("SHELL")
         .ok()
-        .filter(|shell| shell.starts_with('/'))?;
+        .filter(|shell| shell.starts_with('/'))
+        .or_else(|| cfg!(target_os = "macos").then(|| "/bin/zsh".to_owned()))
+}
+
+/// The `PATH` of an interactive login shell, or `None` when the shell does not answer in time.
+fn login_path() -> Option<String> {
+    let shell = user_shell()?;
     let mut child = Command::new(shell)
         .args([
             "-l",
+            "-i",
             "-c",
             &format!("printf '{MARKER}%s{MARKER}' \"$PATH\""),
         ])
