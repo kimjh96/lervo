@@ -7,7 +7,7 @@ import { dirname, relative, sep } from "node:path";
 import { claudeClaims } from "@lervo/adapter-claude/claims";
 import type { HostedClaimAnswering, HostedClaimDecision } from "@lervo/adapter-contract";
 
-import type { NewClaimLogEntry } from "./claim-log.js";
+import { type NewClaimLogEntry, recordClaimLogEntry } from "./claim-log.js";
 import { hostedLaunchRecordsPath, latestHostedLaunchOfSession } from "./hosted-launch-records.js";
 import type { ParsedPreToolUseInput } from "./terminal-hook-contract.js";
 
@@ -196,4 +196,23 @@ export async function writingSessionOf(
   return record?.agentId === undefined || record.access === "read"
     ? null
     : { workspaceId: record.workspaceId, agentId: record.agentId };
+}
+
+/**
+ * The pre-tool hook's answer for a provider's session: Lervo's claim for its conversation, found
+ * from the launch record, with refusals and deferrals kept in the claim log.
+ */
+export function answerClaimHook(
+  hook: ParsedPreToolUseInput,
+  provider: string,
+  fallbackDirectory: string,
+): Promise<string> {
+  return answerPreToolUse({
+    hook,
+    answering: claimReading(provider),
+    fallbackDirectory,
+    writing: (session) => writingSessionOf(session),
+    claim: unclaimed,
+    record: (entry) => recordClaimLogEntry(entry),
+  });
 }
