@@ -54,7 +54,11 @@ What the core has today:
 
 There is no onboarding screen. The first run is the start screen itself (owner review of the quiet mockup, 2026-11-26).
 
-- With no project registered, the start card offers to drop or choose a folder. A folder becomes a project in that one action:
+- With no project registered, the start card takes any of three things, and each becomes a project in one action. Nothing is uploaded: a project stays where its files are.
+  - An existing folder, dropped or chosen.
+  - A repository link, which the core clones into the owner's projects location (`~/Lervo` until the owner changes it once).
+  - An instruction alone, for which the core creates a new folder in that location, named from the instruction, and starts the conversation in it.
+- The resulting project:
   - Its name is the folder's name, and its mark is its first letter. Both change later in place.
   - The core registers the folder, whatever the host's continuity policy. It runs `lervo init` when the folder has no `.lervo/project.yaml` and `git init` when the folder is not a Git repository. It then reports what it did in one quiet line.
 - Environment checks run quietly: the Lervo CLI, the session host, and each provider CLI, installed and signed in. Only a check that blocks work shows, as one line under the card with one action. The core reports sign-in through `provider.list` and emits `provider_login_unavailable` when the provider CLI reports that no one is signed in.
@@ -75,15 +79,9 @@ Roles are managed in the core, with their authority handled apart from their wor
 - A conversation's work does not know its paths up front, and a lease on `.` or `*` would block every other agent. The S2c and S2h specifications therefore define leases that grow with the work: a path is claimed when the session first writes to it, and a conflicting claim stops that write and tells the agent.
 - The S2c specification settles, before any code changes, how ADR-0633's two roots apply to a workspace generation, and how a worker binding's effects on owner capture and on Stop apply to ADE sessions.
 
-### Git stores and publishes; the workstream coordinates
+### Coordination moves to the workstream
 
-- Git stays the storage and the publication boundary. Content addressing, history, diff and merge, and the hosting and CI people use all remain Git's.
-- Coordination between agents moves to the workstream:
-  - An agent claims each path before it changes it, so a conflict surfaces at claim time instead of at merge time.
-  - Handoffs carry their evidence.
-  - An integration agent integrates small sealed changes often (ADR-0222).
-  - A pull request carries a batch of integrated work to people.
-- A coordination specification is written before implementation. It defines the units (project, workstream, assignment, lease, workspace generation, integration attempt, publication), their events, and how the ADE drives integration. It reuses ADR-0205 and ADR-0222 and adds only what they lack: growing leases and a command that runs integration.
+Git stores and publishes, and coordination between agents moves to the workstream, with leases that grow with the work and integration in small steps ([ADR-0640](../orchestration/0640-coordinate-agents-in-the-workstream-and-let-git-store-and-publish.md)).
 
 ### A conversation is a core room with participants
 
@@ -141,6 +139,7 @@ Each step defines its new events and states, with required fields, privacy handl
 - **S2f.**
   - On a host with no registered project, the start card offers to drop or choose a folder.
   - Adding a folder without `.lervo/project.yaml` initializes and registers it, and the project appears in the switcher with its mark.
+  - A repository link clones into the projects location, and an instruction alone creates a new project there and starts its conversation.
   - Renaming the project changes its profile and the switcher on this host, and on another host after it pulls, with both registry entries still resolving.
   - Unregistering removes it from the switcher and leaves every file in place.
   - With the provider signed out, one line under the start card reports `provider_login_unavailable` with its action.
