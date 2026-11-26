@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_42c01c9acc6fbf04ab1a456c"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "The first conversation opened after launch shows about 300 ms sooner: a conversation already loaded no longer waits out React's Suspense throttle."
