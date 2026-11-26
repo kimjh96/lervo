@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-25
 Amends: [ADR-0451](../../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md), [ADR-0632](../../applications/0632-build-the-ade-as-the-platform-where-the-core-works.md)
+Amended by: [ADR-0637](../../applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md) (an ADE workspace joins the workforce model once its session carries an agent)
 Related: [ADR-0222](../../orchestration/0222-isolated-agent-workspace-lifecycle.md)
 
 ## Context
