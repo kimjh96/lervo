@@ -40,7 +40,8 @@ Each side has four layers. Dependencies point inward only.
 - Each feature, such as `start`, `workspaces`, or `conversation`, lives in `features/<name>/` with `model/` (state, selectors, transitions), `view/` (components), and `index.ts` (its public surface).
 - Components render props and dispatch intents. They do not fetch data, parse protocol messages, or hold business rules.
 - A feature imports another feature only through its `index.ts`, which exports only what other features and `app/` use. Tests import the module they test directly.
-- Import-boundary lint rules (`adeLayerRules` in `eslint.config.js`) enforce the layers in `src/`: models import no adapter, view, or `ui/` module; features never import `app/` or an I/O adapter; and `ui/`, `ports/`, and `platform/` import no feature.
+- A feature whose model other features use gives it a model entry, `model/index.ts`, which its `index.ts` re-exports. Another feature's model imports only that entry, because `index.ts` also loads the views, and a model must not load a view even indirectly.
+- Import-boundary lint rules (`adeLayerRules` in `eslint.config.js`) enforce the layers in `src/`: models import no adapter, view, or `ui/` module, and reach another feature only through its model entry; features never import `app/` or an I/O adapter; and `ui/`, `ports/`, and `platform/` import no feature.
 - Shared primitives live in `ui/`. They are built on headless primitives and design tokens and know nothing about Lervo concepts.
 
 ### Size and cohesion

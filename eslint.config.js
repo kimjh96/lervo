@@ -24,19 +24,33 @@ const adeLervoImports = {
  * test, so these rules cover `src/` only.
  */
 function adeLayerRules() {
+  // A group is a list of gitignore-style paths, or a regular expression for a shape the paths
+  // cannot express.
+  const restriction = ([match, message]) =>
+    match instanceof RegExp ? { regex: match.source, message } : { group: match, message };
   const layer = (name, files, groups) => ({
     name: `lervo/ade-layer-${name}`,
     files,
     rules: {
       "no-restricted-imports": [
         "error",
-        { patterns: [adeLervoImports, ...groups.map(([group, message]) => ({ group, message }))] },
+        { patterns: [adeLervoImports, ...groups.map(restriction)] },
       ],
     },
   });
   const otherFeatureInternals = [
     ["../../*/model", "../../*/model/**", "../../*/view", "../../*/view/**"],
     "Import another feature through its index.ts.",
+  ];
+  // A model reaches another feature through that feature's model entry, `<feature>/model`, since
+  // the feature's index.ts also loads its views.
+  const otherFeatureModelInternals = [
+    ["../../*/model/**", "../../*/view", "../../*/view/**"],
+    "Import another feature's model through its model entry, `<feature>/model`.",
+  ];
+  const otherFeatureIndex = [
+    /^\.\.\/\.\.\/[^/]+$/u,
+    "A model imports another feature through its model entry, `<feature>/model`; the feature's index.ts also loads its views.",
   ];
   const composition = [["**/app", "**/app/**"], "Only main.tsx depends on the composition root."];
   const ioAdapters = [
@@ -60,7 +74,8 @@ function adeLayerRules() {
       "models",
       ["apps/ade/src/features/*/model/**/*.{ts,tsx}"],
       [
-        otherFeatureInternals,
+        otherFeatureModelInternals,
+        otherFeatureIndex,
         composition,
         [
           ["**/platform", "**/platform/**", "**/ui", "**/ui/**", "**/view", "**/view/**"],

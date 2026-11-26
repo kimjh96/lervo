@@ -7,7 +7,7 @@ import {
   RequestFailure,
   type SessionHost,
 } from "../../../ports";
-import { useWorkspaceStore } from "../../workspaces";
+import { useWorkspaceStore } from "../../workspaces/model";
 import type { MemberLane } from "./room";
 import { useRoomStore } from "./room-store";
 import { applyAppended, applyDelta, applyPage, emptyWindow, PAGE_ITEMS } from "./window";

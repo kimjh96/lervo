@@ -1,7 +1,7 @@
 import type { ProviderSummary } from "@lervo/session-host-contract";
 
 import { type ApplicationCommands, failureCode, type SessionHost } from "../../../ports";
-import { useWorkspaceStore } from "../../workspaces";
+import { useWorkspaceStore } from "../../workspaces/model";
 import { type ProviderRegistry, useProviderStore } from "./store";
 
 /**

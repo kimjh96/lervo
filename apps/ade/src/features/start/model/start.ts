@@ -4,10 +4,10 @@ import {
   type PreparedImage,
   RequestFailure,
 } from "../../../ports";
-import { remember, sentImages, withAttachedFiles } from "../../conversation";
-import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces";
+import { remember, sentImages, withAttachedFiles } from "../../conversation/model";
+import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces/model";
 import { useStartStore } from "./store";
-import { HIRE_PRODUCT_OWNER, PRODUCT_OWNER_ROLE, showProjectAgents } from "../../agents";
+import { HIRE_PRODUCT_OWNER, PRODUCT_OWNER_ROLE, showProjectAgents } from "../../agents/model";
 
 /**
  * What the start screen collects. The conversation mode is not chosen here: the core uses the

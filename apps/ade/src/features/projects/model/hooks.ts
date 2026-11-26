@@ -6,7 +6,7 @@ import {
   useListCache,
   useProjectMemory,
 } from "../../../ports";
-import { useWorkspaceStore } from "../../workspaces";
+import { useWorkspaceStore } from "../../workspaces/model";
 import type { AddDependencies } from "./add";
 import type { ProjectDependencies } from "./controller";
 import { currentProject } from "./decisions";
