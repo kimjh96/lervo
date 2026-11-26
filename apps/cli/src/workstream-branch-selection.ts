@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import { gitCheckedOutBranchFromFiles } from "@lervo/orchestrator";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
 import {
   readWorkstreamBranchBindings,
@@ -23,8 +24,13 @@ async function git(root: string, args: string[]): Promise<string | null> {
   }
 }
 
-/** The checked-out branch; null outside Git or on a detached HEAD. */
+/**
+ * The checked-out branch; null outside Git or on a detached HEAD. Read from Git's files when they
+ * name it plainly, which spares each prompt a `git` process.
+ */
 export async function observeCheckedOutBranch(root: string): Promise<string | null> {
+  const fromFiles = await gitCheckedOutBranchFromFiles(root);
+  if (fromFiles !== undefined) return fromFiles;
   return git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
 }
 

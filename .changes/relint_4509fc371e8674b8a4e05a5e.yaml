@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4509fc371e8674b8a4e05a5e"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Prompts read the checked-out branch from Git's files instead of running git symbolic-ref, falling back to Git for anything unusual."

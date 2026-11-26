@@ -25,13 +25,10 @@ async function readSmall(path: string): Promise<string | undefined> {
   }
 }
 
-/**
- * HEAD read from the repository's files, as `git rev-parse` would resolve it, or undefined when
- * anything is unusual: a repository override such as `GIT_DIR`, a reftable store, a symbolic chain, or a ref this reader
- * cannot find, so the caller asks Git. A snapshot reads HEAD twice; each `git` process cost about
- * 10 ms on every prompt and Stop.
- */
-export async function gitHeadFromFiles(root: string): Promise<string | undefined> {
+/** The checkout's Git directories and its HEAD file, or undefined when Git must answer. */
+async function headFromFiles(
+  root: string,
+): Promise<{ head: string; gitDirectory: string; commonDirectory: string } | undefined> {
   if (REPOSITORY_OVERRIDES.some((name) => process.env[name] !== undefined)) return undefined;
   const dotGit = resolve(root, ".git");
   let gitDirectory = dotGit;
@@ -47,11 +44,44 @@ export async function gitHeadFromFiles(root: string): Promise<string | undefined
   if ((await readSmall(resolve(commonDirectory, "reftable", "tables.list"))) !== undefined)
     return undefined;
   const head = (await readSmall(resolve(gitDirectory, "HEAD")))?.trim();
-  if (head === undefined) return undefined;
-  if (COMMIT.test(head)) return head;
+  return head === undefined ? undefined : { head, gitDirectory, commonDirectory };
+}
+
+function symbolicRef(head: string): string | undefined {
   const ref = /^ref: (.+)$/u.exec(head)?.[1];
-  if (ref === undefined || !REF.test(ref) || ref.includes("..") || ref.endsWith(".invalid"))
-    return undefined;
+  return ref === undefined || !REF.test(ref) || ref.includes("..") || ref.endsWith(".invalid")
+    ? undefined
+    : ref;
+}
+
+/**
+ * The checked-out branch read from the repository's files, as `git symbolic-ref --short HEAD`
+ * names it: null on a detached HEAD, and undefined when Git must answer, as for HEAD itself or a
+ * symbolic ref outside `refs/heads/`. An unborn branch is named too, as Git names it.
+ */
+export async function gitCheckedOutBranchFromFiles(
+  root: string,
+): Promise<string | null | undefined> {
+  const found = await headFromFiles(root);
+  if (found === undefined) return undefined;
+  if (COMMIT.test(found.head)) return null;
+  const ref = symbolicRef(found.head);
+  return ref?.startsWith("refs/heads/") === true ? ref.slice("refs/heads/".length) : undefined;
+}
+
+/**
+ * HEAD read from the repository's files, as `git rev-parse` would resolve it, or undefined when
+ * anything is unusual: a repository override such as `GIT_DIR`, a reftable store, a symbolic chain, or a ref this reader
+ * cannot find, so the caller asks Git. A snapshot reads HEAD twice; each `git` process cost about
+ * 10 ms on every prompt and Stop.
+ */
+export async function gitHeadFromFiles(root: string): Promise<string | undefined> {
+  const found = await headFromFiles(root);
+  if (found === undefined) return undefined;
+  const { head, gitDirectory, commonDirectory } = found;
+  if (COMMIT.test(head)) return head;
+  const ref = symbolicRef(head);
+  if (ref === undefined) return undefined;
   for (const directory of [gitDirectory, commonDirectory]) {
     const loose = (await readSmall(resolve(directory, ref)))?.trim();
     if (loose !== undefined) return COMMIT.test(loose) ? loose : undefined;
