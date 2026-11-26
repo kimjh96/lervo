@@ -1,7 +1,6 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { constants } from "node:fs";
-import { lstat, open, readFile, realpath } from "node:fs/promises";
+import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 import { promisify } from "node:util";
 
@@ -11,27 +10,19 @@ import {
   type WorkspaceHostInspection,
   type WorkspaceHostKind,
   type WorkspaceInspectionRequest,
+  type WorkspaceMarkerReplacementRequest,
   type WorkspaceOwnershipMarker,
   type WorkspaceResultInspection,
   type WorkspaceResultInspectionRequest,
 } from "@lervo/workspace-host";
 
 import { fail, git } from "./git-command.js";
+import { createMarker, markerMatches, replaceMarker } from "./ownership-marker.js";
+import { stableJson } from "./stable-json.js";
 
 const execute = promisify(execFile);
 const COMMIT = /^[a-f0-9]{40,64}$/u;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
-const MARKER_NAME = "lervo-workspace-owner.json";
-
-function stableJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
-  if (value !== null && typeof value === "object")
-    return `{${Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`)
-      .join(",")}}`;
-  return JSON.stringify(value);
-}
 
 function digest(value: unknown): string {
   return `sha256:${createHash("sha256").update(stableJson(value)).digest("hex")}`;
@@ -117,39 +108,29 @@ export class GitWorkspaceEvidence {
       fail("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
   }
 
-  private async markerMatches(
-    gitDirectory: string,
-    expected: WorkspaceOwnershipMarker,
-  ): Promise<boolean> {
-    try {
-      const path = resolve(gitDirectory, MARKER_NAME);
-      const info = await lstat(path);
-      if (!info.isFile() || info.isSymbolicLink() || info.size > 16_384) return false;
-      return stableJson(JSON.parse(await readFile(path, "utf8"))) === stableJson(expected);
-    } catch {
-      return false;
-    }
+  private gitDirectory(workspacePath: string): Promise<string> {
+    return git(workspacePath, ["rev-parse", "--path-format=absolute", "--git-dir"]);
   }
 
   async writeMarker(workspacePath: string, marker: WorkspaceOwnershipMarker): Promise<void> {
     if (!this.validMarker(marker))
       fail("host_coordinate_invalid", "The workspace ownership marker is invalid.");
-    const gitDirectory = await git(workspacePath, [
-      "rev-parse",
-      "--path-format=absolute",
-      "--git-dir",
-    ]);
-    const handle = await open(
-      resolve(gitDirectory, MARKER_NAME),
-      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
-      0o600,
+    await createMarker(await this.gitDirectory(workspacePath), marker);
+  }
+
+  async replaceMarker(request: WorkspaceMarkerReplacementRequest): Promise<void> {
+    if (
+      !isAbsolute(request.workspacePath) ||
+      resolve(request.workspacePath) !== request.workspacePath ||
+      !this.validMarker(request.expected) ||
+      !this.validMarker(request.next)
+    )
+      fail("host_coordinate_invalid", "The workspace marker replacement is invalid.");
+    await replaceMarker(
+      await this.gitDirectory(request.workspacePath),
+      request.expected,
+      request.next,
     );
-    try {
-      await handle.writeFile(`${JSON.stringify(marker, null, 2)}\n`);
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
   }
 
   async inspect(input: WorkspaceInspectionRequest): Promise<WorkspaceHostInspection> {
@@ -224,7 +205,7 @@ export class GitWorkspaceEvidence {
     const [status, operation, matched] = await Promise.all([
       git(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
       gitOperationInProgress(gitDirectory!),
-      this.markerMatches(gitDirectory!, input.marker),
+      markerMatches(gitDirectory!, input.marker),
     ]);
     const [changed, untracked] =
       headCommit === input.baseCommit && status.length === 0

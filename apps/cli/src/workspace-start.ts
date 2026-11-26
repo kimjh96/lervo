@@ -10,7 +10,7 @@ import {
 } from "@lervo/adapter-contract";
 import { workspaceTitle } from "@lervo/session-host-contract";
 
-import { CommandFailure, errorCode } from "./command-error-output.js";
+import { CommandFailure } from "./command-error-output.js";
 import { type HostedLaunchRecord, launchArgumentDigest } from "./hosted-launch-records.js";
 import {
   launchPreparedEvent,
@@ -21,9 +21,14 @@ import {
 import { settingsFileDigest } from "./hosted-session-settings.js";
 import { type HostedTerminalHookPlan, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
+import type {
+  WorkspaceCoordination,
+  WorkspaceCoordinationRequest,
+} from "./workspace-coordination.js";
 import { workspacesHome } from "./workspaces-home.js";
 import { type WorkspaceParticipants } from "./workspace-participants.js";
 import { withSessionEnvironment } from "./hosted-session-environment.js";
+import { stageFailure, undo } from "./workspace-start-rollback.js";
 
 const OBJECTIVE_CHARACTERS = 8192;
 const SLUG_CHARACTERS = 40;
@@ -91,6 +96,11 @@ export interface WorkspaceStartPorts {
   recordEvents(
     events: readonly HostedSessionEvent[],
   ): Promise<HostedSessionEventOutcome | "unavailable">;
+  /**
+   * The coordination stage for a conversation with a lead: its assignment, the lead's lease, and
+   * the workspace's first generation. It never throws; absent, the start reports no coordination.
+   */
+  coordinate?(request: WorkspaceCoordinationRequest): Promise<WorkspaceCoordination>;
   now(): Date;
 }
 
@@ -137,6 +147,11 @@ export interface WorkspaceStartResult {
    * the caller chose the base itself. Counts only: the commits stay in the launch record.
    */
   base?: WorkspaceStartBase;
+  /**
+   * Whether the conversation claims its paths (Lervo ADE coordination); absent for a start
+   * without a lead. `inactive` and `unavailable` still started the workspace.
+   */
+  coordination?: WorkspaceCoordination;
 }
 
 /** The start result's account of the base (Lervo ADE sessions, "The workspace's base"). */
@@ -184,26 +199,6 @@ export function workspacePathFor(
 ): string {
   const leaf = branch.slice(branch.lastIndexOf("/") + 1);
   return resolve(home, basename(repositoryRoot), leaf);
-}
-
-function stageFailure(
-  stage: WorkspaceStartStage,
-  error: unknown,
-  rollback: Rollback,
-): CommandFailure {
-  const cause = errorCode(error);
-  const detail = error instanceof Error ? error.message : String(error);
-  const rolledBack = rollback.done;
-  return new CommandFailure(
-    "workspace_start_failed",
-    `The ${stage} stage failed: ${detail}${rolledBack ? "" : " Rollback did not finish."}`,
-    {
-      stage,
-      cause,
-      rolledBack,
-      ...(rollback.cause === undefined ? {} : { rollbackCause: rollback.cause }),
-    },
-  );
 }
 
 /**
@@ -327,6 +322,8 @@ export async function startWorkspace(
       workspaceStartedEvent({ record, workstreamId, instruction: request.instruction }),
       launchPreparedEvent(record),
     ]);
+    // Last, so no later stage's failure has to give back a lease or a workspace record.
+    const coordination = await coordinationOf(request, ports, placement, workstreamId);
     return {
       schemaVersion: 1,
       status: "started",
@@ -350,37 +347,29 @@ export async function startWorkspace(
               carried: record.base.carried.length,
             },
           }),
+      ...(coordination === undefined ? {} : { coordination }),
     };
   } catch (error) {
     throw stageFailure(stage, error, await undo(ports, placement));
   }
 }
 
-/** Whether removing what a failed start created finished, and why not when it did not. */
-interface Rollback {
-  readonly done: boolean;
-  readonly cause?: string;
-}
-
-/** How long a second removal waits, so a Git lock another process holds briefly can clear. */
-const ROLLBACK_RETRY_MS = 250;
-
-/**
- * Removes what the earlier stages created. A removal that fails is tried once more after a short
- * wait, since a Git lock that another process holds for a moment, such as a background index
- * refresh, fails the first one without leaving anything to keep.
- */
-async function undo(ports: WorkspaceStartPorts, placement: WorkspacePlacement): Promise<Rollback> {
-  try {
-    await ports.removeWorkspace(placement);
-    return { done: true };
-  } catch {
-    await new Promise((resolve) => setTimeout(resolve, ROLLBACK_RETRY_MS));
-    try {
-      await ports.removeWorkspace(placement);
-      return { done: true };
-    } catch (error) {
-      return { done: false, cause: errorCode(error) };
-    }
-  }
+/** Runs the coordination stage for a conversation with a lead, when the start has one. */
+function coordinationOf(
+  request: WorkspaceStartRequest,
+  ports: WorkspaceStartPorts,
+  placement: WorkspacePlacement,
+  workstreamId: string,
+): Promise<WorkspaceCoordination | undefined> {
+  if (ports.coordinate === undefined || request.participants === undefined)
+    return Promise.resolve(undefined);
+  return ports.coordinate({
+    repositoryRoot: placement.repositoryRoot,
+    workspacePath: placement.workspacePath,
+    conversationId: placement.workspaceId,
+    workstreamId,
+    leadAgentId: request.participants.agentId,
+    provider: ports.adapter.provider,
+    sessionId: request.sessionId,
+  });
 }

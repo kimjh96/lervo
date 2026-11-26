@@ -4,6 +4,7 @@ import {
   type WorkspaceBranchRemovalRequest,
   type WorkspaceCleanupHostAdapter,
   type WorkspaceHostAdapter,
+  type WorkspaceMarkerHostAdapter,
   type WorkspaceProvisionRequest,
   type WorkspaceRemovalRequest,
 } from "@lervo/workspace-host";
@@ -14,7 +15,11 @@ import { GitWorktreeEffects } from "./worktree-effects.js";
 const VERSION = "1.0.0";
 
 export class GitWorkspaceHostAdapter
-  implements WorkspaceHostAdapter, WorkspaceCleanupHostAdapter, WorkspaceBranchHostAdapter
+  implements
+    WorkspaceHostAdapter,
+    WorkspaceCleanupHostAdapter,
+    WorkspaceBranchHostAdapter,
+    WorkspaceMarkerHostAdapter
 {
   readonly kind = "git" as const;
   readonly version = VERSION;
@@ -45,6 +50,7 @@ export class GitWorkspaceHostAdapter
   inspect = this.evidence.inspect.bind(this.evidence);
   inspectResult = this.evidence.inspectResult.bind(this.evidence);
   inspectCleanup = this.evidence.inspectCleanup.bind(this.evidence);
+  replaceMarker = this.evidence.replaceMarker.bind(this.evidence);
 
   remove(request: WorkspaceRemovalRequest) {
     return this.effects.removeNonForce(request);

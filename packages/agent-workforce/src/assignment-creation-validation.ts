@@ -41,7 +41,9 @@ export function validateAssignmentCreation(
     !boundedStrings(expectedPaths, maximumWrittenExpectedPaths(input.taskType)) ||
     !expectedPaths.every(safePath) ||
     input.acceptanceCriteria.length === 0 ||
-    verificationSuiteIds.length === 0 ||
+    // A conversation's assignment names the project's suite, or none when the project configures
+    // none (Lervo ADE coordination); its sealed changes then wait for integration.
+    (verificationSuiteIds.length === 0 && !isConversationTaskType(input.taskType)) ||
     (expectedPaths.length === 0 && !isConversationTaskType(input.taskType)) ||
     (input.accessMode !== undefined && !["read_only", "write"].includes(input.accessMode)) ||
     (input.accessMode === "read_only" &&

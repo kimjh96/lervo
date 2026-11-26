@@ -141,6 +141,35 @@ describe("workspace start", () => {
     ]);
   });
 
+  it("runs the coordination stage last, only for a lead, and reports what it found", async () => {
+    const fake = ports();
+    const writer = `agt_${"1".repeat(24)}`;
+    const requests: unknown[] = [];
+    fake.value.coordinate = async (coordination) => {
+      requests.push(coordination);
+      // The lead's launch, the second start's, is prepared and recorded before the stage runs.
+      expect(fake.records).toHaveLength(2);
+      return { status: "inactive", code: "coordination_inactive" };
+    };
+    expect((await startWorkspace(request, fake.value)).coordination).toBeUndefined();
+    const result = await startWorkspace(
+      { ...request, participants: { agentId: writer, participants: [writer] } },
+      fake.value,
+    );
+    expect(result.coordination).toEqual({ status: "inactive", code: "coordination_inactive" });
+    expect(requests).toEqual([
+      {
+        repositoryRoot: request.repositoryRoot,
+        workspacePath: "/lervo/workspaces/lervo/fix-the-flaky-login-test-1a2b3c",
+        conversationId: request.workspaceId,
+        workstreamId: "wks_0123456789abcdef01234567",
+        leadAgentId: writer,
+        provider: "claude",
+        sessionId: request.sessionId,
+      },
+    ]);
+  });
+
   it("asks through the stream and records it when the session host answers questions", async () => {
     const fake = ports();
     const result = await startWorkspace(

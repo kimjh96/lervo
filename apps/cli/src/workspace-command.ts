@@ -4,7 +4,9 @@ import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
+  isConversationWorkspace,
   listWorkspaces,
+  newestCheckoutWorkspace,
   observeWorkspaceWriterLiveness,
   readWorkspace,
   readWorkspaceCleanupJournal,
@@ -20,6 +22,7 @@ import type { WorkspaceCleanupHostAdapter } from "@lervo/workspace-host";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { OrcaWorkspaceHostAdapter } from "@lervo/workspace-host-orca";
 
+import { checkoutPathDigests } from "./checkout-path-digests.js";
 import type { CliIo } from "./types.js";
 import { retireRepositoryUnstartedWorkspaces } from "./workspace-retirement.js";
 import { runWorkspaceLaunchCommand, workspaceStartUsage } from "./workspace-start-command.js";
@@ -99,9 +102,15 @@ async function runInspect(args: string[], io: CliIo): Promise<number> {
     throw new Error("The workspace inspect arguments are invalid.");
   const root = await repositoryRootFrom(resolve(io.cwd, parsed.values.root ?? "."));
   const pathDigest = repositoryCoordinateDigest(root);
-  const workspaces = (await listWorkspaces(root)).filter(
+  const all = await listWorkspaces(root);
+  const live = all.filter(
     (workspace) => workspace.pathDigest === pathDigest && workspace.state !== "removed",
   );
+  // A conversation's checkout speaks through its newest generation; an earlier one that waits
+  // for integration is not a second writer. A worker's checkout lists every live record, so a
+  // shared checkout still shows.
+  const newest = newestCheckoutWorkspace(all, await checkoutPathDigests(root));
+  const workspaces = newest !== null && isConversationWorkspace(newest) ? [newest] : live;
   const observedAt = new Date();
   const inspections = await Promise.all(
     workspaces.map(async (workspace) => {

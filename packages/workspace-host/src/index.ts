@@ -86,6 +86,21 @@ export interface WorkspaceBranchHostAdapter {
   removeBranch(request: WorkspaceBranchRemovalRequest): Promise<void>;
 }
 
+/**
+ * Moves a checkout's ownership marker from `expected` to `next`, the following generation of the
+ * same checkout, only while the marker still is `expected` (compare-and-swap).
+ */
+export interface WorkspaceMarkerReplacementRequest {
+  workspacePath: string;
+  expected: WorkspaceOwnershipMarker;
+  next: WorkspaceOwnershipMarker;
+}
+
+/** A host whose checkout keeps one marker that later generations of the checkout replace. */
+export interface WorkspaceMarkerHostAdapter {
+  replaceMarker(request: WorkspaceMarkerReplacementRequest): Promise<void>;
+}
+
 export type WorkspaceHostErrorCode =
   | "host_coordinate_invalid"
   | "host_effect_uncertain"

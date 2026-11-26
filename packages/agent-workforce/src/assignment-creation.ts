@@ -225,6 +225,9 @@ export function createAssignment(input: {
   approvalRequirements?: string[];
   expectedPaths: string[];
   workstreamId?: string;
+  /** Binds the assignment to the claimant's exact role contract; a newer role fails creation. */
+  expectedRoleVersion?: string;
+  expectedRoleContractHash?: string;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAssignment> {

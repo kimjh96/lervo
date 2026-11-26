@@ -1,4 +1,5 @@
 import {
+  isConversationWorkspace,
   listWorkspaces,
   openRepositorySupervisionLeases,
   SupervisionMandateJournal,
@@ -59,6 +60,8 @@ export async function retireRepositoryUnstartedWorkspaces(input: {
       const candidates = (await listWorkspaces(input.root)).filter(
         (item) =>
           (input.workspaceId === undefined || item.workspaceId === input.workspaceId) &&
+          // A conversation's generations retire with their conversation, never as supervision's.
+          !isConversationWorkspace(item) &&
           (item.state === "ready" ||
             (item.state === "recovery_required" && item.recoveryReason === "unstarted_retirement")),
       );
