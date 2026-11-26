@@ -187,6 +187,8 @@ export const providerSummarySchema = {
     preferredMode: conversationModeSchema,
     /** Whether the provider's CLI is installed where the core looks for it. */
     installed: { type: "boolean" },
+    /** Whether someone is signed in to it; null when the core cannot tell. Older cores omit it. */
+    signedIn: { anyOf: [{ type: "boolean" }, { type: "null" }] },
   },
 } as const;
 

@@ -101,6 +101,13 @@ export interface HostedSessionAdapter {
   readonly capabilities: HostedSessionCapabilities;
   /** Throws `HostedLaunchError` for an intent the provider cannot run. */
   prepareLaunch(intent: HostedLaunchIntent): HostedLaunch;
+  /**
+   * Whether someone is signed in to the provider CLI: `true`, `false`, or `null` when the adapter
+   * cannot tell (Lervo ADE projects, "Provider sign-in"). It reads only that one fact and never
+   * the account's details, finishes within a few seconds, and never throws. An adapter without it
+   * reports nothing, which callers treat as `null`.
+   */
+  signInState?(environment?: NodeJS.ProcessEnv): Promise<boolean | null>;
 }
 
 export type HostedLaunchErrorCode =
