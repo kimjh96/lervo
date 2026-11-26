@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9e3bae3027e97620a06169d3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read owner rule files together instead of one at a time when a prompt prepares its applied rules and lists rule titles."

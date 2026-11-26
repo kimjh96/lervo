@@ -1,7 +1,7 @@
-<!-- lervo-release package="@lervo/cli" version="0.56.2" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.57.0" schema="1" -->
 
 ## What's changed
 
-- Answer a served non-worker Stop before its records, and relay launches the records ask for to the provider's session through a detached relay the client leaves behind.
-- Read the boot identity once per process, take a Stop's HEAD from its lifecycle snapshot, and start the newest-workstream read with a small page, trimming repeated work from every Stop.
-- Report each served hook's answer latency by kind in context-stats.json, so a canary sees what the provider waited for apart from the records that follow.
+- Read a snapshot's HEAD from the repository's files, falling back to git for anything unusual, so each prompt and Stop snapshot spawns fewer git processes.
+- Read event schema 13 in the CLI, the Node, and the Hub: execution.stages.observed can say how a terminal hook's answer was delivered, with its answer time or why it ran in its own process. Automatic writer activation stays at schema 12.
+- Read owner rule files together instead of one at a time when a prompt prepares its applied rules and lists rule titles.
