@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fdddc20497b88b66e7c9de57"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "The terminal hook launcher (version 7) sends a write claim to the resident context server, and when no server takes it, defers it at once without loading the runtime."

@@ -2,7 +2,7 @@
   "schemaVersion": 11,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.61.0",
+    "version": "0.62.0",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -206,32 +206,32 @@
       },
       {
         "path": "dist/repository-runtime-validators.cjs",
-        "size": 7612275,
-        "sha256": "sha256:35a74ccbb50ba9acc2f12c5c03558b8eab0f63d9f69063548446174ce3dc6479"
+        "size": 7786111,
+        "sha256": "sha256:b8a26e582c0bdcf02eab2278ece3f02618eda89bbb20a074e4ca0b39eb4d6fd1"
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 13469331,
-        "sha256": "sha256:d8b2568eb28a783bb74c96146618b3048ef29d57305c24ec2069d0cc62894c70"
+        "size": 13674019,
+        "sha256": "sha256:ee53a3c9f17c50c6f3fef271b390e62f2fdbbc3add887a6eeeb12be23ae610ce"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:3e55b5d3bbf0f8a59c88a398a92318733201ad50378e2864e1bf86990484617b"
+        "sha256": "sha256:227a35b006241179a80fd238fb4f591696c0e5ee3f2566f1f0dabb8feb9f898a"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
-        "size": 16333,
-        "sha256": "sha256:899a3d68083e252b199730b2423701b4fcdd9d77b36a9a016b13c3706cb8f93d"
+        "size": 16245,
+        "sha256": "sha256:be837ae84e79d819414c80d31be9cad7b3de66758b538b936bafe60472d86029"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 7065716,
-        "sha256": "sha256:cc1e777efaca16a0bfe842c8154665c48aebf3ecf9c87315a6500c3817d900bc"
+        "size": 7186678,
+        "sha256": "sha256:d50e288d9144bb0e4a2304df41c72f94972e1ed097e47f8ddbaf4c225cfacae2"
       }
     ],
     "fileCount": 14,
-    "contentDigest": "sha256:5445517d127d560bb80d19262e267169baebf12db9db63b03f12c1efb6f67c20"
+    "contentDigest": "sha256:e6c01a2a2f681e6c8561dcb0536cc8c982fa314b92e7562e52a8d65eeded9a52"
   },
   "dependencies": {
     "portable": [
@@ -344,5 +344,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:2c70284e9229542c9a197eb83bc218b64e6b30dd01179e23c509750dfa451b45"
+  "artifactDigest": "sha256:3366790ce52d023764b4dda9d402daf62265e138a1538668aad95265920aebaa"
 }

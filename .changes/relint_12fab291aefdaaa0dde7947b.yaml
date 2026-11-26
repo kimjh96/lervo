@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_12fab291aefdaaa0dde7947b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Lervo names each 128 KiB bound once in the contract that owns it (context sources, research inputs, managed task instructions); every bound keeps its value."
