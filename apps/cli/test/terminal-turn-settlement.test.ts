@@ -262,12 +262,29 @@ describe("turns that end without a Stop hook", () => {
       ending: "next_prompt",
       afterObservationId: null,
     });
+    // A prompt that prepares its snapshot first names where turn 1 ended, which replaces the
+    // request for the checkout as it is when the worker runs, and never the other way round.
+    const exact = { ...request!, afterObservationId: `tobs_${"3".repeat(32)}` };
+    const waiting = async () => (await listTerminalTurnSettlements(root))[0]?.afterObservationId;
+    expect(await writeTerminalTurnSettlement(root, exact)).toBe(true);
+    expect(await waiting()).toBe(exact.afterObservationId);
+    expect(await writeTerminalTurnSettlement(root, request!)).toBe(true);
+    expect(await waiting()).toBe(exact.afterObservationId);
+    await rm(resolve(root, ".lervo/state/terminal-integration/turn-settlements"), {
+      recursive: true,
+    });
+    expect(await writeTerminalTurnSettlement(root, request!)).toBe(true);
     expect(await settleTerminalTurns(root)).toBe(1);
     const [settled] = await events(root, ["terminal.turn.observed"]);
     expect(settled?.payload).toMatchObject({
       contextEventId: first?.eventId,
       ending: "next_prompt",
     });
+    // The settled turn is closed: a Stop after another cached prompt requests nothing.
+    const again = new Date(Date.parse(first!.occurredAt) + 3000);
+    await utimes(turnFile, again, again);
+    await hook(root, { hook_event_name: "Stop", ...session, last_assistant_message: "Done." });
+    expect(await listTerminalTurnSettlements(root)).toEqual([]);
   }, 60_000);
 
   it("leaves a turn that Stop observed, and records nothing below schema 12", async () => {

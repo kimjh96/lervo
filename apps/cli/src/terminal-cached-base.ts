@@ -1,7 +1,7 @@
 // ADR-0645: the context server keeps each checkout's base answer current, and the launcher prints
 // it for a prompt the server could not take. The launcher leaves a marker for each such prompt,
 // which the server records as `terminal.context.base_delivered` on its next served prompt there.
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -18,7 +18,7 @@ import {
 } from "@lervo/schemas";
 
 import { capContextBytes, MAXIMUM_COMPACT_CONTEXT_BYTES } from "./terminal-context-budget.js";
-import { prepareTerminalBaseContext } from "./terminal-degraded-context.js";
+import { prepareTerminalBaseParts } from "./terminal-degraded-context.js";
 import { TERMINAL_OBSERVATION_POLICY_VERSION } from "./terminal-event-coordinates.js";
 import {
   TERMINAL_CACHED_BASE_DIRECTORY,
@@ -124,7 +124,7 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
  */
 async function sweepOldFiles(directory: string, now: number): Promise<void> {
   for (const name of await readdir(directory)) {
-    if (!/^[a-f0-9]{16}\.(?:turn|json|\d{13}\.\d{1,10}\.unserved)$/u.test(name)) continue;
+    if (!/^[a-f0-9]{16}\.(?:turn|json|retry|\d{13}\.\d{1,10}\.unserved)$/u.test(name)) continue;
     const age = await ageMilliseconds(resolve(directory, name), now);
     if (age !== null && age > MARKER_RETENTION_MS)
       await rm(resolve(directory, name), { force: true });
@@ -141,8 +141,15 @@ export interface TerminalCachedBasePorts {
   roots: (cwd: string) => Promise<{ evidenceRoot: string; executionRoot: string }>;
   /** Whether a workspace that is not removed claims the checkout. */
   claimed: (executionRoot: string) => Promise<boolean>;
-  /** Prepares the base by `deadline`, a `performance.now()` time. */
-  prepare: (evidenceRoot: string, executionRoot: string, deadline: number) => Promise<string[]>;
+  /**
+   * Prepares the base by `deadline`, a `performance.now()` time; `abandoned` says a read reached
+   * the deadline and may still be running.
+   */
+  prepare: (
+    evidenceRoot: string,
+    executionRoot: string,
+    deadline: number,
+  ) => Promise<{ lines: string[]; abandoned: boolean }>;
   openStorage: (evidenceRoot: string) => Promise<DeliveryStorage>;
 }
 
@@ -155,7 +162,7 @@ const defaultPorts: TerminalCachedBasePorts = {
     );
   },
   prepare: (evidenceRoot, executionRoot, deadline) =>
-    prepareTerminalBaseContext(evidenceRoot, deadline, executionRoot),
+    prepareTerminalBaseParts(evidenceRoot, deadline, 2048, executionRoot),
   openStorage: openProjectStorage,
 };
 
@@ -168,9 +175,10 @@ async function markerNames(directory: string, key: string): Promise<string[]> {
 }
 
 /**
- * Records the checkout's delivery markers at writer schema 14. Each is removed before it is
- * recorded, so a server that exits in between loses a delivery rather than recording it twice:
- * the count stays a lower bound.
+ * Records the checkout's delivery markers at writer schema 14. Each event's identity derives from
+ * its marker's name, so a marker that a failed removal or an exit left behind is recognised and
+ * never recorded twice; a marker stays until it was recorded or proved unrecordable, so a busy
+ * store only delays it.
  */
 async function recordDeliveries(
   directory: string,
@@ -190,8 +198,6 @@ async function recordDeliveries(
     const marker = parseMarker(name, content, now);
     if (marker !== null) markers.push(marker);
   }
-  // A marker an older writer cannot record, or one too old or malformed, is dropped unrecorded.
-  await Promise.all(markers.map((marker) => rm(resolve(directory, marker.name), { force: true })));
   const recordable = markers.filter((marker) => marker.payload !== null);
   let recorded = 0;
   if (recordable.length > 0) {
@@ -200,7 +206,8 @@ async function recordDeliveries(
       if ((storage.writableEventSchemaVersion ?? 1) >= baseDeliveryEventSchemaVersion) {
         storage.events.transact((transaction) => {
           for (const marker of recordable) {
-            const id = randomUUID().replaceAll("-", "");
+            const id = createHash("sha256").update(marker.name).digest("hex").slice(0, 32);
+            if (storage.events.get(`evt_${id}`) !== null) continue;
             transaction.append({
               eventId: `evt_${id}`,
               projectId: storage.manifest.projectId,
@@ -213,18 +220,20 @@ async function recordDeliveries(
               policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
               payload: marker.payload!,
             });
+            recorded += 1;
           }
         });
-        recorded = recordable.length;
       }
     } finally {
       await storage.close();
     }
   }
+  // Recorded, or one an older writer cannot record, too old, or malformed: dropped either way.
+  await Promise.all(markers.map((marker) => rm(resolve(directory, marker.name), { force: true })));
   return recorded;
 }
 
-/** The base directory is swept at most hourly: every served prompt would otherwise list it. */
+/** Day-old files are swept at most hourly, not at every served prompt. */
 const SWEEP_INTERVAL_MS = 60 * 60_000;
 const lastSweeps = new Map<string, number>();
 
@@ -232,10 +241,11 @@ const lastSweeps = new Map<string, number>();
  * After a served prompt drained: records the checkout's pending deliveries, then refreshes its
  * cached base when it is missing or older than five minutes. A checkout a workspace claims gets
  * none, because workspace attachment can block its prompts and a cached answer would skip that.
- * With a fresh base and no markers it only checks two names, so most prompts pay nothing more.
+ * With a fresh base and no markers it stats the base and lists the directory, and does nothing
+ * more.
  *
- * `settled` is false when preparation reached its deadline: the reads it abandoned may still run,
- * and the server must not serve the next hook beside them, so it exits as after an overrun.
+ * `settled` is false when a read reached the preparation deadline: its work may still run, and
+ * the server must not serve the next hook beside it, so it exits as after an overrun.
  */
 export async function keepTerminalCachedBase(input: {
   store: string;
@@ -274,13 +284,25 @@ export async function keepTerminalCachedBase(input: {
     await rm(file, { force: true });
     return { recorded, refreshed: false, settled: true };
   }
-  const deadline = performance.now() + PREPARATION_MS;
-  const lines = await ports.prepare(evidenceRoot, executionRoot, deadline);
-  const settled = performance.now() < deadline;
+  // A store too slow to prepare a base waits five minutes between attempts, so a checkout whose
+  // base cannot be written does not restart the server at every prompt.
+  const retry = resolve(directory, `${key}.retry`);
+  const waited = await ageMilliseconds(retry, now());
+  if (waited !== null && waited > -1_000 && waited < REFRESH_AFTER_MS)
+    return { recorded, refreshed: false, settled: true };
+  const { lines, abandoned } = await ports.prepare(
+    evidenceRoot,
+    executionRoot,
+    performance.now() + PREPARATION_MS,
+  );
+  const settled = !abandoned;
   // A base whose owner rules did not load in time would stand for half an hour without them; the
-  // next served prompt tries again instead.
-  if (!lines.some((line) => line.startsWith("Applied owner rules: ")))
+  // next served prompt after the wait tries again instead.
+  if (!lines.some((line) => line.startsWith("Applied owner rules: "))) {
+    await writeAtomically(retry, "").catch(() => undefined);
     return { recorded, refreshed: false, settled };
+  }
+  await rm(retry, { force: true });
   await writeAtomically(file, formatTerminalCachedBase(lines, new Date(now())));
   return { recorded, refreshed: true, settled };
 }

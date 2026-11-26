@@ -21,6 +21,7 @@ import { appendTerminalRepositoryChange } from "./terminal-repository-change.js"
 import { gitHeadRevision } from "./terminal-repository-revision.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import { resolveCommandRoots } from "./terminal-roots.js";
+import { closeTerminalTurn } from "./terminal-open-turns.js";
 import { preparedTurnExpectationFromContext } from "./terminal-turn-observation.js";
 import {
   listTerminalTurnSettlements,
@@ -223,6 +224,13 @@ export async function settleTerminalTurns(cwd: string, now = () => new Date()): 
         try {
           if (await settleTurn(root, storage, request, now())) settled += 1;
           await removeTerminalTurnSettlement(root, request.contextEventId);
+          // A settled turn is no longer open: later Stops must not request it again.
+          await closeTerminalTurn(
+            root,
+            request.providerSessionDigest,
+            request.contextEventId,
+            now(),
+          );
         } catch {
           await recordTerminalTurnSettlementFailure(root, request);
         }

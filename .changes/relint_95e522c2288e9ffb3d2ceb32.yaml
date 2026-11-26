@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_95e522c2288e9ffb3d2ceb32"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Settle an interrupted turn exactly after a cached-base answer, record each cached-base delivery once, and restart the context server only when its base preparation left reads running."

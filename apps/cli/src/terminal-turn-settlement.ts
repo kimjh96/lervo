@@ -158,9 +158,29 @@ export async function hasTerminalTurnSettlements(root: string): Promise<boolean>
   }
 }
 
+/** Whether the stored request at `path` takes the checkout as it is when the worker runs. */
+async function waitsForLiveSnapshot(path: string): Promise<boolean> {
+  try {
+    const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+    try {
+      const bytes = Buffer.alloc(MAXIMUM_REQUEST_BYTES + 1);
+      const { bytesRead } = await handle.read(bytes, 0, bytes.length, 0);
+      if (bytesRead > MAXIMUM_REQUEST_BYTES) return false;
+      const stored: unknown = JSON.parse(bytes.subarray(0, bytesRead).toString("utf8"));
+      return isRequest(stored) && stored.afterObservationId === null;
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Writes `request` unless one for the same turn exists or the directory is full. Returns whether a
- * request now waits for the turn.
+ * request now waits for the turn. A request that names the snapshot the turn ended at replaces one
+ * that would take the checkout as it is when the worker runs, which by then may hold later turns'
+ * edits.
  */
 export async function writeTerminalTurnSettlement(
   root: string,
@@ -172,11 +192,15 @@ export async function writeTerminalTurnSettlement(
     const directory = await terminalTurnSettlementDirectory(root, true);
     const target = resolve(directory, requestName(request.contextEventId));
     let count = 0;
+    let replaces = false;
     for await (const entry of await opendir(directory)) {
-      if (entry.name === requestName(request.contextEventId)) return true;
-      if (NAME.test(entry.name)) count += 1;
+      if (entry.name === requestName(request.contextEventId)) {
+        if (request.afterObservationId === null || !(await waitsForLiveSnapshot(target)))
+          return true;
+        replaces = true;
+      } else if (NAME.test(entry.name)) count += 1;
     }
-    if (count >= MAXIMUM_REQUESTS) return false;
+    if (!replaces && count >= MAXIMUM_REQUESTS) return false;
     temporary = resolve(directory, `.settlement-${randomUUID()}.tmp`);
     const handle = await open(
       temporary,
