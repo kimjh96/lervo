@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_effeb7fe1d0ca93d89531107"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Lervo names the context source bound once in the event contract that records it, and the role input bound once beside its binding event; values are unchanged."
