@@ -132,6 +132,7 @@ export function AgentProfile(props: { agentId: string }) {
         <section className={styles.section}>
           <SectionHeading label={intl.formatMessage({ id: "agents.profile.model" })} />
           <div className={styles.model}>
+            {/* motion: History loads or a workspace reopens */}
             {choosesModel ? (
               <>
                 <Select
@@ -166,32 +167,39 @@ export function AgentProfile(props: { agentId: string }) {
             )}
           </div>
           <p className={styles.note}>
-            {model.source === "role" ? (
-              <FormattedMessage id="agents.profile.model.role" values={{ role: agent.roleName }} />
-            ) : (
-              <FormattedMessage id="agents.profile.model.owner" />
-            )}
+            <Presence as="span" contentKey={model.source}>
+              {model.source === "role" ? (
+                <FormattedMessage
+                  id="agents.profile.model.role"
+                  values={{ role: agent.roleName }}
+                />
+              ) : (
+                <FormattedMessage id="agents.profile.model.owner" />
+              )}
+            </Presence>
           </p>
         </section>
       )}
       <section className={styles.section}>
         <SectionHeading label={intl.formatMessage({ id: "agents.profile.conversations" })} />
-        {conversations.length === 0 ? (
-          <p className={styles.note}>
-            <FormattedMessage id="agents.profile.noConversations" />
-          </p>
-        ) : (
-          <div className={styles.rows}>
-            {conversations.map((workspace) => (
-              <ListRow
-                key={workspace.workspaceId}
-                current={false}
-                onClick={() => select(workspace.workspaceId)}
-                label={workspace.title ?? workspace.branch}
-              />
-            ))}
-          </div>
-        )}
+        <Presence contentKey={conversations.length === 0 ? "none" : "listed"}>
+          {conversations.length === 0 ? (
+            <p className={styles.note}>
+              <FormattedMessage id="agents.profile.noConversations" />
+            </p>
+          ) : (
+            <div className={styles.rows}>
+              {conversations.map((workspace) => (
+                <ListRow
+                  key={workspace.workspaceId}
+                  current={false}
+                  onClick={() => select(workspace.workspaceId)}
+                  label={workspace.title ?? workspace.branch}
+                />
+              ))}
+            </div>
+          )}
+        </Presence>
       </section>
       {/* motion: History loads or a workspace reopens */}
       {pauses ? (
@@ -205,19 +213,23 @@ export function AgentProfile(props: { agentId: string }) {
                 )
               }
             >
-              {paused ? (
-                <FormattedMessage id="agents.profile.resume" />
-              ) : (
-                <FormattedMessage id="agents.profile.pause" />
-              )}
+              <Presence as="span" contentKey={paused ? "resume" : "pause"}>
+                {paused ? (
+                  <FormattedMessage id="agents.profile.resume" />
+                ) : (
+                  <FormattedMessage id="agents.profile.pause" />
+                )}
+              </Presence>
             </Button>
           </div>
           <p className={styles.note}>
-            {paused ? (
-              <FormattedMessage id="agents.profile.paused" />
-            ) : (
-              <FormattedMessage id="agents.profile.pauseNote" />
-            )}
+            <Presence as="span" contentKey={paused ? "paused" : "active"}>
+              {paused ? (
+                <FormattedMessage id="agents.profile.paused" />
+              ) : (
+                <FormattedMessage id="agents.profile.pauseNote" />
+              )}
+            </Presence>
           </p>
         </section>
       ) : null}
