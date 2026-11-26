@@ -28,13 +28,13 @@ function adeLayerRules() {
   // cannot express.
   const restriction = ([match, message]) =>
     match instanceof RegExp ? { regex: match.source, message } : { group: match, message };
-  const layer = (name, files, groups) => ({
+  const layer = (name, files, groups, paths = []) => ({
     name: `lervo/ade-layer-${name}`,
     files,
     rules: {
       "no-restricted-imports": [
         "error",
-        { patterns: [adeLervoImports, ...groups.map(restriction)] },
+        { patterns: [adeLervoImports, ...groups.map(restriction)], paths },
       ],
     },
   });
@@ -69,6 +69,19 @@ function adeLayerRules() {
       "features",
       ["apps/ade/src/features/**/*.{ts,tsx}"],
       [otherFeatureInternals, composition, ioAdapters],
+    ),
+    layer(
+      "views",
+      ["apps/ade/src/features/*/view/**/*.{ts,tsx}"],
+      [otherFeatureInternals, composition, ioAdapters],
+      [
+        {
+          name: "zustand",
+          importNames: ["create", "createStore"],
+          message:
+            'A view creates no store; state belongs to its feature\'s model (ADE convention, "Encapsulation"). Presentation state that performs no I/O says so in an inline exception.',
+        },
+      ],
     ),
     layer(
       "models",
