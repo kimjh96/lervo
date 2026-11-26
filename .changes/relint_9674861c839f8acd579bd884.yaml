@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9674861c839f8acd579bd884"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Lervo keeps a private claim log of the writes it refuses or defers in ADE conversations, and the conversation shows who holds a stopped path and when a turn's claims wait for its end."

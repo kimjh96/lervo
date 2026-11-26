@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_464d4e268b18b1053e67089f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "lervo agent dispatches each action through a table of handlers; every action behaves as before."

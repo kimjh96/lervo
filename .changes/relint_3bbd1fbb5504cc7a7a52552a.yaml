@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3bbd1fbb5504cc7a7a52552a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "An agent can have an image: lervo agent mark sets or clears it, the core link offers agent.mark.set, clear, and read, and agents.list reports it; the image is stored once by its hash."
