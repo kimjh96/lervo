@@ -14,8 +14,7 @@ import type { ConversationSource } from "../model/source";
 import { StandInConversation } from "../model/stand-in-conversation";
 import { useConversationStore } from "../model/store";
 import { turnSummarizer } from "../model/turn-summaries";
-import { BaseNotice } from "./BaseNotice";
-import { HireNotice } from "./HireNotice";
+import { startNotices } from "./StartNotice";
 import { ConversationPane } from "./ConversationPane";
 import { activityMessages } from "./messages";
 import { useRoom } from "./room";
@@ -44,12 +43,15 @@ export function WorkspaceConversation(props: {
   baseNotice?: { code: string; upstream: string | null } | null;
   /** The core's code when the proposed Product Owner could not be hired for this work. */
   hireFailure?: string | null;
+  /** The failed step's code when the core could not set up this work's coordination. */
+  coordinationFailure?: string | null;
 }) {
   const intl = useIntl();
   const host = useSessionHost();
   const { workspaceId, sessionId, firstMessage, firstImages, reopenNatively = false } = props;
   const baseNotice = props.baseNotice ?? null;
   const hireFailure = props.hireFailure ?? null;
+  const coordinationFailure = props.coordinationFailure ?? null;
   const source = useMemo(
     () =>
       workspaceId === null || sessionId === null
@@ -165,16 +167,7 @@ export function WorkspaceConversation(props: {
       queuedSince={queuedSince}
       notice={
         /* motion: Lervo notices in the conversation */
-        baseNotice === null && hireFailure === null ? null : (
-          <>
-            {/* motion: Lervo notices in the conversation */}
-            {hireFailure === null ? null : <HireNotice code={hireFailure} />}
-            {/* motion: Lervo notices in the conversation */}
-            {baseNotice === null ? null : (
-              <BaseNotice code={baseNotice.code} upstream={baseNotice.upstream} />
-            )}
-          </>
-        )
+        startNotices({ baseNotice, hireFailure, coordinationFailure })
       }
     />
   );

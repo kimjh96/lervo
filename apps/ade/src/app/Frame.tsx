@@ -54,6 +54,7 @@ function Main(props: { surface: Surface }) {
         reopenNatively={workspace !== null && workspace.conversationMode !== "native"}
         baseNotice={starting?.baseNotice ?? null}
         hireFailure={starting?.hireFailure ?? null}
+        coordinationFailure={starting?.coordinationFailure ?? null}
       />
     </div>
   );

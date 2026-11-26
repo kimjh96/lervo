@@ -36,6 +36,11 @@ export interface PendingStart {
    * then starts without it, and its conversation says so.
    */
   readonly hireFailure: string | null;
+  /**
+   * The failed step's code when the core could not set up the work's coordination; the work then
+   * writes without claiming its paths, and its conversation says so (Lervo ADE coordination).
+   */
+  readonly coordinationFailure: string | null;
   /** The images pasted with the instruction, as its first message shows them. */
   readonly images: readonly ImageMark[];
 }
