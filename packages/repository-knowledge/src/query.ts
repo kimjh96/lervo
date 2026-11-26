@@ -1,3 +1,4 @@
+import { MAX_CONTEXT_SOURCE_BYTES } from "@lervo/context";
 import { resolve } from "node:path";
 
 import { loadDecisionTaxonomy, loadProjectManifest } from "@lervo/project";
@@ -161,7 +162,7 @@ export class RepositoryKnowledgeQueryIndex {
       storedConcepts.filter(
         (stored) => stored.value === null || !skippedPaths.has(stored.value.path),
       ),
-      Math.min(policy.limits.maxFileBytes, 131_072),
+      Math.min(policy.limits.maxFileBytes, MAX_CONTEXT_SOURCE_BYTES),
     );
     for (const { concept, content, contentHash } of publications) {
       const linkedClaims = claimsByConcept.get(concept.conceptId) ?? [];

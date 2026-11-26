@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { RepositoryWorkProvider, RepositoryWorkTurnUsage } from "@lervo/adapter-contract";
-import { readRepositoryFile } from "@lervo/context";
+import { MAX_CONTEXT_SOURCE_BYTES, readRepositoryFile } from "@lervo/context";
 import {
   createTurnMeasurement,
   recordTurnMeasurement,
@@ -17,7 +17,6 @@ import { RepositoryKnowledgeError } from "@lervo/repository-knowledge";
 
 /** ADR-0459 bounds the context a repository-work turn points at to three documents. */
 const MAXIMUM_CONTEXT_DOCUMENTS = 3;
-const MAXIMUM_CONTEXT_DOCUMENT_BYTES = 131_072;
 const ADAPTER_VERSION = "1";
 
 function sha256(value: string | Uint8Array): string {
@@ -140,7 +139,7 @@ async function prepareRepositoryWorkContext(input: {
     const bytes = await readRepositoryFile(
       input.repositoryRoot,
       candidate.path,
-      MAXIMUM_CONTEXT_DOCUMENT_BYTES,
+      MAX_CONTEXT_SOURCE_BYTES,
     );
     documents.push({
       documentId: candidate.documentId,

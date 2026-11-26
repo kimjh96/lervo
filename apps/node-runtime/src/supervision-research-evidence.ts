@@ -2,7 +2,12 @@ import type { WorkResponsibilityV1 } from "@lervo/application-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { collectRunEventsBounded } from "@lervo/storage-contract";
 import { validateSchema, type VerificationResult } from "@lervo/schemas";
-import { researchContractHash, verifyResearchBrief, type ResearchInputsV1 } from "@lervo/roles";
+import {
+  MAX_RESEARCH_INPUT_BYTES,
+  researchContractHash,
+  verifyResearchBrief,
+  type ResearchInputsV1,
+} from "@lervo/roles";
 import {
   readSupervisionJsonArtifact,
   readSupervisionTextArtifact,
@@ -104,7 +109,7 @@ export async function readSupervisionResearchEvidence(input: {
   if (
     researchContractHash(originalReport) !== researchContractHash(report) ||
     report.inputHash !== bound.payload.inputArtifactHash ||
-    Buffer.byteLength(JSON.stringify(inputs)) > 131072
+    Buffer.byteLength(JSON.stringify(inputs)) > MAX_RESEARCH_INPUT_BYTES
   )
     throw new Error(
       "The research checker output differs from recomputed schema and source traceability.",

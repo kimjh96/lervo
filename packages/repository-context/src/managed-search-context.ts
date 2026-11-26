@@ -9,6 +9,7 @@ import {
   instructionPathsFor,
   readRepositoryFile,
   type ContextDocumentCandidate,
+  MAX_CONTEXT_SOURCE_BYTES,
 } from "@lervo/context";
 import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
 import type { KnowledgeQueryResult } from "@lervo/repository-knowledge";
@@ -136,7 +137,11 @@ export async function prepareManagedSearchContext(input: {
   const additionalCandidates: ContextDocumentCandidate[] = [];
   const knowledgeSources = await Promise.all(
     knowledge.hits.map(async (hit) => {
-      const bytes = await readRepositoryFile(input.repositoryRoot, hit.path, 131_072);
+      const bytes = await readRepositoryFile(
+        input.repositoryRoot,
+        hit.path,
+        MAX_CONTEXT_SOURCE_BYTES,
+      );
       if (digestBytes(bytes) !== hit.contentHash) {
         throw new TypeError(`Publication bytes changed after the knowledge query: ${hit.path}`);
       }

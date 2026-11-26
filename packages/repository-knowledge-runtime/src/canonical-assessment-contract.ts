@@ -8,6 +8,9 @@ import {
 } from "./review-context-references.js";
 import { providerOutputSchema } from "@lervo/schemas";
 
+/** The most bytes one canonical document draft may hold. */
+const MAX_DRAFT_CONTENT_BYTES = 128 * 1024;
+
 export interface CanonicalAssessmentSource {
   path: string;
   contentHash: string;
@@ -106,7 +109,7 @@ export function canonicalAssessmentContract(input: {
           additionalProperties: false,
           properties: {
             path: { type: "string" },
-            content: { type: "string", minLength: 1, maxLength: 131072 },
+            content: { type: "string", minLength: 1, maxLength: MAX_DRAFT_CONTENT_BYTES },
           },
           required: ["path", "content"],
         },
@@ -204,7 +207,7 @@ export function canonicalAssessmentContract(input: {
           typeof draft.path !== "string" ||
           typeof draft.content !== "string" ||
           !draft.content.trim() ||
-          Buffer.byteLength(draft.content) > 131072
+          Buffer.byteLength(draft.content) > MAX_DRAFT_CONTENT_BYTES
         )
           return fail();
         const beforeHash = captured.get(draft.path) ?? null;

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { ContextQualityError } from "./quality-request.js";
+import { MAX_CONTEXT_SOURCE_BYTES } from "./source-limits.js";
 
 export interface ExactEvidenceSection {
   byteStart: number;
@@ -20,7 +21,7 @@ export function selectEvidenceSections(input: {
   maximumBytes: number;
 }): { content: string; sections: ExactEvidenceSection[]; sourceHash: string } | null {
   if (
-    input.bytes.byteLength > 131072 ||
+    input.bytes.byteLength > MAX_CONTEXT_SOURCE_BYTES ||
     !Number.isSafeInteger(input.maximumBytes) ||
     input.maximumBytes < 0
   )

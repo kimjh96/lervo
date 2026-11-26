@@ -8,6 +8,7 @@ import {
   type ContextPreparationReasonCode,
   type ContextPreparationReport,
 } from "@lervo/schemas";
+import { MAX_CONTEXT_SOURCE_BYTES } from "./source-limits.js";
 
 export interface PreparationSource {
   sourceId: string;
@@ -63,7 +64,8 @@ export function isContextPreparationReport(value: unknown): value is ContextPrep
       report.unavailableCount === null ||
       report.preparedByteCount === null ||
       report.fullCount + report.prefixCount + report.unavailableCount !== report.selectedCount ||
-      report.preparedByteCount > (report.fullCount + report.prefixCount) * 131072 ||
+      report.preparedByteCount >
+        (report.fullCount + report.prefixCount) * MAX_CONTEXT_SOURCE_BYTES ||
       report.preparedByteCount < report.prefixCount
     )
       return false;
@@ -166,7 +168,7 @@ export function observeContextPreparation(
         if (
           !["full", "prefix"].includes(load.disposition) ||
           load.preparedByteCount < 0 ||
-          load.preparedByteCount > 131072 ||
+          load.preparedByteCount > MAX_CONTEXT_SOURCE_BYTES ||
           (load.disposition === "prefix" && load.preparedByteCount === 0) ||
           load.reason !== (load.disposition === "prefix" ? "prefix_only" : null)
         )
