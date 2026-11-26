@@ -23,6 +23,12 @@ import {
   type ProjectUnregisterResult,
   projectUnregisterResultSchema,
 } from "./application-project-results.js";
+import {
+  type AgentHireResult,
+  agentHireResultSchema,
+  type AgentsListResult,
+  agentsListResultSchema,
+} from "./application-agent-results.js";
 import { identifierSchema } from "./primitives.js";
 import { conversationModeSchema } from "./session.js";
 
@@ -44,6 +50,8 @@ export const applicationCommandNames = [
   "project.mark.read",
   "project.unregister",
   "projects.location",
+  "agents.list",
+  "agent.hire",
 ] as const;
 
 /** Commands every core answers. Any other command is sent only to a core that advertises it. */
@@ -341,6 +349,8 @@ export const applicationResultSchemas = {
   "project.mark.read": projectMarkReadResultSchema,
   "project.unregister": projectUnregisterResultSchema,
   "projects.location": projectsLocationResultSchema,
+  "agents.list": agentsListResultSchema,
+  "agent.hire": agentHireResultSchema,
 } as const;
 
 export type ApplicationCommandName = (typeof applicationCommandNames)[number];
@@ -371,4 +381,6 @@ export interface ApplicationResults {
   "project.mark.read": ProjectMarkReadResult;
   "project.unregister": ProjectUnregisterResult;
   "projects.location": ProjectsLocationResult;
+  "agents.list": AgentsListResult;
+  "agent.hire": AgentHireResult;
 }

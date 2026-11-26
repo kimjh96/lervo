@@ -9,6 +9,12 @@ import {
   projectUnregisterResultSchema,
 } from "./application-project-results.js";
 import {
+  agentHireResultSchema,
+  agentsListResultSchema,
+  agentSummarySchema,
+  hireableRoleSchema,
+} from "./application-agent-results.js";
+import {
   providerCapabilitiesSchema,
   providerListResultSchema,
   providerSummarySchema,
@@ -104,6 +110,10 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     projectMarkReadResultSchema,
     projectUnregisterResultSchema,
     projectsLocationResultSchema,
+    agentSummarySchema,
+    hireableRoleSchema,
+    agentsListResultSchema,
+    agentHireResultSchema,
   ].map((schema) => [schema.title, schema] as const),
   ...[
     ...coreLinkRequestSchemas,

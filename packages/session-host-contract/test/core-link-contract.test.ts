@@ -120,6 +120,8 @@ describe("core-link protocol contract", () => {
       ["repository-list", "repository.list"],
       ["repository-list-profiles", "repository.list"],
       ["project-add", "project.add"],
+      ["agents-list", "agents.list"],
+      ["agent-hire", "agent.hire"],
       ["project-mark-read", "project.mark.read"],
       ["workspace-list", "workspace.list"],
       ["workspace-list-older-core", "workspace.list"],

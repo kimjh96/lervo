@@ -165,6 +165,19 @@ export class CoreLinkServer {
         });
         return;
       }
+      case "agents.list":
+      case "agent.hire": {
+        const run = this.handlers.runAgentCommand;
+        this.respond(request.id, async () => {
+          if (run === undefined)
+            throw new CommandFailure("command_unsupported", "This core manages no agents.");
+          return run(
+            request.command as string,
+            (request.arguments ?? {}) as Record<string, unknown>,
+          );
+        });
+        return;
+      }
       case "workspace.retire":
         // An invalid ID fails this request alone, never the link.
         this.respond(request.id, async () =>

@@ -967,6 +967,145 @@
         }
       }
     },
+    "AgentSummary": {
+      "title": "AgentSummary",
+      "type": "object",
+      "required": [
+        "agentId",
+        "displayName",
+        "roleId",
+        "roleName",
+        "status",
+        "origin",
+        "revision"
+      ],
+      "properties": {
+        "agentId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "roleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "roleName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "status": {
+          "enum": [
+            "active",
+            "suspended"
+          ]
+        },
+        "origin": {
+          "enum": [
+            "team",
+            "lervo"
+          ]
+        },
+        "provider": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "parentAgentId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "HireableRole": {
+      "title": "HireableRole",
+      "type": "object",
+      "required": [
+        "roleId",
+        "name",
+        "description",
+        "source"
+      ],
+      "properties": {
+        "roleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "source": {
+          "enum": [
+            "built_in",
+            "repository"
+          ]
+        }
+      }
+    },
+    "AgentsListResult": {
+      "title": "AgentsListResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agents",
+        "roles"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agents": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/AgentSummary"
+          }
+        },
+        "roles": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/HireableRole"
+          }
+        }
+      }
+    },
+    "AgentHireResult": {
+      "title": "AgentHireResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
     "CoreCommandRequest": {
       "title": "CoreCommandRequest",
       "type": "object",
@@ -1003,7 +1142,9 @@
             "project.mark.clear",
             "project.mark.read",
             "project.unregister",
-            "projects.location"
+            "projects.location",
+            "agents.list",
+            "agent.hire"
           ]
         },
         "arguments": {
