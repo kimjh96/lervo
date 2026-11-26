@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_bba2a153591f7a0e81995b08"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Lervo finds lervo and node when opened from the Dock, even when they are added only in ~/.zshrc: the session host takes its PATH from an interactive login shell."
