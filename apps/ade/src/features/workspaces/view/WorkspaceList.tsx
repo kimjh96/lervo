@@ -10,6 +10,7 @@ import { useDeparting } from "../../../ui/departing";
 import { useItemSpace } from "../../../ui/space";
 import { StatusDot } from "../../../ui/StatusDot";
 import { Presence } from "../../../ui/Presence";
+import { SectionHeading } from "../../../ui/SectionHeading";
 import { groupByRepository, visibleStatus } from "../model/decisions";
 import { useWorkspaceStore } from "../model/store";
 import type { Workspace } from "../model/types";
@@ -100,7 +101,14 @@ function WorkspaceRows(props: { workspaces: readonly Workspace[]; leaving: Reado
  * enters with the arrival motion once, when it mounts; loaded rows stay still. A removed row fades
  * out where it was. A repository's name arrives with its first row and leaves with its last.
  */
-export function WorkspaceList(props: { projectId: string | null }) {
+export function WorkspaceList(props: {
+  projectId: string | null;
+  /** What sits between "New work" and the conversations, such as the project's agents. */
+  beforeRows?: ReactNode;
+  /** Whether a "Conversations" heading names the rows, as it does below the agents; it shows only
+   * over rows. */
+  conversationsHeading?: boolean;
+}) {
   const intl = useIntl();
   const workspaces = useWorkspaceStore((store) => store.workspaces);
   const arrived = useWorkspaceStore((store) => store.arrived);
@@ -149,6 +157,12 @@ export function WorkspaceList(props: { projectId: string | null }) {
             <FormattedMessage id="workspaces.unavailable" values={{ code: listFailure }} />
           </InlineAlert>
         )}
+      </Presence>
+      {props.beforeRows}
+      <Presence>
+        {props.conversationsHeading === true && projectId !== null && shown.length > 0 ? (
+          <SectionHeading label={intl.formatMessage({ id: "workspaces.conversations" })} />
+        ) : null}
       </Presence>
       {projectId !== null ? (
         <Presence contentKey={projectId} className={styles.project}>

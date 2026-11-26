@@ -3,11 +3,6 @@ import type { MouseEvent, ReactNode } from "react";
 import styles from "./ListRow.module.css";
 
 /**
- * A row of a navigation list, such as the workspace list: a label that truncates, with an
- * optional icon before it and a status or shortcut after it. The current row is raised; a quiet
- * row reads in the secondary color.
- */
-/**
  * The column a row's icon or mark sits in, centered and one width for every row, so the labels of
  * a list start at one edge whatever leads them (ADE craft rules, 5).
  */
@@ -15,6 +10,13 @@ export function RowLeading(props: { children: ReactNode }) {
   return <span className={styles.leading}>{props.children}</span>;
 }
 
+/**
+ * A row of a navigation list, such as the workspace list: a label that truncates, with an
+ * optional icon before it and a status or shortcut after it. The current row is raised; a quiet
+ * row reads in the secondary color.
+ * A row without an action, such as an agent before its profile opens, is a plain row rather than a
+ * button, so it is never announced or focused as one.
+ */
 export function ListRow(props: {
   label: ReactNode;
   current: boolean;
@@ -25,10 +27,27 @@ export function ListRow(props: {
   expanded?: boolean;
   /** The row's accessible name when the label alone does not say what it does. */
   accessibleName?: string;
-  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   onDoubleClick?: () => void;
   onContextMenu?: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
+  const content = (
+    <>
+      {props.leading === undefined ? null : <RowLeading>{props.leading}</RowLeading>}
+      <span className={styles.label}>{props.label}</span>
+      {props.trailing}
+    </>
+  );
+  if (props.onClick === undefined)
+    return (
+      <div
+        className={styles.row}
+        data-static=""
+        data-quiet={props.quiet === true ? "true" : undefined}
+      >
+        {content}
+      </div>
+    );
   return (
     <button
       type="button"
@@ -41,9 +60,7 @@ export function ListRow(props: {
       onDoubleClick={props.onDoubleClick}
       onContextMenu={props.onContextMenu}
     >
-      {props.leading === undefined ? null : <RowLeading>{props.leading}</RowLeading>}
-      <span className={styles.label}>{props.label}</span>
-      {props.trailing}
+      {content}
     </button>
   );
 }

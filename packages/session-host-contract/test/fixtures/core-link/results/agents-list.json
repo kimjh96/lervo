@@ -1,0 +1,41 @@
+{
+  "projectId": "prj_ab094111596346d7",
+  "agents": [
+    {
+      "agentId": "agt_72dfa9c95d05a533ab158eb0",
+      "displayName": "Elio",
+      "roleId": "product-owner",
+      "roleName": "Product owner",
+      "status": "active",
+      "origin": "team",
+      "provider": "claude",
+      "parentAgentId": null,
+      "revision": 1
+    },
+    {
+      "agentId": "agt_5d10604dfc78d3e8aea01cd1",
+      "displayName": "Knowledge Steward",
+      "roleId": "developer",
+      "roleName": "Developer",
+      "status": "active",
+      "origin": "lervo",
+      "provider": "claude",
+      "parentAgentId": null,
+      "revision": 3
+    }
+  ],
+  "roles": [
+    {
+      "roleId": "developer",
+      "name": "Developer",
+      "description": "Builds and fixes, within its paths.",
+      "source": "built_in"
+    },
+    {
+      "roleId": "product-owner",
+      "name": "Product owner",
+      "description": "Plans, prioritizes, hires, and delegates.",
+      "source": "repository"
+    }
+  ]
+}

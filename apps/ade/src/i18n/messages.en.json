@@ -1,4 +1,60 @@
 {
+  "agents.failed": {
+    "defaultMessage": "Lervo could not list or hire the agents ({code}).",
+    "description": "One line under the agents when listing or hiring failed; code is the stable failure code."
+  },
+  "agents.hire": {
+    "defaultMessage": "Hire an Agent",
+    "description": "Accessible name of the plus beside Agents, and the label of the menu of roles it opens."
+  },
+  "agents.hireProductOwner": {
+    "defaultMessage": "Hire a Product Owner",
+    "description": "The one row a project without agents shows; it hires a product owner."
+  },
+  "agents.label": {
+    "defaultMessage": "Agents",
+    "description": "The sidebar section that lists the selected project's agents."
+  },
+  "agents.role": {
+    "defaultMessage": " · {role}",
+    "description": "After an agent's name in the sidebar: its role, such as \"· Developer\"."
+  },
+  "agents.roleSummary.ceo": {
+    "defaultMessage": "Leads the teams and delegates",
+    "description": "One line under the ceo role in the hire menu: what an agent of that role does."
+  },
+  "agents.roleSummary.designer": {
+    "defaultMessage": "Shapes interfaces and their states",
+    "description": "One line under the designer role in the hire menu: what an agent of that role does."
+  },
+  "agents.roleSummary.developer": {
+    "defaultMessage": "Builds and fixes, within its paths",
+    "description": "One line under the developer role in the hire menu: what an agent of that role does."
+  },
+  "agents.roleSummary.ideation": {
+    "defaultMessage": "Finds options and tests assumptions",
+    "description": "One line under the ideation role in the hire menu: what an agent of that role does."
+  },
+  "agents.roleSummary.marketer": {
+    "defaultMessage": "Writes for a chosen audience",
+    "description": "One line under the marketer role in the hire menu: what an agent of that role does."
+  },
+  "agents.roleSummary.productOwner": {
+    "defaultMessage": "Plans, prioritizes, and hires",
+    "description": "One line under the product-owner role in the hire menu: what an agent of that role does."
+  },
+  "agents.roleSummary.researcher": {
+    "defaultMessage": "Finds and checks what is true",
+    "description": "One line under the researcher role in the hire menu: what an agent of that role does."
+  },
+  "agents.roleSummary.writer": {
+    "defaultMessage": "Writes docs and release notes",
+    "description": "One line under the writer role in the hire menu: what an agent of that role does."
+  },
+  "agents.thisProject": {
+    "defaultMessage": "This Project",
+    "description": "A note at the end of a role in the hire menu: the role is this project's own, not built in."
+  },
   "app.name": {
     "defaultMessage": "Lervo",
     "description": "The product name, shown beside the logo."
@@ -1258,6 +1314,10 @@
   "workspace.retire.stopping": {
     "defaultMessage": "Stopping the session",
     "description": "In place of the remove question: the workspace's agent session is ending before the workspace is removed."
+  },
+  "workspaces.conversations": {
+    "defaultMessage": "Conversations",
+    "description": "The sidebar section heading above the selected project's conversations, shown with the agents."
   },
   "workspaces.label": {
     "defaultMessage": "Workspaces",

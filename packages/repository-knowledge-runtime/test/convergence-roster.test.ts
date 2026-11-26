@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   convergenceAgentName,
   convergenceDelegationAgentIds,
+  lervoAgentIds,
   retireSupersededConvergenceAgents,
 } from "../src/convergence-roster.js";
 import type { ConvergenceDelegation } from "../src/delegation-contract.js";
@@ -118,5 +119,36 @@ describe("convergence worker roster", () => {
     expect(ids.has(staff.agentId)).toBe(false);
     // A matching name with a role other than the delegation's binding is staff.
     expect(ids.has(lookalike.agentId)).toBe(false);
+  });
+
+  it("tells Lervo's own agents from the project's team", async () => {
+    const { root, owner, delegation, hire } = await fixture();
+    const worker = await hire(convergenceAgentName("reviewer", currentHash));
+    const team = await registerAgent({
+      repositoryRoot: root,
+      roleId: "developer",
+      provider: "claude",
+    });
+    const teamChild = await registerAgent({
+      repositoryRoot: root,
+      roleId: "researcher",
+      provider: "claude",
+      parentAgentId: team.agentId,
+    });
+    const steward = await registerAgent({
+      repositoryRoot: root,
+      roleId: "developer",
+      provider: "codex",
+      displayName: "Knowledge Steward",
+    });
+    const agents = await listAgents(root);
+    expect([...lervoAgentIds(agents, delegation)].sort()).toEqual(
+      [owner.agentId, worker.agentId, steward.agentId].sort(),
+    );
+    // Without a delegation, workers and the steward are still Lervo's; their parent is not.
+    expect([...lervoAgentIds(agents, null)].sort()).toEqual(
+      [worker.agentId, steward.agentId].sort(),
+    );
+    expect(lervoAgentIds(agents, delegation).has(teamChild.agentId)).toBe(false);
   });
 });

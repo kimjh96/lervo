@@ -2,6 +2,7 @@ import { applyNodeRuntimeRetention } from "./node-runtime-retention.js";
 import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
 import { applyWorkforceRoleBindingMigration } from "@lervo/agent-workforce";
+
 import type { KnowledgeMaterializationSettlement } from "@lervo/repository-knowledge";
 
 import { CommandFailure } from "./command-error-output.js";
@@ -41,6 +42,7 @@ import {
 import type { UpgradeStageClock } from "./upgrade-stage-timing.js";
 import type { CliServices } from "./types.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
+import { recordPendingAgentOrigins } from "./agent-origin-stage.js";
 
 export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pending"] {
   const stages: Array<{
@@ -133,6 +135,11 @@ export async function applyRepositoryUpgrade(
           undo: "Revert the role source in .lervo/roles with Git, then run lervo upgrade --apply.",
         });
     }
+  }
+  // ADR-0643: each agent records whether it is the team's or Lervo's own, once.
+  if (!held && workforce?.disposition !== "blocked") {
+    await confirmExclusion("workforce");
+    if ((await recordPendingAgentOrigins(root)) > 0) appliedStages.push("workforce_origins");
   }
   clock.lap("workforce");
 

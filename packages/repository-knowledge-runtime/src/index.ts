@@ -230,6 +230,7 @@ export { observeResidentHost, type ResidentHostObservation } from "./resident-ho
 export {
   convergenceAgentName,
   convergenceDelegationAgentIds,
+  lervoAgentIds,
   retireSupersededConvergenceAgents,
 } from "./convergence-roster.js";
 export { classifyForegroundDocumentRoutes } from "./foreground-document-route-classification.js";

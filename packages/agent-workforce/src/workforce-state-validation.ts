@@ -152,6 +152,7 @@ export function validAgent(agent: unknown, projectId: string): agent is Workforc
     value.delegationDepth >= 0 &&
     value.delegationDepth <= workforceLimits.maximumDelegationDepth &&
     ["active", "suspended", "retired"].includes(value.status) &&
+    (value.origin === undefined || value.origin === "team" || value.origin === "lervo") &&
     Number.isSafeInteger(value.revision) &&
     value.revision >= 1 &&
     validTime(value.createdAt) &&

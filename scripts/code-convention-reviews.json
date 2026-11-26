@@ -88,7 +88,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:f04e7349b78f67088b2772c968768b58d3cbe6818396e2019e63d9add217a8ca",
+      "contentHash": "sha256:b5414000390e3fd17d9b428acb14a653463470834d12413332b5c8aa3acb37c1",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, and hosted-session payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"

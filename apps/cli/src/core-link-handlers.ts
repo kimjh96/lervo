@@ -29,6 +29,8 @@ export interface CoreLinkHandlers {
   retireWorkspace(workspaceId: string): Promise<object>;
   /** Answers a project command (Lervo ADE projects, "Core link"). */
   runProjectCommand?(command: string, arguments_: Record<string, unknown>): Promise<object>;
+  /** Answers an agent command (Lervo ADE agents, "Core link"). */
+  runAgentCommand?(command: string, arguments_: Record<string, unknown>): Promise<object>;
   /** What the core recorded about turns of a workspace's hosted session. */
   summarizeTurns?(arguments_: Record<string, unknown>): Promise<object>;
   /** Records a hosted session's process exit unless its own hook recorded the end. */

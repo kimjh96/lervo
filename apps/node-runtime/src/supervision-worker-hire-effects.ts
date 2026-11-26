@@ -102,6 +102,8 @@ export class SupervisionWorkerHireEffects {
         displayName: basis.effect.displayName,
         parentAgentId: plan.ownerAgentId,
         responsibilityPaths: basis.effect.requirement.expectedPaths,
+        // A supervised worker joins its owner's team (ADR-0643).
+        origin: "team",
         now: new Date(occurredAt),
         recordEvent: async (event) => {
           const agents = await listAgents(this.root);

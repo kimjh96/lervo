@@ -41,6 +41,15 @@ export function isRoleTemplateId(roleId: string): roleId is RoleTemplateId {
   return Object.hasOwn(roleTemplates, roleId);
 }
 
+/** The template roles' IDs, names, and descriptions, which a project can hire before it has them. */
+export function listRoleTemplates(): { roleId: string; name: string; description: string }[] {
+  return Object.values(roleTemplates).map((template) => ({
+    roleId: template.roleId,
+    name: template.profile.name,
+    description: template.profile.description,
+  }));
+}
+
 /**
  * Writes `.lervo/roles/<roleId>.json` from the core's template when the project has no such role
  * and the ID is a template. Returns what it did: `written`, `present` when the file exists, or

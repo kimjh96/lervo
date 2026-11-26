@@ -64,6 +64,43 @@ export function convergenceDelegationAgentIds(
   );
 }
 
+/** The name of the root agent that seeding hires to steward knowledge continuity. */
+const STEWARD_NAME = "Knowledge Steward";
+
+/**
+ * Agents that are Lervo's own, which maintain repository knowledge, rather than the project's team
+ * (Lervo ADE agents, "Team agents and Lervo's agents"): the convergence delegation's parent and
+ * everyone under it, the steward and everyone under it, and any agent named as a convergence or
+ * practice worker. Retired agents count too, so a list of any statuses classifies consistently.
+ */
+export function lervoAgentIds(
+  agents: readonly WorkforceAgent[],
+  delegation: ConvergenceDelegation | null,
+): Set<string> {
+  const byId = new Map(agents.map((agent) => [agent.agentId, agent]));
+  const roots = new Set(
+    agents
+      .filter(
+        (agent) =>
+          agent.agentId === delegation?.parentAgentId ||
+          agent.displayName === STEWARD_NAME ||
+          CONVERGENCE_AGENT_NAME.test(agent.displayName),
+      )
+      .map((agent) => agent.agentId),
+  );
+  const isLervos = (agent: WorkforceAgent): boolean => {
+    // Parent chains are acyclic and at most the registry's size long; the bound keeps a corrupt
+    // chain from looping.
+    let current: WorkforceAgent | undefined = agent;
+    for (let step = 0; current !== undefined && step <= agents.length; step += 1) {
+      if (roots.has(current.agentId)) return true;
+      current = current.parentAgentId === null ? undefined : byId.get(current.parentAgentId);
+    }
+    return false;
+  };
+  return new Set(agents.filter(isLervos).map((agent) => agent.agentId));
+}
+
 /**
  * Retires convergence workers of superseded delegations. Every delegation renewal hires a fresh
  * set, so without this the parent's roster grows by up to four agents per renewal. A worker that

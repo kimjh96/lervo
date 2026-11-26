@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5c00c5ededa2aba49416dfeb"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "The core link lists a project's agents, each marked as the team's or Lervo's own, with the roles it can hire (agents.list), and hires an agent for the owner (agent.hire)."

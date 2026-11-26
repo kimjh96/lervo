@@ -1,0 +1,24 @@
+/* The agents section of the sidebar (Lervo ADE agents, "The sidebar"). */
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.agent[data-arrived="true"] {
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent[data-arrived="true"] {
+    animation: none;
+  }
+}
+
+.role {
+  color: var(--color-text-tertiary);
+}
+
+.failure {
+  margin-block: var(--space-8) 0;
+  margin-inline: var(--space-10);
+}

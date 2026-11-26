@@ -1,0 +1,14 @@
+{
+  "projectId": "prj_ab094111596346d7",
+  "agent": {
+    "agentId": "agt_22565c243e936fee624b967c",
+    "displayName": "Ciel-967C",
+    "roleId": "developer",
+    "roleName": "Developer",
+    "status": "active",
+    "origin": "team",
+    "provider": "claude",
+    "parentAgentId": null,
+    "revision": 1
+  }
+}

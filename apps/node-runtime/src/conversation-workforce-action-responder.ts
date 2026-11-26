@@ -67,6 +67,8 @@ export class RepositoryConversationWorkforceHiring implements ConversationWorkfo
         displayName: input.name,
         responsibilityPaths: ["*"],
         parentAgentId: input.parentAgentId,
+        // A team agent hiring grows the team (ADR-0643).
+        origin: "team",
         recordEvent: (event) => recordWorkforceEvent(storage, event),
       });
     } catch (error) {
