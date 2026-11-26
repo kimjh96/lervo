@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_97d1469c0e291603e8a4131a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Opening a conversation in the ADE no longer moves it to the top of the list: the list orders by when a conversation began or an agent joined it, and a reopen keeps that time."

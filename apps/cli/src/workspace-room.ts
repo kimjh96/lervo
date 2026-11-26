@@ -7,6 +7,7 @@ import { MAXIMUM_ROOM_AGENTS } from "@lervo/session-host-contract";
 import { CommandFailure } from "./command-error-output.js";
 import {
   launchArgumentDigest,
+  listedTime,
   roomSessionRecords,
   type HostedLaunchRecord,
 } from "./hosted-launch-records.js";
@@ -122,6 +123,7 @@ export async function joinWorkspaceRoom(
   if (launch.settingsFile !== null) await writeHostedSessionSettings(launch.settingsFile);
   const written =
     terminal === undefined ? undefined : writtenTerminalHooks(terminal, launch.settingsFile);
+  const preparedAt = new Date().toISOString();
   // Only the lead's record names the participants the conversation started with.
   const { terminalHooks: _leadTerminal, participants, startedBy, ...lead } = previous;
   const record: HostedLaunchRecord = {
@@ -135,7 +137,10 @@ export async function joinWorkspaceRoom(
     conversationMode: "native",
     argumentDigest: launchArgumentDigest(launch),
     settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
-    preparedAt: new Date().toISOString(),
+    preparedAt,
+    // A new participant is activity; resuming a joined agent's session, as opening the
+    // conversation does, keeps the conversation's place in the list.
+    listedAt: resume && own !== undefined ? listedTime(own) : preparedAt,
   };
   await recordLaunch(record);
   if (starting !== null) await dropPendingStart(pendingStartsPath(), workspaceId, agentId);
