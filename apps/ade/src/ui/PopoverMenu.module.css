@@ -21,6 +21,11 @@
   animation: menu-rise var(--motion-duration-change) var(--motion-easing-standard);
 }
 
+.menu[data-wide] {
+  min-width: var(--layout-menu-wide-width);
+  max-width: var(--layout-menu-wide-width);
+}
+
 .menu[data-closing] {
   pointer-events: none;
   animation: menu-sink var(--motion-duration-exit) var(--motion-easing-exit) forwards;
@@ -54,7 +59,24 @@
 }
 
 .shortcut {
+  flex: none;
   color: var(--color-text-tertiary);
+}
+
+.texts {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* One line under the item's text; a longer description truncates rather than wraps. */
+.detail {
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 @keyframes menu-rise {

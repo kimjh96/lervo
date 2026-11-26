@@ -118,6 +118,7 @@
   --layout-panel-width: 380px;
   --layout-choice-width: 168px;
   --layout-menu-width: 220px;
+  --layout-menu-wide-width: 300px;
   --layout-button-min-width: 84px;
   --shadow-window: 0 30px 70px rgba(40,52,80,0.18), 0 0 0 1px rgba(20,30,50,0.06);
   --shadow-raised: 0 8px 24px rgba(40,52,80,0.08);

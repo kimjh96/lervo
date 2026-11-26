@@ -1,4 +1,110 @@
 {
+  "agents.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not list or hire the agents ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "agents.hire": [
+    {
+      "type": 0,
+      "value": "Hire an Agent"
+    }
+  ],
+  "agents.hireProductOwner": [
+    {
+      "type": 0,
+      "value": "Hire a Product Owner"
+    }
+  ],
+  "agents.label": [
+    {
+      "type": 0,
+      "value": "Agents"
+    }
+  ],
+  "agents.lervo": [
+    {
+      "type": 1,
+      "value": "count"
+    },
+    {
+      "type": 0,
+      "value": " run by Lervo"
+    }
+  ],
+  "agents.role": [
+    {
+      "type": 0,
+      "value": " · "
+    },
+    {
+      "type": 1,
+      "value": "role"
+    }
+  ],
+  "agents.roleSummary.ceo": [
+    {
+      "type": 0,
+      "value": "Leads the teams and delegates"
+    }
+  ],
+  "agents.roleSummary.designer": [
+    {
+      "type": 0,
+      "value": "Shapes interfaces and their states"
+    }
+  ],
+  "agents.roleSummary.developer": [
+    {
+      "type": 0,
+      "value": "Builds and fixes, within its paths"
+    }
+  ],
+  "agents.roleSummary.ideation": [
+    {
+      "type": 0,
+      "value": "Finds options and tests assumptions"
+    }
+  ],
+  "agents.roleSummary.marketer": [
+    {
+      "type": 0,
+      "value": "Writes for a chosen audience"
+    }
+  ],
+  "agents.roleSummary.productOwner": [
+    {
+      "type": 0,
+      "value": "Plans, prioritizes, and hires"
+    }
+  ],
+  "agents.roleSummary.researcher": [
+    {
+      "type": 0,
+      "value": "Finds and checks what is true"
+    }
+  ],
+  "agents.roleSummary.writer": [
+    {
+      "type": 0,
+      "value": "Writes docs and release notes"
+    }
+  ],
+  "agents.thisProject": [
+    {
+      "type": 0,
+      "value": "This Project"
+    }
+  ],
   "app.name": [
     {
       "type": 0,
@@ -2736,6 +2842,12 @@
     {
       "type": 0,
       "value": "Stopping the session"
+    }
+  ],
+  "workspaces.conversations": [
+    {
+      "type": 0,
+      "value": "Conversations"
     }
   ],
   "workspaces.label": [

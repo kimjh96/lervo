@@ -26,6 +26,15 @@
   background: var(--color-surface-hover);
 }
 
+/* A row without an action does not answer the pointer. */
+.row[data-static] {
+  cursor: default;
+}
+
+.row[data-static]:hover {
+  background: transparent;
+}
+
 .row[aria-current="page"] {
   background: var(--color-surface-selected);
   box-shadow: var(--shadow-selected);

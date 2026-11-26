@@ -1,0 +1,38 @@
+/* A sidebar section's heading: its name in the caption type, and an optional quiet plus. */
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block: var(--space-20) var(--space-4);
+  padding-inline: var(--space-10) var(--space-4);
+}
+
+.label {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-caption-line-height);
+}
+
+.add {
+  display: grid;
+  place-items: center;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.add:hover {
+  background: var(--color-surface-hover);
+}
+
+.add:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-inset);
+}

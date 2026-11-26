@@ -14,6 +14,7 @@ import { Kbd } from "../src/ui/Kbd";
 import { Mark } from "../src/ui/Mark";
 import { ListRow } from "../src/ui/ListRow";
 import { PaneHeader } from "../src/ui/PaneHeader";
+import { SectionHeading } from "../src/ui/SectionHeading";
 import { StatusDot } from "../src/ui/StatusDot";
 import {
   AttachmentTrayDemo,
@@ -306,6 +307,27 @@ export const entries: readonly Entry[] = [
           <PaneHeader title="Fix the flaky test">
             <SegmentedDemo />
           </PaneHeader>
+        ),
+      },
+    ],
+  },
+  {
+    module: "SectionHeading",
+    name: "Section heading",
+    purpose: "The heading of a sidebar section, with an optional quiet plus that adds to it.",
+    use: ["Agents and Conversations in the sidebar"],
+    avoid: ["The main area's title, which is the pane header", "More than one action"],
+    variants: [
+      {
+        name: "With and without adding",
+        render: () => (
+          <div style={{ width: "var(--layout-sidebar-width)" }}>
+            <SectionHeading
+              label="Agents"
+              add={{ label: "Hire an Agent", onClick: () => undefined }}
+            />
+            <SectionHeading label="Conversations" />
+          </div>
         ),
       },
     ],

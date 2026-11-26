@@ -5,7 +5,9 @@ import styles from "./PopoverMenu.module.css";
 
 export interface PopoverMenuItem {
   readonly text: string;
-  /** The item's shortcut as text, such as `⌘O`, shown at its end. */
+  /** One quiet line under the item's text, such as what a role does. */
+  readonly detail?: string;
+  /** The item's shortcut or a short note as text, such as `⌘O`, shown at its end. */
   readonly shortcut?: string;
   readonly run: () => void;
 }
@@ -30,6 +32,8 @@ export function PopoverMenu(props: {
   items: readonly PopoverMenuItem[];
   /** Whether a key opened the menu, so its first item starts chosen. */
   openedByKey?: boolean;
+  /** A wider menu, for items that carry a line of detail. */
+  wide?: boolean;
   onClose: () => void;
 }) {
   const [closing, setClosing] = useState(false);
@@ -63,6 +67,7 @@ export function PopoverMenu(props: {
       tabIndex={-1}
       className={styles.menu}
       data-closing={closing ? "" : undefined}
+      data-wide={props.wide === true ? "" : undefined}
       style={{
         top: props.anchor.bottom + MENU_GAP,
         left: props.anchor.left,
@@ -95,7 +100,14 @@ export function PopoverMenu(props: {
           onPointerEnter={() => setActive(index)}
           onClick={() => close(item.run)}
         >
-          <span>{item.text}</span>
+          {item.detail === undefined ? (
+            <span>{item.text}</span>
+          ) : (
+            <span className={styles.texts}>
+              <span>{item.text}</span>
+              <span className={styles.detail}>{item.detail}</span>
+            </span>
+          )}
           {item.shortcut === undefined ? null : (
             <span className={styles.shortcut}>{item.shortcut}</span>
           )}

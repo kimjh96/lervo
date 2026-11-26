@@ -3,10 +3,11 @@ import { useEffect } from "react";
 
 import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
 import { preloadConversation, WorkspaceConversation } from "../features/conversation";
+import { AgentList, managesAgents } from "../features/agents";
 import { AddProjectSheet, ProjectSwitcher, useCurrentProject } from "../features/projects";
 import { StartScreen, type Surface, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
-import { WorkspaceList } from "../features/workspaces";
+import { useWorkspaceStore, WorkspaceList } from "../features/workspaces";
 import { ViewPresence } from "../ui/ViewPresence";
 import styles from "./Frame.module.css";
 
@@ -57,6 +58,8 @@ function Main(props: { surface: Surface }) {
 export function Frame() {
   const surface = useSurface();
   const project = useCurrentProject();
+  // An older core answers no agent command: the sidebar then lists conversations alone.
+  const agentsManaged = useWorkspaceStore((store) => managesAgents(store.advertisedCommands));
   // The conversation's chunk loads once the start screen has painted.
   useEffect(() => {
     const timer = setTimeout(preloadConversation, 0);
@@ -68,7 +71,11 @@ export function Frame() {
         {/* The macOS window controls sit over this strip, which also moves the window. */}
         <div className={styles.titlebar} data-tauri-drag-region />
         <ProjectSwitcher />
-        <WorkspaceList projectId={project?.projectId ?? null} />
+        <WorkspaceList
+          projectId={project?.projectId ?? null}
+          beforeRows={<AgentList projectId={project?.projectId ?? null} />}
+          conversationsHeading={agentsManaged}
+        />
         <div className={styles.footer}>
           <ConnectionStatus />
           <HostUpdateNotice />
