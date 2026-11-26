@@ -80,17 +80,18 @@ pub async fn read_image_file(path: String) -> Result<tauri::ipc::Response, Strin
 /// Shows a file in Finder, selected; a missing file is left alone.
 #[tauri::command]
 pub fn reveal_file(path: String) {
-    if !Path::new(&path).exists() {
-        return;
-    }
     #[cfg(target_os = "macos")]
     {
         // `open` returns at once; Finder comes forward on its own.
-        let _ = std::process::Command::new("/usr/bin/open")
-            .arg("-R")
-            .arg(&path)
-            .spawn();
+        if Path::new(&path).exists() {
+            let _ = std::process::Command::new("/usr/bin/open")
+                .arg("-R")
+                .arg(&path)
+                .spawn();
+        }
     }
+    #[cfg(not(target_os = "macos"))]
+    drop(path);
 }
 
 #[cfg(target_os = "macos")]
