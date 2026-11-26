@@ -25,6 +25,13 @@ import {
 } from "./hosted-session-event.js";
 import { terminalContextBaseDeliveredEventPayloadSchema } from "./terminal-base-delivery-event.js";
 import {
+  roomExchangePausedEventPayloadSchema,
+  roomMentionDeliveredEventPayloadSchema,
+  roomMentionFailedEventPayloadSchema,
+  roomMentionRecordedEventPayloadSchema,
+  roomParticipantJoinedEventPayloadSchema,
+} from "./room-event.js";
+import {
   contextQualityPreparedEventPayloadSchema,
   contextQualityVerifiedEventPayloadSchema,
 } from "./context-quality-event.js";
@@ -485,6 +492,11 @@ export const schemaCatalog = {
   terminalSessionLaunchPreparedEventPayload: terminalSessionLaunchPreparedEventPayloadSchema,
   terminalSessionLaunchedEventPayload: terminalSessionLaunchedEventPayloadSchema,
   terminalSessionEndedEventPayload: terminalSessionEndedEventPayloadSchema,
+  roomParticipantJoinedEventPayload: roomParticipantJoinedEventPayloadSchema,
+  roomMentionRecordedEventPayload: roomMentionRecordedEventPayloadSchema,
+  roomMentionDeliveredEventPayload: roomMentionDeliveredEventPayloadSchema,
+  roomMentionFailedEventPayload: roomMentionFailedEventPayloadSchema,
+  roomExchangePausedEventPayload: roomExchangePausedEventPayloadSchema,
   terminalSkillObservedEventPayload: terminalSkillObservedEventPayloadSchema,
   terminalSkillTurnAssessedEventPayload: terminalSkillTurnAssessedEventPayloadSchema,
   workstreamSnapshot: workstreamSnapshotSchema,

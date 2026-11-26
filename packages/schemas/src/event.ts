@@ -14,9 +14,13 @@ import { documentFreshnessEventTypes } from "./document-freshness-event.js";
 import { instructionCaptureEventTypes } from "./instruction-capture-event.js";
 import { hostedSessionEventTypes } from "./hosted-session-event.js";
 import { terminalBaseDeliveryEventTypes } from "./terminal-base-delivery-event.js";
+import { roomEventTypes } from "./room-event.js";
 import { planLedgerEventTypes } from "./plan-ledger-event.js";
 import { resourceUsageBeforeV11 } from "./resource-usage-event.js";
-import { terminalTurnObservedBeforeV12 } from "./terminal-observation-event.js";
+import {
+  terminalContextPreparedBeforeV15,
+  terminalTurnObservedBeforeV12,
+} from "./terminal-observation-event.js";
 import { executionStagesObservedBeforeV13 } from "./execution-observability-event.js";
 
 export const eventTypesV1 = [
@@ -207,7 +211,13 @@ export const eventTypesV12 = eventTypesV11;
 export const eventTypesV13 = eventTypesV12;
 /** ADR-0645: the launcher answered an unserved prompt from the checkout's cached base. */
 export const eventTypesV14 = [...eventTypesV13, ...terminalBaseDeliveryEventTypes] as const;
-export const eventTypes = eventTypesV14;
+/**
+ * ADR-0641: agents mentioning each other in an ADE conversation. `terminal.context.prepared` may
+ * also count the owner rules Lervo prepared, which `terminalContextPreparedBeforeV15` keeps out of
+ * older envelope versions.
+ */
+export const eventTypesV15 = [...eventTypesV14, ...roomEventTypes] as const;
+export const eventTypes = eventTypesV15;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -276,6 +286,7 @@ const eventEnvelopeInvariants = [
   resourceUsageBeforeV11,
   terminalTurnObservedBeforeV12,
   executionStagesObservedBeforeV13,
+  terminalContextPreparedBeforeV15,
 ] as const;
 
 export const eventEnvelopeV1Schema = {
@@ -360,6 +371,7 @@ export const eventEnvelopeSchema = {
     { properties: { type: { enum: eventTypesV12 }, schemaVersion: { const: 12 } } },
     { properties: { type: { enum: eventTypesV13 }, schemaVersion: { const: 13 } } },
     { properties: { type: { enum: eventTypesV14 }, schemaVersion: { const: 14 } } },
+    { properties: { type: { enum: eventTypesV15 }, schemaVersion: { const: 15 } } },
   ],
 } as const;
 
@@ -413,7 +425,11 @@ export type EventEnvelopeV14 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> &
   schemaVersion: 14;
   type: (typeof eventTypesV14)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV14, "schemaVersion"> & {
+export type EventEnvelopeV15 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 15;
+  type: (typeof eventTypesV15)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV15, "schemaVersion"> & {
   schemaVersion:
     | EventEnvelopeV1["schemaVersion"]
     | EventEnvelopeV2["schemaVersion"]
@@ -428,7 +444,8 @@ export type EventEnvelope = Omit<EventEnvelopeV14, "schemaVersion"> & {
     | 11
     | 12
     | 13
-    | 14;
+    | 14
+    | 15;
 };
 /**
  * `T` with its `events` typed as non-empty `EventEnvelope`s, keeping every other property and any
@@ -440,4 +457,4 @@ export type WithEnvelopeEvents<T> = {
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV14)[number];
+export type EventType = (typeof eventTypesV15)[number];

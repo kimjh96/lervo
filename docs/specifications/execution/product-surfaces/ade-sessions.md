@@ -166,7 +166,7 @@ A finished turn ends with one quiet line of what the core recorded about it (app
 - The interface asks the core with `turn.summary` once a turn is over and its line comes into view, and keeps the answer for the conversation. Only a core that advertises the command is asked.
 - A hosted turn has no provider turn ID, so the core takes the session's first prepared prompt context from 5 seconds before the turn's message to 5 seconds before the next one. The rest follows from that context: its selections, the `terminal.turn.observed` that cites it, a `repository.change.completed` from that observation, and the session's `resource.usage.recorded` in the window.
 - It calls no model and reads only the repository's store: about 10 to 35 ms and 300 bytes a turn on 2026-11-25, in stores of 90 and 57,000 events.
-- What the core does not record does not show: the owner rules applied to a turn are not yet recorded per turn, so the card does not claim them (invariant 3).
+- What the core does not record does not show (invariant 3). From event schema 15, the turn's `terminal.context.prepared` may carry one object, `appliedInstructions`, with `status` (`complete`, `incomplete`, or `unavailable`), `preparedCount`, and `omittedCount`, which is null when the status is `unavailable` ([turn evidence](../events-and-privacy/terminal-observations/context-reference-and-turn-evidence.md#owner-rules-prepared-for-a-turn-schema-15)). The card may then say how many owner rules Lervo prepared, such as "2 owner rules prepared". It never says they were applied or delivered, because the provider's injection and use of the rules stay unobserved. A turn without the object, including every turn until a writer records it, shows no owner-rule row.
 
 ## Owner rules in the conversation
 

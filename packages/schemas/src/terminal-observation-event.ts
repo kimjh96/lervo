@@ -141,6 +141,29 @@ const queryProjectionReceiptSchema = {
   additionalProperties: false,
 } as const;
 
+/**
+ * Schema 15: the counts of the turn's instruction preparation report. They say how many owner
+ * rules Lervo prepared, never that the provider applied them. `omittedCount` is null exactly when
+ * the catalog could not be read, as in the report.
+ */
+const appliedInstructionsSchema = {
+  type: "object",
+  properties: {
+    status: { type: "string", enum: ["complete", "incomplete", "unavailable"] },
+    preparedCount: { type: "integer", minimum: 0, maximum: 256 },
+    omittedCount: { type: ["integer", "null"], minimum: 0, maximum: 4096 },
+  },
+  required: ["status", "preparedCount", "omittedCount"],
+  additionalProperties: false,
+  if: { properties: { status: { const: "unavailable" } } },
+  then: { properties: { preparedCount: { const: 0 }, omittedCount: { type: "null" } } },
+  else: {
+    properties: { omittedCount: { type: "integer" } },
+    if: { properties: { status: { const: "complete" } } },
+    then: { properties: { omittedCount: { const: 0 } } },
+  },
+} as const;
+
 export const terminalContextPreparedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/terminal-context-prepared-event-payload.schema.json",
@@ -252,6 +275,7 @@ export const terminalContextPreparedEventPayloadSchema = {
     assignmentId: optionalAssignmentIdSchema,
     leaseGeneration: optionalPositiveIntegerSchema,
     writerSessionId: optionalWriterSessionIdSchema,
+    appliedInstructions: appliedInstructionsSchema,
   },
   required: [
     "observationId",
@@ -529,6 +553,22 @@ export const terminalTurnObservedBeforeV12 = {
         properties: { completionResult: { type: "string", enum: ["allowed", "blocked"] } },
         propertyNames: { not: { const: "ending" } },
       },
+    },
+  },
+} as const;
+
+/** Keeps `appliedInstructions` out of the envelope versions older readers accept. */
+export const terminalContextPreparedBeforeV15 = {
+  if: {
+    properties: {
+      type: { const: "terminal.context.prepared" },
+      schemaVersion: { type: "integer", maximum: 14 },
+    },
+    required: ["type", "schemaVersion"],
+  },
+  then: {
+    properties: {
+      payload: { type: "object", propertyNames: { not: { const: "appliedInstructions" } } },
     },
   },
 } as const;

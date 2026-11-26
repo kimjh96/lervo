@@ -1,7 +1,7 @@
 # Lervo ADE rooms
 
 Status: `proposed`
-As of: 2026-11-26
+As of: 2026-11-27
 
 This specification defines S2g of [ADR-0637](../../../decisions/execution/applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md): conversations where agents mention each other and the owner watches them work together. It implements [ADR-0641](../../../decisions/coordination/conversations/agent-organization/0641-let-agents-mention-each-other-in-core-rooms-and-keep-their-own-context.md) as amended by [ADR-0644](../../../decisions/coordination/conversations/agent-organization/0644-keep-agent-coordination-in-conversations.md). There is no team room; a mention stays in the conversation where it was made. The owner approved the interface on 2026-11-26 (mockup "Lervo ADE · 에이전트끼리 멘션하는 대화 (S2g)").
 
@@ -102,12 +102,12 @@ The resident core decodes every hosted session's output, so it sees each turn en
 
   Message text stays in the providers' transcripts. The mention log holds no text.
 
-- **Events.** Each carries identifiers, counts, and times only, never message text:
-  - `room.participant.joined`: `workspaceId`, `agentId`, `sessionId`, `mentionedBy` (an agent ID or `owner`), `occurredAt`.
-  - `room.mention.recorded`: `workspaceId`, `mentionId`, `fromAgentId` (or null for the owner), `toAgentId`, `depth`, `occurredAt`.
-  - `room.mention.delivered`: `mentionId`, `sessionId`, `occurredAt`.
+- **Events.** Each carries identifiers, counts, and times only, never message text. A session appears only as `providerSessionDigest`, the digest the hosted session events carry, so its UUID stays on the host. They need event schema 15; readers ship first, and the [payload contracts](../events-and-privacy/event-envelope-compatibility.md) define each:
+  - `room.participant.joined`: `workspaceId`, `agentId`, `providerSessionDigest`, `mentionedBy` (an agent ID or `owner`), `occurredAt`.
+  - `room.mention.recorded`: `workspaceId`, `mentionId` (`mnt_` and 24 hex digits), `fromAgentId` (or null for the owner), `toAgentId`, `depth` (0 to 8), `occurredAt`.
+  - `room.mention.delivered`: `mentionId`, `providerSessionDigest`, `occurredAt`.
   - `room.mention.failed`: `mentionId`, `code`, `occurredAt`.
-  - `room.exchange.paused`: `workspaceId`, `agentTurnCount`, `limit`, `openerAgentId`, `occurredAt`. The chain stopped and nothing was lost.
+  - `room.exchange.paused`: `workspaceId`, `agentTurnCount` (0 to 1,000), `limit` (1 to 1,000), `openerAgentId` (or null when the core saw no owner turn open the exchange), `occurredAt`. The chain stopped and nothing was lost.
 - **Failures.** A mention that cannot be delivered shows as a room line and as attention, and is never retried silently.
 
 | Code                       | Meaning                                                                                |
