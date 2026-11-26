@@ -176,14 +176,20 @@ export function workspacePathFor(
 function stageFailure(
   stage: WorkspaceStartStage,
   error: unknown,
-  rolledBack: boolean,
+  rollback: Rollback,
 ): CommandFailure {
   const cause = errorCode(error);
   const detail = error instanceof Error ? error.message : String(error);
+  const rolledBack = rollback.done;
   return new CommandFailure(
     "workspace_start_failed",
     `The ${stage} stage failed: ${detail}${rolledBack ? "" : " Rollback did not finish."}`,
-    { stage, cause, rolledBack },
+    {
+      stage,
+      cause,
+      rolledBack,
+      ...(rollback.cause === undefined ? {} : { rollbackCause: rollback.cause }),
+    },
   );
 }
 
@@ -324,11 +330,31 @@ export async function startWorkspace(
   }
 }
 
-async function undo(ports: WorkspaceStartPorts, placement: WorkspacePlacement): Promise<boolean> {
+/** Whether removing what a failed start created finished, and why not when it did not. */
+interface Rollback {
+  readonly done: boolean;
+  readonly cause?: string;
+}
+
+/** How long a second removal waits, so a Git lock another process holds briefly can clear. */
+const ROLLBACK_RETRY_MS = 250;
+
+/**
+ * Removes what the earlier stages created. A removal that fails is tried once more after a short
+ * wait, since a Git lock that another process holds for a moment, such as a background index
+ * refresh, fails the first one without leaving anything to keep.
+ */
+async function undo(ports: WorkspaceStartPorts, placement: WorkspacePlacement): Promise<Rollback> {
   try {
     await ports.removeWorkspace(placement);
-    return true;
+    return { done: true };
   } catch {
-    return false;
+    await new Promise((resolve) => setTimeout(resolve, ROLLBACK_RETRY_MS));
+    try {
+      await ports.removeWorkspace(placement);
+      return { done: true };
+    } catch (error) {
+      return { done: false, cause: errorCode(error) };
+    }
   }
 }

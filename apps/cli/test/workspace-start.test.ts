@@ -36,7 +36,8 @@ const request = {
   },
 };
 
-function ports(fail?: "workspace" | "workstream" | "record" | "undo") {
+function ports(fail?: "workspace" | "workstream" | "record" | "undo" | "undoOnce") {
+  let removals = 0;
   const effects: string[] = [];
   const records: HostedLaunchRecord[] = [];
   const settings: { path: string; content: string }[] = [];
@@ -50,11 +51,15 @@ function ports(fail?: "workspace" | "workstream" | "record" | "undo") {
     },
     async removeWorkspace(placement) {
       effects.push(`remove ${placement.branch}`);
-      if (fail === "undo") throw new Error("still there");
+      removals += 1;
+      if (fail === "undo")
+        throw Object.assign(new Error("still there"), { code: "host_git_failed" });
+      if (fail === "undoOnce" && removals === 1) throw new Error("index.lock exists");
     },
     async startWorkstream(input) {
       effects.push(`workstream ${input.title}`);
-      if (fail === "workstream" || fail === "undo") throw new Error("workstream failed");
+      if (fail === "workstream" || fail === "undo" || fail === "undoOnce")
+        throw new Error("workstream failed");
       return "wks_0123456789abcdef01234567";
     },
     async recordLaunch(record) {
@@ -158,9 +163,23 @@ describe("workspace start", () => {
     expect(fake.effects.at(-1)).toBe("remove lervo/fix-the-flaky-login-test-1a2b3c");
   });
 
-  it("reports a rollback that did not finish", async () => {
-    const error = await failure(startWorkspace(request, ports("undo").value));
-    expect(error.details).toMatchObject({ stage: "workstream", rolledBack: false });
+  it("reports a rollback that did not finish, and why", async () => {
+    const fake = ports("undo");
+    const error = await failure(startWorkspace(request, fake.value));
+    expect(error.details).toMatchObject({
+      stage: "workstream",
+      rolledBack: false,
+      rollbackCause: "host_git_failed",
+    });
+    // The removal was tried twice before the start gave up.
+    expect(fake.effects.filter((effect) => effect.startsWith("remove "))).toHaveLength(2);
+  });
+
+  it("finishes a rollback whose first removal hit a passing lock", async () => {
+    const fake = ports("undoOnce");
+    const error = await failure(startWorkspace(request, fake.value));
+    expect(error.details).toMatchObject({ stage: "workstream", rolledBack: true });
+    expect(error.details).not.toHaveProperty("rollbackCause");
   });
 
   it("refuses a conversation mode the provider lacks before changing anything", async () => {
