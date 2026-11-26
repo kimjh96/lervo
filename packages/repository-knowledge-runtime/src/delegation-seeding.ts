@@ -74,6 +74,7 @@ async function localParent(input: {
     roleId: input.roleId,
     displayName: CONTINUITY_STEWARD_DISPLAY_NAME,
     now: input.now,
+    origin: "lervo",
   });
   if (input.roleContractHash !== null && hired.roleContractHash !== input.roleContractHash)
     seedFailure("convergence_seed_role_mismatch");

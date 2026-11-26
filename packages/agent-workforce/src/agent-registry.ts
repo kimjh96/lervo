@@ -43,8 +43,10 @@ export async function readAgentRegistryState(
     value.schemaVersion !== 1 ||
     value.kind !== "lervo_agent_registry" ||
     !Array.isArray(value.agents) ||
-    value.agents.length > workforceLimits.maximumAgents ||
-    !value.agents.every((agent) => validAgent(agent, current.manifest.projectId))
+    value.agents.length > workforceLimits.maximumAgents + workforceLimits.maximumLervoAgents ||
+    !value.agents.every((agent) => validAgent(agent, current.manifest.projectId)) ||
+    // Counted only once every entry is a valid agent, so a malformed one fails as invalid.
+    value.agents.filter((agent) => agent.origin !== "lervo").length > workforceLimits.maximumAgents
   )
     fail("workforce_state_invalid", "The agent registry is invalid.");
   const ids = value.agents.map((agent) => agent.agentId);

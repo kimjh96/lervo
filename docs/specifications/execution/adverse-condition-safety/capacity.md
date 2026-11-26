@@ -4,7 +4,7 @@
 
 Current admission bounds are explicit:
 
-- 256 agents and concurrent leases;
+- 256 team agents and 256 concurrent leases, with Lervo's own agents bounded separately at 128 and their retired ones pruned to the latest 32 that nothing still names ([ADR-0643](../../../decisions/execution/orchestration/0643-record-which-agents-are-lervos-own.md));
 - 10,000 assignments;
 - delegation depth eight;
 - 64 assignment dependencies or cancellation roots; and

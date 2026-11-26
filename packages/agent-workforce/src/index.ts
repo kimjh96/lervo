@@ -40,3 +40,4 @@ export { archiveConvergenceAssignment } from "./assignment-convergence-archive.j
 export * from "./workforce-source-paths.js";
 export { createPinnedAssignment } from "./assignment-pinned-creation.js";
 export { recordAgentOrigins } from "./agent-origin.js";
+export { pruneRetiredLervoAgents, RETAINED_RETIRED_LERVO_AGENTS } from "./agent-retention.js";
