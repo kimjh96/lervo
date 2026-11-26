@@ -195,6 +195,8 @@ export interface TerminalContextServer {
   finish(): Promise<void>;
   /** Removes the socket now, only if it is still the one this server bound. */
   releaseSocket(): void;
+  /** Whether a request holds the server now, from its acceptance until it drained. */
+  busy(): boolean;
 }
 
 /**
@@ -372,6 +374,7 @@ export function startTerminalContextServer(input: {
   return {
     ready,
     releaseSocket,
+    busy: () => busy,
     finish: () => {
       server.close();
       releaseSocket();
