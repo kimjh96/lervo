@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { validateSchema, type EventType } from "@lervo/schemas";
 import { roomEventSchemaVersion } from "../src/event-schema-versions.js";
@@ -9,6 +10,8 @@ const mentionId = `mnt_${"c".repeat(24)}`;
 const lead = `agt_${"d".repeat(24)}`;
 const reviewer = `agt_${"e".repeat(24)}`;
 const occurredAt = "2026-11-27T09:00:00.000Z";
+/** The documented envelope key: the first 24 hex digits of the SHA-256 of the workspace ID. */
+const roomKey = createHash("sha256").update(workspaceId).digest("hex").slice(0, 24);
 
 const payloads = {
   "room.participant.joined": {
@@ -43,8 +46,8 @@ function envelope(type: RoomEventType, schemaVersion: number, payload: Record<st
   return {
     eventId: "evt_roomevent00001",
     projectId: "prj_room_events_1",
-    runId: "run_roomevents0001",
-    sessionId: "ses_roomevents0001",
+    runId: `run_room_${roomKey}`,
+    sessionId: `ses_room_${roomKey}`,
     seq: 1,
     type,
     occurredAt: "2026-11-27T09:00:01.000Z",
@@ -103,6 +106,14 @@ describe("agents mentioning each other in a conversation (schema 15, ADR-0641)",
       ...paused,
       openerAgentId: null,
     });
+    for (const bounds of [
+      { agentTurnCount: 0, limit: 1 },
+      { agentTurnCount: 1000, limit: 1000 },
+    ])
+      expect(sanitized("room.exchange.paused", { ...paused, ...bounds })).toEqual({
+        ...paused,
+        ...bounds,
+      });
     for (const code of [
       "mention_target_inactive",
       "room_session_unavailable",
@@ -133,7 +144,9 @@ describe("agents mentioning each other in a conversation (schema 15, ADR-0641)",
       ["room.mention.delivered", { mentionId, occurredAt }],
       ["room.mention.failed", { ...payloads["room.mention.failed"], code: "agent_suspended" }],
       ["room.exchange.paused", { ...payloads["room.exchange.paused"], agentTurnCount: -1 }],
+      ["room.exchange.paused", { ...payloads["room.exchange.paused"], agentTurnCount: 1001 }],
       ["room.exchange.paused", { ...payloads["room.exchange.paused"], limit: 0 }],
+      ["room.exchange.paused", { ...payloads["room.exchange.paused"], limit: 1001 }],
       ["room.exchange.paused", { ...payloads["room.exchange.paused"], occurredAt: "yesterday" }],
     ];
     for (const [type, payload] of refused)

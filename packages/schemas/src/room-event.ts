@@ -92,8 +92,9 @@ export const roomExchangePausedEventPayloadSchema = {
   type: "object",
   properties: {
     workspaceId,
-    agentTurnCount: { type: "integer", minimum: 0 },
-    limit: { type: "integer", minimum: 1 },
+    /** Bounded far above ADR-0454's budget of 12 turns in 10 minutes. */
+    agentTurnCount: { type: "integer", minimum: 0, maximum: 1000 },
+    limit: { type: "integer", minimum: 1, maximum: 1000 },
     /**
      * The agent whose turn the owner started, which gets one more turn to summarize; null when the
      * core saw no owner turn open the exchange, as after the resident restarted.

@@ -107,7 +107,7 @@ The resident core decodes every hosted session's output, so it sees each turn en
   - `room.mention.recorded`: `workspaceId`, `mentionId` (`mnt_` and 24 hex digits), `fromAgentId` (or null for the owner), `toAgentId`, `depth` (0 to 8), `occurredAt`.
   - `room.mention.delivered`: `mentionId`, `providerSessionDigest`, `occurredAt`.
   - `room.mention.failed`: `mentionId`, `code`, `occurredAt`.
-  - `room.exchange.paused`: `workspaceId`, `agentTurnCount`, `limit`, `openerAgentId` (or null when the core saw no owner turn open the exchange), `occurredAt`. The chain stopped and nothing was lost.
+  - `room.exchange.paused`: `workspaceId`, `agentTurnCount` (0 to 1,000), `limit` (1 to 1,000), `openerAgentId` (or null when the core saw no owner turn open the exchange), `occurredAt`. The chain stopped and nothing was lost.
 - **Failures.** A mention that cannot be delivered shows as a room line and as attention, and is never retried silently.
 
 | Code                       | Meaning                                                                                |

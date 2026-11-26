@@ -14,7 +14,12 @@ All five fields are required, and no other key is kept: the payload screen drops
 
 ## Envelope
 
-The resident core records the event, never the ADE. It carries no message text, display name, path, or provider session UUID. Readers ship first: no release records the event yet, and a later release adds the writer and raises the automatic writer target.
+The resident core records the event, never the ADE, in the registered repository's store, as it records the hosted session events. A workspace's worktree selects no writer of its own. The envelope has:
+
+- `schemaVersion: 15` and `actor.kind: system`;
+- `runId` `run_room_<key>` and `sessionId` `ses_room_<key>`, where `<key>` is the first 24 hex digits of the SHA-256 of the `workspaceId`. Every room event of one conversation shares this run and session; the joined agent's own session appears only in the payload.
+
+It carries no message text, display name, path, or provider session UUID. Readers ship first: no release records the event yet, and a later release adds the writer and raises the automatic writer target.
 
 ## Failure meaning
 
