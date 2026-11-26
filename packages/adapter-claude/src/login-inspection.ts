@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import {
   inspectProviderLoginProbe,
@@ -7,13 +7,19 @@ import {
   type ProviderLoginContext,
 } from "@lervo/adapter-contract";
 
+/**
+ * The environment of a Claude Code process that uses the stored login. `CLAUDE_CONFIG_DIR` is set
+ * only for a directory other than the default `~/.claude`: on macOS, Claude Code names its
+ * keychain entry after an explicit `CLAUDE_CONFIG_DIR`, so setting even the default path makes it
+ * look for another entry and report no login.
+ */
 export function claudeStoredLoginEnvironment(
   context: ProviderLoginContext,
 ): Record<string, string> {
-  return {
-    ...providerLoginEnvironment(context),
-    CLAUDE_CONFIG_DIR: context.configurationDirectory,
-  };
+  const environment = providerLoginEnvironment(context);
+  return resolve(context.configurationDirectory) === resolve(context.homeDirectory, ".claude")
+    ? environment
+    : { ...environment, CLAUDE_CONFIG_DIR: context.configurationDirectory };
 }
 
 const REFRESH_MARGIN_MS = 10 * 60_000;

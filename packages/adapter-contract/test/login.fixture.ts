@@ -20,7 +20,8 @@ if(args==='--version'){console.log('fixture-provider 1.0');process.exit(0);}
 const codex=args==='login status';
 if(!codex && args!=='auth status --json')process.exit(2);
 if(process.env.LERVO_LOGIN_PROBE_SECRET || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY){console.log('environment leaked');process.exit(2);}
-const directory=codex?process.env.CODEX_HOME:process.env.CLAUDE_CONFIG_DIR;
+const directory=codex?process.env.CODEX_HOME:(process.env.CLAUDE_CONFIG_DIR??process.env.HOME+'/.claude');
+if(!process.env.USER)process.exit(2);
 if(process.cwd()!==realpathSync(process.env.HOME) || process.env.USERPROFILE!==process.env.HOME)process.exit(2);
 const state=readFileSync(directory+'/status','utf8');
 if(state==='hang')Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,60000);
