@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_755b9edb11a3da25be1e1a36"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A larger, clearer app icon: the mark fills more of the icon with stronger contrast, and macOS 26 draws it with its icon styles from an Icon Composer icon."
