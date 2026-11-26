@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9947acda865ffe96ed75923d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Repository knowledge classifies provider instruction surfaces from one ordered table and derives root surfaces from one registry; classification and normalization results are unchanged."
