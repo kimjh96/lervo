@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-01
-Amends: [ADR-0507](0507-verify-event-history-at-the-point-of-use.md) (reader bounds)
+Amends: [ADR-0507](0507-verify-event-history-at-the-point-of-use.md) (reader bounds), [ADR-0403](../../knowledge/repository/0403-expand-execution-event-source-capacity.md) (the execution-event source selects a recent window instead of failing)
 
 ## Context
 
