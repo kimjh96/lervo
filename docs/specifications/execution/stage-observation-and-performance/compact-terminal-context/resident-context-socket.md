@@ -108,7 +108,7 @@ Otherwise the copy runs itself, exactly as before, so a clone without Lervo, a C
 
 - A missing or unreachable listener means the hook works as before. It is not an error and raises no attention.
 - A `runtime_mismatch` that persists after an upgrade means the host did not replace its server.
-- A served hook records the same stage observations as an in-process one; its `total` includes the client's time. The server keeps its counts since it started in `context-stats.json` beside its socket: hooks served, by launcher and by kind (`servedKinds`), requests declined by reason, and the last served time. It holds counts and times only, so a canary reads directly whether prompts were served. Recording which prompts fell back, and why, needs new stage outcomes, whose enums are closed: it waits for a reader-first schema change.
+- A served hook records the same stage observations as an in-process one; its `total` includes the client's time. The server keeps its counts since it started in `context-stats.json` beside its socket: hooks served, by launcher and by kind (`servedKinds`), requests declined by reason, the last served time, and `answerMilliseconds`: per kind, the count of answers and the p50, p95, and last of the latest 100 answer latencies, each from the client's start to the answer leaving the server. Since ADR-0636 a stage observation's `total` includes the records that follow an early answer, so these latencies are the ones the provider waited for. It holds counts and times only, so a canary reads directly whether prompts were served. Recording which prompts fell back, and why, needs new stage outcomes, whose enums are closed: it waits for a reader-first schema change.
 
 ## Slice 0 results
 

@@ -417,3 +417,27 @@ it("ends at the answer for a client that does not relay", async () => {
   expect(received.slice(1).trim().split("\n")).toHaveLength(1);
   expect(JSON.parse(received.slice(1))).not.toHaveProperty("pending");
 });
+
+it("reports how long each served hook took to answer, from the client's start", async () => {
+  const answered: [string, number][] = [];
+  const directory = await mkdtemp(resolve(tmpdir(), "lvctx-"));
+  const socketPath = resolve(directory, "context.s");
+  const server = startTerminalContextServer({
+    socketPath,
+    runtimeHash,
+    environment,
+    run: async () => {
+      await new Promise((done) => setTimeout(done, 30));
+      return answer;
+    },
+    onAnswered: (kind, milliseconds) => answered.push([kind, milliseconds]),
+  });
+  await server.ready;
+  await exchange(socketPath, JSON.stringify(request({ elapsed: 40 })));
+  expect(answered).toHaveLength(1);
+  expect(answered[0]![0]).toBe("prompt");
+  // The client's 40 ms before sending, plus the hook's own 30 ms or more.
+  expect(answered[0]![1]).toBeGreaterThanOrEqual(69);
+  await server.close();
+  await rm(directory, { recursive: true, force: true });
+});
