@@ -83,3 +83,31 @@ it("does not accept a path-only record directing the hook to arbitrary repositor
   await writeFile(f.record, JSON.stringify({ entry: f.entry }));
   expect(await terminalWorkerEntry(f.root)).toBeNull();
 });
+
+it("starts no worker from a binding older than the active install that published the host runtime", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-worker-entry-version-"));
+  roots.push(root);
+  const install = async (version: string) => {
+    const cli = resolve(root, `install-${version}`, "node_modules", "@lervo", "cli");
+    await mkdir(resolve(cli, "dist"), { recursive: true });
+    await writeFile(resolve(cli, "package.json"), JSON.stringify({ name: "@lervo/cli", version }));
+    await writeFile(resolve(cli, "dist", "bin.js"), `CLI ${version}`, { mode: 0o644 });
+    return realpath(resolve(cli, "dist", "bin.js"));
+  };
+  const older = await install("0.57.0");
+  const newer = await install("0.58.0");
+  const store = resolve(root, "terminal-hooks");
+  await mkdir(store);
+  const publish = (publisher: string) =>
+    writeFile(resolve(store, "current.json"), JSON.stringify({ schemaVersion: 1, publisher }));
+  await rememberTerminalWorkerEntry(root, older);
+  await publish(older);
+  expect(await terminalWorkerEntry(root, store, older)).toBe(older);
+  // The upgrade reached the host before this repository: the resident does the work instead.
+  await publish(newer);
+  expect(await terminalWorkerEntry(root, store, newer)).toBeNull();
+  // After a rollback the newer install is no longer active, and the older binding runs again.
+  expect(await terminalWorkerEntry(root, store, older)).toBe(older);
+  await rememberTerminalWorkerEntry(root, newer);
+  expect(await terminalWorkerEntry(root, store, newer)).toBe(newer);
+});

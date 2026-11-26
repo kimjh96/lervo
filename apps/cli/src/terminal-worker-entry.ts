@@ -3,6 +3,14 @@ import { lstat, mkdir, open, realpath, rename, rm } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 
+import { terminalHookRuntimeStorePath } from "@lervo/repository-knowledge";
+
+import {
+  activeCliEntry,
+  installedCliVersion,
+  newerRuntimePublisher,
+} from "./installed-cli-version.js";
+
 const ENTRY_FILE = "worker-entry.json";
 
 async function entryHash(entry: string): Promise<string | null> {
@@ -72,7 +80,27 @@ export async function rememberTerminalWorkerEntry(
   }
 }
 
-export async function terminalWorkerEntry(root: string): Promise<string | null> {
+/**
+ * The bound full CLI, unless the active, newer install has since published the host runtime: the
+ * binding then predates an upgrade that has not reached this repository yet, and the host
+ * resident does the work instead.
+ */
+export async function terminalWorkerEntry(
+  root: string,
+  store: string = terminalHookRuntimeStorePath(),
+  active?: string | null,
+): Promise<string | null> {
+  const entry = await boundTerminalWorkerEntry(root);
+  if (entry === null) return null;
+  const superseding = await newerRuntimePublisher(
+    store,
+    await installedCliVersion(entry),
+    active === undefined ? await activeCliEntry() : active,
+  );
+  return superseding === null ? entry : null;
+}
+
+async function boundTerminalWorkerEntry(root: string): Promise<string | null> {
   try {
     const handle = await open(
       resolve(await directory(root), ENTRY_FILE),

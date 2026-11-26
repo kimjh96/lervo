@@ -11,8 +11,10 @@ import {
 } from "@lervo/repository-knowledge";
 import { lstat, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { activeCliEntry, newerRuntimePublisher } from "./installed-cli-version.js";
 import { isInstalledTerminalRuntimeCli } from "./terminal-runtime-installation.js";
 import { STARTUP_EFFECTS_VARIABLE } from "./startup-effects.js";
+import { readCliPackageVersion } from "./version-command.js";
 
 const testRuntime =
   "#!/usr/bin/env node\nprocess.stderr.write('terminal runtime fixture must not execute');\n";
@@ -116,10 +118,21 @@ export async function ensureHostTerminalRuntime(
     authority?: "publish" | "repair";
     verification?: "pointer" | "artifact" | "unavailable_marker";
     store?: string;
+    /** The active install's `dist/bin.js`; read from the host's `lervo` link when omitted. */
+    activeEntry?: string | null;
   } = {},
 ): Promise<"current" | "materialized" | "busy"> {
   if (process.env.NODE_ENV === "test" && input.store === undefined) return "current";
   const store = input.store ?? terminalHookRuntimeStorePath();
+  // A newer CLI's runtime stays; it repairs its own when it runs.
+  if (
+    (await newerRuntimePublisher(
+      store,
+      readCliPackageVersion(),
+      input.activeEntry === undefined ? await activeCliEntry() : input.activeEntry,
+    )) !== null
+  )
+    return "current";
   const contentHash = await installedRuntimeHash();
   if (
     !(await hostTerminalRuntimeNeedsMaterialization(
