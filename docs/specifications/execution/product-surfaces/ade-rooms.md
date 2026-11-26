@@ -100,7 +100,7 @@ A start that fails after the command returned shows in the source conversation a
   - agent-scoped and non-canonical;
   - expires after 30 days.
 
-  The agent context event schema gains this kind before any writer emits it.
+  Event schema 16 adds this kind to `agent.context.promoted` before any writer emits it; older envelope versions refuse it ([event envelope compatibility](../events-and-privacy/event-envelope-compatibility.md)).
 
 - Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both.
 

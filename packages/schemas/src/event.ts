@@ -15,6 +15,8 @@ import { instructionCaptureEventTypes } from "./instruction-capture-event.js";
 import { hostedSessionEventTypes } from "./hosted-session-event.js";
 import { terminalBaseDeliveryEventTypes } from "./terminal-base-delivery-event.js";
 import { roomEventTypes } from "./room-event.js";
+import { coordinationEventTypes } from "./coordination-event.js";
+import { agentContextPromotedBeforeV16 } from "./agent-context-event.js";
 import { planLedgerEventTypes } from "./plan-ledger-event.js";
 import { resourceUsageBeforeV11 } from "./resource-usage-event.js";
 import {
@@ -217,7 +219,13 @@ export const eventTypesV14 = [...eventTypesV13, ...terminalBaseDeliveryEventType
  * older envelope versions.
  */
 export const eventTypesV15 = [...eventTypesV14, ...roomEventTypes] as const;
-export const eventTypes = eventTypesV15;
+/**
+ * Lervo ADE coordination: a conversation's lease widens by claims, and a refused claim is
+ * recorded. `agent.context.promoted` may also record a `conversation_note`, which
+ * `agentContextPromotedBeforeV16` keeps out of older envelope versions.
+ */
+export const eventTypesV16 = [...eventTypesV15, ...coordinationEventTypes] as const;
+export const eventTypes = eventTypesV16;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -287,6 +295,7 @@ const eventEnvelopeInvariants = [
   terminalTurnObservedBeforeV12,
   executionStagesObservedBeforeV13,
   terminalContextPreparedBeforeV15,
+  agentContextPromotedBeforeV16,
 ] as const;
 
 export const eventEnvelopeV1Schema = {
@@ -372,6 +381,7 @@ export const eventEnvelopeSchema = {
     { properties: { type: { enum: eventTypesV13 }, schemaVersion: { const: 13 } } },
     { properties: { type: { enum: eventTypesV14 }, schemaVersion: { const: 14 } } },
     { properties: { type: { enum: eventTypesV15 }, schemaVersion: { const: 15 } } },
+    { properties: { type: { enum: eventTypesV16 }, schemaVersion: { const: 16 } } },
   ],
 } as const;
 
@@ -429,7 +439,11 @@ export type EventEnvelopeV15 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> &
   schemaVersion: 15;
   type: (typeof eventTypesV15)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV15, "schemaVersion"> & {
+export type EventEnvelopeV16 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 16;
+  type: (typeof eventTypesV16)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV16, "schemaVersion"> & {
   schemaVersion:
     | EventEnvelopeV1["schemaVersion"]
     | EventEnvelopeV2["schemaVersion"]
@@ -445,7 +459,8 @@ export type EventEnvelope = Omit<EventEnvelopeV15, "schemaVersion"> & {
     | 12
     | 13
     | 14
-    | 15;
+    | 15
+    | 16;
 };
 /**
  * `T` with its `events` typed as non-empty `EventEnvelope`s, keeping every other property and any
@@ -457,4 +472,4 @@ export type WithEnvelopeEvents<T> = {
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV15)[number];
+export type EventType = (typeof eventTypesV16)[number];
