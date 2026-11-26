@@ -80,9 +80,7 @@ export function writtenTerminalHooks(
 /**
  * The terminal hooks a hosted session in `worktree` needs: a handler for each event no merged
  * settings file covers with Lervo's hook, or undefined when every event is covered or the
- * adapter takes no hooks. They run the host launcher beside the runtime store, the path every
- * Lervo session takes, when it is exactly this CLI's launcher and only the user can change it;
- * otherwise they run the CLI's terminal hook, and the plan says which.
+ * adapter takes no hooks. They run `terminalHookCommandOf`'s command, and the plan says which.
  */
 export async function hostedTerminalHooks(
   adapter: HostedSessionAdapter,
@@ -114,12 +112,24 @@ export async function hostedTerminalHooks(
     name: event.name as HostedTerminalHooks["events"][number]["name"],
     ...(event.matcher === undefined ? {} : { matcher: event.matcher }),
   }));
+  return { ...(await terminalHookCommandOf(provider, options)), events };
+}
+
+/**
+ * The command that runs Lervo's terminal hook for `provider` outside a repository's own launcher:
+ * the host launcher beside the runtime store, the path every Lervo session takes, when it is
+ * exactly this CLI's launcher and only the user can change it; otherwise the CLI's terminal hook.
+ */
+export async function terminalHookCommandOf(
+  provider: TerminalIntegrationProvider,
+  options: { launcher?: string; platform?: NodeJS.Platform } = {},
+): Promise<Pick<HostedTerminalHookPlan, "command" | "via">> {
   const launcher = options.launcher ?? hostTerminalLauncherPath();
+  const platform = options.platform ?? process.platform;
   return (await trustedHostTerminalLauncher(launcher))
     ? {
         command: `node ${shellWord(launcher, platform)} --provider ${provider} --contract 2`,
-        events,
         via: "launcher",
       }
-    : { command: `lervo terminal hook --provider ${provider} --contract 2`, events, via: "cli" };
+    : { command: `lervo terminal hook --provider ${provider} --contract 2`, via: "cli" };
 }
