@@ -83,6 +83,12 @@ export class RoomRouter {
     return this.contexts.get(sessionId)?.agentId ?? null;
   }
 
+  /** The display name of an agent of the session's team, or null when the team lacks it. */
+  nameOf(sessionId: string, agentId: string): string | null {
+    const team = this.contexts.get(sessionId)?.team ?? [];
+    return team.find((agent) => agent.agentId === agentId)?.displayName ?? null;
+  }
+
   /**
    * The deliveries that open the conversations a session's agent started, when its turn ends
    * (Lervo ADE rooms, "How an agent starts a conversation"), and the line each adds here.

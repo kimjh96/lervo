@@ -1,9 +1,13 @@
 // Claims at first write (Lervo ADE coordination): the hosted session's pre-tool hook asks the
 // conversation's claim for the paths a tool call writes. The core's coordination stage provides
 // the claim; this leaf holds the request, the decision's deadline, and the hook's answer.
+import { lstat } from "node:fs/promises";
+import { dirname, relative, sep } from "node:path";
+
 import { claudeClaims } from "@lervo/adapter-claude/claims";
 import type { HostedClaimAnswering, HostedClaimDecision } from "@lervo/adapter-contract";
 
+import { type NewClaimLogEntry, recordClaimLogEntry } from "./claim-log.js";
 import { hostedLaunchRecordsPath, latestHostedLaunchOfSession } from "./hosted-launch-records.js";
 import type { ParsedPreToolUseInput } from "./terminal-hook-contract.js";
 
@@ -77,6 +81,33 @@ export const CLAIM_DECISION_MS = 2000;
 /** The claim before the core's coordination stage: every write goes ahead, as it did. */
 export const unclaimed: WriteClaimer = () => Promise.resolve({ decision: "allow" });
 
+/** The code a deferral carries when Lervo could not decide in time, or failed without one. */
+export const CLAIM_DEFERRED = "claim_deferred";
+
+/** How long the hook may spend recording a refusal or a deferral after deciding it. */
+const CLAIM_RECORD_MS = 500;
+
+/** The worktree that holds `directory`: the nearest folder with a `.git` entry, or null. */
+async function worktreeRoot(directory: string): Promise<string | null> {
+  for (let folder = directory; ; folder = dirname(folder)) {
+    if ((await lstat(`${folder}${sep}.git`).catch(() => null)) !== null) return folder;
+    if (dirname(folder) === folder) return null;
+  }
+}
+
+/** `targets` relative to their worktree, with forward slashes; a target outside it is left out. */
+async function repositoryPaths(
+  targets: readonly { readonly path: string }[],
+  workingDirectory: string,
+): Promise<string[]> {
+  const root = await worktreeRoot(workingDirectory);
+  if (root === null) return [];
+  return targets.flatMap(({ path }) => {
+    const inside = relative(root, path);
+    return inside === "" || inside.startsWith("..") ? [] : [inside.split(sep).join("/")];
+  });
+}
+
 /**
  * What the pre-tool hook prints for `input`. Only the writing session of an agent's conversation
  * claims; a call that writes nothing claimable answers before reading any state. Finding the
@@ -90,40 +121,67 @@ export async function answerPreToolUse(input: {
   /** The conversation the provider session writes for, or null when it writes for none. */
   readonly writing: (providerSessionId: string) => Promise<WritingSession | null>;
   readonly claim: WriteClaimer;
+  /**
+   * Records a refusal or a deferral in the claim log, which the conversation's room lines read.
+   * An allowed write records nothing.
+   */
+  readonly record?: (entry: NewClaimLogEntry) => Promise<void>;
   readonly decisionMs?: number;
 }): Promise<string> {
   const { hook, answering } = input;
   if (answering === null) return "{}\n";
-  const intent = answering.writeIntent(
-    hook.toolName,
-    hook.toolInput,
-    hook.workingDirectory ?? input.fallbackDirectory,
-  );
+  const workingDirectory = hook.workingDirectory ?? input.fallbackDirectory;
+  const intent = answering.writeIntent(hook.toolName, hook.toolInput, workingDirectory);
   if (intent === null || (intent.targets.length === 0 && intent.detection !== "undetected"))
     return answering.claimAnswer({ decision: "allow" });
-  const decide = async (): Promise<HostedClaimDecision> => {
-    const session = await input.writing(hook.providerSessionId);
+  let session: WritingSession | null = null;
+  const decide = async (): Promise<ClaimDecision> => {
+    session = await input.writing(hook.providerSessionId);
     if (session === null) return { decision: "allow" };
-    const decision = await input.claim({
+    return input.claim({
       workspaceId: session.workspaceId,
       agentId: session.agentId,
       providerSessionId: hook.providerSessionId,
       toolUseId: hook.toolUseId,
       intent,
     });
-    return hookDecision(decision);
   };
+  const deferred: ClaimDecision = { decision: "defer", code: CLAIM_DEFERRED };
   let timer: NodeJS.Timeout | undefined;
   const decision = await Promise.race([
-    decide().catch((): HostedClaimDecision => ({ decision: "defer" })),
-    new Promise<HostedClaimDecision>((resolve) => {
-      timer = setTimeout(
-        () => resolve({ decision: "defer" }),
-        input.decisionMs ?? CLAIM_DECISION_MS,
-      );
+    decide().catch(() => deferred),
+    new Promise<ClaimDecision>((resolve) => {
+      timer = setTimeout(() => resolve(deferred), input.decisionMs ?? CLAIM_DECISION_MS);
     }),
   ]).finally(() => clearTimeout(timer));
-  return answering.claimAnswer(decision);
+  const writing = session as WritingSession | null;
+  if (decision.decision !== "allow" && writing !== null && input.record !== undefined) {
+    const record = input.record;
+    const entry = async (): Promise<NewClaimLogEntry> => ({
+      workspaceId: writing.workspaceId,
+      sessionId: hook.providerSessionId,
+      toolUseId: hook.toolUseId,
+      decision: decision.decision,
+      code: decision.code,
+      paths:
+        decision.decision === "deny"
+          ? [...decision.paths]
+          : await repositoryPaths(intent.targets, workingDirectory),
+      holder:
+        decision.decision === "deny" && decision.holder !== null
+          ? { agentId: decision.holder.agentId, workspaceId: decision.holder.workspaceId }
+          : null,
+    });
+    // The log serves the conversation's lines; a write never waits long on it, nor fails for it.
+    let recordTimer: NodeJS.Timeout | undefined;
+    await Promise.race([
+      entry()
+        .then(record)
+        .catch(() => undefined),
+      new Promise<void>((resolve) => (recordTimer = setTimeout(resolve, CLAIM_RECORD_MS))),
+    ]).finally(() => clearTimeout(recordTimer));
+  }
+  return answering.claimAnswer(hookDecision(decision));
 }
 
 /**
@@ -138,4 +196,23 @@ export async function writingSessionOf(
   return record?.agentId === undefined || record.access === "read"
     ? null
     : { workspaceId: record.workspaceId, agentId: record.agentId };
+}
+
+/**
+ * The pre-tool hook's answer for a provider's session: Lervo's claim for its conversation, found
+ * from the launch record, with refusals and deferrals kept in the claim log.
+ */
+export function answerClaimHook(
+  hook: ParsedPreToolUseInput,
+  provider: string,
+  fallbackDirectory: string,
+): Promise<string> {
+  return answerPreToolUse({
+    hook,
+    answering: claimReading(provider),
+    fallbackDirectory,
+    writing: (session) => writingSessionOf(session),
+    claim: unclaimed,
+    record: (entry) => recordClaimLogEntry(entry),
+  });
 }

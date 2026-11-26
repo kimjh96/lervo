@@ -167,10 +167,14 @@ export function lervoInvocation(
   return found;
 }
 
-/** `content` without the shell output its adapter passed to the core. */
+/** `content` without what its adapter passed to the core alone: a call's shell output and ID. */
 export function withoutShellOutput(content: HostedDecodedContent): HostedDecodedContent {
-  if (content.kind !== "tool_activity" || content.output === undefined) return content;
-  const { output: _output, ...line } = content;
+  if (
+    content.kind !== "tool_activity" ||
+    (content.output === undefined && content.toolUseId === undefined)
+  )
+    return content;
+  const { output: _output, toolUseId: _toolUseId, ...line } = content;
   return line;
 }
 

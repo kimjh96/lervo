@@ -109,6 +109,13 @@
   line-height: var(--type-meta-line-height);
 }
 
+/* A path a room line names, whole and in the code face (ADE craft rules, 8). */
+.roomCode {
+  font-family: var(--font-family-mono);
+  font-size: var(--type-meta-size);
+  overflow-wrap: anywhere;
+}
+
 /* The other conversation a room line names, which it opens. */
 .roomLink {
   padding: 0;
