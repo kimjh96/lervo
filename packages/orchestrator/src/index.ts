@@ -13,6 +13,7 @@ export * from "./provider-result.js";
 export * from "./project-verification.js";
 export * from "./provider-write-bridge.js";
 export * from "./repository-snapshot.js";
+export * from "./repository-snapshot-cache.js";
 export * from "./repository-snapshot-file-cache.js";
 export * from "./stage-observation.js";
 export * from "./types.js";

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_962cb6c6baa757d1302fef2e"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Repository snapshots walk while Git lists ignored paths again, using the previous capture's list for paths it saw, which cuts about 25 ms from each prompt and Stop snapshot with identical results."

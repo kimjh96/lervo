@@ -10,10 +10,13 @@ export {
   RepositorySnapshotError,
   type RepositorySnapshotPolicy,
 } from "./repository-snapshot-policy.js";
+import { repositorySnapshotGitHead } from "./repository-snapshot-git.js";
 import {
-  repositorySnapshotGitHead,
-  repositorySnapshotGitIgnoredPaths,
-} from "./repository-snapshot-git.js";
+  freshIgnoredPaths,
+  ignoredBy,
+  ignoredPathJudge,
+  reincluded,
+} from "./repository-snapshot-ignored.js";
 import { createHash } from "node:crypto";
 import type { BigIntStats } from "node:fs";
 import { lstat, readdir, readlink } from "node:fs/promises";
@@ -49,9 +52,16 @@ export interface CachedSnapshotEntry {
  */
 const partialStates = new WeakMap<RepositorySnapshotError, SnapshotCaptureState>();
 
-interface SnapshotCaptureState {
+/** @internal The state a capture that ran out of time had built, if `error` is that rejection. */
+export function partialSnapshotCaptureState(error: unknown): SnapshotCaptureState | undefined {
+  return error instanceof RepositorySnapshotError ? partialStates.get(error) : undefined;
+}
+
+export interface SnapshotCaptureState {
   cacheKey: string;
   entries: ReadonlyMap<string, CachedSnapshotEntry>;
+  /** The paths Git ignored at that capture, so the next one can walk while Git lists them again. */
+  ignoredPaths?: ReadonlySet<string>;
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -99,7 +109,10 @@ function entryIdentity(stats: BigIntStats): string {
   return [stats.dev, stats.ino, stats.size, stats.mtimeNs, stats.ctimeNs].map(String).join(":");
 }
 
-async function captureRepositorySnapshotWithCache(input: {
+/**
+ * @internal A capture that reuses `previous`; the cache module keeps its state across captures.
+ */
+export async function captureRepositorySnapshotWithCache(input: {
   repositoryRoot: string;
   policy: RepositorySnapshotPolicy;
   previous: SnapshotCaptureState | undefined;
@@ -115,30 +128,38 @@ async function captureRepositorySnapshotWithCache(input: {
       );
   };
   checkDeadline();
-  const [head, ignored] = await Promise.all([
-    repositorySnapshotGitHead(input.repositoryRoot, resolvedPolicy.deadlineMs),
-    repositorySnapshotGitIgnoredPaths(input.repositoryRoot, resolvedPolicy.deadlineMs),
-  ]);
-  checkDeadline();
-  if (ignored.status === "unavailable")
-    throw new RepositorySnapshotError(
-      "Git ignored paths are unavailable.",
-      undefined,
-      "git_ignored_paths_unavailable",
-    );
-  const ignoredPaths = ignored.paths;
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
   const root = resolve(input.repositoryRoot);
   const cacheKey = snapshotCacheKey(root, resolvedPolicy);
-  const previousEntries =
-    input.previous?.cacheKey === cacheKey ? input.previous.entries : new Map();
-  const nextEntries = new Map<string, CachedSnapshotEntry>();
+  const previous = input.previous?.cacheKey === cacheKey ? input.previous : undefined;
+  let previousEntries: ReadonlyMap<string, CachedSnapshotEntry> =
+    previous?.entries ?? new Map<string, CachedSnapshotEntry>();
+  const headRead = repositorySnapshotGitHead(input.repositoryRoot, resolvedPolicy.deadlineMs);
+  const freshIgnored = freshIgnoredPaths(input.repositoryRoot, resolvedPolicy.deadlineMs);
+  headRead.catch(() => undefined);
+  // With the previous capture's ignored paths, the walk starts while Git lists them again. The
+  // fresh list then removes what it ignores, and a path it no longer ignores re-walks.
+  const previousIgnored = previous?.ignoredPaths;
+  const judge = ignoredPathJudge({
+    previous: previousIgnored,
+    previousFiles: previousEntries.keys(),
+    fresh: freshIgnored,
+  });
+  // Without a previous list, Git's unavailability still rejects before traversal.
+  if (previousIgnored === undefined) await freshIgnored;
+  const head = await headRead;
+  let nextEntries = new Map<string, CachedSnapshotEntry>();
   try {
-    const rootStats = await lstat(root);
-    if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) throw new Error("unsafe root");
-  } catch {
-    throw new RepositorySnapshotError("The repository snapshot root is not a safe real directory.");
+    checkDeadline();
+    const rootStats = await lstat(root).catch(() => null);
+    if (rootStats === null || !rootStats.isDirectory() || rootStats.isSymbolicLink())
+      throw new RepositorySnapshotError(
+        "The repository snapshot root is not a safe real directory.",
+      );
+  } catch (error) {
+    await freshIgnored.catch(() => undefined);
+    throw error;
   }
   let fileCount = 0;
   let byteCount = 0;
@@ -189,8 +210,8 @@ async function captureRepositorySnapshotWithCache(input: {
       live();
       const absolutePath = `${directory}${sep}${entry.name}`;
       const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
-      if (excludedPaths.has(path) || ignoredPaths.has(path) || ignoredPaths.has(`${path}/`))
-        return [];
+      if (excludedPaths.has(path) || (await judge.ignores(path, entry.isDirectory()))) return [];
+      live();
       if (entry.isDirectory())
         return excludedDirectories.has(entry.name) ? [] : visit(absolutePath, path);
       fileCount += 1;
@@ -209,6 +230,10 @@ async function captureRepositorySnapshotWithCache(input: {
         if (cached?.kind === "symlink" && cached.identity === identity) {
           hash = cached.hash;
         } else {
+          if (await judge.ignoredNow(path)) {
+            fileCount -= 1;
+            return [];
+          }
           const target = await stats(() => readlink(absolutePath));
           if (identity !== entryIdentity(await lstat(absolutePath, { bigint: true }))) {
             throw new RepositorySnapshotError("Could not snapshot the repository file safely.");
@@ -229,6 +254,12 @@ async function captureRepositorySnapshotWithCache(input: {
           hash = cached.hash;
           contentByteLength = cached.byteLength;
         } else {
+          // Never read a file Git now ignores, even one the previous list did not.
+          if (await judge.ignoredNow(path)) {
+            fileCount -= 1;
+            return [];
+          }
+          live();
           // A read that started before the deadline finishes its identity check and keeps its
           // hash, so a capture that runs out of time still warms the cache with it.
           const bytes = await reads(() => input.readFile(root, path));
@@ -275,8 +306,45 @@ async function captureRepositorySnapshotWithCache(input: {
   }
 
   const files: Record<string, string> = Object.create(null) as Record<string, string>;
+  let fresh: ReadonlySet<string> | undefined;
+  // Walks again judging every path by the fresh list, reusing the hashes computed so far.
+  const rewalk = async (paths: ReadonlySet<string>) => {
+    previousEntries = new Map([...previousEntries, ...nextEntries]);
+    nextEntries = new Map();
+    fileCount = 0;
+    byteCount = 0;
+    failure = null;
+    judge.settle(paths);
+    return visit(root, "");
+  };
   try {
-    for (const [path, hash] of await visit(root, "")) files[path] = hash;
+    let walked: [string, string][];
+    try {
+      walked = await visit(root, "");
+    } catch (error) {
+      // Paths the fresh list ignores may have counted toward a limit; only it can tell.
+      if (
+        previousIgnored === undefined ||
+        !(error instanceof RepositorySnapshotError) ||
+        error.code !== "repository_snapshot_limit_exceeded"
+      )
+        throw error;
+      fresh = await freshIgnored;
+      walked = await rewalk(fresh);
+    }
+    const listed = (fresh ??= await freshIgnored);
+    checkDeadline();
+    if (previousIgnored !== undefined && !judge.unchanged()) {
+      if (await reincluded(root, previousIgnored, listed)) {
+        // A path Git ignored before and no longer does was never walked.
+        walked = await rewalk(listed);
+      } else {
+        walked = walked.filter(([path]) => !ignoredBy(listed, path));
+        for (const path of nextEntries.keys())
+          if (ignoredBy(listed, path)) nextEntries.delete(path);
+      }
+    }
+    for (const [path, hash] of walked) files[path] = hash;
   } catch (error) {
     if (
       error instanceof RepositorySnapshotError &&
@@ -286,6 +354,8 @@ async function captureRepositorySnapshotWithCache(input: {
         cacheKey,
         entries: new Map([...previousEntries, ...nextEntries]),
       });
+    // Git's listing, bounded by the same deadline, never outlives the capture.
+    await freshIgnored.catch(() => undefined);
     throw error;
   }
   checkDeadline();
@@ -303,77 +373,7 @@ async function captureRepositorySnapshotWithCache(input: {
         ? {}
         : { commits: Object.fromEntries(Object.keys(files).map((path) => [path, head])) }),
     },
-    state: { cacheKey, entries: nextEntries },
-  };
-}
-
-/** Serializable stat-identity cache, so short-lived processes reuse unchanged file hashes. */
-export interface RepositorySnapshotCacheState {
-  schemaVersion: 1;
-  cacheKey: string;
-  entries: [string, CachedSnapshotEntry][];
-}
-
-/** The cache a capture that ran out of time had built, so its caller can keep the progress. */
-export function partialRepositorySnapshotCache(
-  error: unknown,
-): RepositorySnapshotCacheState | undefined {
-  const state = error instanceof RepositorySnapshotError ? partialStates.get(error) : undefined;
-  return state === undefined
-    ? undefined
-    : { schemaVersion: 1, cacheKey: state.cacheKey, entries: [...state.entries] };
-}
-
-export async function captureRepositorySnapshotIncrementally(input: {
-  repositoryRoot: string;
-  previous?: RepositorySnapshotCacheState;
-  policy?: RepositorySnapshotPolicy;
-  readFile?: RepositorySnapshotFileReader;
-}): Promise<{ snapshot: RepositorySnapshot; cache: RepositorySnapshotCacheState }> {
-  const result = await captureRepositorySnapshotWithCache({
-    repositoryRoot: input.repositoryRoot,
-    policy: input.policy ?? defaultRepositorySnapshotPolicy,
-    previous:
-      input.previous === undefined
-        ? undefined
-        : { cacheKey: input.previous.cacheKey, entries: new Map(input.previous.entries) },
-    readFile: input.readFile ?? readRepositoryFile,
-  });
-  return {
-    snapshot: result.snapshot,
-    cache: {
-      schemaVersion: 1,
-      cacheKey: result.state.cacheKey,
-      entries: [...result.state.entries],
-    },
-  };
-}
-
-export function createCachedRepositorySnapshotCapture(input?: {
-  readFile?: RepositorySnapshotFileReader;
-}): CaptureRepositorySnapshot {
-  const readFile = input?.readFile ?? readRepositoryFile;
-  let state: SnapshotCaptureState | undefined;
-  let pending: Promise<void> = Promise.resolve();
-  return async (repositoryRoot, policy = defaultRepositorySnapshotPolicy) => {
-    let release: () => void = () => undefined;
-    const predecessor = pending;
-    pending = new Promise<void>((resolvePending) => {
-      release = resolvePending;
-    });
-    await predecessor;
-    try {
-      const result = await captureRepositorySnapshotWithCache({
-        repositoryRoot,
-        policy,
-        previous: state,
-        readFile,
-      });
-      state = result.state;
-      return result.snapshot;
-    } finally {
-      release();
-    }
+    state: { cacheKey, entries: nextEntries, ignoredPaths: fresh! },
   };
 }
 
