@@ -1,13 +1,14 @@
 import {
   type ApplicationCommands,
   type AttachedFile,
+  failureCode,
   type PreparedImage,
   RequestFailure,
 } from "../../../ports";
-import { remember, sentImages, withAttachedFiles } from "../../conversation";
-import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces";
+import { remember, sentImages, withAttachedFiles } from "../../conversation/model";
+import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces/model";
 import { useStartStore } from "./store";
-import { HIRE_PRODUCT_OWNER, PRODUCT_OWNER_ROLE, showProjectAgents } from "../../agents";
+import { HIRE_PRODUCT_OWNER, PRODUCT_OWNER_ROLE, showProjectAgents } from "../../agents/model";
 
 /**
  * What the start screen collects. The conversation mode is not chosen here: the core uses the
@@ -34,21 +35,29 @@ let starts = 0;
 
 /**
  * The participants with the proposed Product Owner hired in its place (ADR-0646); it then appears
- * in the sidebar. A hire that fails drops it and starts the work with the others, or without an
- * agent, rather than holding it.
+ * in the sidebar, whose list keeps its own failure. A hire that fails drops it and starts the work
+ * with the others, or without an agent, rather than holding it, and keeps the core's code so the
+ * conversation says what the work started without.
  */
 async function withHiredOwner(
   commands: ApplicationCommands,
   projectId: string,
   chosen: readonly string[],
-): Promise<string[]> {
-  const hired = await commands
-    .run("agent.hire", { projectId, role: PRODUCT_OWNER_ROLE })
-    .catch(() => null);
-  if (hired !== null) void showProjectAgents(commands, projectId).catch(() => undefined);
-  return chosen.flatMap((id) =>
-    id !== HIRE_PRODUCT_OWNER ? [id] : hired === null ? [] : [hired.agent.agentId],
+): Promise<{ participants: string[]; hireFailure: string | null }> {
+  let hired: string | null = null;
+  let hireFailure: string | null = null;
+  try {
+    ({
+      agent: { agentId: hired },
+    } = await commands.run("agent.hire", { projectId, role: PRODUCT_OWNER_ROLE }));
+  } catch (failure) {
+    hireFailure = failureCode(failure);
+  }
+  if (hired !== null) void showProjectAgents(commands, projectId);
+  const participants = chosen.flatMap((id) =>
+    id !== HIRE_PRODUCT_OWNER ? [id] : hired === null ? [] : [hired],
   );
+  return { participants, hireFailure };
 }
 
 /**
@@ -90,6 +99,7 @@ export async function startWork(
       repositoryName,
       workspaceId: null,
       baseNotice: null,
+      hireFailure: null,
       images: marks,
     },
     draft: { ...draft, instruction: "" },
@@ -100,9 +110,13 @@ export async function startWork(
   try {
     // Only a hire waits; work with chosen agents asks the core at once.
     const chosen = draft.participants ?? [];
-    const participants = chosen.includes(HIRE_PRODUCT_OWNER)
+    const { participants, hireFailure } = chosen.includes(HIRE_PRODUCT_OWNER)
       ? await withHiredOwner(commands, draft.repository, chosen)
-      : chosen;
+      : { participants: chosen, hireFailure: null };
+    if (hireFailure !== null && current())
+      useStartStore.setState((store) => ({
+        pending: store.pending === null ? null : { ...store.pending, hireFailure },
+      }));
     // The session host takes the images out and sends them with the first message.
     const result = await commands.run("workspace.start", {
       instruction,

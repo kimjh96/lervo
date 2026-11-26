@@ -4,14 +4,7 @@ import { useIntl } from "react-intl";
 import { caretPoint } from "../../../ui/caret";
 import { type Suggestion, SuggestionList, suggestionId } from "../../../ui/SuggestionList";
 import { AgentMark } from "../../agents";
-
-/** An agent the owner can mention: one in the conversation, or one of the team who would join. */
-export interface Mentionable {
-  readonly agentId: string;
-  readonly displayName: string;
-  readonly roleName: string;
-  readonly participant: boolean;
-}
+import type { Mentionable } from "../model/mentionables";
 
 /** The `@` being typed: where it starts, where the caret is, and what follows it. */
 interface Query {

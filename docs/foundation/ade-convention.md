@@ -40,7 +40,8 @@ Each side has four layers. Dependencies point inward only.
 - Each feature, such as `start`, `workspaces`, or `conversation`, lives in `features/<name>/` with `model/` (state, selectors, transitions), `view/` (components), and `index.ts` (its public surface).
 - Components render props and dispatch intents. They do not fetch data, parse protocol messages, or hold business rules.
 - A feature imports another feature only through its `index.ts`, which exports only what other features and `app/` use. Tests import the module they test directly.
-- Import-boundary lint rules (`adeLayerRules` in `eslint.config.js`) enforce the layers in `src/`: models import no adapter, view, or `ui/` module; features never import `app/` or an I/O adapter; and `ui/`, `ports/`, and `platform/` import no feature.
+- A feature whose model other features use gives it a model entry, `model/index.ts`, which its `index.ts` re-exports. Another feature's model imports only that entry, because `index.ts` also loads the views, and a model must not load a view even indirectly.
+- Import-boundary lint rules (`adeLayerRules` in `eslint.config.js`) enforce the layers in `src/`: models import no adapter, view, or `ui/` module, and reach another feature only through its model entry; views create no store, except presentation state with an inline exception that says so; features never import `app/` or an I/O adapter; and `ui/`, `ports/`, and `platform/` import no feature.
 - Shared primitives live in `ui/`. They are built on headless primitives and design tokens and know nothing about Lervo concepts.
 
 ### Size and cohesion
@@ -53,7 +54,7 @@ Each side has four layers. Dependencies point inward only.
 
 - Rust items are private by default, and `pub(crate)` comes before `pub`. A crate exports only what its consumers use.
 - TypeScript features and packages export through one `index.ts`. Deep imports fail lint.
-- Mutable state has one owner. Each session's state belongs to its session actor in the session host, and each feature's UI state belongs to one store. Other code reads through messages or selectors.
+- Mutable state has one owner. Each session's state belongs to its session actor in the session host. A feature's shared UI state belongs to one store in its model; state that belongs to one instance, such as an input card's attachments or one conversation's turn summaries, belongs to a store that instance creates from the model. Presentation state that performs no I/O, such as which tool lines are open, may stay in the view. Other code reads through messages or selectors.
 
 ### Extensibility and flexibility
 

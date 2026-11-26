@@ -7,7 +7,7 @@ import {
   RequestFailure,
   type SessionHost,
 } from "../../../ports";
-import { useWorkspaceStore } from "../../workspaces";
+import { useWorkspaceStore } from "../../workspaces/model";
 import type { MemberLane } from "./room";
 import { useRoomStore } from "./room-store";
 import { applyAppended, applyDelta, applyPage, emptyWindow, PAGE_ITEMS } from "./window";
@@ -48,7 +48,7 @@ export class RoomMembers {
       return () => clearTimeout(timer);
     },
   ) {
-    useRoomStore.setState({ leadAgentId, members: {} });
+    useRoomStore.setState({ leadAgentId, members: {}, unrouted: null });
     this.unsubscribe.push(this.client.onMessage((message) => this.receive(message)));
   }
 
@@ -71,7 +71,7 @@ export class RoomMembers {
     for (const unsubscribe of this.unsubscribe.splice(0)) unsubscribe();
     for (const sessionId of this.members.keys())
       void this.client.send({ kind: "session.detach", sessionId }).catch(() => undefined);
-    useRoomStore.setState({ leadAgentId: null, members: {} });
+    useRoomStore.setState({ leadAgentId: null, members: {}, unrouted: null });
   }
 
   private lane(member: RoomMember, update: (lane: MemberLane) => MemberLane): void {

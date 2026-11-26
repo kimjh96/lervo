@@ -1,4 +1,7 @@
 import { createContext, type PropsWithChildren, useContext, useState } from "react";
+// Which tool lines are open is presentation state that performs no I/O, which the ADE convention
+// lets a view keep ("Encapsulation").
+// eslint-disable-next-line no-restricted-imports -- presentation state, no I/O
 import { createStore, type StoreApi, useStore } from "zustand";
 
 /** Which tool lines of one conversation the user opened. It is view state, not conversation data. */
