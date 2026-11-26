@@ -263,7 +263,7 @@
     },
     {
       "path": "packages/schemas/src/terminal-observation-event.ts",
-      "contentHash": "sha256:7707b0870e0b381883f7fa025c4beba843f7e6703c3c15df0de3ac929d20e9e9",
+      "contentHash": "sha256:c8d3c98f87f08fb38b1cc833c9ded56054317c903e5b1f2af64ad9da1a792326",
       "responsibility": "Declarative terminal observation event schemas",
       "rationale": "The module declares one terminal evidence lifecycle. Pointer fields, identities, reference kinds, and paired counts are additive. Equivalent nullable scalar schemas keep compiled validation within the measured hook bundle budget. Detection, persistence, privacy enforcement, and reporting remain separate.",
       "disposition": "cohesive"
