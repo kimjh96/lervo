@@ -4,7 +4,7 @@
 
 The shared reader accepts envelope schema versions 1 through 16. It preserves valid mixed hash chains without rewriting bytes or meaning. Version 1 remains the default writer; activated managed execution writes version 2. Version 3 adds bounded [supervision payloads](../outcome-supervision/contracts.md); versions 1 and 2 cannot carry these event types.
 
-The SQLite adapter supports explicitly selected version 3 writes and rejects new events above the selected writer version. Reader capability advertisement alone does not activate writing.
+The SQLite adapter supports explicitly selected version 3 writes and rejects new events above the selected writer version. Reader capability advertisement alone does not activate writing. A reader's report may list up to 64 versions. A writer of one release validates the reports of readers released after it, so the bound sits well above any current reader: a writer must never refuse a newer reader's report.
 
 ## Reader-first payloads
 

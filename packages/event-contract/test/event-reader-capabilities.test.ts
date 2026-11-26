@@ -15,6 +15,23 @@ describe("event reader capabilities", () => {
     expect(readEventReaderCapabilities(capabilities)).toEqual(capabilities);
   });
 
+  it("accepts a newer reader that reports more versions than this release reads", () => {
+    // A writer of this release validates the reports of readers released after it, so a reader
+    // that reads schema 17 and beyond must still pass while activation waits for it.
+    const newer = {
+      schemaVersion: 1,
+      capability: "event_reader",
+      readableEventSchemaVersions: Array.from({ length: 40 }, (_, index) => index + 1),
+    };
+    expect(readEventReaderCapabilities(newer)).toEqual(newer);
+    expect(() =>
+      readEventReaderCapabilities({
+        ...newer,
+        readableEventSchemaVersions: Array.from({ length: 65 }, (_, index) => index + 1),
+      }),
+    ).toThrowError(expect.objectContaining({ code: "event_reader_capabilities_invalid" }));
+  });
+
   it("rejects unsupported or contradictory reader capability reports", () => {
     expect(() =>
       readEventReaderCapabilities({
