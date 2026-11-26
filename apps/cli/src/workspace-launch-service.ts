@@ -43,6 +43,7 @@ import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
 import { runGit } from "./workspace-base-git.js";
 import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
+import { agentLaunchModel } from "./agent-launch-model.js";
 import { resolveParticipants, withAgentEnvironment } from "./workspace-participants.js";
 import {
   defaultBranchCommit,
@@ -95,6 +96,15 @@ export interface WorkspaceStartOptions {
   readonly model?: string;
   /** Agent IDs of the project's team; the first one's session writes. */
   readonly participants?: unknown;
+  /** The conversation's title, instead of the instruction's first line. */
+  readonly title?: string;
+  /** The team agent that started the conversation and leads it (Lervo ADE rooms, slice 2). */
+  readonly startedBy?: string;
+  /**
+   * Whether the session host answers the agents' questions with choices. A provider that cannot
+   * ask through its stream, or a conversation in the terminal, asks in prose.
+   */
+  readonly questions?: boolean;
 }
 
 /**
@@ -129,21 +139,31 @@ export async function startWorkspaceFromInstruction(
       "Workspaces would land inside a Git repository. Set LERVO_WORKSPACES_HOME to a folder outside every repository.",
     );
   const participants = await resolveParticipants(repository.repositoryRoot, options.participants);
+  // The writing agent's model and effort, unless the request named a model.
+  const chosen =
+    options.model === undefined
+      ? await agentLaunchModel(repository.repositoryRoot, participants?.agentId, adapter)
+      : { model: options.model };
   const sessionId = randomUUID();
   const hooks = hostedSessionHooks(adapter, sessionId);
+  const mode = options.mode ?? preferredConversationMode(adapter.capabilities);
+  const questions = options.questions === true && adapter.capabilities.questions;
   return startWorkspace(
     {
       instruction: options.instruction,
-      mode: options.mode ?? preferredConversationMode(adapter.capabilities),
+      mode,
+      ...(questions ? { questions } : {}),
       repositoryRoot: repository.repositoryRoot,
       projectId: repository.projectId,
       baseCommit: await baseCommitOf(repository.repositoryRoot),
       workspaceId: `wsp_${hex(12)}`,
       sessionId,
       suffix: hex(3),
-      ...(options.model === undefined ? {} : { model: options.model }),
+      ...chosen,
       ...(hooks === undefined ? {} : { hooks }),
       ...(participants === undefined ? {} : { participants }),
+      ...(options.title === undefined ? {} : { title: options.title }),
+      ...(options.startedBy === undefined ? {} : { startedBy: options.startedBy }),
     },
     {
       adapter,
@@ -214,14 +234,19 @@ export async function openWorkspace(
     sessionHooks === undefined || terminal === undefined
       ? sessionHooks
       : { ...sessionHooks, terminal };
-  // The reopened session is the same agent's (Lervo ADE agents, "Participants and sessions").
+  // The reopened session is the same agent's (Lervo ADE agents, "Participants and sessions"), on
+  // the model and effort the agent has now.
+  const chosen = await agentLaunchModel(repositoryRoot, previous.agentId, adapter);
   const launch = withAgentEnvironment(
     adapter.prepareLaunch({
       sessionId,
       mode,
       workingDirectory,
+      ...chosen,
       start: resume ? { kind: "resume" } : { kind: "new", instruction: "Continue." },
       ...(hooks === undefined ? {} : { hooks }),
+      // The conversation keeps answering questions with choices while it runs natively.
+      ...(previous.questions === true && mode === "native" ? { questions: true } : {}),
     }),
     previous.agentId,
   );

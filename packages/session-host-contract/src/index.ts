@@ -17,3 +17,4 @@ export * from "./session.js";
 export * from "./tool-detail.js";
 export * from "./workspace-title.js";
 export { validateCoreLinkRequest } from "../generated/core-link-request-validator.js";
+export * from "./choices.js";

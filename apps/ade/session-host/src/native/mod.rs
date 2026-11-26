@@ -6,11 +6,11 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::time::Duration;
 
-use lervo_session_core::paging::{item_id, page};
+use lervo_session_core::paging::item_id;
 use lervo_session_core::status::{EndReason, SessionEvent};
 use lervo_session_core::transcript::{Change, Content, Input, Transcript, coalesce};
-use lervo_session_protocol::codec::{decode_record, encode};
-use lervo_session_protocol::{ConversationItem, RequestFailedMessageCode};
+use lervo_session_protocol::codec::encode;
+use lervo_session_protocol::{HostMessage, Identifier, RequestFailedMessageCode};
 use lervo_session_stream::StreamProcess;
 use tokio::sync::mpsc;
 use tokio::time::Sleep;
@@ -19,10 +19,11 @@ use crate::images;
 use crate::index::Index;
 use crate::items::to_wire;
 use crate::messages;
-use crate::session::{Command, Fanout, Range, linger};
+use crate::session::{Command, Fanout, Reply, linger};
 use lervo_session_core::ports::{Decoded, Failure, RoomDelivery, SentImage, StreamDecoder};
 
 mod prepare;
+mod range;
 
 pub(crate) use prepare::{IndexPlace, StartError, prepare};
 
@@ -33,6 +34,11 @@ const EXIT_GRACE: Duration = Duration::from_secs(5);
 /// stop deadline, so a mode switch never times out on a slow hook; a hook cut short leaves the
 /// end to the exit report.
 const STOP_GRACE: Duration = Duration::from_secs(8);
+
+/// How long a session no one shows and no work holds keeps its provider running (Lervo ADE
+/// sessions, "Idle sessions"). Each provider process holds about 150 MB; reopening the
+/// conversation resumes the session, and a mention joins the agent again.
+const IDLE_STOP: Duration = Duration::from_secs(10 * 60);
 
 /// Called once with the provider's exit code, or none after a signal, when its process ended.
 pub(crate) type ExitReport = Box<dyn FnOnce(Option<u8>) + Send>;
@@ -97,11 +103,31 @@ impl<D: StreamDecoder> Native<D> {
         let kill = tokio::time::sleep(Duration::ZERO);
         tokio::pin!(kill);
         let mut kill_armed = false;
+        // Armed while the session rests: unattended, between turns, asking nothing, owed nothing.
+        let idle = tokio::time::sleep(IDLE_STOP);
+        tokio::pin!(idle);
+        let mut idle_armed = false;
+        let mut idled = false;
         loop {
+            let rests = !stopped
+                && !self.fanout.attended()
+                && !self.in_turn
+                && !self.fanout.needs_user()
+                && self.waiting.is_empty();
+            if rests && !idle_armed {
+                idle.as_mut().reset(tokio::time::Instant::now() + IDLE_STOP);
+            }
+            idle_armed = rests;
             tokio::select! {
                 output = process.output() => match output {
                     Ok(Some(bytes)) => {
                         let decoded = self.decoder.output(&bytes).await;
+                        // The core's own answers, such as allowing a tool, go before anything
+                        // else, since the provider waits on them.
+                        let replies = self.decoder.take_replies();
+                        if !replies.is_empty() {
+                            let _ = process.input(&replies).await;
+                        }
                         self.apply(decoded);
                         self.deliver_waiting(&mut process).await;
                     }
@@ -117,34 +143,20 @@ impl<D: StreamDecoder> Native<D> {
                             reply.send(messages::failed(&request, RequestFailedMessageCode::MessageEmpty));
                             continue;
                         }
-                        match self.encode(&text, &images).await {
-                            Ok((bytes, decoded)) => {
-                                if process.input(&bytes).await.is_ok() {
-                                    self.apply(decoded);
-                                    reply.send(messages::sent(&request, self.fanout.session()));
-                                } else {
-                                    reply.send(messages::failed(&request, RequestFailedMessageCode::SessionEnded));
-                                }
-                            }
-                            Err(failure) => reply.send(messages::core_failed(&request, &failure)),
-                        }
+                        let encoded = self.encode(&text, &images).await;
+                        self.write_answered(&mut process, encoded, &request, &reply, messages::sent).await;
                     }
                     Some(Command::Deliver { delivery_id, text }) => {
                         self.waiting.push_back((delivery_id, text));
                         self.deliver_waiting(&mut process).await;
                     }
                     Some(Command::Interrupt { request, reply }) => {
-                        match self.decoder.interrupt().await {
-                            Ok((bytes, decoded)) => {
-                                if bytes.is_empty() || process.input(&bytes).await.is_ok() {
-                                    self.apply(decoded);
-                                    reply.send(messages::interrupted(&request, self.fanout.session()));
-                                } else {
-                                    reply.send(messages::failed(&request, RequestFailedMessageCode::SessionEnded));
-                                }
-                            }
-                            Err(failure) => reply.send(messages::core_failed(&request, &failure)),
-                        }
+                        let encoded = self.decoder.interrupt().await;
+                        self.write_answered(&mut process, encoded, &request, &reply, messages::interrupted).await;
+                    }
+                    Some(Command::Answer { request, question, answers, reply }) => {
+                        let encoded = self.decoder.answer(&question, &answers).await;
+                        self.write_answered(&mut process, encoded, &request, &reply, messages::sent).await;
                     }
                     Some(command) => self.command(command),
                     None => {
@@ -155,6 +167,13 @@ impl<D: StreamDecoder> Native<D> {
                 () = &mut kill, if kill_armed => {
                     kill_armed = false;
                     let _ = process.kill().await;
+                }
+                () = &mut idle, if idle_armed => {
+                    // The provider ends as a stop ends it; the conversation and its index stay.
+                    stopped = true;
+                    idled = true;
+                    idle_armed = false;
+                    ask_to_end(&mut process, kill.as_mut(), &mut kill_armed).await;
                 }
             }
         }
@@ -180,6 +199,11 @@ impl<D: StreamDecoder> Native<D> {
             stopped,
             exited_cleanly,
         )));
+        // A session that rested until it stopped does not linger: the next attach finds none, and
+        // the interface opens it again, which resumes the provider's session.
+        if idled {
+            return;
+        }
         linger(&mut commands, |command| self.command(command)).await;
     }
 
@@ -201,7 +225,9 @@ impl<D: StreamDecoder> Native<D> {
             }
             Command::Detach { connection } => self.fanout.detach(connection),
             Command::Range(range) => self.range(range),
-            Command::Send { request, reply, .. } | Command::Interrupt { request, reply } => {
+            Command::Send { request, reply, .. }
+            | Command::Interrupt { request, reply }
+            | Command::Answer { request, reply, .. } => {
                 reply.send(messages::failed(
                     &request,
                     RequestFailedMessageCode::SessionEnded,
@@ -220,6 +246,33 @@ impl<D: StreamDecoder> Native<D> {
             | Command::Stop
             | Command::Release
             | Command::Deliver { .. } => {}
+        }
+    }
+
+    /// Writes what the decoder encoded for a request and answers it with `answered` once the
+    /// provider has the bytes. Empty bytes, such as an interrupt with no turn running, need no
+    /// write.
+    async fn write_answered(
+        &mut self,
+        process: &mut StreamProcess,
+        encoded: Result<(Vec<u8>, Vec<Decoded>), Failure>,
+        request: &Identifier,
+        reply: &Reply,
+        answered: fn(&Identifier, &Identifier) -> HostMessage,
+    ) {
+        match encoded {
+            Ok((bytes, decoded)) => {
+                if bytes.is_empty() || process.input(&bytes).await.is_ok() {
+                    self.apply(decoded);
+                    reply.send(answered(request, self.fanout.session()));
+                } else {
+                    reply.send(messages::failed(
+                        request,
+                        RequestFailedMessageCode::SessionEnded,
+                    ));
+                }
+            }
+            Err(failure) => reply.send(messages::core_failed(request, &failure)),
         }
     }
 
@@ -301,65 +354,6 @@ impl<D: StreamDecoder> Native<D> {
             }
         };
         self.fanout.broadcast(&message);
-    }
-
-    /// Answers a range: stored items come from the index thread and the open item from memory.
-    /// The answer waits on its own task, so the actor keeps serving the stream meanwhile.
-    fn range(&mut self, range: Range) {
-        let session = self.fanout.session().clone();
-        let Ok(page) = page(
-            self.transcript.len(),
-            range.anchor.as_deref(),
-            range.direction,
-            range.limit,
-        ) else {
-            range.reply.send(messages::failed(
-                &range.request,
-                RequestFailedMessageCode::RangeInvalid,
-            ));
-            return;
-        };
-        let open = match self
-            .transcript
-            .open()
-            .filter(|open| (page.start..page.end).contains(&open.position))
-        {
-            Some(open) => match to_wire(open) {
-                Some(item) => Some(item),
-                None => {
-                    range.reply.send(messages::failed(
-                        &range.request,
-                        RequestFailedMessageCode::ConversationIndexCorrupt,
-                    ));
-                    return;
-                }
-            },
-            None => None,
-        };
-        let records = self.index.read(page.start, page.end);
-        tokio::spawn(async move {
-            let items = records.await.ok().flatten().and_then(|records| {
-                let mut items = records
-                    .iter()
-                    .map(|record| decode_record::<ConversationItem>(record).ok())
-                    .collect::<Option<Vec<_>>>()?;
-                items.extend(open);
-                Some(items)
-            });
-            range.reply.send(match items {
-                Some(items) => messages::page(
-                    &range.request,
-                    &session,
-                    items,
-                    page.has_earlier,
-                    page.has_later,
-                ),
-                None => messages::failed(
-                    &range.request,
-                    RequestFailedMessageCode::ConversationIndexCorrupt,
-                ),
-            });
-        });
     }
 }
 

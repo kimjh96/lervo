@@ -54,6 +54,11 @@ import {
   type RepositorySourceUnit,
 } from "./types.js";
 import { normalizationMayRewrite } from "./normalization-protected-paths.js";
+import {
+  outputMarkdownLinkTargetIdentities,
+  protectedMarkdownFragments,
+  resolvedMarkdownLinkTargetIdentity,
+} from "./document-markdown-fragments.js";
 
 const MAX_ENVELOPE_DOCUMENTS = 2;
 const MAX_ENVELOPE_BYTES = 32 * 1024;
@@ -370,89 +375,6 @@ function frontmatterName(content: string): string | null {
   } catch {
     return null;
   }
-}
-
-function protectedMarkdownFragments(
-  content: string,
-  profile: DocumentNormalizationProfile,
-): DocumentNormalizationEnvelopeDocument["protectedFragments"] {
-  const criticalInstruction = [
-    "portable_skill",
-    "skill_reference",
-    "agent_instruction",
-    "instruction_document",
-  ].includes(profile);
-  const portableSkillMaterial = ["portable_skill", "skill_reference"].includes(profile);
-  const fragments: DocumentNormalizationEnvelopeDocument["protectedFragments"] = [
-    ...(["agent_instruction", "instruction_document", "skill_reference"].includes(profile)
-      ? (content.match(/^---\n[\s\S]*?\n---(?:\n|$)/u) ?? []).map((value) => ({
-          kind: "frontmatter" as const,
-          value,
-        }))
-      : []),
-    ...(content.match(/<!-- lervo:begin\b[^>]*-->[\s\S]*?<!-- lervo:end\b[^>]*-->/gu) ?? []).map(
-      (value) => ({ kind: "managed_block" as const, value }),
-    ),
-    ...(content.match(/^(?:Status|As of):[^\n]*(?:\n|$)/gmu) ?? []).map((value) => ({
-      kind: "lifecycle_metadata" as const,
-      value,
-    })),
-    ...(criticalInstruction
-      ? (content.match(/```[^\n]*\n[\s\S]*?```/gu) ?? []).map((value) => ({
-          kind: "fenced_code" as const,
-          value,
-        }))
-      : []),
-    ...(portableSkillMaterial
-      ? (content.match(/(?<!`)`[^`\n]+`(?!`)/gu) ?? []).map((value) => ({
-          kind: "inline_code" as const,
-          value: value.slice(1, -1),
-        }))
-      : []),
-    ...[...content.matchAll(/!?(?:\[[^\]]*\])\(([^)\s]+)(?:\s+"[^"]*")?\)/gu)].map((match) => ({
-      kind: "link_target" as const,
-      value: match[1]!,
-    })),
-    ...(content.match(/@(?:AGENTS|CLAUDE)\.md\b/gu) ?? []).map((value) => ({
-      kind: "provider_import" as const,
-      value,
-    })),
-  ];
-  return [
-    ...new Map(
-      fragments
-        .filter((fragment) => fragment.value.length > 0)
-        .map((fragment) => [`${fragment.kind}\u0000${fragment.value}`, fragment]),
-    ).values(),
-  ];
-}
-
-function markdownLinkTargetIdentities(path: string, content: string): Set<string> {
-  return new Set(
-    [...content.matchAll(/!?(?:\[[^\]]*\])\(([^)\s]+)(?:\s+"[^"]*")?\)/gu)].map((match) =>
-      resolvedMarkdownLinkTargetIdentity(path, match[1]!),
-    ),
-  );
-}
-
-function resolvedMarkdownLinkTargetIdentity(path: string, target: string): string {
-  if (/^(?:[a-z][a-z0-9+.-]*:|\/)/iu.test(target)) return `literal:${target}`;
-  const suffixIndex = [target.indexOf("?"), target.indexOf("#")]
-    .filter((index) => index >= 0)
-    .sort((left, right) => left - right)[0];
-  const targetPath = suffixIndex === undefined ? target : target.slice(0, suffixIndex);
-  const suffix = suffixIndex === undefined ? "" : target.slice(suffixIndex);
-  const resolvedPath =
-    targetPath.length === 0 ? path : posix.normalize(posix.join(dirname(path), targetPath));
-  return `repository:${resolvedPath}${suffix}`;
-}
-
-function outputMarkdownLinkTargetIdentities(
-  outputs: readonly { path: string; content: string }[],
-): Set<string> {
-  return new Set(
-    outputs.flatMap((output) => [...markdownLinkTargetIdentities(output.path, output.content)]),
-  );
 }
 
 function maximumOutputBytes(profile: DocumentNormalizationProfile): number {

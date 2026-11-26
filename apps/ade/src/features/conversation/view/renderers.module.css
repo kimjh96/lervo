@@ -108,3 +108,18 @@
   font-size: var(--type-meta-size);
   line-height: var(--type-meta-line-height);
 }
+
+/* The other conversation a room line names, which it opens. */
+.roomLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-link);
+  font: inherit;
+  cursor: pointer;
+}
+
+.roomLink:disabled {
+  color: inherit;
+  cursor: default;
+}

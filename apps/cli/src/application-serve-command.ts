@@ -19,22 +19,24 @@ import { withLervoCall } from "./lervo-command-detail.js";
 import { summarizeWorkspaceTurns } from "./turn-summary-service.js";
 import { joinWorkspaceRoom, routeRoomTurn } from "./workspace-room.js";
 import { loadRoomContext } from "./room-context.js";
+import { pendingStartsOf, pendingStartsPath } from "./room-starts.js";
 
 const transcripts = new WorkspaceTranscripts();
 
 /** The `workspace.start` arguments the core link accepts. */
 function startArguments(arguments_: Record<string, unknown>) {
-  const { instruction, repository, provider, mode, model, participants } = arguments_;
+  const { instruction, repository, provider, mode, model, participants, questions } = arguments_;
   const optional = (value: unknown) => value === undefined || typeof value === "string";
   if (
     typeof instruction !== "string" ||
     typeof repository !== "string" ||
     !optional(provider) ||
-    !optional(model)
+    !optional(model) ||
+    !(questions === undefined || typeof questions === "boolean")
   )
     throw new CommandFailure(
       "launch_intent_invalid",
-      "workspace.start takes instruction and repository, and optionally provider, mode, model, and participants.",
+      "workspace.start takes instruction and repository, and optionally provider, mode, model, participants, and questions.",
     );
   const requested = parseConversationMode(mode);
   return {
@@ -45,6 +47,7 @@ function startArguments(arguments_: Record<string, unknown>) {
     ...(typeof model === "string" ? { model } : {}),
     // Checked against the project's agents when the workspace starts.
     ...(participants === undefined ? {} : { participants }),
+    ...(questions === true ? { questions } : {}),
   };
 }
 
@@ -57,6 +60,7 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   runAgentCommand: runCoreLinkAgentCommand,
   joinRoom: joinWorkspaceRoom,
   loadRoomContext,
+  pendingStarts: (agentId) => pendingStartsOf(pendingStartsPath(), agentId),
   routeRoom: routeRoomTurn,
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,

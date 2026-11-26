@@ -4,6 +4,7 @@
 //! core-link adapter implements these ports over the resident Lervo process; `Disconnected`
 //! answers every request with `application_unavailable`.
 
+use std::collections::BTreeMap;
 use std::future::Future;
 use std::path::PathBuf;
 
@@ -90,6 +91,9 @@ pub enum FailureCode {
     InterruptUnsupported,
     /// The provider or the running core cannot carry images in a message.
     ImagesUnsupported,
+    /// The question no longer waits for choices: it was answered, the person replied in a
+    /// message, its turn ended, or the session cannot answer questions this way.
+    QuestionNotOpen,
 }
 
 /// A failure that the session host reports with `request.failed`.
@@ -201,6 +205,23 @@ pub trait StreamDecoder: Send + 'static {
         &mut self,
     ) -> impl Future<Output = Result<(Vec<u8>, Vec<Decoded>), Failure>> + Send {
         std::future::ready(Err(Failure::new(FailureCode::InterruptUnsupported)))
+    }
+
+    /// Encodes the person's answers to the agent's question with choices (`question` is its
+    /// `choices.requestId`), each by its question's text, with what to show for them. A question
+    /// that no longer waits, or a decoder that cannot answer, fails with `QuestionNotOpen`.
+    fn answer(
+        &mut self,
+        _question: &str,
+        _answers: &BTreeMap<String, String>,
+    ) -> impl Future<Output = Result<(Vec<u8>, Vec<Decoded>), Failure>> + Send {
+        std::future::ready(Err(Failure::new(FailureCode::QuestionNotOpen)))
+    }
+
+    /// The bytes the decoder answered the provider with on its own while decoding output, such
+    /// as allowing a tool; the session writes them at once. Empty when there are none.
+    fn take_replies(&mut self) -> Vec<u8> {
+        Vec::new()
     }
 }
 

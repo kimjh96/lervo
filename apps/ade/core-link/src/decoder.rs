@@ -1,5 +1,7 @@
 //! A native session's stream decoder in the resident process (ADE core link, "Failure meaning").
 
+use std::collections::BTreeMap;
+
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use lervo_session_core::ports::{Decoded, Failure, FailureCode, SentImage, StreamDecoder};
@@ -10,7 +12,7 @@ use serde_json::{Value, json};
 
 use crate::{
     CoreLink, DECODE_DEADLINE, DECODER_DELIVERIES, DECODER_IMAGES, DECODER_INTERRUPT,
-    DECODER_SESSION, OUTPUT_CHUNK_BYTES, events, failures,
+    DECODER_QUESTIONS, DECODER_SESSION, OUTPUT_CHUNK_BYTES, events, failures,
 };
 
 /// One native session's decoder in the resident process. It opens there on first use and again
@@ -34,6 +36,9 @@ pub struct LinkDecoder {
     mid_line: bool,
     /// Whether this decoder keeps the resident process from being replaced.
     holding: bool,
+    /// What the core answered the provider with on its own, such as allowing a tool, waiting to
+    /// be written.
+    replies: Vec<u8>,
 }
 
 impl Drop for LinkDecoder {
@@ -62,6 +67,7 @@ impl LinkDecoder {
             in_turn: false,
             mid_line: false,
             holding: false,
+            replies: Vec::new(),
         }
     }
 
@@ -296,6 +302,37 @@ impl StreamDecoder for LinkDecoder {
         }
     }
 
+    /// Asks the resident process that advertised `decoder.questions` for the bytes that answer
+    /// the question; the process that decoded the question knows it.
+    async fn answer(
+        &mut self,
+        question: &str,
+        answers: &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Vec<Decoded>), Failure> {
+        if self.core.advertiser_of(DECODER_QUESTIONS).is_none() || !self.open {
+            return Err(Failure::new(FailureCode::QuestionNotOpen));
+        }
+        let request = json!({
+            "kind": "decoder.answer",
+            "decoderId": self.decoder_id,
+            "requestId": question,
+            "answers": answers,
+        });
+        let (decoded, input) = self.decode(request).await?;
+        self.track(&decoded, None);
+        let bytes = match input {
+            Some(input) => STANDARD
+                .decode(input)
+                .map_err(|_| Failure::new(FailureCode::ApplicationFailed))?,
+            None => Vec::new(),
+        };
+        Ok((bytes, decoded))
+    }
+
+    fn take_replies(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.replies)
+    }
+
     async fn output(&mut self, bytes: &[u8]) -> Vec<Decoded> {
         let mut all = Vec::new();
         for chunk in bytes.chunks(OUTPUT_CHUNK_BYTES) {
@@ -305,8 +342,13 @@ impl StreamDecoder for LinkDecoder {
                 "data": STANDARD.encode(chunk),
             });
             match self.decode(request).await {
-                Ok((decoded, _)) => {
+                Ok((decoded, replies)) => {
                     self.track(&decoded, Some(!chunk.ends_with(b"\n")));
+                    // Replies that are not Base64 are lost; the provider then asks again or
+                    // waits for the person's next message.
+                    if let Some(bytes) = replies.and_then(|input| STANDARD.decode(input).ok()) {
+                        self.replies.extend(bytes);
+                    }
                     all.extend(decoded);
                 }
                 Err(failure) => {

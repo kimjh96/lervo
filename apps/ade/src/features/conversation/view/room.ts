@@ -4,7 +4,7 @@ import { useIntl } from "react-intl";
 
 import type { ApplicationCommands, SessionHost } from "../../../ports";
 import { teamAgents, useAgentStore } from "../../agents";
-import { reloadWorkspaces, useWorkspaceStore, visibleStatus } from "../../workspaces";
+import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
 import { RoomMembers } from "../model/room-members";
 import { useRoomStore } from "../model/room-store";
@@ -105,21 +105,6 @@ export function useRoom(input: {
       room.current?.follow({ agentId, sessionId: memberSession });
     }
   }, [memberKey, room]);
-
-  // A session the list does not know, such as an agent's that just joined, refreshes the list,
-  // which then names it among the conversation's sessions.
-  const unknownSession = useWorkspaceStore((store) =>
-    Object.keys(store.statuses).some(
-      (id) =>
-        !store.workspaces.some(
-          (known) =>
-            known.sessionId === id || known.sessions?.some((member) => member.sessionId === id),
-        ),
-    ),
-  );
-  useEffect(() => {
-    if (unknownSession && coreRooms) void reloadWorkspaces(commands).catch(() => undefined);
-  }, [unknownSession, coreRooms, commands]);
 
   const nameOf = (agentId: string | null) =>
     agents.find((agent) => agent.agentId === agentId)?.displayName ?? null;

@@ -90,6 +90,7 @@
   --radius-full: 9999px;
   --radius-mark-sm: 5px;
   --radius-mark-md: 6px;
+  --radius-mark-lg: 14px;
   --border-width-strong: 2px;
   --size-control-sm: 24px;
   --size-control-md: 28px;
@@ -105,6 +106,7 @@
   --size-thumbnail: 56px;
   --size-mark-sm: 18px;
   --size-mark-md: 22px;
+  --size-mark-lg: 56px;
   --size-row-leading: 22px;
   --size-image-single: 280px;
   --size-image-single-height: 200px;

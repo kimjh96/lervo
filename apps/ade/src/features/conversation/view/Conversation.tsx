@@ -12,10 +12,12 @@ import { FormattedMessage } from "react-intl";
 
 import { FloatingButton } from "../../../ui/FloatingButton";
 import { Presence } from "../../../ui/Presence";
+import { openQuestions } from "../model/questions";
 import { roomView } from "../model/room";
 import { useRoomStore } from "../model/room-store";
 import { useConversationStore } from "../model/store";
 import styles from "./Conversation.module.css";
+import { OpenQuestions } from "./questions-context";
 import { ConversationItemView } from "./renderers";
 import { useToolLineToggles } from "./ToolLinesProvider";
 import { queuedReplies, type TurnEnd, turnEnds } from "../model/turns";
@@ -76,6 +78,8 @@ export function Conversation(props: {
     [lead, leadAgentId, members],
   );
   const window = room.window;
+  // The questions whose choices still wait for the person (Lervo ADE sessions, "Questions").
+  const openNow = useMemo(() => openQuestions(window.items, !window.hasLater), [window]);
   const arrived = useConversationStore((store) => store.arrived);
   const scroller = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLDivElement>(null);
@@ -267,73 +271,75 @@ export function Conversation(props: {
   };
 
   return (
-    <div className={styles.frame} style={{ "--dock-height": `${dockHeight}px` } as CSSProperties}>
-      <div
-        ref={scroller}
-        className={styles.scroller}
-        data-live={live ? "true" : undefined}
-        role="log"
-        aria-live="polite"
-        // The log scrolls, so it takes keyboard focus for the arrow and page keys.
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-        tabIndex={0}
-      >
+    <OpenQuestions open={openNow}>
+      <div className={styles.frame} style={{ "--dock-height": `${dockHeight}px` } as CSSProperties}>
         <div
-          className={styles.list}
-          data-placed={placed ?? undefined}
-          style={{ height: totalSize }}
+          ref={scroller}
+          className={styles.scroller}
+          data-live={live ? "true" : undefined}
+          role="log"
+          aria-live="polite"
+          // The log scrolls, so it takes keyboard focus for the arrow and page keys.
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
         >
-          {virtualizer.getVirtualItems().map((row) => {
-            const item = window.items[row.index];
-            if (item === undefined) return null;
-            return (
-              <div
-                key={row.key}
-                ref={virtualizer.measureElement}
-                data-index={row.index}
-                data-kind={item.kind}
-                data-follows={window.items[row.index - 1]?.kind}
-                className={styles.row}
-                data-arrived={arrived.has(item.itemId) ? "true" : undefined}
-                style={{ transform: `translateY(${row.start}px)` }}
-              >
-                {/* motion: A message arrives live */}
-                {room.changes.has(item.itemId) ? (
-                  <SpeakerLine agentId={room.speakers.get(item.itemId) ?? ""} />
-                ) : null}
-                <ConversationItemView item={item} />
-                <Presence className={styles.queued}>
-                  {queued.has(item.itemId) ? <FormattedMessage id="conversation.queued" /> : null}
-                </Presence>
-                {/* motion: A message arrives live */}
-                {ends.has(row.index) ? (
-                  <div className={styles.turnEnd}>
-                    <TurnSummaryLine
-                      turn={ends.get(row.index)!.turn}
-                      window={ends.get(row.index)!.window}
-                      elapsedMs={ends.get(row.index)!.elapsedMs}
-                    />
-                  </div>
-                ) : null}
-                {/* motion: Lervo notices in the conversation */}
-                {row.index === 0 && !window.hasEarlier ? (
-                  <Presence className={styles.lead}>{props.lead ?? null}</Presence>
-                ) : null}
-              </div>
-            );
-          })}
+          <div
+            className={styles.list}
+            data-placed={placed ?? undefined}
+            style={{ height: totalSize }}
+          >
+            {virtualizer.getVirtualItems().map((row) => {
+              const item = window.items[row.index];
+              if (item === undefined) return null;
+              return (
+                <div
+                  key={row.key}
+                  ref={virtualizer.measureElement}
+                  data-index={row.index}
+                  data-kind={item.kind}
+                  data-follows={window.items[row.index - 1]?.kind}
+                  className={styles.row}
+                  data-arrived={arrived.has(item.itemId) ? "true" : undefined}
+                  style={{ transform: `translateY(${row.start}px)` }}
+                >
+                  {/* motion: A message arrives live */}
+                  {room.changes.has(item.itemId) ? (
+                    <SpeakerLine agentId={room.speakers.get(item.itemId) ?? ""} />
+                  ) : null}
+                  <ConversationItemView item={item} />
+                  <Presence className={styles.queued}>
+                    {queued.has(item.itemId) ? <FormattedMessage id="conversation.queued" /> : null}
+                  </Presence>
+                  {/* motion: A message arrives live */}
+                  {ends.has(row.index) ? (
+                    <div className={styles.turnEnd}>
+                      <TurnSummaryLine
+                        turn={ends.get(row.index)!.turn}
+                        window={ends.get(row.index)!.window}
+                        elapsedMs={ends.get(row.index)!.elapsedMs}
+                      />
+                    </div>
+                  ) : null}
+                  {/* motion: Lervo notices in the conversation */}
+                  {row.index === 0 && !window.hasEarlier ? (
+                    <Presence className={styles.lead}>{props.lead ?? null}</Presence>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div ref={dock} className={styles.dock}>
+          <Presence arrival="rise">
+            {live ? null : (
+              <FloatingButton className={styles.jump} onClick={jump}>
+                <FormattedMessage id="conversation.jumpToLatest" />
+              </FloatingButton>
+            )}
+          </Presence>
+          {props.dock}
         </div>
       </div>
-      <div ref={dock} className={styles.dock}>
-        <Presence arrival="rise">
-          {live ? null : (
-            <FloatingButton className={styles.jump} onClick={jump}>
-              <FormattedMessage id="conversation.jumpToLatest" />
-            </FloatingButton>
-          )}
-        </Presence>
-        {props.dock}
-      </div>
-    </div>
+    </OpenQuestions>
   );
 }

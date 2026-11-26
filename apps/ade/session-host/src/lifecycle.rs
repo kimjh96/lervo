@@ -32,9 +32,10 @@ const MAX_TRANSCRIPT_TEXT_BYTES: usize = 64 * 1024 * 1024;
 const STOP_DEADLINE: Duration = Duration::from_secs(10);
 
 /// Whose session a launch starts: the workspace's own, or an agent's that joined its conversation
-/// (Lervo ADE rooms), whose first instruction may perform a delivery.
+/// (Lervo ADE rooms). Either's first instruction may perform a delivery: a joining agent's, or the
+/// first turn of a conversation its lead started.
 pub(crate) enum Role {
-    Lead,
+    Lead { initial_delivery: Option<String> },
     Member { initial_delivery: Option<String> },
 }
 
@@ -94,7 +95,10 @@ impl<C: Core> Host<C> {
 
     /// Starts `launch` while the caller holds the lifecycle lock.
     async fn start_serially(&self, request: &Identifier, launch: &Launch) -> HostMessage {
-        self.start_as(request, launch, Role::Lead).await
+        let role = Role::Lead {
+            initial_delivery: None,
+        };
+        self.start_as(request, launch, role).await
     }
 
     /// Starts `launch` in its role while the caller holds the lifecycle lock.
@@ -159,8 +163,9 @@ impl<C: Core> Host<C> {
                 .and_then(|prepared| prepared.map_err(|error| native_failed(request, &error)))
                 .map(|prepared| {
                     let initial = match &role {
-                        Role::Lead => None,
-                        Role::Member { initial_delivery } => initial_delivery.clone(),
+                        Role::Lead { initial_delivery } | Role::Member { initial_delivery } => {
+                            initial_delivery.clone()
+                        }
                     };
                     prepared.start(
                         self.watch.clone(),
@@ -183,7 +188,7 @@ impl<C: Core> Host<C> {
                 );
                 let message = opened(request, &session, &workspace, &handle);
                 match role {
-                    Role::Lead => self.registry().insert(workspace, session, handle),
+                    Role::Lead { .. } => self.registry().insert(workspace, session, handle),
                     Role::Member { .. } => self.registry().insert_member(session, handle),
                 }
                 message
@@ -226,7 +231,7 @@ fn text_bytes(input: &Input) -> usize {
             content:
                 Content::UserMessage { text, .. }
                 | Content::AgentMessage(text)
-                | Content::Question(text),
+                | Content::Question { text, .. },
             ..
         } => text.len(),
         _ => 0,

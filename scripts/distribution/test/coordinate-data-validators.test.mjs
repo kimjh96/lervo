@@ -4,7 +4,7 @@ import { coordinateDataValidatorIds } from "../../../packages/schemas/scripts/co
 function schema() {
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
-    oneOf: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((version) => ({
+    oneOf: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((version) => ({
       type: "object",
       required: ["selectedEventSchemaVersion"],
       properties: { selectedEventSchemaVersion: { type: "integer", const: version } },
@@ -48,7 +48,7 @@ it("refuses a branch set unless required discriminator values prove exclusivity"
   }
 });
 
-it("compiles every selected writer discriminator through schema 14", () => {
+it("compiles every selected writer discriminator through schema 15", () => {
   const ids = coordinateDataValidatorIds({ addSchema() {} }, schema());
   expect(Object.keys(ids)).toEqual([
     "v1",
@@ -65,5 +65,6 @@ it("compiles every selected writer discriminator through schema 14", () => {
     "v12",
     "v13",
     "v14",
+    "v15",
   ]);
 });

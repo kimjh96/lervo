@@ -88,9 +88,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:a82c6f133ca5aad28340f7fbbe13cb636161c3e0e05c97ee1dcceb98ec21393f",
+      "contentHash": "sha256:ff2203306137665997fdb3ed3a39ed7692102469133c702f2e951a142c9e691a",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, hosted-session, and terminal base-delivery payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
+      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, hosted-session, terminal base-delivery, and room payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
     },
     {
@@ -151,9 +151,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:52bbd3306d52567d5142efcb0fe20a5898364d31d305f185186f9f3623c08f66",
+      "contentHash": "sha256:2990b50e8a725dbdc3a9474dfa95d49610e8ac5fad35394670216aa43b74b160",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, and tool ownership remain separate modules. The public compiler now delegates complete-coverage admission to the pure shared guard before provider calls; configured preparation and apply use the complete scanner. ADR-0604 only reclassifies a lifecycle mismatch at the same snapshot as a stale candidate; no independent scan or persistence policy is added.",
+      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, tool ownership, and protected Markdown fragments are separate modules. The compiler delegates complete-coverage admission to the shared guard before provider calls; preparation and apply use the complete scanner. ADR-0604 only reclassifies a lifecycle mismatch at the same snapshot as a stale candidate; no independent scan or persistence policy is added.",
       "disposition": "cohesive"
     },
     {
@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/schemas/src/event.ts",
-      "contentHash": "sha256:82e7bb7520418d4bf389e42cf4d4ef99a449f377c99b1b127a653ad46faec5bc",
+      "contentHash": "sha256:51e1b6a5313697ce059be8377f616d5ecb4f403cea5b4a74adc14a243683303f",
       "responsibility": "Versioned event envelope schema and types",
       "rationale": "The module defines the event envelope schema once and the cumulative event type list of every schema version, with one discriminated branch and one envelope type per version. Each new version adds one list, one branch, and one type. Cross-version invariants, such as the schema-11 resource usage boundary, are defined in their payload modules and only listed here. Validation, redaction, persistence, and reader capabilities stay outside it.",
       "disposition": "cohesive"
@@ -256,14 +256,14 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:9bbd81ab83e39dcd856ef429c134921635dc4857668516e68cd42746ce474400",
+      "contentHash": "sha256:23c6ac35cdc7706e9898d3256e3735d31119a58e3421c79ae290b42c562d8f5f",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, practice, plan-ledger, hosted-session, and terminal base-delivery payloads are catalog entries with the same mapping lifecycle; native-skill, practice, plan-ledger, hosted-session, and terminal base-delivery schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
+      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Feature payloads, such as provider admission, context-selected, native-skill, practice, plan-ledger, hosted-session, terminal base-delivery, and room payloads, are catalog entries with the same mapping lifecycle; feature schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/schemas/src/terminal-observation-event.ts",
-      "contentHash": "sha256:efb9bed4ef2283445cdf79a6514dc8409cf9a19dcaa2a30eb9faee6f0db4034e",
+      "contentHash": "sha256:7707b0870e0b381883f7fa025c4beba843f7e6703c3c15df0de3ac929d20e9e9",
       "responsibility": "Declarative terminal observation event schemas",
       "rationale": "The module declares one terminal evidence lifecycle. Pointer fields, identities, reference kinds, and paired counts are additive. Equivalent nullable scalar schemas keep compiled validation within the measured hook bundle budget. Detection, persistence, privacy enforcement, and reporting remain separate.",
       "disposition": "cohesive"

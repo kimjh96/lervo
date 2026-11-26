@@ -34,7 +34,41 @@ export async function showProjectAgents(
     loaded: true,
     failure: null,
     arrived,
+    models: listed.models ?? [],
   });
+}
+
+/** Renames an agent in place, then lists the project's agents again; rejects with the failure. */
+export async function renameAgent(
+  commands: ApplicationCommands,
+  projectId: string,
+  agent: { agentId: string; revision: number },
+  name: string,
+): Promise<void> {
+  await commands.run("agent.rename", {
+    projectId,
+    agentId: agent.agentId,
+    revision: agent.revision,
+    name,
+  });
+  await showProjectAgents(commands, projectId);
+}
+
+/** Sets the model and effort an agent's next sessions run with (ADR-0647); rejects on failure. */
+export async function setAgentModel(
+  commands: ApplicationCommands,
+  projectId: string,
+  agent: { agentId: string; revision: number },
+  model: { tier: string; effort: string },
+): Promise<void> {
+  await commands.run("agent.model", {
+    projectId,
+    agentId: agent.agentId,
+    revision: agent.revision,
+    tier: model.tier,
+    effort: model.effort,
+  });
+  await showProjectAgents(commands, projectId);
 }
 
 /** Hires an agent of the role for the owner, then lists the project's agents again. */
@@ -50,5 +84,21 @@ export async function hireAgent(
     useAgentStore.setState({ failure: failureCode(failure) });
     return;
   }
+  await showProjectAgents(commands, projectId);
+}
+
+/** Pauses an agent or lets it work again, then lists the project's agents again. */
+export async function setAgentStatus(
+  commands: ApplicationCommands,
+  projectId: string,
+  agent: { agentId: string; revision: number },
+  status: "active" | "suspended",
+): Promise<void> {
+  await commands.run("agent.status", {
+    projectId,
+    agentId: agent.agentId,
+    revision: agent.revision,
+    status,
+  });
   await showProjectAgents(commands, projectId);
 }

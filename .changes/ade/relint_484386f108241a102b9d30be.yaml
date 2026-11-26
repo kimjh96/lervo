@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_484386f108241a102b9d30be"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Choosing an agent opens its profile: rename it in place, pick the model and effort its sessions run with, and see the conversations it takes part in."

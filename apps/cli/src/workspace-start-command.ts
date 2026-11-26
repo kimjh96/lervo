@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 
 import { CommandFailure, writeCommandError } from "./command-error-output.js";
 import type { CliIo } from "./types.js";
+import { startAgentConversation } from "./workspace-agent-start.js";
 import {
   openWorkspace,
   parseConversationMode,
@@ -10,7 +11,7 @@ import {
 
 const MAX_INSTRUCTION_BYTES = 256 * 1024;
 
-export const workspaceStartUsage = `  lervo workspace start --repository <project-id> [--provider <provider>] [--mode native|cli] [--model <model>] --json < instruction
+export const workspaceStartUsage = `  lervo workspace start --repository <project-id> [--provider <provider>] [--mode native|cli] [--model <model>] [--title <title>] [--started-by <agent-id>] --json < instruction
   lervo workspace open --workspace <workspace-id> [--mode native|cli] --json`;
 
 async function runStart(args: string[], io: CliIo): Promise<number> {
@@ -22,6 +23,8 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
       provider: { type: "string" },
       mode: { type: "string" },
       model: { type: "string" },
+      title: { type: "string" },
+      "started-by": { type: "string" },
       json: { type: "boolean" },
     },
   });
@@ -32,13 +35,20 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
     if (io.stdin === undefined)
       throw new CommandFailure("launch_intent_invalid", "The instruction must arrive on stdin.");
     const mode = parseConversationMode(values.mode);
-    const result = await startWorkspaceFromInstruction({
+    const options = {
       instruction: await io.stdin(MAX_INSTRUCTION_BYTES),
       repository: values.repository,
       ...(mode === undefined ? {} : { mode }),
       ...(values.provider === undefined ? {} : { provider: values.provider }),
       ...(values.model === undefined ? {} : { model: values.model }),
-    });
+      ...(values.title === undefined ? {} : { title: values.title }),
+    };
+    const startedBy = values["started-by"];
+    // An agent's own conversation opens when its turn ends (Lervo ADE rooms, slice 2).
+    const result =
+      startedBy === undefined
+        ? await startWorkspaceFromInstruction(options)
+        : await startAgentConversation({ ...options, startedBy });
     io.stdout(
       json
         ? `${JSON.stringify(result, null, 2)}\n`

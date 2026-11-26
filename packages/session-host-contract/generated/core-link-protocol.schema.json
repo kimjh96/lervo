@@ -140,6 +140,9 @@
           "$ref": "#/$defs/DecoderOutputRequest"
         },
         {
+          "$ref": "#/$defs/DecoderAnswerRequest"
+        },
+        {
           "$ref": "#/$defs/DecoderCloseRequest"
         }
       ]
@@ -1048,6 +1051,45 @@
         "revision": {
           "type": "integer",
           "minimum": 1
+        },
+        "model": {
+          "title": "AgentModel",
+          "type": "object",
+          "required": [
+            "tier",
+            "effort",
+            "source"
+          ],
+          "properties": {
+            "tier": {
+              "enum": [
+                "frontier",
+                "strong",
+                "balanced",
+                "fast"
+              ]
+            },
+            "effort": {
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ]
+            },
+            "source": {
+              "enum": [
+                "role",
+                "owner"
+              ]
+            },
+            "displayName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
         }
       }
     },
@@ -1108,11 +1150,86 @@
           "items": {
             "$ref": "#/$defs/HireableRole"
           }
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "title": "AgentModelChoice",
+            "type": "object",
+            "required": [
+              "tier",
+              "displayName"
+            ],
+            "properties": {
+              "tier": {
+                "enum": [
+                  "frontier",
+                  "strong",
+                  "balanced",
+                  "fast"
+                ]
+              },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
+          }
         }
       }
     },
     "AgentHireResult": {
       "title": "AgentHireResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentModelResult": {
+      "title": "AgentModelResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentRenameResult": {
+      "title": "AgentRenameResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentStatusResult": {
+      "title": "AgentStatusResult",
       "type": "object",
       "required": [
         "projectId",
@@ -1177,6 +1294,9 @@
         },
         "resumed": {
           "type": "boolean"
+        },
+        "lead": {
+          "const": true
         }
       }
     },
@@ -1235,6 +1355,9 @@
             "projects.location",
             "agents.list",
             "agent.hire",
+            "agent.model",
+            "agent.rename",
+            "agent.status",
             "room.join",
             "room.route"
           ]
@@ -1476,6 +1599,45 @@
         "data": {
           "type": "string",
           "maxLength": 1398104
+        }
+      }
+    },
+    "DecoderAnswerRequest": {
+      "title": "DecoderAnswerRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "decoderId",
+        "requestId",
+        "answers"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "decoder.answer"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decoderId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "answers": {
+          "type": "object",
+          "maxProperties": 4,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
         }
       }
     },
@@ -1865,6 +2027,71 @@
         "text": {
           "type": "string",
           "maxLength": 262144
+        },
+        "choices": {
+          "title": "Choices",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requestId",
+            "questions"
+          ],
+          "properties": {
+            "requestId": {
+              "$ref": "#/$defs/Identifier"
+            },
+            "questions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "question",
+                  "header",
+                  "multiSelect",
+                  "options"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "maxLength": 1024
+                  },
+                  "header": {
+                    "type": "string",
+                    "maxLength": 1024
+                  },
+                  "multiSelect": {
+                    "type": "boolean"
+                  },
+                  "options": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "label",
+                        "description"
+                      ],
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "maxLength": 1024
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 1024
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

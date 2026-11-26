@@ -63,7 +63,7 @@ describe("a turn that ended without a Stop hook (schema 12)", () => {
   it("is readable from schema 12, while the Stop-hook shape stays readable everywhere", () => {
     const settled = { ...observed, completionResult: "not_checked", ending: "next_prompt" };
     const explicit = { ...observed, ending: "stop_hook" };
-    for (const schemaVersion of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) {
+    for (const schemaVersion of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
       expect(validateSchema("event", envelope(schemaVersion, settled)).valid).toBe(
         schemaVersion >= 12,
       );

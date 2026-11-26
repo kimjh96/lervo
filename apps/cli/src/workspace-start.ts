@@ -1,6 +1,7 @@
 import { basename, resolve } from "node:path";
 
 import {
+  type HostedEffort,
   HostedLaunchError,
   type HostedConversationMode,
   type HostedLaunch,
@@ -104,10 +105,18 @@ export interface WorkspaceStartRequest {
   /** A short random suffix that keeps branch names unique. */
   readonly suffix: string;
   readonly model?: string;
+  /** Whether the session host answers the agents' questions with choices; native mode only. */
+  readonly questions?: true;
+  /** How much the model works before it answers, from the writing agent (ADR-0647). */
+  readonly effort?: HostedEffort;
   /** Lervo's hook handler, when the provider's adapter declares `hooks`. */
   readonly hooks?: HostedSessionHooks;
   /** The agents the conversation starts with; the first one's session writes. */
   readonly participants?: WorkspaceParticipants;
+  /** The conversation's title, instead of the instruction's first line. */
+  readonly title?: string;
+  /** The team agent that started the conversation and leads it. */
+  readonly startedBy?: string;
 }
 
 export interface WorkspaceStartResult {
@@ -204,7 +213,7 @@ export async function startWorkspace(
   request: WorkspaceStartRequest,
   ports: WorkspaceStartPorts,
 ): Promise<WorkspaceStartResult> {
-  const title = titleFor(request.instruction);
+  const title = titleFor(request.title ?? request.instruction);
   const branch = branchFor(title, request.suffix);
   const workspacePath = workspacePathFor(request.repositoryRoot, branch);
   const intent = {
@@ -213,7 +222,9 @@ export async function startWorkspace(
     workingDirectory: workspacePath,
     start: { kind: "new" as const, instruction: request.instruction },
     ...(request.model === undefined ? {} : { model: request.model }),
+    ...(request.effort === undefined ? {} : { effort: request.effort }),
     ...(request.hooks === undefined ? {} : { hooks: request.hooks }),
+    ...(request.questions === true && request.mode === "native" ? { questions: true } : {}),
   };
   // Refuse an intent the provider cannot run before anything changes.
   try {
@@ -288,12 +299,14 @@ export async function startWorkspace(
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
       ...(written === undefined ? {} : { terminalHooks: written }),
+      ...(request.questions === true ? { questions: true as const } : {}),
       ...(request.participants === undefined
         ? {}
         : {
             agentId: request.participants.agentId,
             participants: [...request.participants.participants],
           }),
+      ...(request.startedBy === undefined ? {} : { startedBy: request.startedBy }),
       ...(base === undefined
         ? {}
         : {

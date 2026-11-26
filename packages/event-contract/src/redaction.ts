@@ -6,6 +6,7 @@ import {
   terminalBaseDeliveryPayloadAllowlists,
   terminalBaseDeliveryPayloadSchemas,
 } from "./terminal-base-delivery-payload.js";
+import { roomPayloadAllowlists, roomPayloadSchemas } from "./room-payload.js";
 import { planLedgerPayloadAllowlists, planLedgerPayloadSchemas } from "./plan-ledger-payload.js";
 import { practicePayloadAllowlists, practicePayloadSchemas } from "./practice-payload.js";
 import {
@@ -69,6 +70,7 @@ export const eventPayloadAllowlists = {
   ...planLedgerPayloadAllowlists,
   ...hostedSessionPayloadAllowlists,
   ...terminalBaseDeliveryPayloadAllowlists,
+  ...roomPayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -332,10 +334,16 @@ export const eventPayloadAllowlists = {
     "parentAgentId",
     "delegationDepth",
     "origin",
+    "modelTier",
+    "effort",
   ],
   "agent.identity.changed": [
     "changeKind",
     "agentId",
+    "previousModelTier",
+    "previousEffort",
+    "modelTier",
+    "effort",
     "previousDisplayName",
     "displayName",
     "displayNameSource",
@@ -1074,6 +1082,7 @@ export const eventPayloadAllowlists = {
     "assignmentId",
     "leaseGeneration",
     "writerSessionId",
+    "appliedInstructions",
   ],
   "terminal.turn.declared": [
     "declarationId",
@@ -1559,6 +1568,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   ...planLedgerPayloadSchemas,
   ...hostedSessionPayloadSchemas,
   ...terminalBaseDeliveryPayloadSchemas,
+  ...roomPayloadSchemas,
   "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
   "work.causality.recorded": "workCausalityRecordedEventPayload",
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",

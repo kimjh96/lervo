@@ -3,6 +3,10 @@ import type { HostedDecodedContent, HostedDecodedEvent } from "@lervo/adapter-co
 
 import { readEnvelope } from "./room-envelope.js";
 import { RoomRouter, type RoomContext, type RoomDelivery } from "./room-router.js";
+import type { PendingStart } from "./room-starts.js";
+
+/** Opened conversations remembered so a start opens once; far more than starts can wait. */
+const OPENED_KEPT = 64;
 
 /**
  * Routes the decoders the session host opened with `deliveries` (Lervo ADE rooms, "The core link
@@ -13,10 +17,15 @@ export class RoomLink {
   private readonly router = new RoomRouter();
   private readonly delivering = new Set<string>();
   private readonly sessions = new Map<string, string>();
+  /** Each agent's pending starts, as last read: the file is read off the decoder's path. */
+  private readonly starts = new Map<string, readonly PendingStart[]>();
+  /** Conversations whose opening delivery went out, so a start opens once. */
+  private readonly startsOpened = new Set<string>();
 
   constructor(
     private readonly load: ((sessionId: string) => Promise<RoomContext | null>) | undefined,
     private readonly track: (task: Promise<void>) => void,
+    private readonly loadStarts?: (agentId: string) => Promise<readonly PendingStart[]>,
   ) {}
 
   /** A decoder the session host opened or named; it routes when the host performs deliveries. */
@@ -46,9 +55,23 @@ export class RoomLink {
     this.track(
       load(sessionId).then(
         (context) => {
-          if (context !== null && this.sessions.has(sessionId))
+          if (context !== null && this.sessions.has(sessionId)) {
             this.router.know(sessionId, context);
+            this.refreshStarts(context.agentId);
+          }
         },
+        () => undefined,
+      ),
+    );
+  }
+
+  /** Rereads an agent's pending starts; a failed read keeps the last one. */
+  private refreshStarts(agentId: string): void {
+    const loadStarts = this.loadStarts;
+    if (loadStarts === undefined) return;
+    this.track(
+      loadStarts(agentId).then(
+        (starts) => void this.starts.set(agentId, starts),
         () => undefined,
       ),
     );
@@ -70,7 +93,31 @@ export class RoomLink {
     events: readonly HostedDecodedEvent[],
   ): { events: readonly HostedDecodedEvent[]; deliveries?: RoomDelivery[] } {
     if (sessionId === undefined || !this.delivering.has(decoderId)) return { events };
-    return this.router.observe(sessionId, events);
+    const routed = this.router.observe(sessionId, events);
+    const agentId = this.router.agentOf(sessionId);
+    if (agentId === null) return routed;
+    // A start is recorded by a command the agent runs, so its tool line is the cue to reread.
+    if (events.some((event) => event.kind === "item" && event.content.kind === "tool_activity"))
+      this.refreshStarts(agentId);
+    const ended = events.some(
+      (event) => event.kind === "status" && event.event === "turn_finished",
+    );
+    const waiting = (this.starts.get(agentId) ?? []).filter(
+      (start) => !this.startsOpened.has(start.workspaceId),
+    );
+    if (!ended || waiting.length === 0) return routed;
+    for (const start of waiting) this.startsOpened.add(start.workspaceId);
+    if (this.startsOpened.size > OPENED_KEPT)
+      for (const workspaceId of [...this.startsOpened].slice(
+        0,
+        this.startsOpened.size - OPENED_KEPT,
+      ))
+        this.startsOpened.delete(workspaceId);
+    const started = this.router.starts(sessionId, waiting);
+    return {
+      events: [...routed.events, ...started.events],
+      deliveries: [...routed.deliveries, ...started.deliveries],
+    };
   }
 }
 
