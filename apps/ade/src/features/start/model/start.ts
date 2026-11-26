@@ -7,6 +7,7 @@ import {
 import { remember, sentImages, withAttachedFiles } from "../../conversation";
 import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces";
 import { useStartStore } from "./store";
+import { HIRE_PRODUCT_OWNER, PRODUCT_OWNER_ROLE, showProjectAgents } from "../../agents";
 
 /**
  * What the start screen collects. The conversation mode is not chosen here: the core uses the
@@ -30,6 +31,25 @@ export function canStart(draft: StartDraft, attached = false): boolean {
 }
 
 let starts = 0;
+
+/**
+ * The participants with the proposed Product Owner hired in its place (ADR-0646); it then appears
+ * in the sidebar. A hire that fails drops it and starts the work with the others, or without an
+ * agent, rather than holding it.
+ */
+async function withHiredOwner(
+  commands: ApplicationCommands,
+  projectId: string,
+  chosen: readonly string[],
+): Promise<string[]> {
+  const hired = await commands
+    .run("agent.hire", { projectId, role: PRODUCT_OWNER_ROLE })
+    .catch(() => null);
+  if (hired !== null) void showProjectAgents(commands, projectId).catch(() => undefined);
+  return chosen.flatMap((id) =>
+    id !== HIRE_PRODUCT_OWNER ? [id] : hired === null ? [] : [hired.agent.agentId],
+  );
+}
 
 /**
  * Starts work: Lervo creates the worktree, branch, and workstream, and the session host launches
@@ -78,14 +98,17 @@ export async function startWork(
     returnedFiles: [],
   });
   try {
+    // Only a hire waits; work with chosen agents asks the core at once.
+    const chosen = draft.participants ?? [];
+    const participants = chosen.includes(HIRE_PRODUCT_OWNER)
+      ? await withHiredOwner(commands, draft.repository, chosen)
+      : chosen;
     // The session host takes the images out and sends them with the first message.
     const result = await commands.run("workspace.start", {
       instruction,
       repository: draft.repository,
       ...(draft.provider === "" ? {} : { provider: draft.provider }),
-      ...(draft.participants === undefined || draft.participants.length === 0
-        ? {}
-        : { participants: draft.participants }),
+      ...(participants.length === 0 ? {} : { participants }),
       ...(images.length === 0 ? {} : { images: sentImages(images) }),
     });
     const { workspaceId } = result;

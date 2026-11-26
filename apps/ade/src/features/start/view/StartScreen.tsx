@@ -13,6 +13,7 @@ import { ViewPresence } from "../../../ui/ViewPresence";
 import {
   defaultParticipants,
   ParticipantsChip,
+  proposesProductOwner,
   takesParticipants,
   teamAgents,
   useAgentStore,
@@ -117,8 +118,13 @@ function StartForm() {
   const team = teamAgents(useAgentStore((store) => store.agents));
   const shownProject = useAgentStore((store) => store.projectId);
   const takes = useWorkspaceStore((store) => takesParticipants(store.advertisedCommands));
-  const offeredTeam = takes && shownProject === repository ? team : [];
-  const participants = draft.participants ?? defaultParticipants(offeredTeam);
+  // The chip shows once the project's agents are loaded, so it never flashes a proposal before
+  // the team appears. A team without a Product Owner is offered one that Lervo hires (ADR-0646).
+  const agentsKnown = useAgentStore((store) => store.loaded);
+  const offers = takes && shownProject === repository && agentsKnown;
+  const offeredTeam = offers ? team : [];
+  const proposesOwner = offers && proposesProductOwner(team);
+  const participants = offers ? (draft.participants ?? defaultParticipants(offeredTeam)) : [];
   const tray = attachments.tray(intl);
 
   // The input takes focus when the screen opens and on each "New work".
@@ -132,7 +138,7 @@ function StartForm() {
       ...draft,
       repository,
       provider: provider?.provider ?? "",
-      participants: offeredTeam.length === 0 ? [] : participants,
+      participants,
     };
     const taken = attachments.take();
     void startWork(commands, chosen, name, taken.images, taken.files);
@@ -178,10 +184,11 @@ function StartForm() {
           />
           <div className={styles.bar}>
             <Presence as="span">
-              {offeredTeam.length === 0 ? null : (
+              {!offers ? null : (
                 <ParticipantsChip
                   team={offeredTeam}
                   chosen={participants}
+                  proposesProductOwner={proposesOwner}
                   onChange={(next) => setDraft({ ...draft, participants: next })}
                 />
               )}

@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-26
-Amended by: [ADR-0644](0644-keep-agent-coordination-in-conversations.md) (no team room; a mention stays in the conversation where it was made)
+Amended by: [ADR-0644](0644-keep-agent-coordination-in-conversations.md) (no team room; a mention stays in the conversation where it was made), [ADR-0646](0646-lead-conversations-with-a-product-owner.md) (a product owner leads by default, hired when the team has none)
 Part of: [ADR-0637](../../../execution/applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md)
 Related: [ADR-0386](../0386-organization-teams-and-agent-identities.md), [ADR-0454](0454-open-multi-responder-rooms-and-natural-staffing.md), [ADR-0632](../../../execution/applications/0632-build-the-ade-as-the-platform-where-the-core-works.md)
 

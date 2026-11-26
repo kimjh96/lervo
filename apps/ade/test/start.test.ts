@@ -121,3 +121,30 @@ describe("starting work", () => {
     expect(useWorkspaceStore.getState().selected).toBeNull();
   });
 });
+
+describe("starting work in a team without a Product Owner", () => {
+  it("hires the proposed Product Owner first and starts the conversation with it", async () => {
+    const asked: [string, Record<string, unknown> | undefined][] = [];
+    const fake = {
+      run(command: string, arguments_?: Record<string, unknown>) {
+        asked.push([command, arguments_]);
+        if (command === "agent.hire")
+          return Promise.resolve({ projectId: "prj_1", agent: { agentId: "agt_po" } });
+        if (command === "workspace.start") return Promise.resolve({ workspaceId: "wks_1" });
+        if (command === "agents.list")
+          return Promise.resolve({ projectId: "prj_1", agents: [], roles: [] });
+        if (command === "workspace.list") return Promise.resolve({ workspaces: [] });
+        return Promise.resolve({ repositories: [] });
+      },
+    } as unknown as ApplicationCommands;
+    await startWork(fake, { ...draft, participants: ["hire:product-owner", "agt_dev"] }, "web");
+    expect(asked.find(([command]) => command === "agent.hire")?.[1]).toEqual({
+      projectId: "prj_1",
+      role: "product-owner",
+    });
+    // The hired Product Owner takes the proposal's place and leads.
+    expect(asked.find(([command]) => command === "workspace.start")?.[1]).toMatchObject({
+      participants: ["agt_po", "agt_dev"],
+    });
+  });
+});
