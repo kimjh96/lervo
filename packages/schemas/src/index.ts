@@ -3,6 +3,7 @@ export * from "./plan-ledger-event.js";
 export * from "./hosted-session-event.js";
 export * from "./terminal-base-delivery-event.js";
 export * from "./room-event.js";
+export * from "./coordination-event.js";
 export * from "./assignment-amendment-event.js";
 export * from "./adapter.js";
 export * from "./adapter-process-observation.js";

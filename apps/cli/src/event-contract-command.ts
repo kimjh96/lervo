@@ -29,7 +29,7 @@ export interface EventContractCommandPorts {
 
 export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
   lervo event-contract evidence [--root <path>] [--json]
-  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2-15>] [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2-16>] [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract recover [--root <path>] [--json]`;
 

@@ -88,9 +88,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:ff2203306137665997fdb3ed3a39ed7692102469133c702f2e951a142c9e691a",
+      "contentHash": "sha256:3f94e4f59edb43687f783763e299fb0348e156d6fcb596808ce7d766d8bc8a09",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, hosted-session, terminal base-delivery, and room payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
+      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, hosted-session, terminal base-delivery, room, and coordination payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
     },
     {
@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/schemas/src/event.ts",
-      "contentHash": "sha256:51e1b6a5313697ce059be8377f616d5ecb4f403cea5b4a74adc14a243683303f",
+      "contentHash": "sha256:8075ae6048fdcb7ecdc645c97a3be872c1a46f0046ab00f832f91ee6c681e900",
       "responsibility": "Versioned event envelope schema and types",
       "rationale": "The module defines the event envelope schema once and the cumulative event type list of every schema version, with one discriminated branch and one envelope type per version. Each new version adds one list, one branch, and one type. Cross-version invariants, such as the schema-11 resource usage boundary, are defined in their payload modules and only listed here. Validation, redaction, persistence, and reader capabilities stay outside it.",
       "disposition": "cohesive"
@@ -256,9 +256,9 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:23c6ac35cdc7706e9898d3256e3735d31119a58e3421c79ae290b42c562d8f5f",
+      "contentHash": "sha256:fcd515f2c89e9f26f60ef6322c676120420e3c95963be6f95789359b7d13dd7c",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Feature payloads, such as provider admission, context-selected, native-skill, practice, plan-ledger, hosted-session, terminal base-delivery, and room payloads, are catalog entries with the same mapping lifecycle; feature schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
+      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Feature payloads, such as provider admission, context-selected, native-skill, practice, plan-ledger, hosted-session, terminal base-delivery, room, and coordination payloads, are catalog entries with the same mapping lifecycle; feature schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"
     },
     {
