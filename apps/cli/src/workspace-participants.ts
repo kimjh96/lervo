@@ -1,5 +1,4 @@
 import { listAgents } from "@lervo/agent-workforce";
-import type { HostedLaunch } from "@lervo/adapter-contract";
 import { lervoAgentIds, loadConvergenceDelegation } from "@lervo/repository-knowledge-runtime";
 
 import { CommandFailure } from "./command-error-output.js";
@@ -79,13 +78,4 @@ export async function teamAgents(repositoryRoot: string): Promise<TeamAgent[]> {
       displayName: agent.displayName,
       roleName: names.get(agent.roleId) ?? agent.roleId,
     }));
-}
-
-/**
- * The launch with the writing agent named in its provider process's environment, so the session's
- * hooks and turn evidence attribute its work (Lervo ADE agents, "Participants and sessions").
- */
-export function withAgentEnvironment(launch: HostedLaunch, agentId: string | undefined) {
-  if (agentId === undefined) return launch;
-  return { ...launch, environment: { ...launch.environment, LERVO_AGENT_ID: agentId } };
 }

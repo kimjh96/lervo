@@ -20,7 +20,8 @@ import { hostedTerminalHooks, writtenTerminalHooks } from "./hosted-terminal-hoo
 import { mentionedAgents } from "./room-mentions.js";
 import { dropPendingStart, pendingStart, pendingStartsPath } from "./room-starts.js";
 import { locateWorkspaceSession, recordEvents, recordLaunch } from "./workspace-launch-service.js";
-import { teamAgents, withAgentEnvironment } from "./workspace-participants.js";
+import { teamAgents } from "./workspace-participants.js";
+import { withSessionEnvironment } from "./hosted-session-environment.js";
 import { agentLaunchModel } from "./agent-launch-model.js";
 
 const AGENT_ID = /^agt_[a-f0-9]{24}$/u;
@@ -104,7 +105,7 @@ export async function joinWorkspaceRoom(
       ? sessionHooks
       : { ...sessionHooks, terminal };
   const chosen = await agentLaunchModel(repositoryRoot, agentId, adapter);
-  const launch = withAgentEnvironment(
+  const launch = withSessionEnvironment(
     adapter.prepareLaunch({
       sessionId,
       mode: "native",

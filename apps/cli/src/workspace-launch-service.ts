@@ -44,7 +44,8 @@ import { runGit } from "./workspace-base-git.js";
 import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
 import { agentLaunchModel } from "./agent-launch-model.js";
-import { resolveParticipants, withAgentEnvironment } from "./workspace-participants.js";
+import { resolveParticipants } from "./workspace-participants.js";
+import { withSessionEnvironment } from "./hosted-session-environment.js";
 import {
   defaultBranchCommit,
   gitWorkspaceEffects,
@@ -237,7 +238,7 @@ export async function openWorkspace(
   // The reopened session is the same agent's (Lervo ADE agents, "Participants and sessions"), on
   // the model and effort the agent has now.
   const chosen = await agentLaunchModel(repositoryRoot, previous.agentId, adapter);
-  const launch = withAgentEnvironment(
+  const launch = withSessionEnvironment(
     adapter.prepareLaunch({
       sessionId,
       mode,

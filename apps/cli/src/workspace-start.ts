@@ -22,7 +22,8 @@ import { settingsFileDigest } from "./hosted-session-settings.js";
 import { type HostedTerminalHookPlan, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
 import { workspacesHome } from "./workspaces-home.js";
-import { type WorkspaceParticipants, withAgentEnvironment } from "./workspace-participants.js";
+import { type WorkspaceParticipants } from "./workspace-participants.js";
+import { withSessionEnvironment } from "./hosted-session-environment.js";
 
 const OBJECTIVE_CHARACTERS = 8192;
 const SLUG_CHARACTERS = 40;
@@ -275,7 +276,7 @@ export async function startWorkspace(
       intent.hooks === undefined || ports.terminalHooks === undefined
         ? undefined
         : await ports.terminalHooks(placement.workspacePath);
-    const launch = withAgentEnvironment(
+    const launch = withSessionEnvironment(
       ports.adapter.prepareLaunch(
         terminal === undefined || intent.hooks === undefined
           ? intent
