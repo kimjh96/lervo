@@ -1,0 +1,59 @@
+/* A mark: an image, or a first letter on one of the mark colors, in a rounded square or a circle. */
+.mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  color: var(--color-on-mark);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  user-select: none;
+}
+
+.mark[data-size="sm"] {
+  width: var(--size-mark-sm);
+  height: var(--size-mark-sm);
+  font-size: var(--type-caption-size);
+  border-radius: var(--radius-mark-sm);
+}
+
+.mark[data-size="md"] {
+  width: var(--size-mark-md);
+  height: var(--size-mark-md);
+  font-size: var(--type-meta-size);
+  border-radius: var(--radius-mark-md);
+}
+
+.mark[data-shape="round"] {
+  border-radius: var(--radius-full);
+}
+
+.mark[data-color="1"] {
+  background: var(--color-mark-1);
+}
+
+.mark[data-color="2"] {
+  background: var(--color-mark-2);
+}
+
+.mark[data-color="3"] {
+  background: var(--color-mark-3);
+}
+
+.mark[data-color="4"] {
+  background: var(--color-mark-4);
+}
+
+.mark[data-color="5"] {
+  background: var(--color-mark-5);
+}
+
+.mark[data-color="6"] {
+  background: var(--color-mark-6);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

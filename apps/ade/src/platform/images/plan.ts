@@ -42,3 +42,28 @@ export function* encodings(width: number, height: number): Generator<Encoding> {
     side = Math.max(MIN_IMAGE_SIDE, Math.round(side * SHRINK));
   }
 }
+
+/** The longest side of a project mark the ADE sends; the core accepts up to 1,024. */
+export const MARK_SIDE = 512;
+/** The shortest side the core accepts for a mark; a smaller image is scaled up to it. */
+export const MIN_MARK_SIDE = 16;
+/** The most bytes the core accepts for a mark. */
+export const MAX_MARK_BYTES = 512 * 1024;
+
+/**
+ * The center square of an image and the side it is drawn at: its shorter side, kept within the
+ * bounds of a mark.
+ */
+export function markSquare(
+  width: number,
+  height: number,
+  bounds: { min: number; max: number } = { min: MIN_MARK_SIDE, max: MARK_SIDE },
+): { x: number; y: number; side: number; drawn: number } {
+  const side = Math.min(width, height);
+  return {
+    x: Math.floor((width - side) / 2),
+    y: Math.floor((height - side) / 2),
+    side,
+    drawn: Math.min(bounds.max, Math.max(bounds.min, side)),
+  };
+}

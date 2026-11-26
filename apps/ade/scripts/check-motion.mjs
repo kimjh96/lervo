@@ -1,7 +1,7 @@
 // The stylesheet check for the ADE motion principles: durations and easings come from the motion
-// tokens, only opacity, transform, and control colors move, and keyframes animate only opacity,
-// transform, the working line's background position, and the image viewer's backdrop blur (ADE
-// motion, "Verification").
+// tokens, only opacity, transform, and control colors move, keyframes animate only opacity,
+// transform, the working line's background position, and backdrop blurs, and no element with a
+// backdrop blur fades in (ADE motion, "Verification"; ADE craft rules, 19).
 import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 
@@ -30,6 +30,38 @@ function fadeViolations(property, value, file) {
   if (LEAVINGS.test(value) && (!value.includes("--motion-duration-leave") || !easing))
     return [`${file}: a leaving runs over something other than leave on the fade easing`];
   return [];
+}
+
+/** Fades that start from nothing: the shared arrivals, and keyframes whose start sets opacity. */
+const SHARED_FADE_INS = new Set(["lervo-appear", "lervo-arrive"]);
+
+function fadeInKeyframes(source) {
+  const names = new Set(SHARED_FADE_INS);
+  for (const match of source.matchAll(
+    /@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/gu,
+  )) {
+    const [, name, body] = match;
+    if (/(?:from|0%)\s*\{[^}]*\bopacity\s*:/u.test(body)) names.add(name);
+  }
+  return names;
+}
+
+/**
+ * An element with a backdrop blur never fades in (ADE craft rules, 14): WebKit draws no backdrop
+ * blur on an element whose opacity animates, so its glass would show unblurred and then snap. It
+ * keeps its glass from the first frame and fades its content instead.
+ */
+function blurFadeViolations(source, file) {
+  const fadeIns = fadeInKeyframes(source);
+  const violations = [];
+  for (const [, selector, body] of source.matchAll(/([^{}@;]+)\{([^{}]*)\}/gu)) {
+    if (!/backdrop-filter\s*:\s*(?!none)/u.test(body)) continue;
+    const animation = /animation(?:-name)?\s*:\s*([^;]+)/u.exec(body);
+    const names = animation?.[1].match(/[\w-]+/gu) ?? [];
+    if (names.some((name) => fadeIns.has(name)))
+      violations.push(`${file}: ${selector.trim()} fades in an element with a backdrop blur`);
+  }
+  return violations;
 }
 
 /** The violations in one stylesheet's text. */
@@ -63,6 +95,7 @@ export function motionViolations(css, file) {
         violations.push(`${file}: @keyframes ${name} animates ${declaration[1]}`);
     }
   }
+  violations.push(...blurFadeViolations(source, file));
   return violations;
 }
 

@@ -60,4 +60,19 @@ describe("the motion check", () => {
     expect(named.length).toBeGreaterThan(0);
     expect(named.filter((name) => !patterns.has(name))).toEqual([]);
   });
+
+  it("rejects fading in an element with a backdrop blur, and allows fading its content", () => {
+    const css = `
+      .panel { backdrop-filter: blur(var(--glass-overlay-blur)); animation: panel-open var(--motion-duration-change) var(--motion-easing-standard); }
+      @keyframes panel-open { from { opacity: 0; transform: scale(0.98); } }
+      .sheet { backdrop-filter: blur(var(--glass-overlay-blur)); animation: sheet-rise var(--motion-duration-change) var(--motion-easing-standard); }
+      @keyframes sheet-rise { from { transform: scale(0.98); } }
+      .content { animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade); }
+      .pill { backdrop-filter: blur(var(--glass-overlay-blur)); animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade); }
+    `;
+    expect(motionViolations(css, "x.css")).toEqual([
+      "x.css: .panel fades in an element with a backdrop blur",
+      "x.css: .pill fades in an element with a backdrop blur",
+    ]);
+  });
 });

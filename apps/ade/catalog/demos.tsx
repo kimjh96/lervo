@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "../src/ui/Button";
+import { PopoverMenu } from "../src/ui/PopoverMenu";
 import { IconButton } from "../src/ui/IconButton";
 import { ArrowUpIcon } from "../src/ui/icons";
 import { AttachmentTray } from "../src/ui/AttachmentTray";
@@ -209,6 +210,33 @@ export function ImageViewerDemo() {
           }}
           onIndex={setIndex}
           onClose={() => setIndex(null)}
+        />
+      )}
+    </span>
+  );
+}
+
+/** "Add Project" with its menu, which opens below the button at the button's width. */
+export function PopoverMenuDemo() {
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  return (
+    <span>
+      <Button
+        variant="outlined"
+        onClick={() => setAnchor(document.activeElement?.getBoundingClientRect() ?? null)}
+      >
+        Add Project
+      </Button>
+      {anchor === null ? null : (
+        <PopoverMenu
+          anchor={anchor}
+          label="Add Project"
+          items={[
+            { text: "Open Folder", shortcut: "⌘O", run: () => undefined },
+            { text: "Clone Repository", run: () => undefined },
+            { text: "New Project", run: () => undefined },
+          ]}
+          onClose={() => setAnchor(null)}
         />
       )}
     </span>

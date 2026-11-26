@@ -36,6 +36,13 @@
   outline-offset: var(--focus-ring-inset);
 }
 
+.leading {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--size-row-leading);
+}
+
 .label {
   flex: 1;
   min-width: 0;

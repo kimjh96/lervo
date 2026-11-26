@@ -1,0 +1,94 @@
+/* A menu the interface draws, as glass: the floating tint over the blurred window, with the window
+   edge's light and the window's shadow, hung directly below the control that opened it and as wide
+   as it. It opens as ADE motion's overlays do. WebKit draws no backdrop blur on an element whose
+   opacity animates, so the menu keeps its glass from the first frame, rises from 0.98, and its
+   items fade. */
+.menu {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  box-sizing: border-box;
+  min-width: var(--layout-menu-width);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-window);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-floating);
+  box-shadow: var(--shadow-window);
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
+  outline: none;
+  transform-origin: top center;
+  animation: menu-rise var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.menu[data-closing] {
+  pointer-events: none;
+  animation: menu-sink var(--motion-duration-exit) var(--motion-easing-exit) forwards;
+}
+
+.item {
+  display: flex;
+  gap: var(--space-16);
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--space-6);
+  padding-inline: var(--space-10);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--type-list-size);
+  line-height: var(--type-list-line-height);
+  text-align: start;
+  background: transparent;
+  cursor: default;
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.menu[data-closing] .item {
+  animation: menu-fade var(--motion-duration-exit) var(--motion-easing-exit) forwards;
+}
+
+.item[data-active] {
+  background: var(--color-surface-selected);
+}
+
+.shortcut {
+  color: var(--color-text-tertiary);
+}
+
+@keyframes menu-rise {
+  from {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes menu-sink {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes menu-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .menu {
+    background: var(--color-surface-opaque);
+    backdrop-filter: none;
+  }
+}
+
+/* Under reduced motion the menu opens and closes at once; script unmounts it without waiting. */
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .menu[data-closing],
+  .item,
+  .menu[data-closing] .item {
+    animation: none;
+  }
+}

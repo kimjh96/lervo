@@ -27,6 +27,8 @@ fn main() -> ExitCode {
     let result = tauri::Builder::default()
         // The plugin shows notifications where the shell has no native path (`notifications`).
         .plugin(tauri_plugin_notification::init())
+        // The system's open panel picks a project folder or a mark image (Lervo ADE projects).
+        .plugin(tauri_plugin_dialog::init())
         .plugin(material::plugin())
         .plugin(measure::plugin(measurement.as_ref()))
         .manage(relay)

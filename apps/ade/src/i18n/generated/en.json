@@ -2239,6 +2239,212 @@
       "value": "Needs you"
     }
   ],
+  "projects.add": [
+    {
+      "type": 0,
+      "value": "Add Project"
+    }
+  ],
+  "projects.add.title": [
+    {
+      "type": 0,
+      "value": "Choose a project folder"
+    }
+  ],
+  "projects.current": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": ", switch project"
+    }
+  ],
+  "projects.failed": [
+    {
+      "type": 0,
+      "value": "The project could not change ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "projects.label": [
+    {
+      "type": 0,
+      "value": "Projects"
+    }
+  ],
+  "projects.logo.title": [
+    {
+      "type": 0,
+      "value": "Choose a logo"
+    }
+  ],
+  "projects.menu.clone": [
+    {
+      "type": 0,
+      "value": "Clone Repository"
+    }
+  ],
+  "projects.menu.logo": [
+    {
+      "type": 0,
+      "value": "Change logo"
+    }
+  ],
+  "projects.menu.logo.clear": [
+    {
+      "type": 0,
+      "value": "Remove logo"
+    }
+  ],
+  "projects.menu.new": [
+    {
+      "type": 0,
+      "value": "New Project"
+    }
+  ],
+  "projects.menu.openFolder": [
+    {
+      "type": 0,
+      "value": "Open Folder"
+    }
+  ],
+  "projects.menu.remove": [
+    {
+      "type": 0,
+      "value": "Remove from Lervo"
+    }
+  ],
+  "projects.menu.remove.note": [
+    {
+      "type": 0,
+      "value": "Files stay where they are."
+    }
+  ],
+  "projects.menu.rename": [
+    {
+      "type": 0,
+      "value": "Rename"
+    }
+  ],
+  "projects.menu.reveal": [
+    {
+      "type": 0,
+      "value": "Show in Finder"
+    }
+  ],
+  "projects.needsYou": [
+    {
+      "type": 0,
+      "value": "Another project needs you"
+    }
+  ],
+  "projects.rename.label": [
+    {
+      "type": 0,
+      "value": "Project name"
+    }
+  ],
+  "projects.sheet.cancel": [
+    {
+      "type": 0,
+      "value": "Cancel"
+    }
+  ],
+  "projects.sheet.clone.adding": [
+    {
+      "type": 0,
+      "value": "Cloning"
+    }
+  ],
+  "projects.sheet.clone.field": [
+    {
+      "type": 0,
+      "value": "Repository URL"
+    }
+  ],
+  "projects.sheet.clone.submit": [
+    {
+      "type": 0,
+      "value": "Clone"
+    }
+  ],
+  "projects.sheet.clone.subtitle": [
+    {
+      "type": 0,
+      "value": "Lervo clones it and adds it as a project."
+    }
+  ],
+  "projects.sheet.clone.title": [
+    {
+      "type": 0,
+      "value": "Clone Repository"
+    }
+  ],
+  "projects.sheet.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not add the project ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "projects.sheet.location": [
+    {
+      "type": 0,
+      "value": "Location"
+    }
+  ],
+  "projects.sheet.location.title": [
+    {
+      "type": 0,
+      "value": "Choose where projects go"
+    }
+  ],
+  "projects.sheet.new.adding": [
+    {
+      "type": 0,
+      "value": "Creating"
+    }
+  ],
+  "projects.sheet.new.field": [
+    {
+      "type": 0,
+      "value": "Name"
+    }
+  ],
+  "projects.sheet.new.submit": [
+    {
+      "type": 0,
+      "value": "Create"
+    }
+  ],
+  "projects.sheet.new.subtitle": [
+    {
+      "type": 0,
+      "value": "Lervo creates the folder, initializes Git, and makes the first commit."
+    }
+  ],
+  "projects.sheet.new.title": [
+    {
+      "type": 0,
+      "value": "New Project"
+    }
+  ],
   "start.error.application_unavailable": [
     {
       "type": 0,
@@ -2312,6 +2518,86 @@
       "value": "."
     }
   ],
+  "start.firstRun.adding": [
+    {
+      "type": 0,
+      "value": "Adding the folder"
+    }
+  ],
+  "start.firstRun.clone.detail": [
+    {
+      "type": 0,
+      "value": "From GitHub or any Git link"
+    }
+  ],
+  "start.firstRun.clone.title": [
+    {
+      "type": 0,
+      "value": "Clone Repository"
+    }
+  ],
+  "start.firstRun.drop": [
+    {
+      "type": 0,
+      "value": "Drop the folder to add it as a project"
+    }
+  ],
+  "start.firstRun.dropHint": [
+    {
+      "type": 0,
+      "value": "or drop a folder here"
+    }
+  ],
+  "start.firstRun.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not add the project ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "start.firstRun.folder.detail": [
+    {
+      "type": 0,
+      "value": "A project already on this Mac"
+    }
+  ],
+  "start.firstRun.folder.title": [
+    {
+      "type": 0,
+      "value": "Open Folder"
+    }
+  ],
+  "start.firstRun.new.detail": [
+    {
+      "type": 0,
+      "value": "Start from an empty folder"
+    }
+  ],
+  "start.firstRun.new.title": [
+    {
+      "type": 0,
+      "value": "New Project"
+    }
+  ],
+  "start.firstRun.subtitle": [
+    {
+      "type": 0,
+      "value": "Lervo works in a project: a folder with Git."
+    }
+  ],
+  "start.firstRun.title": [
+    {
+      "type": 0,
+      "value": "Add your first project"
+    }
+  ],
   "start.instruction.label": [
     {
       "type": 0,
@@ -2350,12 +2636,6 @@
     {
       "type": 0,
       "value": "What should Lervo do?"
-    }
-  ],
-  "start.repository.label": [
-    {
-      "type": 0,
-      "value": "Repository"
     }
   ],
   "start.repository.none": [

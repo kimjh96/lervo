@@ -1,7 +1,9 @@
 import { workspaceTitle } from "@lervo/session-host-contract";
+import { useEffect } from "react";
 
 import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
-import { WorkspaceConversation } from "../features/conversation";
+import { preloadConversation, WorkspaceConversation } from "../features/conversation";
+import { AddProjectSheet, ProjectSwitcher, useCurrentProject } from "../features/projects";
 import { StartScreen, type Surface, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
 import { WorkspaceList } from "../features/workspaces";
@@ -54,12 +56,19 @@ function Main(props: { surface: Surface }) {
  */
 export function Frame() {
   const surface = useSurface();
+  const project = useCurrentProject();
+  // The conversation's chunk loads once the start screen has painted.
+  useEffect(() => {
+    const timer = setTimeout(preloadConversation, 0);
+    return () => clearTimeout(timer);
+  }, []);
   return (
     <div className={styles.frame}>
       <nav className={styles.sidebar}>
         {/* The macOS window controls sit over this strip, which also moves the window. */}
         <div className={styles.titlebar} data-tauri-drag-region />
-        <WorkspaceList />
+        <ProjectSwitcher />
+        <WorkspaceList projectId={project?.projectId ?? null} />
         <div className={styles.footer}>
           <ConnectionStatus />
           <HostUpdateNotice />
@@ -70,6 +79,7 @@ export function Frame() {
           <Main surface={surface} />
         </ViewPresence>
       </main>
+      <AddProjectSheet />
     </div>
   );
 }

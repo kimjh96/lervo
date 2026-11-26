@@ -59,3 +59,8 @@ li[data-leaving],
     animation: none;
   }
 }
+
+/* A project's workspaces sit a step below "New work". */
+.project {
+  margin-block: var(--space-12) 0;
+}

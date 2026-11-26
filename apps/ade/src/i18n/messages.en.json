@@ -983,6 +983,130 @@
     "defaultMessage": "Needs you",
     "description": "A desktop notification: the agent asked the user something."
   },
+  "projects.add": {
+    "defaultMessage": "Add Project",
+    "description": "The last row of the project list; it opens a menu of the ways to add a project."
+  },
+  "projects.add.title": {
+    "defaultMessage": "Choose a project folder",
+    "description": "Title of the system panel that chooses a folder to add as a project."
+  },
+  "projects.current": {
+    "defaultMessage": "{name}, switch project",
+    "description": "Accessible name of the switcher row; {name} is the selected project's name."
+  },
+  "projects.failed": {
+    "defaultMessage": "The project could not change ({code}).",
+    "description": "A project change failed; {code} is the protocol code."
+  },
+  "projects.label": {
+    "defaultMessage": "Projects",
+    "description": "Accessible name of the project switcher and its list."
+  },
+  "projects.logo.title": {
+    "defaultMessage": "Choose a logo",
+    "description": "Title of the system panel that chooses a project's logo image."
+  },
+  "projects.menu.clone": {
+    "defaultMessage": "Clone Repository",
+    "description": "Add Project menu item: clone a repository from a link and add it as a project."
+  },
+  "projects.menu.logo": {
+    "defaultMessage": "Change logo",
+    "description": "Context menu item: choose an image as the project's logo."
+  },
+  "projects.menu.logo.clear": {
+    "defaultMessage": "Remove logo",
+    "description": "Context menu item: show the project's first letter again instead of its logo."
+  },
+  "projects.menu.new": {
+    "defaultMessage": "New Project",
+    "description": "Add Project menu item: create a new, empty project."
+  },
+  "projects.menu.openFolder": {
+    "defaultMessage": "Open Folder",
+    "description": "Add Project menu item: add a folder on this Mac as a project, through the system folder panel."
+  },
+  "projects.menu.remove": {
+    "defaultMessage": "Remove from Lervo",
+    "description": "Context menu item: remove the project from this Mac's project list."
+  },
+  "projects.menu.remove.note": {
+    "defaultMessage": "Files stay where they are.",
+    "description": "A disabled note under Remove from Lervo: removing never deletes the project's files."
+  },
+  "projects.menu.rename": {
+    "defaultMessage": "Rename",
+    "description": "Context menu item: edit the project's name in place."
+  },
+  "projects.menu.reveal": {
+    "defaultMessage": "Show in Finder",
+    "description": "Context menu item: show the project's folder in Finder."
+  },
+  "projects.needsYou": {
+    "defaultMessage": "Another project needs you",
+    "description": "Text equivalent of the dot on the switcher: a workspace of another project needs the user."
+  },
+  "projects.rename.label": {
+    "defaultMessage": "Project name",
+    "description": "Accessible label of the field that edits a project's name in place."
+  },
+  "projects.sheet.cancel": {
+    "defaultMessage": "Cancel",
+    "description": "Closes the Clone Repository or New Project window."
+  },
+  "projects.sheet.clone.adding": {
+    "defaultMessage": "Cloning",
+    "description": "Waiting text while Lervo clones the repository."
+  },
+  "projects.sheet.clone.field": {
+    "defaultMessage": "Repository URL",
+    "description": "Label of the Clone Repository window's link field."
+  },
+  "projects.sheet.clone.submit": {
+    "defaultMessage": "Clone",
+    "description": "The Clone Repository window's button."
+  },
+  "projects.sheet.clone.subtitle": {
+    "defaultMessage": "Lervo clones it and adds it as a project.",
+    "description": "The line under the Clone Repository window's title."
+  },
+  "projects.sheet.clone.title": {
+    "defaultMessage": "Clone Repository",
+    "description": "Title of the window that clones a repository as a project."
+  },
+  "projects.sheet.failed": {
+    "defaultMessage": "Lervo could not add the project ({code}).",
+    "description": "Adding a project failed; {code} is the protocol code."
+  },
+  "projects.sheet.location": {
+    "defaultMessage": "Location",
+    "description": "Label of the folder the project goes into."
+  },
+  "projects.sheet.location.title": {
+    "defaultMessage": "Choose where projects go",
+    "description": "Title of the folder panel that chooses where clones and new projects go."
+  },
+  "projects.sheet.new.adding": {
+    "defaultMessage": "Creating",
+    "description": "Waiting text while Lervo creates the project."
+  },
+  "projects.sheet.new.field": {
+    "defaultMessage": "Name",
+    "description": "Label of the New Project window's name field."
+  },
+  "projects.sheet.new.submit": {
+    "defaultMessage": "Create",
+    "description": "The New Project window's button."
+  },
+  "projects.sheet.new.subtitle": {
+    "defaultMessage": "Lervo creates the folder, initializes Git, and makes the first commit.",
+    "description": "The line under the New Project window's title."
+  },
+  "projects.sheet.new.title": {
+    "defaultMessage": "New Project",
+    "description": "Title of the window that creates a new project."
+  },
   "start.error.application_unavailable": {
     "defaultMessage": "Lervo is not reachable on this computer.",
     "description": "The resident Lervo process is not running."
@@ -1007,6 +1131,54 @@
     "defaultMessage": "Lervo could not create the workspace{stage, select, none {} other { at the {stage} stage}}.",
     "description": "The core could not create the workspace; {stage} is the core stage that failed, or none."
   },
+  "start.firstRun.adding": {
+    "defaultMessage": "Adding the folder",
+    "description": "Waiting text while Lervo adds a dropped or chosen folder."
+  },
+  "start.firstRun.clone.detail": {
+    "defaultMessage": "From GitHub or any Git link",
+    "description": "First run card detail for Clone Repository."
+  },
+  "start.firstRun.clone.title": {
+    "defaultMessage": "Clone Repository",
+    "description": "First run card: clone a repository as a project."
+  },
+  "start.firstRun.drop": {
+    "defaultMessage": "Drop the folder to add it as a project",
+    "description": "Shown under the first run's cards while files are dragged over the window."
+  },
+  "start.firstRun.dropHint": {
+    "defaultMessage": "or drop a folder here",
+    "description": "The line under the first run's cards."
+  },
+  "start.firstRun.failed": {
+    "defaultMessage": "Lervo could not add the project ({code}).",
+    "description": "Adding the first project failed; {code} is the protocol code."
+  },
+  "start.firstRun.folder.detail": {
+    "defaultMessage": "A project already on this Mac",
+    "description": "First run card detail for Open Folder."
+  },
+  "start.firstRun.folder.title": {
+    "defaultMessage": "Open Folder",
+    "description": "First run card: add a folder on this Mac as a project."
+  },
+  "start.firstRun.new.detail": {
+    "defaultMessage": "Start from an empty folder",
+    "description": "First run card detail for New Project."
+  },
+  "start.firstRun.new.title": {
+    "defaultMessage": "New Project",
+    "description": "First run card: create a new, empty project."
+  },
+  "start.firstRun.subtitle": {
+    "defaultMessage": "Lervo works in a project: a folder with Git.",
+    "description": "The line under the first run's heading."
+  },
+  "start.firstRun.title": {
+    "defaultMessage": "Add your first project",
+    "description": "The start screen's heading with no project yet."
+  },
   "start.instruction.label": {
     "defaultMessage": "Instruction",
     "description": "The accessible label of the instruction input."
@@ -1030,10 +1202,6 @@
   "start.question": {
     "defaultMessage": "What should Lervo do?",
     "description": "The start screen heading."
-  },
-  "start.repository.label": {
-    "defaultMessage": "Repository",
-    "description": "The accessible label of the repository choice."
   },
   "start.repository.none": {
     "defaultMessage": "Register a repository with lervo repository register to start work.",
