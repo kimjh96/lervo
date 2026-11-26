@@ -1,10 +1,10 @@
 import styles from "./StatusDot.module.css";
 
 /**
- * A status dot with a text equivalent for assistive technology. `working` breathes; `attention`
- * stays still (ADE motion, "Working status" and "Needs-you status"). The `Presence` around it
- * fades it in and out.
+ * The needs-you dot, with a text equivalent for assistive technology. It stays still (ADE motion,
+ * "Needs-you status"); the `Presence` around it fades it in and out. Work in progress shows on the
+ * row itself, as a sweeping title or a ring around a mark, never as a dot.
  */
-export function StatusDot(props: { tone: "working" | "attention"; label: string }) {
-  return <span className={styles.dot} data-tone={props.tone} role="img" aria-label={props.label} />;
+export function StatusDot(props: { label: string }) {
+  return <span className={styles.dot} role="img" aria-label={props.label} />;
 }

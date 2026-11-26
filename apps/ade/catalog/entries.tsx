@@ -16,6 +16,7 @@ import { ListRow } from "../src/ui/ListRow";
 import { PaneHeader } from "../src/ui/PaneHeader";
 import { SectionHeading } from "../src/ui/SectionHeading";
 import { StatusDot } from "../src/ui/StatusDot";
+import { WorkingLabel } from "../src/ui/WorkingLabel";
 import {
   AttachmentTrayDemo,
   CardDemo,
@@ -113,11 +114,16 @@ export const entries: readonly Entry[] = [
             />
             <ListRow
               current={false}
-              label="Fix the flaky test"
-              trailing={<StatusDot tone="working" label="Working" />}
+              label={<WorkingLabel title="Fix the flaky test" working="Working" />}
               onClick={() => undefined}
             />
-            <ListRow current={false} quiet label="Tidy the docs" onClick={() => undefined} />
+            <ListRow
+              current={false}
+              label="Review the release"
+              trailing={<StatusDot label="Needs you" />}
+              onClick={() => undefined}
+            />
+            <ListRow current={false} label="Tidy the docs" onClick={() => undefined} />
           </div>
         ),
       },

@@ -96,6 +96,8 @@
   --size-control-lg: 34px;
   --size-dot-default: 6px;
   --size-dot-attention: 7px;
+  --size-ring-width: 1.5px;
+  --size-ring-gap: 3px;
   --size-icon-sm: 12px;
   --size-icon-md: 14px;
   --size-icon-lg: 16px;

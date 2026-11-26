@@ -2,19 +2,63 @@
 import type { Entry } from "./entries";
 import { PresenceDemo, ViewPresenceDemo } from "./demos";
 import { StatusDot } from "../src/ui/StatusDot";
+import { StatusRing } from "../src/ui/StatusRing";
 import { Waiting } from "../src/ui/Waiting";
+import { WorkingLabel } from "../src/ui/WorkingLabel";
 import { WorkingLine } from "../src/ui/WorkingLine";
+import { Mark } from "../src/ui/Mark";
 
 export const feedbackEntries: readonly Entry[] = [
   {
     module: "StatusDot",
-    name: "Status dot",
-    purpose: "A workspace's live status, with a text equivalent.",
-    use: ["Working and needs-you only; finished work shows no dot"],
-    avoid: ["Decoration", "Any status without an accessible name"],
+    name: "Needs-you dot",
+    purpose: "A row that needs the person, with a text equivalent. It stays still.",
+    use: ["A conversation or project waiting for the person; nothing else shows a dot"],
+    avoid: ["Work in progress: use Working label or Status ring", "Decoration"],
+    variants: [{ name: "Needs you", render: () => <StatusDot label="Needs you" /> }],
+  },
+  {
+    module: "WorkingLabel",
+    name: "Working label",
+    purpose:
+      "A list row's title while its work runs: one step quieter, with the working line's light sweeping across it in step with every other working title.",
+    use: ["A conversation row whose agent works"],
+    avoid: ["The open conversation: use Working line", "Anything that is not running work"],
     variants: [
-      { name: "Working", render: () => <StatusDot tone="working" label="Working" /> },
-      { name: "Needs you", render: () => <StatusDot tone="attention" label="Needs you" /> },
+      {
+        name: "Working",
+        render: () => (
+          <div style={{ width: "var(--layout-sidebar-width)" }}>
+            <WorkingLabel title="Payments retry" working="Working" />
+          </div>
+        ),
+      },
+    ],
+  },
+  {
+    module: "StatusRing",
+    name: "Status ring",
+    purpose:
+      "A thin ring around an agent's mark: blue and breathing while it works, amber and still while it needs the person.",
+    use: ["An agent's mark in the sidebar"],
+    avoid: ["Conversations and projects, which have no mark status: use Working label or the dot"],
+    variants: [
+      {
+        name: "Working",
+        render: () => (
+          <StatusRing tone="working" label="Working">
+            <Mark id="agt_catalog_1" name="Elio" src={null} size="sm" shape="round" />
+          </StatusRing>
+        ),
+      },
+      {
+        name: "Needs you",
+        render: () => (
+          <StatusRing tone="attention" label="Needs you">
+            <Mark id="agt_catalog_2" name="Iris" src={null} size="sm" shape="round" />
+          </StatusRing>
+        ),
+      },
     ],
   },
   {

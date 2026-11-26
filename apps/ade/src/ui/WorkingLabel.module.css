@@ -1,0 +1,51 @@
+.title {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The title rests in the secondary color, and a band of the primary color sweeps across it: the
+   working line's motion, one step brighter so the title stays readable. */
+.title[data-working] {
+  color: transparent;
+  background: linear-gradient(
+      90deg,
+      var(--color-text-secondary) 0%,
+      var(--color-text-secondary) 35%,
+      var(--color-text-primary) 50%,
+      var(--color-text-secondary) 65%,
+      var(--color-text-secondary) 100%
+    )
+    0 0 / 300% 100%;
+  background-clip: text;
+  animation: sweep var(--motion-duration-shimmer) var(--motion-easing-shimmer) infinite;
+}
+
+/* Read by assistive technology after the title, never shown. */
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@keyframes sweep {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title[data-working] {
+    color: var(--color-text-secondary);
+    background: none;
+    animation: none;
+  }
+}
