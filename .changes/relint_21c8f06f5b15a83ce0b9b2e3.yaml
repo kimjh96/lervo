@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_21c8f06f5b15a83ce0b9b2e3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Leave an interrupted turn for the next prepared prompt after a cached-base answer, record each delivery once under a random identity, and restart the server only when base preparation left reads running."

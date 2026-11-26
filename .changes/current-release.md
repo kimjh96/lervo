@@ -1,9 +1,11 @@
-<!-- lervo-release package="@lervo/cli" version="0.60.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.61.0" schema="1" -->
 
 ## What's changed
 
-- A conversation can start with chosen team agents (workspace.start participants); its session carries the writing agent as LERVO_AGENT_ID, and workspace.list reports each conversation's agents.
-- A watched directory removed and created again before its event arrived now re-arms the watch, instead of leaving it on the removed directory.
-- Every agent records whether it is the team's or Lervo's own (origin), and lervo upgrade records it once for agents hired before (ADR-0643).
-- Lervo's knowledge and practice workers are hired with origin lervo, count against their own bound instead of the team's 256, and their retired records are pruned to the latest 32.
-- The core link lists a project's agents, each marked as the team's or Lervo's own, with the roles it can hire (agents.list), and hires an agent for the owner (agent.hire).
+- Agents can join a conversation: room.join prepares a team agent's own read-access session in its worktree, room.route names the agents an owner's turn mentions, and workspace.list reports each conversation's participants and sessions.
+- Agents mention each other in a conversation: when an agent's turn ends, the core delivers a turn to each team agent it mentions, returns answers, pauses at the exchange budget, and tells each agent session who it works with.
+- Answer a prompt the context server cannot take from the checkout's cached base in milliseconds, and record it as event schema 14, the new writer target.
+- In a conversation, naming the agent that asked is the answer to it, so an exchange ends there instead of bouncing back and forth.
+- Leave an interrupted turn for the next prepared prompt after a cached-base answer, record each delivery once under a random identity, and restart the server only when base preparation left reads running.
+- Read event schema 14 in the CLI, the Node, and the Hub: terminal.context.base_delivered records a prompt answered from the cached base. Automatic writer activation stays at schema 13.
+- room.join never asks the session host to read the lead's transcript into a joined agent's session, which keeps its own history.

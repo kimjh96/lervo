@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_afa2af96b8f7fe63776d9460"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "room.join never asks the session host to read the lead's transcript into a joined agent's session, which keeps its own history."
