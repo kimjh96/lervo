@@ -122,17 +122,27 @@ describe("a served prompt answered before its records (ADR-0636)", () => {
 
 describe("a served Stop (ADR-0636)", () => {
   it.each([
-    ["answers a non-worker Stop with {} before its records", null, ["{}\n"]],
+    ["answers a non-worker Stop with {} once its repository is captured", null, ["{}\n"]],
     ["lets a worker's Stop decide after its records", "worker", []],
   ] as const)("%s", async (_name, executionKind, early) => {
     ports.expectation.mockResolvedValue({
       observationId: "tobs_expected123",
       workspaceBinding: executionKind === null ? null : { executionKind },
     });
-    ports.stop.mockImplementation(async ({ io }: { io: { stdout: (value: string) => void } }) => {
-      io.stdout("{}\n");
-      return 0;
-    });
+    // The Stop captures the turn's repository, then records; only a non-worker answers at capture.
+    ports.stop.mockImplementation(
+      async ({
+        io,
+        onRepositoryCaptured,
+      }: {
+        io: { stdout: (value: string) => void };
+        onRepositoryCaptured?: () => void;
+      }) => {
+        onRepositoryCaptured?.();
+        io.stdout("{}\n");
+        return 0;
+      },
+    );
     const answers: string[] = [];
     await runTerminalHookCommand(
       ["--provider", "claude", "--contract", "2"],

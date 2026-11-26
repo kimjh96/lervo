@@ -225,9 +225,8 @@ function sessionEnvironment() {
     if (/^GIT_[A-Z0-9_]{1,60}$/u.test(name) && value !== undefined) values[name] = value;
   return values;
 }
-// The served hook's detached workers start here, in the provider's session, as they would from an
-// in-process hook: with this Node, environment, and umask, and outside the service's process tree.
-// A launch that fails leaves its queued work for the next hook or resident cycle.
+// The served hook's detached workers start here, in the session, as an in-process hook's would;
+// a failed launch leaves its queued work for the next hook or resident cycle.
 async function startLaunches(launches) {
   if (!Array.isArray(launches)) return;
   await Promise.all(
@@ -263,7 +262,7 @@ const relayed = (text) => {
 };
 if (process.argv[2] === relayFlag) {
   const socket = new Socket({ fd: 3 });
-  let text = "";
+  let text = process.argv[3] ?? "";
   socket.on("data", (chunk) => (text += chunk));
   await new Promise((done) => {
     socket.on("close", done).on("error", done);
@@ -385,12 +384,17 @@ async function served() {
       clearTimeout(timer);
       const later = received.subarray(end + 1).toString();
       if (answer.pending === true && !later.includes("\n")) {
-        // The records go on: a detached relay keeps this connection and starts their launches.
-        socket.pause();
-        spawn(process.execPath, [fileURLToPath(import.meta.url), relayFlag], {
-          detached: true,
-          stdio: ["ignore", "ignore", "ignore", socket],
-        }).unref();
+        // A detached relay keeps the connection and bytes read so far, and starts the records'
+        // launches; closing this copy stops this process reading them.
+        try {
+          spawn(process.execPath, [fileURLToPath(import.meta.url), relayFlag, later], {
+            detached: true,
+            stdio: ["ignore", "ignore", "ignore", socket],
+          })
+            .on("error", () => undefined)
+            .unref();
+        } catch {}
+        socket.destroy();
       } else if (answer.pending === true) answer.launches.push(...relayed(later));
       void startLaunches(answer.launches).finally(() => finish(answer));
     });

@@ -211,12 +211,18 @@ async function executeTerminalHookCommand(
       }
       stageContext.observationId = expectation.observationId;
       // ADR-0636: only a worker's Stop can answer with a block; any other Stop answers `{}`, so a
-      // served one answers now and records after.
-      if (io.answer !== undefined && expectation.workspaceBinding?.executionKind !== "worker") {
-        answered = true;
-        io.answer("{}\n");
-      }
+      // served one answers as soon as the turn's repository is captured, and records after. The
+      // provider may start the next turn then, and its edits must not count as this turn's.
+      const answer = io.answer;
+      const answerAtCapture =
+        answer !== undefined && expectation.workspaceBinding?.executionKind !== "worker"
+          ? () => {
+              answered = true;
+              answer("{}\n");
+            }
+          : undefined;
       return await completeTerminalHookTurn({
+        ...(answerAtCapture === undefined ? {} : { onRepositoryCaptured: answerAtCapture }),
         root,
         executionRoot,
         coordinates,
