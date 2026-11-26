@@ -1090,6 +1090,16 @@
               "maxLength": 40
             }
           }
+        },
+        "mark": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectMark"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -1244,6 +1254,87 @@
         }
       }
     },
+    "AgentMarkSetResult": {
+      "title": "AgentMarkSetResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentMarkClearResult": {
+      "title": "AgentMarkClearResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentMarkReadResult": {
+      "title": "AgentMarkReadResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agentId",
+        "image"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agentId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "sha256",
+                "mediaType",
+                "data"
+              ],
+              "properties": {
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "mediaType": {
+                  "enum": [
+                    "image/png",
+                    "image/jpeg",
+                    "image/webp"
+                  ]
+                },
+                "data": {
+                  "type": "string",
+                  "maxLength": 700000
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "RoomSession": {
       "title": "RoomSession",
       "type": "object",
@@ -1358,6 +1449,9 @@
             "agent.model",
             "agent.rename",
             "agent.status",
+            "agent.mark.set",
+            "agent.mark.clear",
+            "agent.mark.read",
             "room.join",
             "room.route"
           ]

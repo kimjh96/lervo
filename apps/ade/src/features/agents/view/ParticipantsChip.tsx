@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 
 import { ChevronDownIcon } from "../../../ui/icons";
-import { Mark } from "../../../ui/Mark";
+import { AgentMark } from "./AgentMark";
 import { PopoverMenu } from "../../../ui/PopoverMenu";
 import { HIRE_PRODUCT_OWNER, toggleParticipant } from "../model/decisions";
 import styles from "./ParticipantsChip.module.css";
@@ -72,14 +72,7 @@ export function ParticipantsChip(props: {
       >
         <span className={styles.marks}>
           {chosen.slice(0, SHOWN_MARKS).map((agent) => (
-            <Mark
-              key={agent.agentId}
-              id={agent.agentId}
-              name={agent.displayName}
-              src={null}
-              size="sm"
-              shape="round"
-            />
+            <AgentMark key={agent.agentId} agent={agent} size="sm" />
           ))}
         </span>
         <span className={styles.names}>{names}</span>
@@ -93,15 +86,7 @@ export function ParticipantsChip(props: {
           openedByKey={menuAt.byKey}
           multiple
           items={candidates.map((agent) => ({
-            leading: (
-              <Mark
-                id={agent.agentId}
-                name={agent.displayName}
-                src={null}
-                size="sm"
-                shape="round"
-              />
-            ),
+            leading: <AgentMark agent={agent} size="sm" />,
             text: agent.displayName,
             detail: agent.roleName,
             checked: props.chosen.includes(agent.agentId),

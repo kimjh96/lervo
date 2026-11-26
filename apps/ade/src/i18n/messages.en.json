@@ -67,6 +67,22 @@
     "defaultMessage": "Lervo could not change the agent ({code}).",
     "description": "A rename or a model change failed; {code} is the protocol code."
   },
+  "agents.profile.image.choose": {
+    "defaultMessage": "Choose Image",
+    "description": "The menu item in an agent's profile that opens the image panel to change the agent's image."
+  },
+  "agents.profile.image.label": {
+    "defaultMessage": "Change {name}'s image",
+    "description": "The accessible name of the agent's mark in its profile, which changes the agent's image."
+  },
+  "agents.profile.image.remove": {
+    "defaultMessage": "Remove Image",
+    "description": "The menu item in an agent's profile that removes its image, so its first letter shows again."
+  },
+  "agents.profile.image.title": {
+    "defaultMessage": "Choose an image for {name}",
+    "description": "The title of the image panel that chooses an agent's image."
+  },
   "agents.profile.model": {
     "defaultMessage": "Model",
     "description": "The heading and the menu of the model an agent's sessions run on."
@@ -622,6 +638,10 @@
   "lervo.command.agent.mandate.scope": {
     "defaultMessage": "Set the scope of an agent's mandate",
     "description": "What Lervo did when the agent ran `lervo agent mandate scope`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.mark": {
+    "defaultMessage": "Changed an agent's image",
+    "description": "What Lervo did when the agent ran `lervo agent mark`, as a quiet line in the conversation."
   },
   "lervo.command.agent.model": {
     "defaultMessage": "Changed an agent's model",

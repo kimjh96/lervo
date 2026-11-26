@@ -10,6 +10,7 @@ import {
   type WorkforceHandoffTriggerProvenance,
   type WorkforceHandoff,
   type WorkforceAssignment,
+  type AgentMark,
   type AgentModel,
   modelEfforts,
   modelTiers,
@@ -157,10 +158,23 @@ export function validAgent(agent: unknown, projectId: string): agent is Workforc
     ["active", "suspended", "retired"].includes(value.status) &&
     (value.origin === undefined || value.origin === "team" || value.origin === "lervo") &&
     (value.model === undefined || validAgentModel(value.model)) &&
+    (value.mark === undefined || validAgentMark(value.mark)) &&
     Number.isSafeInteger(value.revision) &&
     value.revision >= 1 &&
     validTime(value.createdAt) &&
     validTime(value.updatedAt)
+  );
+}
+
+/** Whether `value` is an agent's image: an asset hash and one of the mark formats. */
+export function validAgentMark(value: unknown): value is AgentMark {
+  if (value === null || typeof value !== "object") return false;
+  const mark = value as Record<string, unknown>;
+  return (
+    Object.keys(mark).length === 2 &&
+    typeof mark.sha256 === "string" &&
+    /^[a-f0-9]{64}$/u.test(mark.sha256) &&
+    ["image/png", "image/jpeg", "image/webp"].includes(mark.mediaType as string)
   );
 }
 

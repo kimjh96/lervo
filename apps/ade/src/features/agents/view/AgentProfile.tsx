@@ -2,16 +2,25 @@ import type { AgentSummary } from "@lervo/session-host-contract";
 import { type KeyboardEvent, useMemo, useState } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
-import { failureCode, useApplicationCommands } from "../../../ports";
+import {
+  failureCode,
+  useApplicationCommands,
+  useChoosers,
+  useFiles,
+  useImages,
+  useMenus,
+  useProjectMemory,
+} from "../../../ports";
 import { Button } from "../../../ui/Button";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { ListRow } from "../../../ui/ListRow";
-import { Mark } from "../../../ui/Mark";
+import { AgentMark } from "./AgentMark";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
 import { Select } from "../../../ui/Select";
 import { useWorkspaceStore } from "../../workspaces";
 import { renameAgent, setAgentModel, setAgentStatus } from "../model/controller";
+import { chooseAgentMark, clearAgentMark } from "../model/marks";
 import { useAgentStore } from "../model/store";
 import styles from "./AgentProfile.module.css";
 
@@ -79,6 +88,14 @@ function Name(props: { agent: AgentSummary; onRename: ((name: string) => void) |
 export function AgentProfile(props: { agentId: string }) {
   const intl = useIntl();
   const commands = useApplicationCommands();
+  const menus = useMenus();
+  const markDependencies = {
+    commands,
+    images: useImages(),
+    memory: useProjectMemory(),
+    files: useFiles(),
+    choosers: useChoosers(),
+  };
   const agent = useAgentStore((store) =>
     store.agents.find((candidate) => candidate.agentId === props.agentId),
   );
@@ -111,10 +128,50 @@ export function AgentProfile(props: { agentId: string }) {
   const { model } = agent;
   const choosesModel =
     advertised?.includes("agent.model") === true && model !== undefined && models.length > 0;
+  const choosesMark = advertised?.includes("agent.mark.set") === true;
+  const chooseImage = () =>
+    run(() =>
+      chooseAgentMark(
+        markDependencies,
+        projectId,
+        agent,
+        intl.formatMessage({ id: "agents.profile.image.title" }, { name: agent.displayName }),
+      ),
+    );
+  // An agent without an image opens the image panel at once; one with an image offers to change
+  // or remove it, as a project's mark does.
+  const editMark = () => {
+    if (agent.mark === null || agent.mark === undefined) {
+      chooseImage();
+      return;
+    }
+    void menus.show([
+      { text: intl.formatMessage({ id: "agents.profile.image.choose" }), run: chooseImage },
+      {
+        text: intl.formatMessage({ id: "agents.profile.image.remove" }),
+        run: () => run(() => clearAgentMark(commands, projectId, agent)),
+      },
+    ]);
+  };
   return (
     <div className={styles.profile}>
       <header className={styles.identity}>
-        <Mark id={agent.agentId} name={agent.displayName} src={null} size="lg" shape="round" />
+        {/* motion: History loads or a workspace reopens */}
+        {choosesMark ? (
+          <button
+            type="button"
+            className={styles.markButton}
+            aria-label={intl.formatMessage(
+              { id: "agents.profile.image.label" },
+              { name: agent.displayName },
+            )}
+            onClick={editMark}
+          >
+            <AgentMark agent={agent} size="lg" />
+          </button>
+        ) : (
+          <AgentMark agent={agent} size="lg" />
+        )}
         <div className={styles.titles}>
           <Name
             agent={agent}

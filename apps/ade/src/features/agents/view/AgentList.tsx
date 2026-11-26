@@ -6,7 +6,7 @@ import { useApplicationCommands } from "../../../ports";
 import { PlusIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { ListRow } from "../../../ui/ListRow";
-import { Mark } from "../../../ui/Mark";
+import { AgentMark } from "./AgentMark";
 import { PopoverMenu } from "../../../ui/PopoverMenu";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
@@ -40,7 +40,7 @@ function AgentRow(props: { agent: AgentSummary }) {
             tone={activity === null ? null : activity === "working" ? "working" : "attention"}
             label={activity === null ? null : intl.formatMessage(statusMessages[activity])}
           >
-            <Mark id={agent.agentId} name={agent.displayName} src={null} size="sm" shape="round" />
+            <AgentMark agent={agent} size="sm" />
           </StatusRing>
         }
         label={

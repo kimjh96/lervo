@@ -129,6 +129,42 @@
       "value": ")."
     }
   ],
+  "agents.profile.image.choose": [
+    {
+      "type": 0,
+      "value": "Choose Image"
+    }
+  ],
+  "agents.profile.image.label": [
+    {
+      "type": 0,
+      "value": "Change "
+    },
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": "'s image"
+    }
+  ],
+  "agents.profile.image.remove": [
+    {
+      "type": 0,
+      "value": "Remove Image"
+    }
+  ],
+  "agents.profile.image.title": [
+    {
+      "type": 0,
+      "value": "Choose an image for "
+    },
+    {
+      "type": 1,
+      "value": "name"
+    }
+  ],
   "agents.profile.model": [
     {
       "type": 0,
@@ -1627,6 +1663,12 @@
     {
       "type": 0,
       "value": "Set the scope of an agent's mandate"
+    }
+  ],
+  "lervo.command.agent.mark": [
+    {
+      "type": 0,
+      "value": "Changed an agent's image"
     }
   ],
   "lervo.command.agent.model": [
