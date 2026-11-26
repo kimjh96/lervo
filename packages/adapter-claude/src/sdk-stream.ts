@@ -1,6 +1,7 @@
 import type { SDKMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 
 import { ClaudeAdapterError } from "./types.js";
+import { asRecord } from "./normalization-utils.js";
 
 interface Deferred {
   promise: Promise<void>;
@@ -25,19 +26,13 @@ function deferred(): Deferred {
   return { promise, resolve, reject };
 }
 
-function record(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
 function messageText(value: unknown): string | undefined {
-  const message = record(record(value)?.message);
+  const message = asRecord(asRecord(value)?.message);
   const content = message?.content;
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return undefined;
   const texts = content.map((block) => {
-    const item = record(block);
+    const item = asRecord(block);
     return item?.type === "text" && typeof item.text === "string" ? item.text : undefined;
   });
   return texts.every((text) => text !== undefined) ? texts.join("") : undefined;
@@ -107,7 +102,7 @@ export class ClaudeReplayTracker {
   }
 
   accept(message: SDKMessage): boolean {
-    const value = record(message);
+    const value = asRecord(message);
     const sessionId = value?.session_id;
     if (typeof sessionId === "string" && sessionId !== this.providerSessionId) {
       throw new ClaudeAdapterError(
