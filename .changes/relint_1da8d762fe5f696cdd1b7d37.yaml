@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1da8d762fe5f696cdd1b7d37"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Let ADE conversation assignments start without paths and widen their live lease by claims, with one core path conflict judgment shared by every claim."

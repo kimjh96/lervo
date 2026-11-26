@@ -4,6 +4,7 @@ import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
 import { attachedFiles } from "../model/files";
 import { QuestionChoices } from "./ChoiceCard";
+import { ClaimLine } from "./ClaimLine";
 import { MessageFiles } from "./MessageFiles";
 import { MessageImages } from "./MessageImages";
 import { usePacedText } from "./paced";
@@ -129,6 +130,7 @@ const roomMessages: Readonly<Record<string, MessageDescriptor>> = {
   room_paused: { id: "room.paused" },
   room_delivery_failed: { id: "room.deliveryFailed" },
   room_rejoin_failed: { id: "room.rejoinFailed" },
+  claim_deferred: { id: "room.claimDeferred" },
 };
 
 /**
@@ -178,6 +180,7 @@ function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_
   if (item.code === "context_compacted")
     return <CompactionDivider manual={item.parameters.trigger === "manual"} />;
   if (Object.hasOwn(startedMessages, item.code)) return <StartedLine item={item} />;
+  if (item.code === "claim_conflict") return <ClaimLine item={item} />;
   if (Object.hasOwn(roomMessages, item.code))
     return (
       <p className={styles.roomLine}>

@@ -93,9 +93,23 @@ export async function acquireLock(path: string, now: Date): Promise<() => Promis
   };
 }
 
-/** Replaces a workforce state file whole, owner-only, synced with its directory. */
+/**
+ * Replaces a workforce state file whole, owner-only, synced with its directory. Every reader
+ * refuses a file past the state bound, so one oversized record would stop every listing: the write
+ * is refused before any byte changes.
+ */
 export async function atomicWrite(path: string, content: string): Promise<void> {
+  if (!workforceStateFits(content))
+    fail(
+      "workforce_write_failed",
+      "The workforce state would exceed its bound; nothing was written.",
+    );
   await replaceFile(path, content);
+}
+
+/** Whether serialized state fits a bound, by default the one every reader enforces. */
+export function workforceStateFits(content: string, maximumBytes = MAXIMUM_STATE_BYTES): boolean {
+  return Buffer.byteLength(content) <= maximumBytes;
 }
 
 export async function transition<T>(input: {
@@ -134,14 +148,21 @@ export async function transition<T>(input: {
   }
 }
 
-export async function retryConcurrent<T>(operation: () => Promise<T>): Promise<T> {
+/**
+ * Retries a transition that lost a race. A transition that rereads every input under the lock can
+ * pass only `workforce_busy`, so a stable refusal such as an inactive agent is not retried.
+ */
+export async function retryConcurrent<T>(
+  operation: () => Promise<T>,
+  retryCodes: readonly AgentWorkforceError["code"][] = ["workforce_busy", "agent_state_conflict"],
+): Promise<T> {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     try {
       return await operation();
     } catch (error) {
       if (
         !(error instanceof AgentWorkforceError) ||
-        !["workforce_busy", "agent_state_conflict"].includes(error.code) ||
+        !retryCodes.includes(error.code) ||
         attempt === 7
       )
         throw error;

@@ -12,7 +12,7 @@ import {
   type WorkforceAssignment,
 } from "./types.js";
 import { resolveRoleContract } from "@lervo/roles";
-import { state, transition, retryConcurrent } from "./workforce-state-io.js";
+import { state, transition, retryConcurrent, workforceStateFits } from "./workforce-state-io.js";
 import { listAssignments, assignmentPath } from "./assignment-state.js";
 import { fail, id, validAssignment, digest, stableJson } from "./workforce-state-validation.js";
 import { workforceLimits } from "./limits.js";
@@ -164,14 +164,13 @@ export async function createAssignmentOnce(
     createdAt,
     updatedAt: createdAt,
   };
-  if (!validAssignment(assignment, current.manifest.projectId))
-    fail("assignment_invalid", "The assignment is invalid.");
+  const content = creatableContent(assignment, current.manifest.projectId);
   const target = await assignmentPath(input.repositoryRoot, assignment.assignmentId);
   return transition({
     path: target.path,
     lockPath: target.lockPath,
     now,
-    content: `${JSON.stringify(assignment, null, 2)}\n`,
+    content,
     result: structuredClone(assignment),
     expectedBefore: null,
     ...(input.recordEvent === undefined ? {} : { recordEvent: input.recordEvent }),
@@ -205,6 +204,14 @@ export async function createAssignmentOnce(
       },
     },
   });
+}
+
+/** The new record's bytes, refused when invalid or past the state bound every reader enforces. */
+function creatableContent(assignment: WorkforceAssignment, projectId: string): string {
+  const content = `${JSON.stringify(assignment, null, 2)}\n`;
+  if (!validAssignment(assignment, projectId) || !workforceStateFits(content))
+    fail("assignment_invalid", "The assignment is invalid or exceeds the state bound.");
+  return content;
 }
 
 export function createAssignment(input: {

@@ -147,7 +147,10 @@ export const workspaceSummarySchema = {
   },
 } as const;
 
-/** `workspace.list`: the workspaces with a hosted launch on this host, newest first. */
+/**
+ * `workspace.list`: the workspaces with a hosted launch on this host, latest activity first: when
+ * a conversation began or an agent joined it. Reopening a conversation does not move it.
+ */
 export const workspaceListResultSchema = {
   title: "WorkspaceListResult",
   type: "object",

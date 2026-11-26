@@ -1,6 +1,7 @@
 // The core link's side of rooms: which decoders route, and what their answers carry.
 import type { HostedDecodedContent, HostedDecodedEvent } from "@lervo/adapter-contract";
 
+import { ClaimLines } from "./claim-lines.js";
 import { readEnvelope } from "./room-envelope.js";
 import { RoomRouter, type RoomContext, type RoomDelivery } from "./room-router.js";
 import type { PendingStart } from "./room-starts.js";
@@ -26,6 +27,7 @@ export class RoomLink {
     private readonly load: ((sessionId: string) => Promise<RoomContext | null>) | undefined,
     private readonly track: (task: Promise<void>) => void,
     private readonly loadStarts?: (agentId: string) => Promise<readonly PendingStart[]>,
+    private readonly claims: ClaimLines = new ClaimLines(),
   ) {}
 
   /** A decoder the session host opened or named; it routes when the host performs deliveries. */
@@ -41,6 +43,7 @@ export class RoomLink {
     if (sessionId === undefined) return;
     this.sessions.delete(sessionId);
     this.router.forget(sessionId);
+    this.claims.forget(sessionId);
   }
 
   /** Reloads every routed session's conversation after an agent joined it. */
@@ -96,8 +99,15 @@ export class RoomLink {
     events: readonly HostedDecodedEvent[],
   ): { events: readonly HostedDecodedEvent[]; deliveries?: RoomDelivery[] } {
     if (sessionId === undefined || !this.delivering.has(decoderId)) return { events };
-    const routed = this.router.observe(sessionId, events);
+    const observed = this.router.observe(sessionId, events);
     const agentId = this.router.agentOf(sessionId);
+    // The lines of the claims Lervo stopped or deferred follow the calls they concern.
+    const routed = {
+      ...observed,
+      events: this.claims.annotate(sessionId, agentId, observed.events, (id) =>
+        this.router.nameOf(sessionId, id),
+      ),
+    };
     if (agentId === null) return routed;
     // A start is recorded by a command the agent runs, so its tool line is the cue to reread.
     if (events.some((event) => event.kind === "item" && event.content.kind === "tool_activity"))

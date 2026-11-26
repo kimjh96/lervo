@@ -295,6 +295,7 @@ export class ClaudeHostedStreamDecoder
           calls: 1,
           ...(detail === undefined ? {} : { detail }),
           ...(output === undefined ? {} : { output }),
+          toolUseId: id,
         }),
       );
     }

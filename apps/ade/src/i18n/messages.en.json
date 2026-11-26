@@ -1391,6 +1391,22 @@
     "defaultMessage": "New Project",
     "description": "Title of the window that creates a new project."
   },
+  "room.claimConflict": {
+    "defaultMessage": "{agent} was stopped at <code>{path}</code> · {holder} holds it in <link>{title}</link>",
+    "description": "A room line after a tool call Lervo stopped: another conversation's agent holds the path; the title opens that conversation."
+  },
+  "room.claimConflictHeld": {
+    "defaultMessage": "{agent} was stopped at <code>{path}</code> · {holder} holds it",
+    "description": "A room line after a tool call Lervo stopped, when the holder's conversation is not listed here."
+  },
+  "room.claimDeferred": {
+    "defaultMessage": "Lervo checks this turn's claims at its end ({code})",
+    "description": "A room line, once per turn, when Lervo could not decide a write's claim in time and let it go ahead; {code} is the reason's code."
+  },
+  "room.claimRefused": {
+    "defaultMessage": "{agent} was stopped at <code>{path}</code> ({reason})",
+    "description": "A room line after a tool call Lervo stopped for a reason no agent holds, such as a path outside the lead's responsibility; {reason} is the core's code."
+  },
   "room.deliveryFailed": {
     "defaultMessage": "Lervo could not deliver a mention ({code}).",
     "description": "A room line: a mention could not reach the mentioned agent; {code} is the core's code."

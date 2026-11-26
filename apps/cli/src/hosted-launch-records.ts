@@ -28,6 +28,13 @@ export interface HostedLaunchRecord {
   settingsDigest: string | null;
   mcpConfigDigest: string | null;
   preparedAt: string;
+  /**
+   * The conversation's latest activity the conversation list orders by: when it began, or when an
+   * agent joined it. Reopening a conversation, or resuming a joined agent's session, keeps the
+   * time it had, so opening a conversation never moves it in the list. Records without it count
+   * their `preparedAt`.
+   */
+  listedAt?: string;
   /** Where the workspace started; records from before Lervo 0.47.7 have none. */
   base?: HostedWorkspaceBase;
   /**
@@ -95,6 +102,7 @@ function isRecord(value: unknown): value is HostedLaunchRecord {
       (key) => typeof record[key] === "string",
     ) &&
     (record.conversationMode === "native" || record.conversationMode === "cli") &&
+    (record.listedAt === undefined || typeof record.listedAt === "string") &&
     (record.access === undefined || record.access === "read") &&
     (record.questions === undefined || record.questions === true)
   );
@@ -121,6 +129,11 @@ export async function conversationsStartedBy(
   agentId: string,
 ): Promise<HostedLaunchRecord[]> {
   return (await readRecords(path)).filter((record) => record.startedBy === agentId);
+}
+
+/** The time a record places its conversation in the list (`listedAt`, or its launch). */
+export function listedTime(record: HostedLaunchRecord): string {
+  return record.listedAt ?? record.preparedAt;
 }
 
 /** Adds `record` and keeps the newest `HOSTED_LAUNCH_RECORD_LIMIT` records. */

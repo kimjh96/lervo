@@ -31,6 +31,12 @@ export type HostedDecodedContent =
        * resident process. The core link removes it before the session host receives the item.
        */
       readonly output?: string;
+      /**
+       * The provider's ID for the call, for the core within the resident process, which joins it
+       * to the claim Lervo made for the call. The core link removes it before the session host
+       * receives the item.
+       */
+      readonly toolUseId?: string;
     }
   | {
       /** A message another agent session sent this one. */

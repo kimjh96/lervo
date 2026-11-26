@@ -8,12 +8,12 @@ import {
   fail,
   MINIMUM_LEASE_MS,
   MAXIMUM_LEASE_MS,
-  overlaps,
   id,
   digest,
   stableJson,
 } from "./workforce-state-validation.js";
 import { listAgents } from "./agent-registry.js";
+import { judgeAssignmentPathConflicts } from "./assignment-path-conflict.js";
 import { assignmentPath, readAssignmentState, listAssignments } from "./assignment-state.js";
 import { acquireLock, atomicWrite, retryConcurrent } from "./workforce-state-io.js";
 import {
@@ -112,17 +112,14 @@ export async function claimAssignmentOnce(input: {
         : ["queued", "leased"];
     if (currentLeaseActive || !claimableStatuses.includes(assignment.status))
       fail("assignment_lease_conflict", "The assignment is not claimable.");
-    const conflicting = all.find(
-      (item) =>
-        item.assignmentId !== assignment.assignmentId &&
-        item.status === "leased" &&
-        item.lease !== null &&
-        Date.parse(item.lease.expiresAt) > now.getTime() &&
-        assignmentAccessMode(item) === "write" &&
-        assignmentAccessMode(assignment) === "write" &&
-        overlaps(item.expectedPaths, assignment.expectedPaths),
-    );
-    if (conflicting !== undefined)
+    if (
+      judgeAssignmentPathConflicts({
+        claimant: assignment,
+        paths: assignment.expectedPaths,
+        assignments: all,
+        now,
+      }).length !== 0
+    )
       fail(
         "assignment_path_conflict",
         "Another active assignment owns an overlapping repository path.",

@@ -1,3 +1,6 @@
+/** The most bytes a role's prepared input may hold, from its binding event to the bytes it names. */
+export const MAX_ROLE_INPUT_BYTES = 128 * 1024;
+
 export const roleInputPayloadFields = [
   "schemaVersion",
   "roleId",
@@ -21,7 +24,7 @@ export function validateRoleInputPayload(payload: Record<string, unknown>): void
     ) ||
     !Number.isSafeInteger(payload.inputByteCount) ||
     Number(payload.inputByteCount) < 1 ||
-    Number(payload.inputByteCount) > 131072
+    Number(payload.inputByteCount) > MAX_ROLE_INPUT_BYTES
   )
     throw new TypeError("The role input binding payload is invalid.");
 }
