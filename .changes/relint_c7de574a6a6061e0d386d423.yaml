@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c7de574a6a6061e0d386d423"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Terminal hooks record how their answer was delivered: the context server's answer time, or the closed reason a hook ran in its own process. Repository upgrades activate event schema 13 once every configured reader reads it."

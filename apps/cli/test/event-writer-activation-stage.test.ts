@@ -56,14 +56,14 @@ function ports(overrides: Partial<EventWriterStagePorts> = {}): EventWriterStage
 }
 
 describe("event writer activation stage", () => {
-  it("plans a local-only activation, backs the store up, and applies schema 12", async () => {
+  it("plans a local-only activation, backs the store up, and applies schema 13", async () => {
     const root = await repository();
     const stage = await inspectEventWriterStage(root, ports());
     expect(stage).toMatchObject({
       disposition: "safe_apply",
       reason: "event_writer_activation_ready",
       currentSchemaVersion: 1,
-      targetSchemaVersion: 12,
+      targetSchemaVersion: 13,
       authority: "local",
       blockers: [],
     });
@@ -72,17 +72,17 @@ describe("event writer activation stage", () => {
     const outcome = await applyEventWriterStage(root, stage, ports());
     expect(outcome).toMatchObject({
       status: "activated",
-      receipt: { selectedEventSchemaVersion: 12 },
+      receipt: { selectedEventSchemaVersion: 13 },
       backup: {
-        path: ".lervo/data/event-writer-backups/schema-12",
+        path: ".lervo/data/event-writer-backups/schema-13",
         eventDatabase: "copied",
         coordinate: "absent",
       },
     });
     expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
-      12,
+      13,
     );
-    const backup = resolve(root, ".lervo/data/event-writer-backups/schema-12");
+    const backup = resolve(root, ".lervo/data/event-writer-backups/schema-13");
     expect((await stat(resolve(backup, "events.sqlite"))).mode & 0o777).toBe(0o600);
     const copy = new DatabaseSync(resolve(backup, "events.sqlite"), { readOnly: true });
     try {
@@ -94,11 +94,11 @@ describe("event writer activation stage", () => {
     }
     expect(JSON.parse(await readFile(resolve(backup, "backup.json"), "utf8"))).toMatchObject({
       kind: "event_writer_activation_backup",
-      targetEventSchemaVersion: 12,
+      targetEventSchemaVersion: 13,
     });
     expect(await inspectEventWriterStage(root, ports())).toMatchObject({
       disposition: "current",
-      currentSchemaVersion: 12,
+      currentSchemaVersion: 13,
     });
   });
 

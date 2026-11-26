@@ -117,5 +117,6 @@ export function budgetTerminalStages(
       while (pending.size > 0) await Promise.allSettled([...pending]);
     },
     finalize: (...args) => timing.finalize(...args),
+    delivery: () => timing.delivery?.(),
   };
 }

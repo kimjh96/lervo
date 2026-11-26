@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { runKnowledgeBootstrap } from "./knowledge-bootstrap.js";
 import { runTerminalHookCommand } from "./terminal-hook-command.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
+import { inProcessHookDelivery } from "./terminal-hook-delivery.js";
 import { prefetchTerminalPromptContext } from "./terminal-compact-context.js";
 import { settleTerminalTurns } from "./terminal-turn-settlement-worker.js";
 import { serveTerminalContext } from "./terminal-context-serve.js";
@@ -34,6 +35,8 @@ if (
   await runKnowledgeBootstrap({ root: process.cwd() });
 } else {
   process.env.LERVO_TERMINAL_HOOK_RUNTIME = fileURLToPath(import.meta.url);
+  // Read before the hook runs: why the launcher ran it here instead of the context server.
+  const delivery = inProcessHookDelivery();
   process.exitCode = await runTerminalHookCommand(
     process.argv.slice(2),
     {
@@ -47,7 +50,10 @@ if (
         return Buffer.concat(chunks).toString("utf8");
       },
     },
-    { createTerminalStageObservation },
+    {
+      createTerminalStageObservation: (digest) =>
+        Object.assign(createTerminalStageObservation(digest), { delivery: () => delivery }),
+    },
   );
   // Deadline races cannot cancel every filesystem or child-process handle. Flush the response
   // before ending this short-lived hook process; detached maintenance has its own process.

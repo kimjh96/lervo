@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { hookDeliveryEventSchemaVersion } from "@lervo/event-contract";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { validateSchema, type TerminalHookFailureReason } from "@lervo/schemas";
@@ -45,6 +46,10 @@ async function persistTerminalStageObservation(
   const finalized = input.timing.finalize(input.observationId, input.hookEvent, input.outcome);
   if (finalized === null) return null;
   if (input.failureReason !== undefined) finalized.payload.failureReason = input.failureReason;
+  // How the answer was delivered is a schema-13 field; an older writer records the stages alone.
+  const delivery = input.timing.delivery?.();
+  if (delivery !== undefined && writerVersion >= hookDeliveryEventSchemaVersion)
+    finalized.payload.delivery = delivery;
   if (input.outcome === "failed" && input.failureReason === undefined)
     throw new Error("Failed terminal stages require a closed reason code.");
   const validation = validateSchema("executionStagesObservedEventPayload", finalized.payload);
@@ -70,7 +75,7 @@ async function persistTerminalStageObservation(
       type: "execution.stages.observed",
       occurredAt: new Date().toISOString(),
       actor: { kind: "system" },
-      schemaVersion: 2,
+      schemaVersion: finalized.payload.delivery === undefined ? 2 : hookDeliveryEventSchemaVersion,
       policyVersion: input.policyVersion,
       payload: finalized.payload,
     });
