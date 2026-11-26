@@ -1048,6 +1048,45 @@
         "revision": {
           "type": "integer",
           "minimum": 1
+        },
+        "model": {
+          "title": "AgentModel",
+          "type": "object",
+          "required": [
+            "tier",
+            "effort",
+            "source"
+          ],
+          "properties": {
+            "tier": {
+              "enum": [
+                "frontier",
+                "strong",
+                "balanced",
+                "fast"
+              ]
+            },
+            "effort": {
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ]
+            },
+            "source": {
+              "enum": [
+                "role",
+                "owner"
+              ]
+            },
+            "displayName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
         }
       }
     },
@@ -1108,11 +1147,86 @@
           "items": {
             "$ref": "#/$defs/HireableRole"
           }
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "title": "AgentModelChoice",
+            "type": "object",
+            "required": [
+              "tier",
+              "displayName"
+            ],
+            "properties": {
+              "tier": {
+                "enum": [
+                  "frontier",
+                  "strong",
+                  "balanced",
+                  "fast"
+                ]
+              },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
+          }
         }
       }
     },
     "AgentHireResult": {
       "title": "AgentHireResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentModelResult": {
+      "title": "AgentModelResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentRenameResult": {
+      "title": "AgentRenameResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentStatusResult": {
+      "title": "AgentStatusResult",
       "type": "object",
       "required": [
         "projectId",
@@ -1235,6 +1349,9 @@
             "projects.location",
             "agents.list",
             "agent.hire",
+            "agent.model",
+            "agent.rename",
+            "agent.status",
             "room.join",
             "room.route"
           ]

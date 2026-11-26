@@ -32,12 +32,36 @@ export interface WorkforceAgent {
    * before the field, which the upgrade's origin stage fills.
    */
   origin?: AgentOrigin;
+  /**
+   * The model and effort the agent's sessions run with (ADR-0647): chosen by its role when a team
+   * agent is hired, and changed by the owner. Absent on Lervo's own agents, which run under
+   * Lervo's model routes, and on a team agent hired before the field, whose role then decides.
+   */
+  model?: AgentModel;
   revision: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export type AgentOrigin = "team" | "lervo";
+
+/**
+ * How capable a model an agent runs on, in the provider's own line-up: its most capable, a strong
+ * one, a balanced one, or a fast one. The provider's adapter names the model of each tier.
+ */
+export const modelTiers = ["frontier", "strong", "balanced", "fast"] as const;
+export type ModelTier = (typeof modelTiers)[number];
+
+/** How much the model thinks and works before it answers, lowest first. */
+export const modelEfforts = ["low", "medium", "high", "xhigh", "max"] as const;
+export type ModelEffort = (typeof modelEfforts)[number];
+
+export interface AgentModel {
+  tier: ModelTier;
+  effort: ModelEffort;
+  /** `role` while the role's default stands, `owner` once the owner chose. */
+  source: "role" | "owner";
+}
 
 export interface WorkforceCapabilityPackage {
   capabilityId: string;

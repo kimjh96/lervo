@@ -30,7 +30,7 @@ Agents work together by mentioning each other directly, by role and by what each
 
 ## The ADE
 
-- **The sidebar.** Below the project switcher, "Agents" lists the selected project's team agents, each with its round mark, name, and role, in the order they were hired. A thin ring around an agent's mark shows its status: blue and breathing while one of its conversations works, amber and still while one needs the owner. Lervo's own agents do not show; one that stops or needs the owner surfaces through Lervo's health and attention reports. "Conversations" follows with the project's workspaces; its heading shows only over rows, so no heading stands over nothing. The agents show once the project's first list is known, and switching projects keeps the shown list until the next one arrives, then crossfades it (ADE craft rules, 13). The list reloads with the workspace lists, on every connection and after each change.
+- **The sidebar.** Below the project switcher, "Agents" lists the selected project's team agents, each with its round mark, name, and role, in the order they were hired. A thin ring around an agent's mark shows its status: blue and breathing while one of its conversations works, amber and still while one needs the owner. Lervo's own agents do not show; one that stops or needs the owner surfaces through Lervo's health and attention reports. "Conversations" follows with the project's workspaces; its heading shows only over rows, so no heading stands over nothing. The agents show once the project's first list is known, and switching projects keeps the shown list until the next one arrives, then crossfades it (ADE craft rules, 13). The list reloads with the workspace lists, on every connection and after each change. When the project's list first arrives, the agents open their space as they fade in, together with the "Conversations" heading, so the rows below slide once (ADE motion, "Space").
 - **Hiring.** The plus beside "Agents" opens the interface's own menu directly below it (ADE craft rules, 10 and 15): each hireable role with one line on what it does, and "This Project" beside a repository role. A built-in role's line is a short summary in the ADE's message catalog; a project's own role shows the first sentence of its description. Choosing a role hires at once; the new agent appears in the list. Writing or changing roles is asked of the product owner or Lervo in a conversation, not edited in a form.
 - **No agents yet.** A project without team agents shows one quiet row, "Hire a Product Owner", which hires one. It is offered, never required: the start card proposes a Product Owner anyway (ADR-0646).
 - **Arrival.** An agent hired while the person watches arrives with the space it takes (ADE motion, principle 12); the agents of a project's first list are already there.
@@ -44,6 +44,16 @@ Agents work together by mentioning each other directly, by role and by what each
 - `workspace.list` reports each conversation's `agentId` and `participants`.
 - The conversation's header shows the participants' marks, the writing agent first. An agent in the sidebar shows the status of the conversations whose session is its own: needs the owner when any does, working when any works.
 - When the speaking agent changes, its mark, name, and role precede its turn; collaboration records, such as context passed between agents or paths claimed, show as quiet lines. These arrive with S2g, when more than one agent speaks in a conversation ([Lervo ADE rooms](ade-rooms.md)).
+
+## Model and effort
+
+- Each team agent runs on a model and at an effort its role chose when it was hired, and the owner can change both ([ADR-0647](../../../decisions/execution/orchestration/0647-choose-each-agents-model-and-effort-by-its-role.md)). The product owner starts on the strong model (Opus) at high effort, a developer on the strong model at extra-high effort, and a writer on the balanced model (Sonnet) at medium effort.
+- `agents.list` reports each team agent's `model`: `tier`, `effort`, `source` (`role` or `owner`), and `displayName`, the provider's name for the tier's model. Lervo's own agents report none.
+- `agent.model` (`projectId`, `agentId`, `revision`, `tier`, `effort`) sets them, as `lervo agent model` does, and returns the agent in the `agents.list` shape. The agent's next session runs with them; a running session keeps its model.
+- `agents.list` also reports `models`, the provider's model for each tier with its name, most capable first, which the profile offers.
+- `agent.rename` (`projectId`, `agentId`, `revision`, `name`) renames an agent in place, as `lervo agent rename` does, and records the existing `agent.identity.changed` event.
+- `agent.status` (`projectId`, `agentId`, `revision`, `status`) pauses an agent (`suspended`) or lets it work again (`active`), as `lervo agent status` does. Retiring cannot be undone, so it stays a terminal command (invariant 10), and the core link refuses `retired` with `agent_argument_invalid`.
+- The agent's profile (slice 3) shows the model and effort and changes them.
 
 ## State, events, privacy, and failure meaning
 

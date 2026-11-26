@@ -41,6 +41,12 @@
   animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
+/* Glass arrives without fading, so its backdrop blur shows from the first frame; the content it
+   holds fades in on its own (ADE craft rules, 14). */
+.layer[data-enter][data-arrival="rise"]:not([data-leaving]) {
+  animation: global(lervo-rise) var(--motion-duration-change) var(--motion-easing-standard);
+}
+
 /* Leaving eases in and out, so the content never drops out at the end of its fade. */
 .layer[data-leaving] {
   pointer-events: none;
@@ -56,7 +62,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .layer[data-enter]:not([data-leaving]) {
+  .layer[data-enter]:not([data-leaving]),
+  .layer[data-enter][data-arrival="rise"]:not([data-leaving]) {
     animation: none;
   }
 

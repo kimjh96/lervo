@@ -73,16 +73,21 @@ export function attachedFiles(text: string): { text: string; paths: string[] } {
   return { text: text.slice(0, match.index), paths };
 }
 
-/** A file's size as the chip shows it, such as `84 KB` or `1.2 MB`. */
-export function fileSize(bytes: number): string {
-  if (bytes < 1000) return `${bytes} B`;
-  const units = ["KB", "MB", "GB", "TB"];
+/** The units a file's size shows in, smallest first. */
+export type SizeUnit = "B" | "KB" | "MB" | "GB" | "TB";
+
+/**
+ * A file's size as the chip shows it: the value in the largest unit under 1000, with one decimal
+ * below 10, such as 84 KB or 1.2 MB. The view formats the number for the locale.
+ */
+export function fileSize(bytes: number): { value: number; unit: SizeUnit; decimals: number } {
+  if (bytes < 1000) return { value: bytes, unit: "B", decimals: 0 };
+  const units: SizeUnit[] = ["KB", "MB", "GB", "TB"];
   let value = bytes / 1000;
   let unit = 0;
   while (value >= 1000 && unit < units.length - 1) {
     value /= 1000;
     unit += 1;
   }
-  const shown = value < 10 ? value.toFixed(1).replace(/\.0$/, "") : Math.round(value).toString();
-  return `${shown} ${units[unit]}`;
+  return { value, unit: units[unit] ?? "TB", decimals: value < 10 ? 1 : 0 };
 }

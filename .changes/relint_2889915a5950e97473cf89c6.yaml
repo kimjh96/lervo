@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2889915a5950e97473cf89c6"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Agents mention each other in a conversation: when an agent's turn ends, the core delivers a turn to each team agent it mentions, returns answers, pauses at the exchange budget, and tells each agent session who it works with."

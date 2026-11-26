@@ -64,7 +64,7 @@ The resident core decodes every hosted session's output, so it sees each turn en
 - **The owner's turn.** `room.route` (`workspaceId`, `text`) answers the agent IDs the turn goes to, in order: the mentioned agents, or the lead. The ADE sends the turn to each through `session.send`, as it sends one today, joining first where needed.
 - **Echoes.** A delivered turn reaches the recipient's stream as its user message. The core's decoder for that session knows the delivery it encoded and decodes the echo as a `peer_message` whose `from` is the mentioning agent's display name, never as the owner's message.
 - **Room lines.** The core adds `lervo_notice` items to the conversation for what the room does:
-  - `room_joined`, with the agent and who mentioned it;
+  - `room_joined`, with the agent and the agent who mentioned it. An owner's own mention adds no line: the header gains the agent's mark and its speaker line introduces it, so a line would only repeat what the owner just did;
   - `room_paused`, with the turn count and limit;
   - `room_delivery_failed`, with the agent and a code.
 - **Advertising.** The core advertises `room.route`, `room.join`, and `decoder.deliveries`. The session host and the ADE use none of them with a core that does not, and an older ADE sees one-agent conversations as before.

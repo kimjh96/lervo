@@ -51,13 +51,15 @@ function ports(overrides: Partial<TerminalCachedBasePorts> = {}) {
     manifest: { projectId: "prj_cached_base_01" },
     events: {
       transact: (work: (transaction: { append: typeof append }) => void) => work({ append }),
+      get: (eventId: string) =>
+        append.mock.calls.some(([event]) => event.eventId === eventId) ? {} : null,
     },
     close: vi.fn(async () => undefined),
   };
   const value: TerminalCachedBasePorts = {
     roots: async () => ({ evidenceRoot: "/repository", executionRoot: "/repository" }),
     claimed: async () => false,
-    prepare: vi.fn(async () => lines),
+    prepare: vi.fn(async () => ({ lines, abandoned: false })),
     openStorage: async () => storage as never,
     ...overrides,
   };
@@ -112,10 +114,20 @@ it("keeps no base for a checkout a workspace claims, and removes one found there
 it("writes no base when the owner rules did not load, so the next prompt retries", async () => {
   const path = await store();
   const { value } = ports({
-    prepare: async () => ["Read AGENTS.md.", "Repository publication policy: en."],
+    prepare: vi.fn(async () => ({
+      lines: ["Read AGENTS.md.", "Repository publication policy: en."],
+      abandoned: false,
+    })),
   });
   expect((await keep(path, value)).refreshed).toBe(false);
-  expect(await readdir(resolve(path, "base"))).toEqual([]);
+  expect((await readdir(resolve(path, "base"))).filter((name) => name.endsWith(".json"))).toEqual(
+    [],
+  );
+  // A store too slow for a base waits five minutes before the next attempt.
+  await keep(path, value);
+  expect(value.prepare).toHaveBeenCalledTimes(1);
+  await keep(path, value, () => Date.now() + 5 * 60_000 + 1000);
+  expect(value.prepare).toHaveBeenCalledTimes(2);
 });
 
 it("refreshes the base even when the store cannot record deliveries", async () => {
@@ -133,6 +145,30 @@ it("refreshes the base even when the store cannot record deliveries", async () =
     },
   });
   expect(await keep(path, value)).toEqual({ recorded: 0, refreshed: true, settled: true });
+  // The delivery waits for a store that can record it, and is then recorded once.
+  const { value: later, append } = ports();
+  await rm(resolve(directory, `${key}.json`));
+  expect((await keep(path, later)).recorded).toBe(1);
+  expect(append).toHaveBeenCalledTimes(1);
+});
+
+it("never records a delivery twice when its marker survived", async () => {
+  const path = await store();
+  const directory = resolve(path, "base");
+  await mkdir(directory, { recursive: true });
+  const key = terminalCachedBaseKey("/repository", args, environment);
+  const marker = resolve(directory, `${key}.${Date.now()}.41.unserved`);
+  const content = '{"reason":"no_server","age":5}';
+  await writeFile(marker, content);
+  const { value, append } = ports();
+  expect((await keep(path, value)).recorded).toBe(1);
+  const id = (append.mock.calls[0]![0] as { eventId: string }).eventId.slice("evt_".length);
+  expect(id).toMatch(/^[a-f0-9]{32}$/u);
+  // As if removing it had failed after the record: the marker still names its identity.
+  await writeFile(marker, JSON.stringify({ ...JSON.parse(content), id }));
+  await rm(resolve(directory, `${key}.json`));
+  expect((await keep(path, value)).recorded).toBe(0);
+  expect(append).toHaveBeenCalledTimes(1);
 });
 
 it("leaves a marker the launcher may still be writing, and sweeps day-old files", async () => {
@@ -250,10 +286,7 @@ it("caps the cached context like any compact context", () => {
 it("reports work it left running when preparation reached its deadline", async () => {
   const path = await store();
   const { value } = ports({
-    prepare: async (_evidence, _execution, deadline) => {
-      while (performance.now() <= deadline) await new Promise((done) => setTimeout(done, 20));
-      return ["Read AGENTS.md."];
-    },
+    prepare: async () => ({ lines: ["Read AGENTS.md."], abandoned: true }),
   });
   expect(await keep(path, value)).toEqual({ recorded: 0, refreshed: false, settled: false });
 });
