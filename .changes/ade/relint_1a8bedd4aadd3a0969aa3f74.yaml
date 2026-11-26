@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1a8bedd4aadd3a0969aa3f74"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Conversations can show when Lervo stopped a write because another agent holds the path, naming the holder and opening its conversation."
