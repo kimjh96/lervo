@@ -84,7 +84,10 @@ export function commandAnswer(
     case "agent.hire":
     case "agent.model":
     case "agent.rename":
-    case "agent.status": {
+    case "agent.status":
+    case "agent.mark.set":
+    case "agent.mark.clear":
+    case "agent.mark.read": {
       const run = handlers.runAgentCommand;
       return optional(
         run && ((args) => run(command, args)),

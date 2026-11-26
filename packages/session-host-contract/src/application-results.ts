@@ -32,6 +32,12 @@ import {
   agentRenameResultSchema,
   type AgentStatusResult,
   agentStatusResultSchema,
+  type AgentMarkSetResult,
+  agentMarkSetResultSchema,
+  type AgentMarkClearResult,
+  agentMarkClearResultSchema,
+  type AgentMarkReadResult,
+  agentMarkReadResultSchema,
   type AgentsListResult,
   agentsListResultSchema,
 } from "./application-agent-results.js";
@@ -70,6 +76,9 @@ export const applicationCommandNames = [
   "agent.model",
   "agent.rename",
   "agent.status",
+  "agent.mark.set",
+  "agent.mark.clear",
+  "agent.mark.read",
   "room.join",
   "room.route",
 ] as const;
@@ -317,6 +326,9 @@ export const applicationResultSchemas = {
   "agent.model": agentModelResultSchema,
   "agent.rename": agentRenameResultSchema,
   "agent.status": agentStatusResultSchema,
+  "agent.mark.set": agentMarkSetResultSchema,
+  "agent.mark.clear": agentMarkClearResultSchema,
+  "agent.mark.read": agentMarkReadResultSchema,
   "room.join": roomJoinResultSchema,
   "room.route": roomRouteResultSchema,
 } as const;
@@ -352,6 +364,9 @@ export interface ApplicationResults {
   "agent.model": AgentModelResult;
   "agent.rename": AgentRenameResult;
   "agent.status": AgentStatusResult;
+  "agent.mark.set": AgentMarkSetResult;
+  "agent.mark.clear": AgentMarkClearResult;
+  "agent.mark.read": AgentMarkReadResult;
   "room.join": RoomJoinResult;
   "room.route": RoomRouteResult;
 }

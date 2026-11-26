@@ -40,3 +40,8 @@ export function useProjectDependencies(): ProjectDependencies {
     choosers: useChoosers(),
   };
 }
+
+/** A mark's kept thumbnail as a data URL, by its image's hash, or null until it is kept. */
+export function useMarkThumbnail(sha256: string | undefined): string | null {
+  return useProjectStore((store) => (sha256 === undefined ? null : (store.marks[sha256] ?? null)));
+}

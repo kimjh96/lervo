@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -19,6 +20,7 @@ import { agentContextUsage, runAgentContextCommand } from "./agent-context-comma
 import { agentMandateUsage, runAgentMandateCommand } from "./agent-mandate-command.js";
 import { agentLivenessUsage, runAgentLivenessCommand } from "./agent-liveness-command.js";
 import { hireAgent } from "./agent-hire.js";
+import { clearAgentMark, setAgentMark } from "./core-link-agent-marks.js";
 import type { CliIo } from "./types.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
@@ -29,6 +31,7 @@ export const agentUsage = [
   "  lervo agent rename --agent <agent-id> --name <display-name> --revision <n> --write [--root <path>] [--json]",
   "  lervo agent role --agent <agent-id> --role <role-id> --revision <n> --write [--root <path>] [--json]",
   "  lervo agent model --agent <agent-id> --tier <frontier|strong|balanced|fast> --effort <low|medium|high|xhigh|max> --revision <n> --write [--root <path>] [--json]",
+  "  lervo agent mark --agent <agent-id> (--image <file> | --clear) --revision <n> --write [--root <path>] [--json]",
   agentLivenessUsage,
   agentContextUsage,
   agentMandateUsage,
@@ -79,6 +82,8 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       agent: { type: "string" },
       status: { type: "string" },
       revision: { type: "string" },
+      image: { type: "string" },
+      clear: { type: "boolean" },
     },
   });
   if (parsed.values.help) {
@@ -200,6 +205,36 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       agent,
       parsed.values.json,
       `${agent.displayName} now runs on the ${tier} model at ${effort} effort.`,
+    );
+    return 0;
+  }
+  if (action === "mark") {
+    const image = parsed.values.image;
+    if (
+      !parsed.values.write ||
+      parsed.values.agent === undefined ||
+      (image === undefined) === (parsed.values.clear !== true)
+    )
+      throw new Error(
+        "Agent mark requires exact identity, either --image or --clear, revision, and --write.",
+      );
+    const expectedRevision = revision(parsed.values.revision);
+    const agent =
+      image === undefined
+        ? await clearAgentMark(root, parsed.values.agent, expectedRevision)
+        : await setAgentMark(
+            root,
+            parsed.values.agent,
+            expectedRevision,
+            (await readFile(resolve(io.cwd, image))).toString("base64"),
+          );
+    output(
+      io,
+      agent,
+      parsed.values.json,
+      image === undefined
+        ? `${agent.displayName} shows its first letter again.`
+        : `${agent.displayName} now shows the chosen image.`,
     );
     return 0;
   }
