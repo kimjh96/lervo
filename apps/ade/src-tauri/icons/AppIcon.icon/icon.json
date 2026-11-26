@@ -1,0 +1,54 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "srgb:0.17255,0.21569,0.32941,1.00000",
+      "srgb:0.08235,0.10196,0.15294,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "name": "mark",
+      "layers": [
+        {
+          "name": "bar3",
+          "image-name": "bar3.svg",
+          "glass": false,
+          "fill": {
+            "solid": "srgb:0.54118,0.69020,1.00000,1.00000"
+          },
+          "opacity": 1.0
+        },
+        {
+          "name": "bar2",
+          "image-name": "bar2.svg",
+          "glass": false,
+          "fill": {
+            "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+          },
+          "opacity": 0.86
+        },
+        {
+          "name": "bar1",
+          "image-name": "bar1.svg",
+          "glass": false,
+          "fill": {
+            "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+          },
+          "opacity": 0.62
+        }
+      ],
+      "lighting": "combined",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.35
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}
