@@ -1,4 +1,5 @@
 import {
+  answersQuestions,
   interruptsTurns,
   reportsUsage,
   sendsImages,
@@ -57,10 +58,14 @@ export class CoreLinkServer {
     this.usage = new TurnUsageQueue((sessionId, accounting, usage) =>
       this.handlers.recordTurnUsage(sessionId, accounting, usage),
     );
-    this.rooms = new RoomLink(handlers.loadRoomContext, (task) => {
-      this.pending.add(task);
-      void task.finally(() => this.pending.delete(task));
-    });
+    this.rooms = new RoomLink(
+      handlers.loadRoomContext,
+      (task) => {
+        this.pending.add(task);
+        void task.finally(() => this.pending.delete(task));
+      },
+      handlers.pendingStarts,
+    );
   }
 
   /** Serves until the input ends or a malformed line arrives, then lets running commands finish. */
@@ -296,6 +301,22 @@ export class CoreLinkServer {
       this.decoded(request.id, shown, Buffer.from(sent.input).toString("base64"));
       return;
     }
+    if (request.kind === "decoder.answer") {
+      if (!answersQuestions(decoder)) {
+        this.fail(request.id, { code: "questions_unsupported" });
+        return;
+      }
+      const answered = decoder.answer(
+        request.requestId as string,
+        request.answers as Record<string, string>,
+      );
+      if (answered.input.length === 0) {
+        this.fail(request.id, { code: "question_not_open" });
+        return;
+      }
+      this.decoded(request.id, answered.events, Buffer.from(answered.input).toString("base64"));
+      return;
+    }
     if (request.kind === "decoder.interrupt") {
       if (!interruptsTurns(decoder)) {
         this.fail(request.id, { code: "interrupt_unsupported" });
@@ -310,7 +331,13 @@ export class CoreLinkServer {
       this.decoderSessions.get(decoderId),
       decoder.output(Buffer.from(request.data as string, "base64")),
     );
-    this.decoded(request.id, routed.events, undefined, routed.deliveries);
+    const replies = answersQuestions(decoder) ? decoder.takeReplies() : new Uint8Array();
+    this.decoded(
+      request.id,
+      routed.events,
+      replies.length === 0 ? undefined : Buffer.from(replies).toString("base64"),
+      routed.deliveries,
+    );
     // Usage leaves the decoder after the events are answered: to the queue for a named session,
     // and held, bounded, for one the session host has not named yet.
     if (!reportsUsage(decoder)) return;

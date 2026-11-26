@@ -18,8 +18,10 @@ import {
 } from "./hosted-session-settings.js";
 import { hostedTerminalHooks, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import { mentionedAgents } from "./room-mentions.js";
+import { dropPendingStart, pendingStart, pendingStartsPath } from "./room-starts.js";
 import { locateWorkspaceSession, recordEvents, recordLaunch } from "./workspace-launch-service.js";
 import { teamAgents, withAgentEnvironment } from "./workspace-participants.js";
+import { agentLaunchModel } from "./agent-launch-model.js";
 
 const AGENT_ID = /^agt_[a-f0-9]{24}$/u;
 
@@ -34,6 +36,8 @@ export interface RoomJoinResult {
   transcript: boolean;
   launch: HostedLaunch;
   hostedEvents: HostedSessionEventOutcome | "unavailable";
+  /** The conversation's own session: the lead of a conversation it started, opening now. */
+  lead?: true;
 }
 
 function stringArgument(arguments_: Record<string, unknown>, name: string): string {
@@ -81,9 +85,14 @@ export async function joinWorkspaceRoom(
         "This provider cannot run a session with read access.",
       );
   }
-  const resume = own !== undefined && adapter.capabilities.resume;
+  // The lead of a conversation it started opens its prepared session from the delivered turn.
+  const starting =
+    own !== undefined && own.access === undefined
+      ? await pendingStart(pendingStartsPath(), workspaceId, agentId)
+      : null;
+  const resume = starting === null && own !== undefined && adapter.capabilities.resume;
   const access = own === undefined || own.access === "read" ? "read" : "write";
-  const sessionId = resume ? own.sessionId : randomUUID();
+  const sessionId = resume || starting !== null ? own!.sessionId : randomUUID();
   const start = resume
     ? ({ kind: "resume" } as const)
     : ({ kind: "new", instruction: stringArgument(arguments_, "instruction") } as const);
@@ -94,14 +103,18 @@ export async function joinWorkspaceRoom(
     sessionHooks === undefined || terminal === undefined
       ? sessionHooks
       : { ...sessionHooks, terminal };
+  const chosen = await agentLaunchModel(repositoryRoot, agentId, adapter);
   const launch = withAgentEnvironment(
     adapter.prepareLaunch({
       sessionId,
       mode: "native",
       workingDirectory,
+      ...chosen,
       start,
       ...(hooks === undefined ? {} : { hooks }),
       ...(access === "read" ? { access } : {}),
+      // A joined agent asks as the conversation's lead does.
+      ...(previous.questions === true ? { questions: true } : {}),
     }),
     agentId,
   );
@@ -109,10 +122,11 @@ export async function joinWorkspaceRoom(
   const written =
     terminal === undefined ? undefined : writtenTerminalHooks(terminal, launch.settingsFile);
   // Only the lead's record names the participants the conversation started with.
-  const { terminalHooks: _leadTerminal, participants, ...lead } = previous;
+  const { terminalHooks: _leadTerminal, participants, startedBy, ...lead } = previous;
   const record: HostedLaunchRecord = {
     ...lead,
     ...(access === "write" && participants !== undefined ? { participants } : {}),
+    ...(access === "write" && startedBy !== undefined ? { startedBy } : {}),
     ...(written === undefined ? {} : { terminalHooks: written }),
     sessionId,
     agentId,
@@ -123,6 +137,7 @@ export async function joinWorkspaceRoom(
     preparedAt: new Date().toISOString(),
   };
   await recordLaunch(record);
+  if (starting !== null) await dropPendingStart(pendingStartsPath(), workspaceId, agentId);
   const hostedEvents = await recordEvents(repositoryRoot, [launchPreparedEvent(record)]);
   return {
     schemaVersion: 1,
@@ -137,6 +152,7 @@ export async function joinWorkspaceRoom(
     transcript: false,
     launch,
     hostedEvents,
+    ...(starting === null ? {} : { lead: true as const }),
   };
 }
 

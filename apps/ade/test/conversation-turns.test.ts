@@ -52,6 +52,31 @@ describe("turns in the conversation", () => {
     expect(turnEnds([user("u1", 1)], false).size).toBe(0);
   });
 
+  it("keeps the answer to a question with choices within the turn that asked it", () => {
+    const asked: ConversationItem = {
+      kind: "question",
+      itemId: "q1",
+      createdAtMs: 2_000,
+      state: "complete",
+      text: "Which color?",
+      choices: {
+        requestId: "req_1",
+        questions: [
+          {
+            question: "Which color?",
+            header: "Color",
+            multiSelect: false,
+            options: [{ label: "Blue", description: "" }],
+          },
+        ],
+      },
+    };
+    const items = [user("u1", 1_000), asked, user("Blue", 3_000), agent("a1", 4_000)];
+    expect([...turnEnds(items, false).entries()]).toEqual([
+      [3, { turn: "u1", elapsedMs: 3_000, window: { startedAtMs: 1_000 } }],
+    ]);
+  });
+
   it("keeps a reply sent while the agent worked queued until the agent's next item", () => {
     const sent = [user("u1", 1_000), agent("a1", 2_000), user("u2", 3_000)];
     expect([...queuedReplies(sent, 2_500)]).toEqual(["u2"]);

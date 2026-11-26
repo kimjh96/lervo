@@ -51,6 +51,18 @@ The writer settles a turn that no Stop hook closed while the writer selects sche
 - **Assessment.** The turn is queued for its skill assessment, as a Stop-observed turn is, so the practice-usage projection counts it.
 - Below writer schema 12, no request is written, and the next prompt replaces the marker as before.
 
+### Owner rules prepared for a turn (schema 15)
+
+Schema 15 lets `terminal.context.prepared` say how many owner rules Lervo prepared for the turn, so the ADE's turn summary can name them. The payload gains one optional object, `appliedInstructions`, which copies three fields of the turn's instruction preparation report (`instructionPreparationReport`):
+
+- `status`: `complete`, `incomplete`, or `unavailable`, as in the report.
+- `preparedCount`: the owner rules whose full text the context carried, an integer from 0 to 256.
+- `omittedCount`: the applicable or unresolved rules that did not fit the context's byte budget, an integer from 0 to 4,096, or null. All three fields are required. `omittedCount` is null exactly when the status is `unavailable`, as in the report, rather than absent, so an unknown count has one form.
+
+The screen also enforces the report's own consistency: an `unavailable` status has `preparedCount: 0` and a null `omittedCount`, and a `complete` status has `omittedCount: 0`. The object holds no rule ID, path, or text, and any other key fails the payload. Today's report caps each count at 64; the wider bounds let that cap grow without another reader release.
+
+These counts say what Lervo prepared, never that the provider received or followed a rule, because provider injection stays `unobserved` and use stays `unknown`. Readers must say "prepared", never "applied" or "delivered". Below schema 15, the envelope refuses `appliedInstructions`, because the payload schema itself ignores the envelope version. Readers ship first: no writer records the object yet, and the writer target stays at 14.
+
 `terminal.turn.declared` retains an opaque declaration and context ID, exact repository revision, task mode, canonicalization and knowledge dispositions, deliberation disposition, optional completed-deliberation ID, and time.
 
 These terminal events exclude prompts, retrieval-query text, bodies, final responses, transcripts, summaries, raw coordinates, configuration, secrets, and absolute paths. Agent declarations do not prove internal reasoning.

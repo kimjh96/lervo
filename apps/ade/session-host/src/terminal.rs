@@ -167,6 +167,11 @@ impl Terminal {
                 &request,
                 RequestFailedMessageCode::InterruptUnsupported,
             )),
+            // The terminal asks its questions in the terminal, so nothing waits for choices.
+            Command::Answer { request, reply, .. } => reply.send(messages::failed(
+                &request,
+                RequestFailedMessageCode::QuestionNotOpen,
+            )),
             // The CLI conversation has no items; the terminal carries it.
             Command::Range(range) => range.reply.send(messages::page(
                 &range.request,

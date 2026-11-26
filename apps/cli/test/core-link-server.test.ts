@@ -80,6 +80,7 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
       sessionId === elioSession
         ? {
             workspaceId: started.workspaceId,
+            projectId: started.projectId,
             agentId: "agt_elio",
             team: [
               { agentId: "agt_elio", displayName: "Elio", roleName: "Product Owner" },
@@ -383,6 +384,76 @@ describe("the core-link server", () => {
       ]),
     );
     expect(refused[1]).toMatchObject({ kind: "core.failed", id: 2, code: "interrupt_unsupported" });
+  });
+
+  it("shows a question with choices, answers it once, and writes the decoder's own answers", async () => {
+    const line = (value: object) => Buffer.from(`${JSON.stringify(value)}\n`).toString("base64");
+    const asked = line({
+      type: "control_request",
+      request_id: "req_1",
+      request: {
+        subtype: "can_use_tool",
+        tool_name: "AskUserQuestion",
+        input: {
+          questions: [
+            {
+              question: "Which color?",
+              header: "Color",
+              multiSelect: false,
+              options: [
+                { label: "Red", description: "" },
+                { label: "Blue", description: "" },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const tool = line({
+      type: "control_request",
+      request_id: "req_2",
+      request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "ls" } },
+    });
+    const { written } = await serve([
+      { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+      { kind: "decoder.output", id: 2, decoderId: "dec_1", data: asked },
+      { kind: "decoder.output", id: 3, decoderId: "dec_1", data: tool },
+      {
+        kind: "decoder.answer",
+        id: 4,
+        decoderId: "dec_1",
+        requestId: "req_1",
+        answers: { "Which color?": "Blue" },
+      },
+      {
+        kind: "decoder.answer",
+        id: 5,
+        decoderId: "dec_1",
+        requestId: "req_1",
+        answers: { "Which color?": "Red" },
+      },
+    ]);
+    const response = (id: number) => written.find((entry) => entry.id === id);
+    const sent = (id: number) =>
+      Buffer.from(String(response(id)?.input), "base64").toString("utf8");
+    expect(written.every((entry) => validResponse(entry))).toBe(true);
+    expect(response(2)).toMatchObject({
+      events: [
+        { kind: "item", content: { kind: "question", choices: { requestId: "req_1" } } },
+        { kind: "status", event: "question_asked" },
+      ],
+    });
+    expect(response(2)?.input).toBeUndefined();
+    expect(JSON.parse(sent(3))).toMatchObject({
+      response: { request_id: "req_2", response: { behavior: "allow" } },
+    });
+    expect(JSON.parse(sent(4))).toMatchObject({
+      response: {
+        request_id: "req_1",
+        response: { updatedInput: { answers: { "Which color?": "Blue" } } },
+      },
+    });
+    expect(response(5)).toMatchObject({ kind: "core.failed", code: "question_not_open" });
   });
 
   it("writes images into the user's message, or answers images_unsupported", async () => {

@@ -14,6 +14,10 @@ import {
   scanRepositoryKnowledge,
   sha256,
 } from "../src/index.js";
+import {
+  providerSurfaceImports,
+  providerSurfaceRoleAt,
+} from "../src/provider-surface-descriptors.js";
 
 const roots: string[] = [];
 
@@ -246,5 +250,18 @@ describe("repository agent artifact profiles", () => {
 
     await applyKnowledgeMigrationPlan(second, new Date("2026-08-23T00:00:00Z"), () => undefined);
     expect(await lintRepositoryKnowledge(root)).toMatchObject({ valid: true, issues: [] });
+  });
+});
+
+describe("root provider instruction surfaces", () => {
+  it("name each root surface's role once, for the profile and for imports alike", () => {
+    expect(providerSurfaceRoleAt("AGENTS.md")).toBe("canonical_agent_instruction");
+    expect(providerSurfaceRoleAt("CLAUDE.md")).toBe("provider_instruction_bridge");
+    expect(providerSurfaceRoleAt("sub/AGENTS.md")).toBeNull();
+    const content = "See @AGENTS.md and @CLAUDE.md, not @AGENTSXmd, @AGENTS.mdx, or @README.md.";
+    expect(providerSurfaceImports(content)).toEqual(
+      content.match(/@(?:AGENTS|CLAUDE)\.md\b/gu) ?? [],
+    );
+    expect(providerSurfaceImports(content)).toEqual(["@AGENTS.md", "@CLAUDE.md"]);
   });
 });

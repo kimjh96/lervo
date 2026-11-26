@@ -24,6 +24,13 @@
   border-radius: var(--radius-mark-md);
 }
 
+.mark[data-size="lg"] {
+  width: var(--size-mark-lg);
+  height: var(--size-mark-lg);
+  font-size: var(--type-title-size);
+  border-radius: var(--radius-mark-lg);
+}
+
 .mark[data-shape="round"] {
   border-radius: var(--radius-full);
 }

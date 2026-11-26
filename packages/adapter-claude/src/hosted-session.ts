@@ -3,6 +3,7 @@ import {
   type HostedStreamDecoding,
   type HostedLaunch,
   type HostedLaunchIntent,
+  type HostedModels,
   type HostedSessionAdapter,
   type HostedSessionCapabilities,
   type HostedTerminalHooks,
@@ -54,6 +55,7 @@ export const claudeHostedCapabilities: HostedSessionCapabilities = {
   systemPromptFile: false,
   resume: true,
   readAccess: true,
+  questions: true,
 };
 
 /**
@@ -113,6 +115,17 @@ const TERMINAL_HOOK_TIMEOUT_SECONDS = 30;
 const CLAIM_HOOK_TIMEOUT_SECONDS = 10;
 
 /**
+ * Claude Code's model aliases by tier. An alias always names the latest model of its line, so a
+ * new model needs no change here (`claude --help`, 2026-11-27).
+ */
+export const claudeHostedModels: HostedModels = {
+  frontier: { model: "fable", displayName: "Fable" },
+  strong: { model: "opus", displayName: "Opus" },
+  balanced: { model: "sonnet", displayName: "Sonnet" },
+  fast: { model: "haiku", displayName: "Haiku" },
+};
+
+/**
  * The session-scoped settings: Lervo's handler for the session's start and end, which prints
  * nothing because Claude Code adds a `SessionStart` handler's output to the model's context. With
  * `terminal`, Lervo's terminal hooks join for the events the project's settings lack, and their
@@ -149,6 +162,7 @@ export function createClaudeHostedSessionAdapter(
     provider: "claude",
     displayName: "Claude Code",
     capabilities: claudeHostedCapabilities,
+    models: claudeHostedModels,
     writeIntent: claudeWriteIntent,
     claimAnswer: claudeClaimAnswer,
     signInState: (environment) => claudeSignInState(executable, environment),
@@ -158,7 +172,10 @@ export function createClaudeHostedSessionAdapter(
         intent.start.kind === "new"
           ? ["--session-id", intent.sessionId]
           : ["--resume", intent.sessionId];
-      const model = intent.model === undefined ? [] : ["--model", intent.model];
+      const model = [
+        ...(intent.model === undefined ? [] : ["--model", intent.model]),
+        ...(intent.effort === undefined ? [] : ["--effort", intent.effort]),
+      ];
       const instruction = intent.start.kind === "new" ? intent.start.instruction : null;
       const native = intent.mode === "native";
       const settings = intent.hooks === undefined ? [] : ["--settings", intent.hooks.settingsPath];
@@ -170,6 +187,9 @@ export function createClaudeHostedSessionAdapter(
           : native
             ? ["--permission-mode", CLAUDE_HOSTED_PERMISSION_MODE]
             : [];
+      // Asked to, Claude Code sends its questions with choices through the stream, and the
+      // decoder answers them, and allows the tools a bypassed session never asks about.
+      const questions = intent.questions === true ? ["--permission-prompt-tool", "stdio"] : [];
       return {
         program: executable,
         arguments: native
@@ -183,6 +203,7 @@ export function createClaudeHostedSessionAdapter(
               "--include-partial-messages",
               "--replay-user-messages",
               ...access,
+              ...questions,
               ...session,
               ...model,
               ...settings,

@@ -78,6 +78,14 @@ pub(crate) enum Command {
         request: Identifier,
         reply: Reply,
     },
+    /// Answers the agent's question with choices (Lervo ADE sessions, "Questions").
+    Answer {
+        request: Identifier,
+        /// The question's `choices.requestId`.
+        question: String,
+        answers: BTreeMap<String, String>,
+        reply: Reply,
+    },
     Range(Range),
     Stop,
     /// Ends an ended session's retention early, so its actor exits and its memory returns.
@@ -236,6 +244,16 @@ impl Fanout {
         if alive {
             self.subscribers.push(subscriber);
         }
+    }
+
+    /// Whether a client shows the session now, its conversation or its terminal.
+    pub(crate) fn attended(&self) -> bool {
+        !self.subscribers.is_empty()
+    }
+
+    /// Whether the agent waits for the person, as a question does.
+    pub(crate) fn needs_user(&self) -> bool {
+        self.status == SessionStatus::NeedsUser
     }
 
     pub(crate) fn detach(&mut self, connection: u64) {

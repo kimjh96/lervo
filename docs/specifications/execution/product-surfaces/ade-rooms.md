@@ -1,7 +1,7 @@
 # Lervo ADE rooms
 
 Status: `proposed`
-As of: 2026-11-26
+As of: 2026-11-27
 
 This specification defines S2g of [ADR-0637](../../../decisions/execution/applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md): conversations where agents mention each other and the owner watches them work together. It implements [ADR-0641](../../../decisions/coordination/conversations/agent-organization/0641-let-agents-mention-each-other-in-core-rooms-and-keep-their-own-context.md) as amended by [ADR-0644](../../../decisions/coordination/conversations/agent-organization/0644-keep-agent-coordination-in-conversations.md). There is no team room; a mention stays in the conversation where it was made. The owner approved the interface on 2026-11-26 (mockup "Lervo ADE · 에이전트끼리 멘션하는 대화 (S2g)").
 
@@ -60,7 +60,7 @@ The resident core decodes every hosted session's output, so it sees each turn en
   3. Encodes the text through `decoder.send` and writes it to the session.
   4. Answers `room.delivered` with the `deliveryId`, or `room.failed` with the `deliveryId` and a code.
 
-- **Joining.** `room.join` (`workspaceId`, `agentId`) prepares a read-access launch for an agent in the conversation's worktree, records it in the launch record's `sessions`, and returns the launch.
+- **Joining.** `room.join` (`workspaceId`, `agentId`) prepares a read-access launch for an agent in the conversation's worktree, records it in the launch record's `sessions`, and returns the launch. For the lead of a conversation it started, whose session has not opened, it returns the lead's prepared write launch with `lead: true` (slice 2).
 - **The owner's turn.** `room.route` (`workspaceId`, `text`) answers the agent IDs the turn goes to, in order: the mentioned agents, or the lead. The ADE sends the turn to each through `session.send`, as it sends one today, joining first where needed.
 - **Echoes.** A delivered turn reaches the recipient's stream as its user message. The core's decoder for that session knows the delivery it encoded and decodes the echo as a `peer_message` whose `from` is the mentioning agent's display name, never as the owner's message.
 - **Room lines.** The core adds `lervo_notice` items to the conversation for what the room does:
@@ -81,7 +81,17 @@ The resident core decodes every hosted session's output, so it sees each turn en
 ## Across conversations and agent-started conversations (slice 2)
 
 - **Mentioning across conversations.** A mentioned agent that works in another conversation joins this one with a new session here; its session there continues undisturbed. Its own conversation gains one quiet line, "Ciel answered Iris in Log format", which opens the answer.
-- **Agent-started conversations.** An agent starts a conversation with `workspace.start` and `startedBy` set to its agent ID, leading it. The sidebar lists it like any other conversation, and its first turn shows who started it.
+- **Agent-started conversations.** Work that is an agent's own and belongs apart from the conversation it is in, such as a fix it found while reviewing, gets a conversation the agent starts and leads ([ADR-0644](../../../decisions/coordination/conversations/agent-organization/0644-keep-agent-coordination-in-conversations.md)). Nothing waits on the owner.
+
+### How an agent starts a conversation
+
+1. **The command.** In its session, the agent runs `lervo workspace start --repository <project> --started-by <agent> --title <title> --json`, with the first turn on standard input, as the room block tells it with its own IDs filled in. The command prepares the worktree and the lead's write launch with the agent as the only participant, and records `startedBy` and `startedFrom`, the conversation the agent was in, in the hosted launch record. It opens no session. It records a pending start, which holds the first turn until the session opens, and returns the new conversation's workspace ID.
+2. **The guard.** `--started-by` must name an active team agent of the project and equal the calling session's `LERVO_AGENT_ID` (`agent_not_caller`), so an agent starts conversations only as itself. An agent starts at most 4 conversations an hour (`conversation_start_limited`), a loop guard that keeps a misreading agent from filling the sidebar; it is a backstop, not an approval.
+3. **The delivery.** When the starting agent's turn ends, the core reads its pending starts and adds one delivery for each: the new `workspaceId`, the agent, no session, the first turn, and the calling session as the source. The source conversation shows a quiet line, "Ciel started Fix retry budget", which opens the new conversation.
+4. **The lead's session.** For a delivery to the lead of a conversation the lead started, which has no session yet, `room.join` returns the prepared write launch with `lead: true` instead of preparing a read-access one. The session host starts it as the workspace's own session, with the delivery as its first turn, so the owner opening the conversation finds it already running.
+5. **What the new conversation shows.** A quiet line, "Started by Ciel in Log format", which opens that conversation, and then the first turn as Ciel's message under Ciel's speaker line. The sidebar lists the conversation like any other, by its title.
+
+A start that fails after the command returned shows in the source conversation as "Lervo could not start Ciel's conversation (<code>)", and the pending start is dropped. A pending start whose source session ended before its turn ended is delivered at the next turn end of any of the agent's sessions, or dropped after an hour.
 
 ## Memory from conversation (slice 3)
 
@@ -99,23 +109,26 @@ The resident core decodes every hosted session's output, so it sees each turn en
 - **State.** Rooms keep host-local operational state beside the hosted launch records:
   - the launch record's `sessions`;
   - a mention log per conversation, at most 512 entries with the oldest dropped. Each entry holds `mentionId`, `deliveryId`, the mentioning agent or the owner, the mentioned agent, the depth, the state, and the times.
+  - pending starts beside the launch records, mode 0600, at most 16, each with the new workspace ID, the starting agent, the title, the first turn, and the time. A pending start is dropped once its session opens or after an hour, so the first turn then lives only in the provider's transcript, as an owner's instruction does.
 
   Message text stays in the providers' transcripts. The mention log holds no text.
 
-- **Events.** Each carries identifiers, counts, and times only, never message text:
-  - `room.participant.joined`: `workspaceId`, `agentId`, `sessionId`, `mentionedBy` (an agent ID or `owner`), `occurredAt`.
-  - `room.mention.recorded`: `workspaceId`, `mentionId`, `fromAgentId` (or null for the owner), `toAgentId`, `depth`, `occurredAt`.
-  - `room.mention.delivered`: `mentionId`, `sessionId`, `occurredAt`.
+- **Events.** Each carries identifiers, counts, and times only, never message text. A session appears only as `providerSessionDigest`, the digest the hosted session events carry, so its UUID stays on the host. They need event schema 15; readers ship first, and the [payload contracts](../events-and-privacy/event-envelope-compatibility.md) define each:
+  - `room.participant.joined`: `workspaceId`, `agentId`, `providerSessionDigest`, `mentionedBy` (an agent ID or `owner`), `occurredAt`.
+  - `room.mention.recorded`: `workspaceId`, `mentionId` (`mnt_` and 24 hex digits), `fromAgentId` (or null for the owner), `toAgentId`, `depth` (0 to 8), `occurredAt`.
+  - `room.mention.delivered`: `mentionId`, `providerSessionDigest`, `occurredAt`.
   - `room.mention.failed`: `mentionId`, `code`, `occurredAt`.
-  - `room.exchange.paused`: `workspaceId`, `agentTurnCount`, `limit`, `openerAgentId`, `occurredAt`. The chain stopped and nothing was lost.
+  - `room.exchange.paused`: `workspaceId`, `agentTurnCount` (0 to 1,000), `limit` (1 to 1,000), `openerAgentId` (or null when the core saw no owner turn open the exchange), `occurredAt`. The chain stopped and nothing was lost.
 - **Failures.** A mention that cannot be delivered shows as a room line and as attention, and is never retried silently.
 
-| Code                       | Meaning                                                                                |
-| -------------------------- | -------------------------------------------------------------------------------------- |
-| `mention_target_inactive`  | The mentioned agent is suspended or retired.                                           |
-| `room_session_unavailable` | The agent's session could not start, such as when no one is signed in to its provider. |
-| `room_delivery_failed`     | The session host could not write the turn to the agent's session.                      |
-| `exchange_paused`          | The exchange budget or depth bound stopped the chain.                                  |
+| Code                         | Meaning                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `mention_target_inactive`    | The mentioned agent is suspended or retired.                                           |
+| `room_session_unavailable`   | The agent's session could not start, such as when no one is signed in to its provider. |
+| `room_delivery_failed`       | The session host could not write the turn to the agent's session.                      |
+| `exchange_paused`            | The exchange budget or depth bound stopped the chain.                                  |
+| `agent_not_caller`           | `--started-by` names an agent other than the calling session's. Nothing was prepared.  |
+| `conversation_start_limited` | The agent started 4 conversations in the last hour. Nothing was prepared.              |
 
 - A mention grants no repository authority. Work a mention asks for runs under the mentioned agent's own assignment and lease.
 

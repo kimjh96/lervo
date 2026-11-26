@@ -42,11 +42,18 @@ export interface HostedLaunchRecord {
    */
   agentId?: string;
   participants?: string[];
+  /** The team agent that started the conversation and leads it (Lervo ADE rooms, slice 2). */
+  startedBy?: string;
   /**
    * `read` for an agent that joined the conversation (Lervo ADE rooms, "Participants and their
    * sessions"). Absent for the lead, whose session writes.
    */
   access?: "read";
+  /**
+   * Whether the conversation's session host answers the agents' questions with choices (Lervo ADE
+   * sessions, "Questions"), so its native sessions ask through the provider's stream.
+   */
+  questions?: true;
 }
 
 /**
@@ -88,7 +95,8 @@ function isRecord(value: unknown): value is HostedLaunchRecord {
       (key) => typeof record[key] === "string",
     ) &&
     (record.conversationMode === "native" || record.conversationMode === "cli") &&
-    (record.access === undefined || record.access === "read")
+    (record.access === undefined || record.access === "read") &&
+    (record.questions === undefined || record.questions === true)
   );
 }
 
@@ -97,6 +105,22 @@ async function readRecords(path: string): Promise<HostedLaunchRecord[]> {
   if (file.status !== "read") return [];
   const records = (file.value as { records?: unknown }).records;
   return Array.isArray(records) ? records.filter(isRecord) : [];
+}
+
+/** The newest record of any session of `agentId`, or null when it has none. */
+export async function latestHostedLaunchOfAgent(
+  path: string,
+  agentId: string,
+): Promise<HostedLaunchRecord | null> {
+  return (await readRecords(path)).findLast((record) => record.agentId === agentId) ?? null;
+}
+
+/** The kept records of conversations `agentId` started (Lervo ADE rooms, slice 2). */
+export async function conversationsStartedBy(
+  path: string,
+  agentId: string,
+): Promise<HostedLaunchRecord[]> {
+  return (await readRecords(path)).filter((record) => record.startedBy === agentId);
 }
 
 /** Adds `record` and keeps the newest `HOSTED_LAUNCH_RECORD_LIMIT` records. */

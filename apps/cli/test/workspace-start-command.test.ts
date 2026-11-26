@@ -13,6 +13,8 @@ import { runCli } from "../src/main.js";
 import { listRepositories, listWorkspaces } from "../src/workspace-list-service.js";
 import { openWorkspace, startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
 import { joinWorkspaceRoom, routeRoomTurn } from "../src/workspace-room.js";
+import { pendingStartsOf, pendingStartsPath } from "../src/room-starts.js";
+import { startAgentConversation } from "../src/workspace-agent-start.js";
 import { roomBlock } from "../src/room-context.js";
 
 const execute = promisify(execFile);
@@ -440,5 +442,55 @@ describe("agents joining a conversation", () => {
     await expect(
       joinWorkspaceRoom({ workspaceId, agentId: `agt_${"0".repeat(24)}`, instruction: "Hi." }),
     ).rejects.toMatchObject({ code: "mention_target_inactive" });
+  });
+});
+
+describe("conversations an agent starts", () => {
+  it("prepares the agent's own conversation and opens its lead from the delivered first turn", async () => {
+    const app = await fixture();
+    const ciel = await registerAgent({
+      repositoryRoot: app.repository,
+      roleId: "developer",
+      origin: "team",
+    });
+    // Ciel works in a conversation whose session host answers questions with choices.
+    await startWorkspaceFromInstruction({
+      instruction,
+      repository: app.projectId,
+      participants: [ciel.agentId],
+      questions: true,
+    });
+    const started = await startAgentConversation(
+      {
+        instruction,
+        repository: app.projectId,
+        startedBy: ciel.agentId,
+        title: "Fix retry budget",
+      },
+      { ...process.env, LERVO_AGENT_ID: ciel.agentId },
+    );
+    expect(await pendingStartsOf(pendingStartsPath(), ciel.agentId)).toMatchObject([
+      { workspaceId: started.workspaceId, title: "Fix retry budget", text: instruction },
+    ]);
+    const listed = (await listWorkspaces()).workspaces.find(
+      (workspace) => workspace.workspaceId === started.workspaceId,
+    );
+    expect(listed).toMatchObject({ title: "Fix retry budget", agentId: ciel.agentId });
+
+    // The delivery that opens it gives the lead its own prepared session, with write access.
+    const opened = await joinWorkspaceRoom({
+      workspaceId: started.workspaceId,
+      agentId: ciel.agentId,
+      instruction: "[Lervo room] From Ciel (Developer):\nFix the retry budget.",
+    });
+    expect(opened).toMatchObject({ lead: true, sessionId: started.sessionId, resumed: false });
+    expect(opened.launch.arguments).not.toContain("dontAsk");
+    // The conversation it started answers questions with choices, as Ciel's own session does.
+    expect(opened.launch.arguments).toContain("--permission-prompt-tool");
+    expect(opened.launch.initialInput).toBe(
+      "[Lervo room] From Ciel (Developer):\nFix the retry budget.",
+    );
+    expect(await pendingStartsOf(pendingStartsPath(), ciel.agentId)).toEqual([]);
+    expect((await openWorkspace(started.workspaceId)).sessionId).toBe(started.sessionId);
   });
 });

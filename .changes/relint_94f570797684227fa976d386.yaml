@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_94f570797684227fa976d386"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Each team agent now runs on a model and effort chosen by its role when hired, such as Opus at extra-high effort for a developer, and lervo agent model changes them."

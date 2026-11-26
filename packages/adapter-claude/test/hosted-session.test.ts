@@ -58,6 +58,32 @@ describe("Claude Code hosted sessions", () => {
     expect(allowed?.some((rule) => rule === "Bash" || rule.startsWith("Write"))).toBe(false);
   });
 
+  it("asks its questions with choices through the stream only when the interface answers them", () => {
+    const intent = {
+      sessionId,
+      mode: "native" as const,
+      workingDirectory: "/work/repo",
+      start: { kind: "new" as const, instruction: "Plan the release." },
+    };
+    expect(adapter.prepareLaunch(intent).arguments).not.toContain("--permission-prompt-tool");
+    const asking = adapter.prepareLaunch({ ...intent, questions: true }).arguments;
+    expect(asking[asking.indexOf("--permission-prompt-tool") + 1]).toBe("stdio");
+  });
+
+  it("runs the agent's model at its effort, by Claude Code's aliases", () => {
+    expect(adapter.models?.strong.model).toBe("opus");
+    const args = adapter.prepareLaunch({
+      sessionId,
+      mode: "native",
+      workingDirectory: "/work/repo",
+      start: { kind: "new", instruction: "Plan the release." },
+      model: "opus",
+      effort: "xhigh",
+    }).arguments;
+    expect(args[args.indexOf("--model") + 1]).toBe("opus");
+    expect(args[args.indexOf("--effort") + 1]).toBe("xhigh");
+  });
+
   it("adds Lervo's start and end handlers through a session-scoped settings file", () => {
     const hooks = {
       settingsPath: "/state/hosted-settings/session.json",

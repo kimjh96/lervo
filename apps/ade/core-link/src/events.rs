@@ -6,7 +6,8 @@ use std::path::PathBuf;
 use lervo_session_core::ports::{ConversationMode, Decoded, Launch, RoomDelivery};
 use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{
-    Content, Input, MAX_IMAGE_MARKS_BYTES, MAX_TOOL_DETAIL_BYTES, NoticeValue, ToolStatus,
+    Content, Input, MAX_CHOICES_BYTES, MAX_IMAGE_MARKS_BYTES, MAX_TOOL_DETAIL_BYTES, NoticeValue,
+    ToolStatus,
 };
 use lervo_session_protocol::core_link::{
     ConversationMode as WireMode, CoreLaunch, DecodedContent, DecodedEvent, DecodedStatusEvent,
@@ -58,7 +59,14 @@ fn content(content: DecodedContent) -> Content {
                 .filter(|json| json.len() <= MAX_IMAGE_MARKS_BYTES),
         },
         DecodedContent::AgentMessageContent(item) => Content::AgentMessage(item.text.to_string()),
-        DecodedContent::QuestionContent(item) => Content::Question(item.text.to_string()),
+        DecodedContent::QuestionContent(item) => Content::Question {
+            text: item.text.to_string(),
+            // Choices that cannot be written, or are too large, are dropped; the question stays.
+            choices: item
+                .choices
+                .and_then(|choices| serde_json::to_string(&choices).ok())
+                .filter(|json| json.len() <= MAX_CHOICES_BYTES),
+        },
         DecodedContent::PeerMessageContent(item) => Content::PeerMessage {
             from: item.from.to_string(),
             text: item.text.to_string(),

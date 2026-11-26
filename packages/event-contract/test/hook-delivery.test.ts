@@ -48,7 +48,7 @@ describe("how a terminal hook's answer was delivered (schema 13)", () => {
 
   // Stage observations exist from schema 2.
   it("is readable from schema 13, while observations without it stay readable", () => {
-    for (const schemaVersion of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) {
+    for (const schemaVersion of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
       expect(validateSchema("event", envelope(schemaVersion, served)).valid).toBe(
         schemaVersion >= 13,
       );

@@ -66,3 +66,27 @@ export function providerSurfaceRoles(
         : left.roleId.localeCompare(right.roleId),
     );
 }
+
+type ProviderSurfaceRole = ProviderDocumentSurfaceDescriptor["surfaces"][number]["neutralRoleId"];
+
+/** The neutral role of the root provider instruction surface at `path`, or null for any other. */
+export function providerSurfaceRoleAt(
+  path: string,
+  descriptors: readonly ProviderDocumentSurfaceDescriptor[] = builtinProviderDocumentSurfaces,
+): ProviderSurfaceRole | null {
+  for (const descriptor of descriptors)
+    for (const surface of descriptor.surfaces)
+      if (surface.path === path) return surface.neutralRoleId;
+  return null;
+}
+
+/** The imports of root provider instruction surfaces in `content`, such as `@AGENTS.md`. */
+export function providerSurfaceImports(
+  content: string,
+  descriptors: readonly ProviderDocumentSurfaceDescriptor[] = builtinProviderDocumentSurfaces,
+): string[] {
+  const paths = descriptors.flatMap((descriptor) =>
+    descriptor.surfaces.map((surface) => surface.path.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")),
+  );
+  return content.match(new RegExp(`@(?:${paths.join("|")})\\b`, "gu")) ?? [];
+}

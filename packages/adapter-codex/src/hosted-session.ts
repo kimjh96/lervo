@@ -20,6 +20,7 @@ export const codexHostedCapabilities: HostedSessionCapabilities = {
   systemPromptFile: false,
   resume: false,
   readAccess: false,
+  questions: false,
 };
 
 export function createCodexHostedSessionAdapter(executable = "codex"): HostedSessionAdapter {
