@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -43,6 +43,9 @@ async function run(args: string[], cwd: string) {
   return { code, value: JSON.parse((code === 0 ? out : err).join("")) as Record<string, unknown> };
 }
 
+const git = (cwd: string, ...arguments_: string[]) =>
+  execFileSync("git", ["-C", cwd, ...arguments_], { encoding: "utf8" }).trim();
+
 const isFile = (path: string) =>
   access(path).then(
     () => true,
@@ -72,6 +75,8 @@ describe("adding a project", () => {
     expect(await isFile(join(folder, ".lervo/project.yaml"))).toBe(true);
     const registered = await listRegisteredRepositories(join(state, "repositories.json"));
     expect(registered.map((entry) => entry.projectId)).toContain(added.value.projectId);
+    // The owner's folder is never committed for them.
+    expect(git(folder, "rev-list", "-n", "1", "--all")).toBe("");
   });
 
   it("starts a new project in the projects location, keeping the given name", async () => {
@@ -90,6 +95,22 @@ describe("adding a project", () => {
       await readFile(join(String(added.value.root), ".lervo/project-profile.json"), "utf8"),
     ) as { displayName: string };
     expect(profile.displayName).toBe("할 일 앱");
+    // A new project starts with a commit, which holds the profile, so work can start at once.
+    const created = String(added.value.root);
+    expect(git(created, "log", "--format=%s")).toBe("Start the project with Lervo");
+    expect(git(created, "ls-files")).toContain(".lervo/project-profile.json");
+    expect(git(created, "status", "--porcelain")).toBe("");
+  });
+
+  it("removes a new project's folder when adding it fails", async () => {
+    const root = await workspace();
+    const into = join(root, "projects");
+    expect((await run(["project", "location", "--set", into, "--write"], root)).code).toBe(0);
+    // A user state directory others can read makes the registry refuse the project.
+    await chmod(state, 0o755);
+    const added = await run(["project", "add", "--new", "Broken start", "--write"], root);
+    expect(added.code).toBe(1);
+    expect(await isFile(join(into, "broken-start"))).toBe(false);
   });
 
   it("clones a link once and leaves nothing behind when cloning fails", async () => {

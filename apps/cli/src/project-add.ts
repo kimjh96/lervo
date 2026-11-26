@@ -10,6 +10,7 @@ import {
   type RepositoryRegistration,
 } from "@lervo/repository-registry";
 
+import { noticeEffect } from "./effect-notice.js";
 import { runInitCommand } from "./init-command.js";
 import { onboardKnowledgeContinuity } from "./knowledge-continuity-onboarding.js";
 import { GitRunError, runGit } from "./workspace-base-git.js";
@@ -42,7 +43,55 @@ export interface AddedProject {
   displayName: string;
   gitInitialized: boolean;
   lervoInitialized: boolean;
+  /** Whether Lervo made the repository's first commit, so work can start from it. */
+  firstCommit: boolean;
 }
+
+/** The identity of a first commit when Git has none configured for the owner. */
+const FALLBACK_IDENTITY = ["-c", "user.name=Lervo", "-c", "user.email=lervo@localhost.invalid"];
+
+async function hasCommit(root: string): Promise<boolean> {
+  const any = await runGit(root, ["rev-list", "-n", "1", "--all"], { timeout: GIT_TIMEOUT_MS });
+  return any !== "";
+}
+
+async function configuredIdentity(root: string): Promise<boolean> {
+  const email = await runGit(root, ["config", "user.email"], { timeout: GIT_TIMEOUT_MS }).catch(
+    () => "",
+  );
+  return email !== "";
+}
+
+/**
+ * Makes the first commit of a new project, with what Lervo wrote there, so the first workspace has
+ * a commit to start from (Lervo ADE projects, "Adding a project"). It uses the owner's Git
+ * identity, or Lervo's when none is configured, and is reported after the fact.
+ */
+async function commitFirst(root: string): Promise<boolean> {
+  if (await hasCommit(root)) return false;
+  const identity = (await configuredIdentity(root)) ? [] : FALLBACK_IDENTITY;
+  await runGit(root, ["add", "-A"], { timeout: GIT_TIMEOUT_MS });
+  await runGit(
+    root,
+    [...identity, "commit", "--quiet", "--allow-empty", "-m", FIRST_COMMIT_MESSAGE],
+    {
+      timeout: GIT_TIMEOUT_MS,
+    },
+  );
+  await noticeEffect({
+    repositoryRoot: root,
+    effect: "project_first_commit",
+    subject: `first_commit:${Date.now()}`,
+    targets: ["HEAD"],
+    reason: "project_has_no_commit",
+    reviewers: ["git_head_reread"],
+    verdict: "verified",
+    undo: `git -C '${root.replaceAll("'", "'\\''")}' update-ref -d HEAD`,
+  }).catch(() => undefined);
+  return true;
+}
+
+const FIRST_COMMIT_MESSAGE = "Start the project with Lervo";
 
 const locationFile = () => join(dirname(defaultRepositoryRegistryPath()), "projects-location.json");
 
@@ -66,7 +115,8 @@ export async function setProjectsLocation(path: string): Promise<string> {
     );
   await mkdir(path, { recursive: true });
   await writable(path, "projects_location_invalid");
-  await mkdir(dirname(locationFile()), { recursive: true });
+  // The user state directory must stay owner-only, as the registry beside it requires.
+  await mkdir(dirname(locationFile()), { recursive: true, mode: 0o700 });
   await writeFile(
     locationFile(),
     `${JSON.stringify({ schemaVersion: 1, kind: "lervo_projects_location", path: resolve(path) }, null, 2)}\n`,
@@ -148,22 +198,32 @@ async function initialize(root: string, name: string): Promise<void> {
     );
 }
 
-/** Makes `root` a registered Lervo project: Git and Lervo initialized when missing. */
-async function adopt(root: string, name: string) {
+/**
+ * Makes `root` a registered Lervo project: Git and Lervo initialized when missing. A new project,
+ * whose folder holds only what Lervo wrote, gets its first commit; a folder of the owner's files
+ * never does, so nothing of theirs is committed without them.
+ */
+async function adopt(root: string, name: string, created?: { displayName: string }) {
   const gitInitialized = !(await insideGitWorkTree(root));
   if (gitInitialized) await runGit(root, ["init", "--quiet"], { timeout: GIT_TIMEOUT_MS });
   const lervoInitialized = !(await exists(join(root, ".lervo/project.yaml")));
   if (lervoInitialized) await initialize(root, name);
+  // The folder keeps an ASCII name; the name the owner gave shows through the profile, which the
+  // first commit includes.
+  if (created !== undefined && created.displayName !== name)
+    await renameProject(root, name, created.displayName);
   const { registration } = await registerRepository({
     registryPath: defaultRepositoryRegistryPath(),
     repositoryRoot: root,
   });
+  const firstCommit =
+    created === undefined ? false : await commitFirst(registration.repositoryRoot);
   // ADR-0469: a registered checkout joins background knowledge continuity at once.
   await onboardKnowledgeContinuity({
     repositoryRoot: registration.repositoryRoot,
     register: false,
   }).catch(() => undefined);
-  return { registration, gitInitialized, lervoInitialized };
+  return { registration, gitInitialized, lervoInitialized, firstCommit };
 }
 
 /** Adds a project from a folder, a clone link, or a name alone, and registers it on this host. */
@@ -207,13 +267,12 @@ export async function addProject(
   if (await exists(destination))
     throw new ProjectAddError("project_folder_exists", `${destination} already exists.`);
   await mkdir(destination);
-  const adopted = await adopt(destination, folder);
-  // The folder keeps an ASCII name; the name the owner gave shows through the profile.
-  if (displayName !== adopted.registration.name)
-    await renameProject(
-      adopted.registration.repositoryRoot,
-      adopted.registration.name,
-      displayName,
-    );
-  return { source: "new", displayName, ...adopted };
+  try {
+    const adopted = await adopt(destination, folder, { displayName });
+    return { source: "new", displayName, ...adopted };
+  } catch (error) {
+    // Lervo created the folder empty, so whatever a failed start left there is its own.
+    await rm(destination, { recursive: true, force: true });
+    throw error;
+  }
 }

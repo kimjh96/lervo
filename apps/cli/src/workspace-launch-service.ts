@@ -40,6 +40,7 @@ import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-ses
 import { hostedTerminalHooks, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import { prefetchTerminalPromptContext } from "./terminal-knowledge-snapshot.js";
 import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
+import { runGit } from "./workspace-base-git.js";
 import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
 import {
@@ -93,6 +94,24 @@ export interface WorkspaceStartOptions {
   readonly model?: string;
 }
 
+/**
+ * The commit new work starts from. A repository with no commit yet fails as
+ * `repository_has_no_commit`, since a workspace is a worktree of a commit.
+ */
+async function baseCommitOf(root: string): Promise<string> {
+  try {
+    return await defaultBranchCommit(root);
+  } catch (error) {
+    const any = await runGit(root, ["rev-list", "-n", "1", "--all"]).catch(() => "unknown");
+    if (any === "")
+      throw new CommandFailure(
+        "repository_has_no_commit",
+        "The project has no commit yet. Commit its files, then start work.",
+      );
+    throw error;
+  }
+}
+
 /** Creates the workspace and prepares its hosted launch; failures are `CommandFailure`s. */
 export async function startWorkspaceFromInstruction(
   options: WorkspaceStartOptions,
@@ -114,7 +133,7 @@ export async function startWorkspaceFromInstruction(
       mode: options.mode ?? preferredConversationMode(adapter.capabilities),
       repositoryRoot: repository.repositoryRoot,
       projectId: repository.projectId,
-      baseCommit: await defaultBranchCommit(repository.repositoryRoot),
+      baseCommit: await baseCommitOf(repository.repositoryRoot),
       workspaceId: `wsp_${hex(12)}`,
       sessionId,
       suffix: hex(3),
