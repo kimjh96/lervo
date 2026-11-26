@@ -66,6 +66,18 @@ async function openWorkspace(title: string): Promise<void> {
 }
 
 /**
+ * The opened conversation's reply field. The conversation is a lazy chunk, so the start screen's
+ * card can still be the only field right after the click; the reply card counts once the
+ * conversation's log is on the page and the start screen's card has left.
+ */
+function replyField(): Promise<HTMLTextAreaElement> {
+  return waitFor(() => {
+    const fields = document.querySelectorAll<HTMLTextAreaElement>("main textarea");
+    return document.querySelector(LOG) !== null && fields.length === 1 ? (fields[0] ?? null) : null;
+  });
+}
+
+/**
  * Types `text` into the focused input card the way React reads it, then waits for its paint.
  * `workMs` is the interface's own work: React flushes an input event's update in a microtask
  * queued during the dispatch, which runs before this function continues.
@@ -239,7 +251,7 @@ async function streaming(host: HostMessages): Promise<Report> {
   });
   await startScreen();
   await openWorkspace("Stream a long reply");
-  const field = await waitFor(() => document.querySelector<HTMLTextAreaElement>("main textarea"));
+  const field = await replyField();
   field.focus();
   await type(field, "Stream now");
   field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
@@ -284,7 +296,7 @@ async function streaming(host: HostMessages): Promise<Report> {
 async function keystroke(): Promise<Report> {
   await startScreen();
   await openWorkspace("Stream a long reply");
-  const field = await waitFor(() => document.querySelector<HTMLTextAreaElement>("main textarea"));
+  const field = await replyField();
   field.focus();
   const echoes: number[] = [];
   const work: number[] = [];
