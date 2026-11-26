@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import { claudeClaimAnswer, claudeWriteIntent } from "../src/index.js";
 
 const cwd = "/work/repo";
-const bash = (command: string) => claudeWriteIntent("Bash", { command }, cwd);
+function bash(command: string) {
+  const intent = claudeWriteIntent("Bash", { command }, cwd);
+  if (intent === null) throw new Error("A shell call always has an intent.");
+  return intent;
+}
 
 describe("what a Claude Code tool call writes", () => {
   it("reads a file tool's own path, never its content", () => {

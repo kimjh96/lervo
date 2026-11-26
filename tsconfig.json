@@ -13,6 +13,7 @@
       "@lervo/adapter-contract": ["packages/adapter-contract/src/index.ts"],
       "@lervo/session-host-contract": ["packages/session-host-contract/src/index.ts"],
       "@lervo/adapter-claude": ["packages/adapter-claude/src/index.ts"],
+      "@lervo/adapter-claude/claims": ["packages/adapter-claude/src/hosted-claims.ts"],
       "@lervo/adapter-codex": ["packages/adapter-codex/src/index.ts"],
       "@lervo/adapter-discord": ["packages/adapter-discord/src/index.ts"],
       "@lervo/discord-gateway": ["packages/discord-gateway/src/index.ts"],
