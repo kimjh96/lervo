@@ -26,7 +26,7 @@ bounded current report.
 Under [ADR-0462](../../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md), a workstream snapshot is stale if:
 
 - Its update time is older than 48 hours.
-- Its recorded HEAD is more than 20 commits behind or is not an ancestor of the current HEAD. The distance counts non-merge commits by authors other than Lervo knowledge and release preparation ([ADR-0555](../../../decisions/execution/applications/0555-keep-operating-signals-visible-and-honest.md)).
+- Its recorded HEAD is more than 20 commits behind or is not an ancestor of the current HEAD. The distance counts non-merge commits by authors other than Lervo knowledge and release preparation ([ADR-0555](../../../decisions/execution/applications/0555-keep-operating-signals-visible-and-honest.md)). A long-lived process keeps each measured distance by checkout, recorded commit, and HEAD commit, which it reads from Git's files, so a prompt whose HEAD has not moved runs no Git; an unresolvable distance is measured again, because fetching the missing history can resolve it.
 - Its update time is in the future.
 
 The optional `workstream` section of `.lervo/knowledge/policy.yaml` configures both thresholds. Every stale-workstream item has `state: "stale"`, `blocking: false`, `requiresUserAction: false`, owner `agent`, and an instruction to re-verify against the repository instead of presenting it as current.

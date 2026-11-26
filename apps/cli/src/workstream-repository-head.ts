@@ -8,6 +8,7 @@ import {
   type WorkstreamHeadDistance,
   type WorkstreamRepositoryHead,
 } from "@lervo/repository-knowledge";
+import { repositorySnapshotGitHead } from "@lervo/orchestrator";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
 
 const execute = promisify(execFile);
@@ -44,6 +45,15 @@ const LERVO_AUTHOR_EMAILS = new Set([
 ]);
 
 /**
+ * Measured distances by checkout, recorded commit, and HEAD commit. Commits never change, so a
+ * measurement holds while both stay the same; a long-lived process, such as the context server,
+ * then answers each prompt without running Git. An unresolvable distance is not kept: fetching the
+ * missing history can resolve it.
+ */
+const measuredDistances = new Map<string, WorkstreamHeadDistance>();
+const MEASURED_DISTANCE_LIMIT = 64;
+
+/**
  * A recorded commit that is not an ancestor of the current HEAD (rewritten, reset, or unfetched
  * history) is unresolvable rather than zero commits behind, so it cannot look current.
  */
@@ -53,13 +63,32 @@ export async function measureWorkstreamHeadDistance(
 ): Promise<WorkstreamHeadDistance> {
   const recorded = snapshot.repositoryHead?.commit;
   if (recorded === undefined) return { status: "not_recorded" };
+  // HEAD's commit, read from Git's files when it can be; Git compares against that same commit.
+  const head = await repositorySnapshotGitHead(root);
+  const key = head === undefined ? undefined : `${root}\0${recorded}\0${head}`;
+  const known = key === undefined ? undefined : measuredDistances.get(key);
+  if (known !== undefined) return known;
+  const distance = await measureHeadDistance(root, recorded, head ?? "HEAD");
+  if (key !== undefined && distance.status === "measured") {
+    if (measuredDistances.size >= MEASURED_DISTANCE_LIMIT)
+      measuredDistances.delete(measuredDistances.keys().next().value!);
+    measuredDistances.set(key, distance);
+  }
+  return distance;
+}
+
+async function measureHeadDistance(
+  root: string,
+  recorded: string,
+  head: string,
+): Promise<WorkstreamHeadDistance> {
   try {
-    await git(root, ["merge-base", "--is-ancestor", recorded, "HEAD"]);
+    await git(root, ["merge-base", "--is-ancestor", recorded, head]);
     // One line per author with its commit count, so the output stays bounded however long the
     // range is, and recent Lervo commits never hide earlier work.
     const authors = await git(
       root,
-      ["shortlog", "--summary", "--numbered", "--email", "--no-merges", `${recorded}..HEAD`],
+      ["shortlog", "--summary", "--numbered", "--email", "--no-merges", `${recorded}..${head}`],
       256 * 1024,
     );
     let count = 0;
