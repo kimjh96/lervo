@@ -55,13 +55,13 @@ function Notice(props: { update: Exclude<HostUpdate, { kind: "none" }> }) {
   // Pressing Restart answers at once: the offer leaves.
   return (
     <div className={styles.notice} role="status">
-      <p className={styles.text}>
+      <Presence as="span" className={styles.text} contentKey={update.kind}>
         {update.kind === "failed" ? (
           <FormattedMessage id="connection.update.failed" values={{ code: update.code }} />
         ) : (
           <FormattedMessage id="connection.update.available" />
         )}
-      </p>
+      </Presence>
       <Button variant="outlined" onClick={() => void restartHost(replacement)}>
         <FormattedMessage id="connection.update.restart" />
       </Button>
