@@ -211,6 +211,11 @@ export function startTerminalContextServer(input: {
   onOverrun?: () => void;
   runLimitMs?: number;
   /** Notes each request's outcome, so a canary can read whether prompts were served. */
+  /**
+   * Notes how long a served hook took to answer, from the client's start to the answer leaving
+   * the server, records excluded (ADR-0636).
+   */
+  onAnswered?: (kind: TerminalContextKind, milliseconds: number) => void;
   onOutcome?: (
     outcome: "served" | TerminalContextDecline,
     request?: Pick<TerminalContextRequest, "kind" | "launcher">,
@@ -290,6 +295,7 @@ export function startTerminalContextServer(input: {
       committed = true;
       if (commitTimer !== undefined) clearTimeout(commitTimer);
       input.onOutcome?.("served", request ?? undefined);
+      const committedAt = performance.now();
       const current = request!;
       // A run that never settles would keep the server busy forever; the caller exits instead.
       const watchdog = setTimeout(() => input.onOverrun?.(), input.runLimitMs ?? 30_000);
@@ -310,6 +316,7 @@ export function startTerminalContextServer(input: {
               if (relayed) socket.write(line);
               else socket.end(line);
             }
+            input.onAnswered?.(current.kind, current.elapsed + performance.now() - committedAt);
             const drained = (await answer.drain?.()) ?? true;
             // The relay that holds the connection now starts what the records asked for.
             if (relayed && !socket.destroyed)

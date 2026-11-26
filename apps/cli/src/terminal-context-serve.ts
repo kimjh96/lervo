@@ -195,6 +195,13 @@ export async function runServedTerminalHook(
  * The server's counts since it started, kept beside its socket so a canary can tell whether
  * prompts were served, and why any were declined. It holds counts and times only.
  */
+/** The answer latencies kept per kind, from which the stats file reports percentiles. */
+const ANSWER_SAMPLES = 100;
+
+function percentile(sorted: readonly number[], fraction: number): number {
+  return Math.round(sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * fraction))]!);
+}
+
 function contextStats(runtime: string) {
   const stats = {
     schemaVersion: 1,
@@ -208,17 +215,18 @@ function contextStats(runtime: string) {
     servedKinds: {} as Record<string, number>,
     declined: {} as Record<string, number>,
     lastServedAt: null as string | null,
+    /**
+     * Milliseconds from the client's start to the answer, by kind, over the latest 100 answers:
+     * what the provider waited for, without the records that follow an early answer.
+     */
+    answerMilliseconds: {} as Record<
+      string,
+      { count: number; p50: number; p95: number; last: number }
+    >,
   };
+  const samples = new Map<string, number[]>();
   let writing = Promise.resolve();
-  return (outcome: string, request?: { kind: string; launcher?: string | undefined }) => {
-    if (outcome === "served") {
-      stats.served += 1;
-      const by = request?.launcher ?? "unknown";
-      stats.servedBy[by] = (stats.servedBy[by] ?? 0) + 1;
-      const kind = request?.kind ?? "prompt";
-      stats.servedKinds[kind] = (stats.servedKinds[kind] ?? 0) + 1;
-      stats.lastServedAt = new Date().toISOString();
-    } else stats.declined[outcome] = (stats.declined[outcome] ?? 0) + 1;
+  const write = () => {
     const bytes = `${JSON.stringify(stats)}\n`;
     writing = writing
       .then(async () => {
@@ -227,6 +235,31 @@ function contextStats(runtime: string) {
         await rename(`context-stats.json.${process.pid}.tmp`, "context-stats.json");
       })
       .catch(() => undefined);
+  };
+  return {
+    outcome: (outcome: string, request?: { kind: string; launcher?: string | undefined }) => {
+      if (outcome === "served") {
+        stats.served += 1;
+        const by = request?.launcher ?? "unknown";
+        stats.servedBy[by] = (stats.servedBy[by] ?? 0) + 1;
+        const kind = request?.kind ?? "prompt";
+        stats.servedKinds[kind] = (stats.servedKinds[kind] ?? 0) + 1;
+        stats.lastServedAt = new Date().toISOString();
+      } else stats.declined[outcome] = (stats.declined[outcome] ?? 0) + 1;
+      write();
+    },
+    answered: (kind: string, milliseconds: number) => {
+      const kept = [...(samples.get(kind) ?? []), milliseconds].slice(-ANSWER_SAMPLES);
+      samples.set(kind, kept);
+      const sorted = [...kept].sort((left, right) => left - right);
+      stats.answerMilliseconds[kind] = {
+        count: (stats.answerMilliseconds[kind]?.count ?? 0) + 1,
+        p50: percentile(sorted, 0.5),
+        p95: percentile(sorted, 0.95),
+        last: Math.round(milliseconds),
+      };
+      write();
+    },
   };
 }
 
@@ -245,10 +278,12 @@ export async function serveTerminalContext(entry: string): Promise<void> {
   process.umask(0o077);
   let release = () => undefined as void;
   const hash = await runtimeHash(entry);
+  const stats = contextStats(hash);
   const server = startTerminalContextServer({
     socketPath: TERMINAL_CONTEXT_SOCKET_NAME,
     runtimeHash: hash,
-    onOutcome: contextStats(hash),
+    onOutcome: stats.outcome,
+    onAnswered: stats.answered,
     environment: process.env,
     run: runServedTerminalHook,
     // Exit so the host starts a fresh server: abandoned work must not reach the next request.
