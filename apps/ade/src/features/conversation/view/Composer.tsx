@@ -15,7 +15,9 @@ import { attachmentNoticeValues, useAttachments } from "./attachments";
 import { useOpenImages } from "./ConversationImages";
 import { useDraft } from "./draft";
 import { useFileDrop } from "./file-drop";
-import { type Mentionable, useMentions } from "./mentions";
+import type { Mentionable } from "../model/mentionables";
+import { useRoomStore } from "../model/room-store";
+import { useMentions } from "./mentions";
 
 /** Lines the input grows to before it scrolls. */
 const MAX_LINES = 8;
@@ -52,6 +54,10 @@ export function Composer(props: {
     mentionables: props.mentionables ?? [],
   });
   const [failure, setFailure] = useState<{ id: string; code: string } | null>(null);
+  // A reply whose mentions the core could not route went to the lead only, and says so.
+  const unrouted = useRoomStore((store) => store.unrouted);
+  const alert =
+    failure ?? (unrouted === null ? null : { id: "conversation.route.failed", code: unrouted });
   const files = useFiles();
   const attachments = useAttachments({
     acceptsImages: props.acceptsImages === true,
@@ -156,7 +162,7 @@ export function Composer(props: {
         />
       </InputCard>
       <Presence className={styles.error}>
-        {failure === null ? (
+        {alert === null ? (
           attachments.notice === null ? null : (
             <InlineAlert size="meta">
               <FormattedMessage {...attachments.notice} values={attachmentNoticeValues} />
@@ -164,7 +170,7 @@ export function Composer(props: {
           )
         ) : (
           <InlineAlert size="meta">
-            <FormattedMessage id={failure.id} values={{ code: failure.code }} />
+            <FormattedMessage id={alert.id} values={{ code: alert.code }} />
           </InlineAlert>
         )}
       </Presence>

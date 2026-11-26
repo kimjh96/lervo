@@ -4,10 +4,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  createTurnSummariesStore,
-  TurnSummariesProvider,
-} from "../src/features/conversation/view/TurnSummariesProvider";
+import { createTurnSummariesStore } from "../src/features/conversation/model/turn-summaries";
+import { TurnSummariesProvider } from "../src/features/conversation/view/TurnSummariesProvider";
+import { RequestFailure } from "../src/ports";
 import { TurnSummaryLine } from "../src/features/conversation/view/TurnSummaryLine";
 import { messagesFor } from "../src/i18n/catalog";
 
@@ -85,18 +84,39 @@ describe("the Lervo turn summary", () => {
     expect(render(null)).not.toContain("<button");
   });
 
-  it("asks the core once per turn and again after a failure", async () => {
-    const summarize = vi
-      .fn<() => Promise<TurnSummary | null>>()
-      .mockRejectedValueOnce(new Error("down"));
-    summarize.mockResolvedValue(summary);
+  it("asks the core once per turn", async () => {
+    const summarize = vi.fn<() => Promise<TurnSummary | null>>().mockResolvedValue(summary);
     const store = createTurnSummariesStore(summarize);
-    store.getState().load("t1", { startedAtMs: 1 });
-    await vi.waitFor(() => expect(store.getState().entries.t1).toBeUndefined());
     store.getState().load("t1", { startedAtMs: 1 });
     store.getState().load("t1", { startedAtMs: 1 });
     await vi.waitFor(() =>
       expect(store.getState().entries.t1).toEqual({ state: "ready", summary }),
+    );
+    store.getState().load("t1", { startedAtMs: 1 });
+    expect(summarize).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a failure's code and asks again only when the conversation reopens", async () => {
+    const summarize = vi
+      .fn<() => Promise<TurnSummary | null>>()
+      .mockRejectedValueOnce(new RequestFailure("application_unavailable"));
+    summarize.mockResolvedValue(summary);
+    const store = createTurnSummariesStore(summarize);
+    store.getState().load("t1", { startedAtMs: 1 });
+    await vi.waitFor(() =>
+      expect(store.getState().entries.t1).toEqual({
+        state: "failed",
+        code: "application_unavailable",
+      }),
+    );
+    // A line that renders again does not ask a failing core again.
+    store.getState().load("t1", { startedAtMs: 1 });
+    expect(summarize).toHaveBeenCalledTimes(1);
+    // A reopened conversation has a new store, which asks again.
+    const reopened = createTurnSummariesStore(summarize);
+    reopened.getState().load("t1", { startedAtMs: 1 });
+    await vi.waitFor(() =>
+      expect(reopened.getState().entries.t1).toEqual({ state: "ready", summary }),
     );
     expect(summarize).toHaveBeenCalledTimes(2);
   });

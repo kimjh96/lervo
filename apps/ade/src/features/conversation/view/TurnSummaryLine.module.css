@@ -51,6 +51,15 @@
   transform: none;
 }
 
+/* A summary the core could not read: the line's quiet type, without its press target. */
+.failed {
+  margin: 0;
+  padding-block: var(--space-2);
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
 .facts {
   display: flex;
   flex-wrap: wrap;

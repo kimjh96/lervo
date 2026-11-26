@@ -395,6 +395,10 @@
     "defaultMessage": "The agent starts in a moment",
     "description": "The reply card placeholder while the agent of work just sent has not started."
   },
+  "conversation.route.failed": {
+    "defaultMessage": "Lervo could not check this reply for mentions ({code}), so only the conversation's lead received it.",
+    "description": "The core could not route the owner's reply to the agents it may mention, so the reply went to the conversation's lead only; {code} is the protocol code."
+  },
   "conversation.stop": {
     "defaultMessage": "Stop",
     "description": "The reply card's button while the agent works, and its accessible name: stops the agent's turn and keeps the conversation."
@@ -538,6 +542,10 @@
   "conversation.turn.searched": {
     "defaultMessage": "{count, plural, one {# document found} other {# documents found}}",
     "description": "How many documents the agent's Lervo searches found in the turn, on the turn summary line."
+  },
+  "conversation.turn.summaryFailed": {
+    "defaultMessage": "Lervo could not read this turn's summary ({code}).",
+    "description": "A quiet line at a turn's end when the core could not read the turn's summary; {code} is the protocol code. Reopening the conversation asks again."
   },
   "conversation.turn.took": {
     "defaultMessage": "{minutes, plural, =0 {{seconds}s} other {{minutes}m {seconds}s}}",
@@ -1166,6 +1174,10 @@
   "notice.provider_turn_failed": {
     "defaultMessage": "The agent's turn ended without finishing ({subtype}).",
     "description": "Claude Code's result did not succeed."
+  },
+  "notice.start.hire_failed": {
+    "defaultMessage": "This work started without a Product Owner, because Lervo could not hire one ({code}).",
+    "description": "A Lervo notice at the top of new work when the Product Owner the start card proposed could not be hired; {code} is the protocol code."
   },
   "notice.turn_stopped": {
     "defaultMessage": "You stopped the agent's turn. Send a message to continue.",
