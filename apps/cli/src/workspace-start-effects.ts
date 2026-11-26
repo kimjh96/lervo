@@ -5,6 +5,7 @@ import { mkdir, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
+import { conversationWorkspaceRecordId } from "@lervo/agent-workforce";
 import {
   openProjectStorage,
   repositoryCoordinateDigest,
@@ -44,10 +45,15 @@ export async function defaultBranchCommit(root: string): Promise<string> {
   return git(root, ["rev-parse", "--verify", `${resolved?.ref ?? "HEAD"}^{commit}`]);
 }
 
+/**
+ * The ownership marker of the conversation's first generation. It names the generation's own
+ * workspace record, derived from the conversation's workspace ID, so every reader that rebuilds a
+ * marker from a record finds it; a later generation replaces it by compare-and-swap.
+ */
 function ownership(placement: WorkspacePlacement, repositoryInstanceId: string) {
   const marker: WorkspaceOwnershipMarker = {
     schemaVersion: 1,
-    workspaceId: placement.workspaceId,
+    workspaceId: conversationWorkspaceRecordId(placement.workspaceId, 1),
     generation: 1,
     repositoryInstanceId,
     adapterKind: "git",
@@ -136,6 +142,10 @@ export function gitWorkspaceEffects() {
   // The branch's tip after each replayed commit, so a rollback removes the branch it made.
   let tip: string | null = null;
   return {
+    /** The marker the workspace stage wrote, for the coordination stage to bind; null before. */
+    provisionedMarker(): WorkspaceOwnershipMarker | null {
+      return owned?.marker ?? null;
+    },
     async provisionWorkspace(placement: WorkspacePlacement): Promise<void> {
       const home = await resolveRepositoryCoordinationHome(placement.repositoryRoot);
       owned = ownership(placement, home.repositoryInstanceId);

@@ -1,6 +1,7 @@
 import { repositoryPathWithinScope } from "@lervo/work-controller";
 import { isAbsolute } from "node:path";
 
+import { validWorkspaceRecordKind } from "./conversation-workspace.js";
 import { AgentWorkforceError } from "./types.js";
 import type {
   AgentWorkspace,
@@ -153,6 +154,7 @@ export function isAgentWorkspace(value: AgentWorkspace): boolean {
       (value.ownerWorkspacePath.length <= 4_096 &&
         !value.ownerWorkspacePath.includes("\0") &&
         isAbsolute(value.ownerWorkspacePath))) &&
+    validWorkspaceRecordKind(value) &&
     validSession(value.writerSession) &&
     Object.hasOwn(transitions, value.state) &&
     (value.sealedResult === null || validSeal(value.sealedResult)) &&

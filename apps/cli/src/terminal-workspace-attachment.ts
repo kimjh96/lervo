@@ -1,6 +1,12 @@
 import { randomBytes } from "node:crypto";
 
-import { listWorkspaces, readWorkspace, updateWorkspace } from "@lervo/agent-workforce";
+import {
+  isConversationWorkspace,
+  listWorkspaces,
+  newestCheckoutWorkspace,
+  readWorkspace,
+  updateWorkspace,
+} from "@lervo/agent-workforce";
 import { repositoryCoordinateDigest } from "@lervo/project-storage";
 import type { WorkspaceHostInspection } from "@lervo/workspace-host";
 
@@ -23,10 +29,14 @@ export async function attachTerminalWorkspace(input: {
   now?: Date;
 }): Promise<TerminalWorkspaceBinding | null> {
   const pathDigest = repositoryCoordinateDigest(input.root);
-  const matches = (await listWorkspaces(input.root)).filter(
+  const workspaces = await listWorkspaces(input.root);
+  const newest = newestCheckoutWorkspace(workspaces, pathDigest);
+  // A conversation's generation is not a worker attachment: its session keeps the linked
+  // worktree's hooks until conversation claims and their Stop land (Lervo ADE coordination).
+  if (newest === null || isConversationWorkspace(newest)) return null;
+  const matches = workspaces.filter(
     (workspace) => workspace.pathDigest === pathDigest && workspace.state !== "removed",
   );
-  if (matches.length === 0) return null;
   if (matches.length !== 1)
     terminalWorkspaceIsolationFailure(
       "shared_workspace_mutation",

@@ -1,5 +1,12 @@
 export type WorkspaceExecutionKind = "worker" | "integrator" | "unmanaged";
 
+/**
+ * What a workspace record stands for: an assignment's own checkout (`worker`, the default when a
+ * record names none), or one generation of an ADE conversation's checkout (Lervo ADE coordination,
+ * "One record per generation").
+ */
+export type WorkspaceRecordKind = "worker" | "conversation";
+
 export type WorkspaceState =
   | "provisioning"
   | "ready"
@@ -76,6 +83,13 @@ export interface AgentWorkspace {
   markerHash: string;
   pathDigest: string;
   ownerWorkspacePath?: string;
+  /** Absent on records from before conversation workspaces, which are `worker` records. */
+  kind?: WorkspaceRecordKind;
+  /**
+   * A conversation record's conversation: the ADE workspace ID every generation of its checkout
+   * shares. The record's own ID derives from it and the generation.
+   */
+  conversationId?: string;
   state: WorkspaceState;
   writerSession: WorkspaceWriterSession | null;
   sealedResult: WorkspaceSealedResult | null;

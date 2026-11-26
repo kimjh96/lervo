@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { lstat, mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { listWorkspaces } from "@lervo/agent-workforce";
+import { isConversationWorkspace, readNewestCheckoutWorkspace } from "@lervo/agent-workforce";
 import { replaceFile } from "@lervo/filesystem-durability";
 import { baseDeliveryEventSchemaVersion } from "@lervo/event-contract";
 import {
@@ -140,7 +140,10 @@ type DeliveryStorage = Pick<
 /** What keeping the cached base reads beyond its own directory; tests replace each. */
 export interface TerminalCachedBasePorts {
   roots: (cwd: string) => Promise<{ evidenceRoot: string; executionRoot: string }>;
-  /** Whether a workspace that is not removed claims the checkout. */
+  /**
+   * Whether a worker workspace claims the checkout: its newest record that is not removed. A
+   * conversation's generation keeps the cached base like any linked worktree.
+   */
   claimed: (executionRoot: string) => Promise<boolean>;
   /**
    * Prepares the base by `deadline`, a `performance.now()` time; `abandoned` says a read reached
@@ -157,10 +160,11 @@ export interface TerminalCachedBasePorts {
 const defaultPorts: TerminalCachedBasePorts = {
   roots: resolveTerminalRoots,
   claimed: async (executionRoot) => {
-    const pathDigest = repositoryCoordinateDigest(executionRoot);
-    return (await listWorkspaces(executionRoot)).some(
-      (workspace) => workspace.pathDigest === pathDigest && workspace.state !== "removed",
+    const newest = await readNewestCheckoutWorkspace(
+      executionRoot,
+      repositoryCoordinateDigest(executionRoot),
     );
+    return newest !== null && !isConversationWorkspace(newest);
   },
   prepare: (evidenceRoot, executionRoot, deadline) =>
     prepareTerminalBaseParts(evidenceRoot, deadline, 2048, executionRoot),

@@ -7,7 +7,7 @@ import { lstat, realpath } from "node:fs/promises";
 import { basename, dirname, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
-import { listWorkspaces } from "@lervo/agent-workforce";
+import { isConversationWorkspace, readNewestCheckoutWorkspace } from "@lervo/agent-workforce";
 import { repositoryCoordinateDigest } from "@lervo/project-storage";
 import {
   defaultRepositoryRegistryPath,
@@ -23,7 +23,8 @@ const GIT_TIMEOUT_MS = 2_000;
  * Why the evidence root is what it is:
  * - `checkout`: a main checkout, which keeps its own evidence;
  * - `linked_worktree`: a linked worktree of a registered repository, which records there;
- * - `worker_workspace`: a live workforce workspace, whose attachment keeps its evidence local;
+ * - `worker_workspace`: a live worker workspace, whose attachment keeps its evidence local; a
+ *   conversation's workspace generation is a `linked_worktree`;
  * - `linked_worktree_unregistered`: no registered repository owns the main checkout;
  * - `linked_worktree_unresolved`: Git could not name the main checkout, such as a bare
  *   repository's worktree or a Git failure.
@@ -54,7 +55,11 @@ export interface TerminalRootsPorts {
   gitCoordinates(root: string): Promise<TerminalGitCoordinates | null>;
   /** The real paths of the host's registered repositories. */
   registeredRoots(): Promise<readonly string[]>;
-  /** Whether a live workforce workspace claims the checkout at `root`. */
+  /**
+   * Whether a live worker workspace claims the checkout at `root`: the checkout's newest record
+   * that is not removed. A conversation's generation keeps ADR-0633's two roots, since its
+   * session records into the registered repository like any linked worktree's.
+   */
   workerCheckout(root: string): Promise<boolean>;
 }
 
@@ -111,11 +116,10 @@ export const defaultTerminalRootsPorts: TerminalRootsPorts = {
     return roots.filter((root): root is string => root !== null);
   },
   async workerCheckout(root) {
-    const digest = repositoryCoordinateDigest(root);
-    const workspaces = await listWorkspaces(root).catch(() => []);
-    return workspaces.some(
-      (workspace) => workspace.pathDigest === digest && workspace.state !== "removed",
+    const newest = await readNewestCheckoutWorkspace(root, repositoryCoordinateDigest(root)).catch(
+      () => null,
     );
+    return newest !== null && !isConversationWorkspace(newest);
   },
 };
 

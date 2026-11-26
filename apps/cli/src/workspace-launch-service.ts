@@ -44,6 +44,8 @@ import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
 import { runGit } from "./workspace-base-git.js";
 import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
+import { coordinateConversationWorkspace } from "./workspace-coordination.js";
+import { conversationCoordinationPorts } from "./workspace-coordination-effects.js";
 import { agentLaunchModel } from "./agent-launch-model.js";
 import { resolveParticipants } from "./workspace-participants.js";
 import { withSessionEnvironment } from "./hosted-session-environment.js";
@@ -150,6 +152,7 @@ export async function startWorkspaceFromInstruction(
   const hooks = hostedSessionHooks(adapter, sessionId);
   const mode = options.mode ?? preferredConversationMode(adapter.capabilities);
   const questions = options.questions === true && adapter.capabilities.questions;
+  const git = gitWorkspaceEffects();
   return startWorkspace(
     {
       instruction: options.instruction,
@@ -178,11 +181,16 @@ export async function startWorkspaceFromInstruction(
       // The knowledge snapshot of the same bytes is the prompt's next per-checkout cache.
       // The worktree's file hashes, and the repository's knowledge snapshot if none is cached.
       warmRepositorySnapshot: prefetchTerminalPromptContext,
-      ...gitWorkspaceEffects(),
+      ...git,
       startWorkstream: startWorkstreamIn,
       recordLaunch,
       writeSettings: writeHostedSessionSettings,
       recordEvents: (events) => recordEvents(repository.repositoryRoot, events),
+      coordinate: (request) =>
+        coordinateConversationWorkspace(
+          request,
+          conversationCoordinationPorts(git.provisionedMarker),
+        ),
       now: () => new Date(),
     },
   );

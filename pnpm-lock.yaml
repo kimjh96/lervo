@@ -1855,6 +1855,9 @@ importers:
 
   packages/workspace-host-git:
     dependencies:
+      '@lervo/filesystem-durability':
+        specifier: workspace:*
+        version: link:../filesystem-durability
       '@lervo/workspace-host':
         specifier: workspace:*
         version: link:../workspace-host
