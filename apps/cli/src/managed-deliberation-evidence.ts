@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { readRepositoryFile } from "@lervo/context";
+import { MAX_CONTEXT_SOURCE_BYTES, readRepositoryFile } from "@lervo/context";
 import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
@@ -8,7 +8,6 @@ import { ManagedDeliberationError } from "./managed-deliberation-errors.js";
 import { managedSearchQuery } from "./managed-search-context.js";
 
 const maximumEvidenceDocuments = 5;
-const maximumEvidenceDocumentBytes = 131_072;
 
 function digest(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -94,7 +93,7 @@ export async function prepareManagedDeliberationEvidence(input: {
       const bytes = await readRepositoryFile(
         input.repositoryRoot,
         hit.path,
-        maximumEvidenceDocumentBytes,
+        MAX_CONTEXT_SOURCE_BYTES,
       );
       if (digest(bytes) !== hit.contentHash) {
         throw new ManagedDeliberationError(

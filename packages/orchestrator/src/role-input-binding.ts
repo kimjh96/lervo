@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { ContextArtifactPort } from "@lervo/context-delivery";
+import { MAX_ROLE_INPUT_BYTES } from "@lervo/event-contract";
 import type { ManagedProviderRunInput } from "./provider-run-types.js";
 import type { ManagedEventSpec } from "./telemetry.js";
 
@@ -26,7 +27,7 @@ export async function prepareRoleInputBinding(input: {
   );
   if (
     bytes.byteLength === 0 ||
-    bytes.byteLength > 131072 ||
+    bytes.byteLength > MAX_ROLE_INPUT_BYTES ||
     `sha256:${createHash("sha256").update(bytes).digest("hex")}` !== binding.inputArtifactHash
   )
     throw new Error("The prepared role input differs from its exact bounded CAS bytes.");
