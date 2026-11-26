@@ -10,6 +10,7 @@ import { codeSchema, epochMillisecondsSchema, identifierSchema } from "./primiti
 import { decodedContentSchema, decodedEventSchema } from "./core-link-decoded.js";
 import { sentImagesSchema } from "./image.js";
 import { conversationModeSchema } from "./session.js";
+import { choiceAnswersSchema } from "./choices.js";
 
 const requestIdSchema = { type: "integer", minimum: 1 } as const;
 const textSchema = { type: "string", maxLength: 262144 } as const;
@@ -99,6 +100,18 @@ export const decoderOutputRequestSchema = request(
   ["decoderId", "data"],
 );
 
+/**
+ * Encodes the person's answers to a question with choices. A core that advertises
+ * `decoder.questions` shows a provider's questions with choices and answers its other requests in
+ * `decoder.output`'s `input`, so the session host may launch the provider to ask through its stream.
+ */
+export const decoderAnswerRequestSchema = request(
+  "DecoderAnswerRequest",
+  "decoder.answer",
+  { decoderId: identifierSchema, requestId: identifierSchema, answers: choiceAnswersSchema },
+  ["decoderId", "requestId", "answers"],
+);
+
 export const decoderCloseRequestSchema = request(
   "DecoderCloseRequest",
   "decoder.close",
@@ -152,6 +165,7 @@ export const advertisedCoreRequestNames = [
   "decoder.images",
   "workspace.participants",
   "decoder.deliveries",
+  "decoder.questions",
 ] as const;
 
 export const coreLinkRequestSchemas = [
@@ -163,6 +177,7 @@ export const coreLinkRequestSchemas = [
   decoderSendRequestSchema,
   decoderInterruptRequestSchema,
   decoderOutputRequestSchema,
+  decoderAnswerRequestSchema,
   decoderCloseRequestSchema,
 ] as const;
 
@@ -262,7 +277,11 @@ export const decoderDecodedResponseSchema = {
     kind: { type: "string", enum: ["decoder.decoded"] },
     id: requestIdSchema,
     events: { type: "array", maxItems: 4096, items: decodedEventSchema },
-    /** For `decoder.send`: the Base64 bytes to write to the provider's standard input. */
+    /**
+     * The Base64 bytes to write to the provider's standard input: for `decoder.send` and
+     * `decoder.answer`, the message or the answer; for `decoder.output`, the answers the decoder
+     * gives without asking, such as allowing a tool.
+     */
     input: { type: "string", maxLength: 1398104 },
     /**
      * Turns for the session host to give other agents of the conversation, only for a decoder

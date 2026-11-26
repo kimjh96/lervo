@@ -96,6 +96,11 @@ export interface WorkspaceStartOptions {
   readonly model?: string;
   /** Agent IDs of the project's team; the first one's session writes. */
   readonly participants?: unknown;
+  /**
+   * Whether the session host answers the agents' questions with choices. A provider that cannot
+   * ask through its stream, or a conversation in the terminal, asks in prose.
+   */
+  readonly questions?: boolean;
 }
 
 /**
@@ -137,10 +142,13 @@ export async function startWorkspaceFromInstruction(
       : { model: options.model };
   const sessionId = randomUUID();
   const hooks = hostedSessionHooks(adapter, sessionId);
+  const mode = options.mode ?? preferredConversationMode(adapter.capabilities);
+  const questions = options.questions === true && adapter.capabilities.questions;
   return startWorkspace(
     {
       instruction: options.instruction,
-      mode: options.mode ?? preferredConversationMode(adapter.capabilities),
+      mode,
+      ...(questions ? { questions } : {}),
       repositoryRoot: repository.repositoryRoot,
       projectId: repository.projectId,
       baseCommit: await baseCommitOf(repository.repositoryRoot),
@@ -231,6 +239,8 @@ export async function openWorkspace(
       ...chosen,
       start: resume ? { kind: "resume" } : { kind: "new", instruction: "Continue." },
       ...(hooks === undefined ? {} : { hooks }),
+      // The conversation keeps answering questions with choices while it runs natively.
+      ...(previous.questions === true && mode === "native" ? { questions: true } : {}),
     }),
     previous.agentId,
   );

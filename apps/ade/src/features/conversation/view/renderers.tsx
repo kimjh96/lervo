@@ -3,6 +3,7 @@ import { type ComponentType, lazy, Suspense } from "react";
 import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
 import { attachedFiles } from "../model/files";
+import { QuestionChoices } from "./ChoiceCard";
 import { MessageFiles } from "./MessageFiles";
 import { MessageImages } from "./MessageImages";
 import { usePacedText } from "./paced";
@@ -81,7 +82,14 @@ function AgentMessage({ item }: { item: Extract<ConversationItem, { kind: "agent
 }
 
 function Question({ item }: { item: Extract<ConversationItem, { kind: "question" }> }) {
-  return <AgentText text={item.text} className={styles.question} />;
+  const { choices } = item;
+  if (choices === undefined) return <AgentText text={item.text} className={styles.question} />;
+  return (
+    <QuestionChoices
+      item={{ ...item, choices }}
+      text={(text) => <AgentText text={text} className={styles.agent} />}
+    />
+  );
 }
 
 /**

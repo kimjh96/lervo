@@ -11,7 +11,7 @@ import {
   imageMark,
 } from "@lervo/adapter-contract";
 
-import { compacted, peerMessage } from "./hosted-stream.js";
+import { compacted, peerMessage } from "./hosted-stream-items.js";
 import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
 
 /** A line longer than this is skipped, so one bad line cannot grow memory. */

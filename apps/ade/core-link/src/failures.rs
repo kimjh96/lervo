@@ -18,6 +18,7 @@ pub(crate) fn from_core(core_code: &str, stage: Option<String>) -> Failure {
         "conversation_mode_unsupported" => FailureCode::ConversationModeUnsupported,
         "interrupt_unsupported" => FailureCode::InterruptUnsupported,
         "images_unsupported" => FailureCode::ImagesUnsupported,
+        "question_not_open" | "questions_unsupported" => FailureCode::QuestionNotOpen,
         _ => FailureCode::ApplicationFailed,
     };
     Failure {

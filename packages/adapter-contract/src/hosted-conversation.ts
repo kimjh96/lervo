@@ -14,6 +14,11 @@ export type HostedDecodedContent =
       readonly text: string;
       /** What the conversation keeps of the images a user message carried. */
       readonly images?: readonly HostedImageMark[];
+      /**
+       * A question's choices, when the agent asked with them and the person can answer in the
+       * interface (Lervo ADE sessions, "Questions").
+       */
+      readonly choices?: HostedChoices;
     }
   | {
       readonly kind: "tool_activity";
@@ -39,6 +44,21 @@ export type HostedDecodedContent =
       readonly parameters: Readonly<Record<string, string | number | boolean>>;
     };
 
+/** One question an agent asks with choices, as the provider's tool put it. */
+export interface HostedQuestion {
+  readonly question: string;
+  /** A short label for the question, such as "Color". */
+  readonly header: string;
+  readonly multiSelect: boolean;
+  readonly options: readonly { readonly label: string; readonly description: string }[];
+}
+
+/** The questions of one request, which one answer settles. */
+export interface HostedChoices {
+  readonly requestId: string;
+  readonly questions: readonly HostedQuestion[];
+}
+
 /** One decoded change, in the order the session host applies it (the core-link protocol). */
 export type HostedDecodedEvent =
   | { readonly kind: "status"; readonly event: "turn_started" | "question_asked" | "turn_finished" }
@@ -62,6 +82,27 @@ export interface HostedStreamDecoder {
   };
   /** Decodes a chunk of standard output. A chunk may end anywhere, even inside a character. */
   output(chunk: Uint8Array): readonly HostedDecodedEvent[];
+}
+
+/**
+ * A decoder that lets the person answer an agent's questions with choices (Lervo ADE sessions,
+ * "Questions"). It answers what it cannot ask itself, so the provider never waits on it.
+ */
+export interface HostedQuestionAnswering {
+  /** Encodes the person's answers to `requestId`, each by its question, with what to show. */
+  answer(
+    requestId: string,
+    answers: Readonly<Record<string, string>>,
+  ): { readonly input: Uint8Array; readonly events: readonly HostedDecodedEvent[] };
+  /** Bytes the decoder must write without being asked, such as allowing a tool; empty when none. */
+  takeReplies(): Uint8Array;
+}
+
+/** Whether `decoder` answers questions with choices. */
+export function answersQuestions(
+  decoder: HostedStreamDecoder,
+): decoder is HostedStreamDecoder & HostedQuestionAnswering {
+  return typeof (decoder as Partial<HostedQuestionAnswering>).answer === "function";
 }
 
 /** A hosted-session adapter whose provider supports the native conversation. */

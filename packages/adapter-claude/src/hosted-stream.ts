@@ -8,17 +8,22 @@ import {
   type HostedTurnUsage,
   type HostedUsageReporting,
   imageMark,
+  type HostedQuestionAnswering,
 } from "@lervo/adapter-contract";
 import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 import { homedir } from "node:os";
 
 import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
+import { ClaudeQuestions } from "./hosted-questions.js";
+import { compacted, peerMessage } from "./hosted-stream-items.js";
 import { CLAUDE_HOSTED_USAGE_ACCOUNTING, turnUsage } from "./hosted-usage.js";
 
 /** A line longer than this is dropped up to its end, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
 const MAX_TOOL_NAME_CHARACTERS = 64;
 const MAX_PARAMETER_CHARACTERS = 256;
+/** The status that returns a turn to work after the person answered its question. */
+const RESUMED: HostedDecodedEvent = { kind: "status", event: "turn_started" };
 
 type Line = Record<string, unknown>;
 
@@ -62,7 +67,12 @@ export function imagePlaceholders(count: number): string {
 }
 
 export class ClaudeHostedStreamDecoder
-  implements HostedStreamDecoder, HostedUsageReporting, HostedTurnInterrupting, HostedImageSending
+  implements
+    HostedStreamDecoder,
+    HostedUsageReporting,
+    HostedTurnInterrupting,
+    HostedImageSending,
+    HostedQuestionAnswering
 {
   private readonly decoder = new TextDecoder();
   private partial = "";
@@ -83,6 +93,8 @@ export class ClaudeHostedStreamDecoder
   private usage: HostedTurnUsage[] = [];
   /** The model of the turn's last assistant message, for a result without per-model usage. */
   private lastModel: string | undefined;
+  /** The questions Claude Code asks with choices, and its other control requests. */
+  private readonly questions = new ClaudeQuestions();
 
   constructor(
     private readonly now: () => number = Date.now,
@@ -112,6 +124,10 @@ export class ClaudeHostedStreamDecoder
       })),
     ];
     const line = JSON.stringify({ type: "user", message: { role: "user", content } });
+    // A message written while a question waits answers it in prose, and the turn goes on.
+    const resumes = this.inTurn && this.questions.waiting();
+    this.questions.settleOpen();
+    const settled = this.questions.takeReplies();
     const marks = images.map(imageMark);
     const events: HostedDecodedEvent[] = [
       {
@@ -124,8 +140,8 @@ export class ClaudeHostedStreamDecoder
         createdAtMs: this.now(),
       },
     ];
-    events.push(...this.startTurn());
-    return { input: new TextEncoder().encode(`${line}\n`), events };
+    events.push(...(resumes ? [RESUMED] : this.startTurn()));
+    return { input: new TextEncoder().encode(`${settled}${line}\n`), events };
   }
 
   output(chunk: Uint8Array): HostedDecodedEvent[] {
@@ -177,6 +193,12 @@ export class ClaudeHostedStreamDecoder
         return this.toolResults(line);
       case "result":
         return this.result(line);
+      case "control_request": {
+        const asked = this.questions.request(line);
+        return asked === null
+          ? []
+          : [this.item(asked), { kind: "status", event: "question_asked" }];
+      }
       case "system":
         if (line.subtype === "init")
           this.workingDirectory = text(line.cwd) ?? this.workingDirectory;
@@ -256,6 +278,8 @@ export class ClaudeHostedStreamDecoder
       const call = id === undefined ? undefined : this.tools.get(id);
       if (id === undefined || call === undefined) continue;
       this.tools.delete(id);
+      // The question and the person's answer already show what the call did.
+      if (this.questions.showed(id)) continue;
       const failed = block.is_error === true;
       // The structured result belongs to the line's only result.
       const result = {
@@ -308,9 +332,29 @@ export class ClaudeHostedStreamDecoder
       );
     this.inTurn = false;
     this.tools.clear();
+    this.questions.forget();
     this.usage.push(...turnUsage(line, this.lastModel));
     events.push({ kind: "status", event: "turn_finished" });
     return events;
+  }
+
+  /** The person's answers to a question with choices, which show as their message. */
+  answer(
+    requestId: string,
+    answers: Readonly<Record<string, string>>,
+  ): { input: Uint8Array; events: HostedDecodedEvent[] } {
+    const answered = this.questions.answer(requestId, answers);
+    if (answered === null) return { input: new Uint8Array(), events: [] };
+    // The turn the question paused goes on.
+    return {
+      input: new TextEncoder().encode(`${answered.line}\n`),
+      events: [this.item({ kind: "user_message", text: answered.said }), RESUMED],
+    };
+  }
+
+  /** The automatic answers to Claude Code's control requests, waiting to be written. */
+  takeReplies(): Uint8Array {
+    return new TextEncoder().encode(this.questions.takeReplies());
   }
 
   /**
@@ -347,33 +391,4 @@ export class ClaudeHostedStreamDecoder
   private started(content: HostedDecodedContent): HostedDecodedEvent {
     return { kind: "start", content, createdAtMs: this.now() };
   }
-}
-
-/** Where Claude Code appends a notice of its own to a relayed message's body. */
-const RELAY_NOTICE = "\n\n<artifact-content-authored-by-others/>";
-
-/**
- * A message another session sent, from a user line's `origin`: Claude Code marks one with `kind:
- * "peer"`, the sender's session name, and the message's body.
- */
-export function peerMessage(origin: Line | undefined): HostedDecodedContent | undefined {
-  if (origin?.kind !== "peer") return undefined;
-  const body = text(origin.body);
-  if (body === undefined) return undefined;
-  const cut = body.indexOf(RELAY_NOTICE);
-  const from = text(origin.name)?.trim();
-  return {
-    kind: "peer_message",
-    from: (from === undefined || from.length === 0 ? "another session" : from).slice(0, 128),
-    text: (cut === -1 ? body : body.slice(0, cut)).trim(),
-  };
-}
-
-/** The notice for a compaction: `manual` when the person ran /compact, otherwise `auto`. */
-export function compacted(trigger: unknown): HostedDecodedContent {
-  return {
-    kind: "lervo_notice",
-    code: "context_compacted",
-    parameters: { trigger: trigger === "manual" ? "manual" : "auto" },
-  };
 }

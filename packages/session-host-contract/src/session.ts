@@ -2,6 +2,7 @@ import type { FromSchema } from "json-schema-to-ts";
 
 import { sentImagesSchema } from "./image.js";
 import { identifierSchema, sequenceSchema } from "./primitives.js";
+import { choiceAnswersSchema } from "./choices.js";
 
 export const conversationModeSchema = { enum: ["native", "cli"] } as const;
 
@@ -92,6 +93,25 @@ export const sessionInterruptMessageSchema = {
     kind: { type: "string", enum: ["session.interrupt"] },
     requestId: identifierSchema,
     sessionId: identifierSchema,
+  },
+} as const;
+
+/**
+ * Answers the agent's question with choices: `answers` by each question's text. The session host
+ * sends it only to a session whose decoder answers questions; it answers with `session.sent`.
+ */
+export const sessionAnswerMessageSchema = {
+  title: "SessionAnswerMessage",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "requestId", "sessionId", "questionId", "answers"],
+  properties: {
+    kind: { type: "string", enum: ["session.answer"] },
+    requestId: identifierSchema,
+    sessionId: identifierSchema,
+    /** The question's `choices.requestId`. */
+    questionId: identifierSchema,
+    answers: choiceAnswersSchema,
   },
 } as const;
 
@@ -195,6 +215,7 @@ export type SessionAttachMessage = FromSchema<typeof sessionAttachMessageSchema>
 export type SessionDetachMessage = FromSchema<typeof sessionDetachMessageSchema>;
 export type SessionSendMessage = FromSchema<typeof sessionSendMessageSchema>;
 export type SessionInterruptMessage = FromSchema<typeof sessionInterruptMessageSchema>;
+export type SessionAnswerMessage = FromSchema<typeof sessionAnswerMessageSchema>;
 export type SessionInterruptedMessage = FromSchema<typeof sessionInterruptedMessageSchema>;
 export type SessionResizeMessage = FromSchema<typeof sessionResizeMessageSchema>;
 export type SessionStopMessage = FromSchema<typeof sessionStopMessageSchema>;

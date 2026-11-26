@@ -78,6 +78,14 @@ pub(crate) enum Command {
         request: Identifier,
         reply: Reply,
     },
+    /// Answers the agent's question with choices (Lervo ADE sessions, "Questions").
+    Answer {
+        request: Identifier,
+        /// The question's `choices.requestId`.
+        question: String,
+        answers: BTreeMap<String, String>,
+        reply: Reply,
+    },
     Range(Range),
     Stop,
     /// Ends an ended session's retention early, so its actor exits and its memory returns.

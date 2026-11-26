@@ -1,0 +1,30 @@
+{
+  "kind": "decoder.decoded",
+  "id": 8,
+  "events": [
+    {
+      "kind": "item",
+      "content": {
+        "kind": "question",
+        "text": "Which color do you prefer?",
+        "choices": {
+          "requestId": "toolu_req_1",
+          "questions": [
+            {
+              "question": "Which color do you prefer?",
+              "header": "Color",
+              "multiSelect": false,
+              "options": [
+                { "label": "Red", "description": "The color red" },
+                { "label": "Blue", "description": "The color blue" }
+              ]
+            }
+          ]
+        }
+      },
+      "createdAtMs": 5
+    },
+    { "kind": "status", "event": "question_asked" }
+  ],
+  "input": "eyJ0eXBlIjoiY29udHJvbF9yZXNwb25zZSJ9Cg=="
+}

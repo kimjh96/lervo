@@ -53,6 +53,7 @@ export const claudeHostedCapabilities: HostedSessionCapabilities = {
   systemPromptFile: false,
   resume: true,
   readAccess: true,
+  questions: true,
 };
 
 /**
@@ -174,6 +175,9 @@ export function createClaudeHostedSessionAdapter(
           : native
             ? ["--permission-mode", CLAUDE_HOSTED_PERMISSION_MODE]
             : [];
+      // Asked to, Claude Code sends its questions with choices through the stream, and the
+      // decoder answers them, and allows the tools a bypassed session never asks about.
+      const questions = intent.questions === true ? ["--permission-prompt-tool", "stdio"] : [];
       return {
         program: executable,
         arguments: native
@@ -187,6 +191,7 @@ export function createClaudeHostedSessionAdapter(
               "--include-partial-messages",
               "--replay-user-messages",
               ...access,
+              ...questions,
               ...session,
               ...model,
               ...settings,

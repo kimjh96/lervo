@@ -1,0 +1,7 @@
+{
+  "kind": "session.answer",
+  "requestId": "req_9",
+  "sessionId": "ses_1",
+  "questionId": "toolu_req_1",
+  "answers": { "Which color do you prefer?": "Blue" }
+}

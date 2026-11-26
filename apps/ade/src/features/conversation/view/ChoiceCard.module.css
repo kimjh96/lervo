@@ -1,0 +1,129 @@
+/* An agent's question with choices (Lervo ADE sessions, "Questions"): each question as the
+   agent's text with its options on one raised card under it, and the needs-you edge while it
+   waits. Answered, the options close their space and the edge settles to a faint line that
+   keeps the question's place. What comes and goes carries its own spacing, so a closed place
+   leaves no gap. */
+.question {
+  display: flex;
+  flex-direction: column;
+  padding-inline-start: var(--space-12);
+  border-inline-start: var(--border-width-strong) solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+  transition: border-color var(--motion-duration-leave) var(--motion-easing-fade);
+}
+
+.question[data-open] {
+  border-inline-start-color: var(--color-status-needs-you);
+}
+
+.part {
+  display: flex;
+  flex-direction: column;
+}
+
+.part + .part {
+  margin-block-start: var(--space-12);
+}
+
+.header {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
+/* The options sit on the window as one card: fill and a faint edge, not a drawn box (craft
+   rules, 2). */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block-start: var(--space-8);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-input);
+  box-shadow: var(--shadow-raised);
+}
+
+.option {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+  width: 100%;
+  padding-block: var(--space-8);
+  padding-inline: var(--space-12) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: start;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.option:hover {
+  background: var(--color-surface-hover);
+}
+
+.option[aria-checked="true"] {
+  background: var(--color-surface-selected);
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.option:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-inset);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--type-list-size);
+  line-height: var(--type-list-line-height);
+}
+
+.description {
+  color: var(--color-text-secondary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+  text-wrap: balance;
+}
+
+.check {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--size-row-leading);
+  color: var(--color-accent);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  align-items: center;
+  margin-block-start: var(--space-10);
+}
+
+.failure {
+  margin-block-start: var(--space-8);
+}
+
+.hint {
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
