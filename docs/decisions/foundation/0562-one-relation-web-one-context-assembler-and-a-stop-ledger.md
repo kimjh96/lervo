@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-02
 Amends: [ADR-0551 document link web](../knowledge/documents/links/0551-measure-the-document-link-web-deterministically.md), [ADR-0552 governing canon](../execution/grounding/0552-check-changes-against-the-canon-that-names-them.md), [ADR-0463 document freshness](../knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md), [ADR-0550 Find measurement](../execution/grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md), [ADR-0556 governing preference](../execution/grounding/0556-rank-canonical-documents-that-name-the-task-paths-first.md)
-Amended by: [ADR-0631](../knowledge/documents/links/0631-write-reverse-adr-header-lines-as-insert-only-freshness-edits.md)
+Amended by: [ADR-0631](../knowledge/documents/links/0631-write-reverse-adr-header-lines-as-insert-only-freshness-edits.md), [ADR-0645](../execution/providers/hooks/0645-answer-an-unserved-prompt-from-the-cached-base.md) (the unreachable-host record becomes `terminal.context.base_delivered`)
 Related: [ADR-0560 core hardening](0560-remove-unused-subsystems-to-harden-the-core.md), [ADR-0561 decide without the owner](0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), [ADR-0052 knowledge graph](../knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md)
 
 ## Context

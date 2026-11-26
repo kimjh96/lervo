@@ -13,6 +13,7 @@ import {
 import { documentFreshnessEventTypes } from "./document-freshness-event.js";
 import { instructionCaptureEventTypes } from "./instruction-capture-event.js";
 import { hostedSessionEventTypes } from "./hosted-session-event.js";
+import { terminalBaseDeliveryEventTypes } from "./terminal-base-delivery-event.js";
 import { planLedgerEventTypes } from "./plan-ledger-event.js";
 import { resourceUsageBeforeV11 } from "./resource-usage-event.js";
 import { terminalTurnObservedBeforeV12 } from "./terminal-observation-event.js";
@@ -204,7 +205,9 @@ export const eventTypesV12 = eventTypesV11;
  * which `executionStagesObservedBeforeV13` keeps out of older envelope versions.
  */
 export const eventTypesV13 = eventTypesV12;
-export const eventTypes = eventTypesV13;
+/** ADR-0645: the launcher answered an unserved prompt from the checkout's cached base. */
+export const eventTypesV14 = [...eventTypesV13, ...terminalBaseDeliveryEventTypes] as const;
+export const eventTypes = eventTypesV14;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -356,6 +359,7 @@ export const eventEnvelopeSchema = {
     { properties: { type: { enum: eventTypesV11 }, schemaVersion: { const: 11 } } },
     { properties: { type: { enum: eventTypesV12 }, schemaVersion: { const: 12 } } },
     { properties: { type: { enum: eventTypesV13 }, schemaVersion: { const: 13 } } },
+    { properties: { type: { enum: eventTypesV14 }, schemaVersion: { const: 14 } } },
   ],
 } as const;
 
@@ -405,7 +409,11 @@ export type EventEnvelopeV13 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> &
   schemaVersion: 13;
   type: (typeof eventTypesV13)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV13, "schemaVersion"> & {
+export type EventEnvelopeV14 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 14;
+  type: (typeof eventTypesV14)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV14, "schemaVersion"> & {
   schemaVersion:
     | EventEnvelopeV1["schemaVersion"]
     | EventEnvelopeV2["schemaVersion"]
@@ -419,7 +427,8 @@ export type EventEnvelope = Omit<EventEnvelopeV13, "schemaVersion"> & {
     | 10
     | 11
     | 12
-    | 13;
+    | 13
+    | 14;
 };
 /**
  * `T` with its `events` typed as non-empty `EventEnvelope`s, keeping every other property and any
@@ -431,4 +440,4 @@ export type WithEnvelopeEvents<T> = {
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV13)[number];
+export type EventType = (typeof eventTypesV14)[number];

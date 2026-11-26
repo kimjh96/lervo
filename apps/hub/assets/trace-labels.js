@@ -122,6 +122,7 @@ const eventLabels = {
   "terminal.session.launch_prepared": "Hosted session launch prepared",
   "terminal.session.launched": "Hosted session launched",
   "terminal.session.ended": "Hosted session ended",
+  "terminal.context.base_delivered": "Prompt answered from the cached base",
   "conversation.repository_knowledge.resolved": "Repository knowledge job resolved",
   "work.supervision.mandate.installed": "Operating mandate installed",
   "managed.execution.reserved": "Managed execution reserved",
