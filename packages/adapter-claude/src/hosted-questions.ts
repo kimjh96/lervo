@@ -48,6 +48,31 @@ function questionsOf(input: unknown): HostedQuestion[] | null {
   });
 }
 
+/**
+ * What an `AskUserQuestion` call asked, and what the person answered, in the order asked, as a
+ * transcript keeps them: the call's input and its result's structured `answers`. Either is null
+ * when the line holds none.
+ */
+export function askedAndAnswered(
+  input: unknown,
+  structured: unknown,
+): { asked: string | null; said: string | null } {
+  const questions = questionsOf(input) ?? [];
+  const answers = (structured as { answers?: unknown } | null | undefined)?.answers;
+  const said =
+    answers !== null && typeof answers === "object"
+      ? questions.flatMap((question) => {
+          const answer = (answers as Record<string, unknown>)[question.question];
+          return typeof answer === "string" ? [answer] : [];
+        })
+      : [];
+  return {
+    asked:
+      questions.length === 0 ? null : questions.map((question) => question.question).join("\n"),
+    said: said.length === 0 ? null : said.join("\n"),
+  };
+}
+
 function reply(requestId: string, response: Line): string {
   return JSON.stringify({
     type: "control_response",
