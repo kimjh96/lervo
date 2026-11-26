@@ -6,37 +6,47 @@ import type {
 import { capContextBytes, MAXIMUM_TERMINAL_ATTENTION_BYTES } from "./terminal-context-budget.js";
 import { formatRepositoryHealth } from "./repository-health-format.js";
 
-function describe(item: OperatingAttentionItemV1): string {
-  if (item.kind === "workstream_decision") return item.question;
-  if (item.kind === "workstream_approval") return item.summary;
-  if (item.kind === "workstream_blocker") return item.summary;
-  if (item.kind === "canonicalization_review") {
-    return `${item.state} · sources ${item.sourcePaths.length} · outcome ${item.outcomeKind ?? "legacy_metadata_only"} · targets ${(item.proposedTargetPaths.length > 0 ? item.proposedTargetPaths : item.recommendedRoots).join(",")}`;
-  }
-  if (item.kind === "repository_replica_divergence") {
-    return `replica ${item.replicaId} · ${item.reason} · paths ${item.conflictPathCount}${item.conflictPaths.length === 0 ? "" : ` (${item.conflictPaths.join(",")})`}`;
-  }
-  if (item.kind === "document_freshness_candidate")
-    return `${item.state} · ${item.documentPath} · ${item.priorityClass} · ${item.changeClasses.join(",")} · hunks ${item.hunkCount} · ${item.heldReason}`;
-  if (item.kind === "document_freshness_applied")
-    return `${item.state} · ${item.documentPath} · ${item.approvalSource}${item.commitHash === null ? "" : ` · commit ${item.commitHash.slice(0, 12)}`}`;
-  if (item.kind === "knowledge_convergence_owner")
-    return `${item.role} · ${item.reason}${item.failureCode === null ? "" : ` · ${item.failureCode}${item.httpStatus === null ? "" : ` HTTP ${item.httpStatus}`}`}${item.holderLabel === null ? "" : ` · holder ${item.holderLabel}`}`;
-  if (item.kind === "knowledge_publication")
-    return `${item.failureCode}${item.detail === null ? "" : ` · ${item.detail}`} · occurrences ${item.occurrences}${item.pullRequestUrl === null ? "" : ` · ${item.pullRequestUrl}`}`;
-  if (item.kind === "knowledge_convergence_continuity")
-    return `${item.severity} · ${item.findingCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
-  if (item.kind === "document_freshness_blocked")
-    return `${item.state} · ${item.reasonCode}${item.documentPath === null ? "" : ` · ${item.documentPath}`} · attempts ${item.attempts} · since ${item.since} · retry ${item.retryAt}`;
-  if (item.kind === "durable_instruction_candidate")
-    return `${item.captureSource} · ${item.title} · ${item.targetPath}`;
-  if (item.kind === "captured_decision")
-    return `${item.captureSource} · ${item.title} · captured ${item.capturedAt}`;
-  if (item.kind === "instruction_capture_blocked")
-    return `${item.reasonCode} · queued ${item.queuedCount} · since ${item.since}`;
-  if (item.kind === "held_effect")
-    return `${item.effect} · ${item.subject} · ${item.reasonCode} · attempts ${item.attempts} · since ${item.since}`;
-  return `${item.issueCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
+type AttentionKind = OperatingAttentionItemV1["kind"];
+type AttentionOf<K extends AttentionKind> = Extract<OperatingAttentionItemV1, { kind: K }>;
+
+/**
+ * One line of detail per attention kind. The record is keyed by every kind, so a new kind fails
+ * to compile until it says how it reads, instead of falling through to another kind's fields.
+ */
+const DESCRIBE: { [K in AttentionKind]: (item: AttentionOf<K>) => string } = {
+  workstream_decision: (item) => item.question,
+  workstream_approval: (item) => item.summary,
+  workstream_blocker: (item) => item.summary,
+  canonicalization_review: (item) =>
+    `${item.state} · sources ${item.sourcePaths.length} · outcome ${item.outcomeKind ?? "legacy_metadata_only"} · targets ${(item.proposedTargetPaths.length > 0 ? item.proposedTargetPaths : item.recommendedRoots).join(",")}`,
+  knowledge_lifecycle: (item) =>
+    `${item.issueCode}${item.detail === null ? "" : ` · ${item.detail}`}`,
+  repository_replica_divergence: (item) =>
+    `replica ${item.replicaId} · ${item.reason} · paths ${item.conflictPathCount}${item.conflictPaths.length === 0 ? "" : ` (${item.conflictPaths.join(",")})`}`,
+  document_freshness_candidate: (item) =>
+    `${item.state} · ${item.documentPath} · ${item.priorityClass} · ${item.changeClasses.join(",")} · hunks ${item.hunkCount} · ${item.heldReason}`,
+  document_freshness_applied: (item) =>
+    `${item.state} · ${item.documentPath} · ${item.approvalSource}${item.commitHash === null ? "" : ` · commit ${item.commitHash.slice(0, 12)}`}`,
+  document_freshness_blocked: (item) =>
+    `${item.state} · ${item.reasonCode}${item.documentPath === null ? "" : ` · ${item.documentPath}`} · attempts ${item.attempts} · since ${item.since} · retry ${item.retryAt}`,
+  durable_instruction_candidate: (item) =>
+    `${item.captureSource} · ${item.title} · ${item.targetPath}`,
+  captured_decision: (item) =>
+    `${item.captureSource} · ${item.title} · captured ${item.capturedAt}`,
+  instruction_capture_blocked: (item) =>
+    `${item.reasonCode} · queued ${item.queuedCount} · since ${item.since}`,
+  held_effect: (item) =>
+    `${item.effect} · ${item.subject} · ${item.reasonCode} · attempts ${item.attempts} · since ${item.since}`,
+  knowledge_convergence_owner: (item) =>
+    `${item.role} · ${item.reason}${item.failureCode === null ? "" : ` · ${item.failureCode}${item.httpStatus === null ? "" : ` HTTP ${item.httpStatus}`}`}${item.holderLabel === null ? "" : ` · holder ${item.holderLabel}`}`,
+  knowledge_publication: (item) =>
+    `${item.failureCode}${item.detail === null ? "" : ` · ${item.detail}`} · occurrences ${item.occurrences}${item.pullRequestUrl === null ? "" : ` · ${item.pullRequestUrl}`}`,
+  knowledge_convergence_continuity: (item) =>
+    `${item.severity} · ${item.findingCode}${item.detail === null ? "" : ` · ${item.detail}`}`,
+};
+
+function describe<K extends AttentionKind>(item: AttentionOf<K>): string {
+  return (DESCRIBE[item.kind] as (value: AttentionOf<K>) => string)(item);
 }
 
 export function formatOperatingAttention(report: OperatingAttentionReportV1): string {
