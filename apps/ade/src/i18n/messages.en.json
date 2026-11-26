@@ -35,6 +35,58 @@
     "defaultMessage": "Hired when the work starts",
     "description": "Under the proposed Product Owner in the participants menu, for a team without one."
   },
+  "agents.profile.conversations": {
+    "defaultMessage": "Conversations",
+    "description": "The heading of the conversations an agent takes part in."
+  },
+  "agents.profile.effort": {
+    "defaultMessage": "Effort",
+    "description": "The menu of how much the model works before it answers."
+  },
+  "agents.profile.effort.high": {
+    "defaultMessage": "High effort",
+    "description": "An effort level."
+  },
+  "agents.profile.effort.low": {
+    "defaultMessage": "Low effort",
+    "description": "An effort level: the least work before answering."
+  },
+  "agents.profile.effort.max": {
+    "defaultMessage": "Max effort",
+    "description": "An effort level: the most work before answering."
+  },
+  "agents.profile.effort.medium": {
+    "defaultMessage": "Medium effort",
+    "description": "An effort level."
+  },
+  "agents.profile.effort.xhigh": {
+    "defaultMessage": "Extra high effort",
+    "description": "An effort level, between high and max."
+  },
+  "agents.profile.failed": {
+    "defaultMessage": "Lervo could not change the agent ({code}).",
+    "description": "A rename or a model change failed; {code} is the protocol code."
+  },
+  "agents.profile.model": {
+    "defaultMessage": "Model",
+    "description": "The heading and the menu of the model an agent's sessions run on."
+  },
+  "agents.profile.model.owner": {
+    "defaultMessage": "A change applies from the agent's next session.",
+    "description": "Under an agent's model once the owner chose it."
+  },
+  "agents.profile.model.role": {
+    "defaultMessage": "Lervo chose these for the {role} role. A change applies from the agent's next session.",
+    "description": "Under an agent's model when its role chose it; {role} is the role's name."
+  },
+  "agents.profile.noConversations": {
+    "defaultMessage": "Not in a conversation yet",
+    "description": "An agent's profile when the agent takes part in no conversation."
+  },
+  "agents.profile.rename": {
+    "defaultMessage": "Rename",
+    "description": "The agent's name in its profile, which renames it in place when pressed."
+  },
   "agents.role": {
     "defaultMessage": " · {role}",
     "description": "After an agent's name in the sidebar: its role, such as \"· Developer\"."

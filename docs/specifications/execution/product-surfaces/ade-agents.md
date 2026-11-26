@@ -45,6 +45,15 @@ Agents work together by mentioning each other directly, by role and by what each
 - The conversation's header shows the participants' marks, the writing agent first. An agent in the sidebar shows the status of the conversations whose session is its own: needs the owner when any does, working when any works.
 - When the speaking agent changes, its mark, name, and role precede its turn; collaboration records, such as context passed between agents or paths claimed, show as quiet lines. These arrive with S2g, when more than one agent speaks in a conversation ([Lervo ADE rooms](ade-rooms.md)).
 
+## The profile (slice 3)
+
+- **Opening.** Choosing an agent in the sidebar shows its profile in the main area, in place of a conversation or the start screen, and the agent's row reads as current. Choosing a conversation, new work, or another project closes it.
+- **Identity.** The agent's mark at its large size, its name, and its role. Pressing the name renames the agent in place through `agent.rename` (ADE craft rules, 12): the name becomes a field of the same type, Return or leaving the field renames, and Escape keeps the name.
+- **Model and effort.** Two menus, the model from `agents.list`'s `models` and the effort, change them through `agent.model`. A line under them says whether Lervo chose them for the role and that a change applies from the agent's next session. A core that does not advertise `agent.model` shows the model as text.
+- **Conversations.** The conversations the agent takes part in, as the lead or a joined participant; choosing one opens it.
+- **Still to come.** The agent's paths, what it has learned, its image, and retiring it.
+- **Failure.** A failed rename or model change shows one line under the profile: "Lervo could not change the agent (<code>)."
+
 ## Model and effort
 
 - Each team agent runs on a model and at an effort its role chose when it was hired, and the owner can change both ([ADR-0647](../../../decisions/execution/orchestration/0647-choose-each-agents-model-and-effort-by-its-role.md)). The product owner starts on the strong model (Opus) at high effort, a developer on the strong model at extra-high effort, and a writer on the balanced model (Sonnet) at medium effort.

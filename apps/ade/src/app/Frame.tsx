@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
 import { preloadConversation, WorkspaceConversation } from "../features/conversation";
-import { AgentList, managesAgents } from "../features/agents";
+import { AgentList, AgentProfile, managesAgents } from "../features/agents";
 import { AddProjectSheet, ProjectSwitcher, useCurrentProject } from "../features/projects";
 import { StartScreen, type Surface, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
@@ -13,6 +13,13 @@ import styles from "./Frame.module.css";
 
 function Main(props: { surface: Surface }) {
   const { surface } = props;
+  if (surface.kind === "agent")
+    return (
+      <div className={styles.view} data-background={surface.background}>
+        <div className={styles.titlebar} data-tauri-drag-region />
+        <AgentProfile agentId={surface.agentId} />
+      </div>
+    );
   if (surface.kind === "start")
     return (
       <div className={styles.view} data-background={surface.background}>

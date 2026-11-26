@@ -73,6 +73,100 @@
       "value": "Hired when the work starts"
     }
   ],
+  "agents.profile.conversations": [
+    {
+      "type": 0,
+      "value": "Conversations"
+    }
+  ],
+  "agents.profile.effort": [
+    {
+      "type": 0,
+      "value": "Effort"
+    }
+  ],
+  "agents.profile.effort.high": [
+    {
+      "type": 0,
+      "value": "High effort"
+    }
+  ],
+  "agents.profile.effort.low": [
+    {
+      "type": 0,
+      "value": "Low effort"
+    }
+  ],
+  "agents.profile.effort.max": [
+    {
+      "type": 0,
+      "value": "Max effort"
+    }
+  ],
+  "agents.profile.effort.medium": [
+    {
+      "type": 0,
+      "value": "Medium effort"
+    }
+  ],
+  "agents.profile.effort.xhigh": [
+    {
+      "type": 0,
+      "value": "Extra high effort"
+    }
+  ],
+  "agents.profile.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not change the agent ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "agents.profile.model": [
+    {
+      "type": 0,
+      "value": "Model"
+    }
+  ],
+  "agents.profile.model.owner": [
+    {
+      "type": 0,
+      "value": "A change applies from the agent's next session."
+    }
+  ],
+  "agents.profile.model.role": [
+    {
+      "type": 0,
+      "value": "Lervo chose these for the "
+    },
+    {
+      "type": 1,
+      "value": "role"
+    },
+    {
+      "type": 0,
+      "value": " role. A change applies from the agent's next session."
+    }
+  ],
+  "agents.profile.noConversations": [
+    {
+      "type": 0,
+      "value": "Not in a conversation yet"
+    }
+  ],
+  "agents.profile.rename": [
+    {
+      "type": 0,
+      "value": "Rename"
+    }
+  ],
   "agents.role": [
     {
       "type": 0,

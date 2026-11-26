@@ -15,7 +15,7 @@ import { useItemSpace } from "../../../ui/space";
 import { statusMessages, useWorkspaceStore } from "../../workspaces";
 import { hireAgent, showProjectAgents } from "../model/controller";
 import { agentActivity, managesAgents, productOwnerRole, teamAgents } from "../model/decisions";
-import { useAgentStore } from "../model/store";
+import { openProfile, useAgentStore } from "../model/store";
 import styles from "./AgentList.module.css";
 import { roleSummary } from "./role-summary";
 
@@ -26,12 +26,14 @@ function AgentRow(props: { agent: AgentSummary }) {
     agentActivity(agent.agentId, store.workspaces, store.statuses),
   );
   const arrived = useAgentStore((store) => store.arrived.has(agent.agentId));
+  const open = useAgentStore((store) => store.profile === agent.agentId);
   // An agent hired while the person watches arrives with the space it takes (ADE motion, 12).
   const space = useItemSpace<HTMLDivElement>(arrived, false);
   return (
     <div ref={space} data-arrived={arrived ? "true" : undefined} className={styles.agent}>
       <ListRow
-        current={false}
+        current={open}
+        onClick={() => openProfile(agent.agentId)}
         leading={
           <StatusRing
             tone={activity === null ? null : activity === "working" ? "working" : "attention"}
