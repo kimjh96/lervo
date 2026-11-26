@@ -249,7 +249,7 @@ export async function keepTerminalCachedBase(input: {
   }
   const age = await ageMilliseconds(file, now());
   // Modification times carry fractions of a millisecond, so a file just written can look a
-  // moment younger than the clock; a second's slack still refreshes one dated in the future.
+  // moment younger than the clock; a second's allowance still refreshes one dated in the future.
   if (age !== null && age > -1_000 && age < REFRESH_AFTER_MS) return { recorded, refreshed: false };
   const lines = await ports.prepare(evidenceRoot, executionRoot);
   // A base whose owner rules did not load in time would stand for half an hour without them; the
