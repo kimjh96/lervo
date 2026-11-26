@@ -1,7 +1,9 @@
 import { loadProjectManifest } from "@lervo/project";
 import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
-import { mkdir, lstat, readFile, open, rm, chmod, rename } from "node:fs/promises";
-import { resolve, dirname, basename } from "node:path";
+import { mkdir, lstat, readFile, open, rm } from "node:fs/promises";
+
+import { replaceFile } from "@lervo/filesystem-durability";
+import { resolve } from "node:path";
 import {
   MAXIMUM_STATE_BYTES,
   fail,
@@ -11,7 +13,6 @@ import {
 import { AgentWorkforceError, type WorkforceEvent, type WorkforceEventRecorder } from "./types.js";
 import { constants } from "node:fs";
 import { hostname } from "node:os";
-import { randomUUID } from "node:crypto";
 
 export async function state(root: string, options: { readOnly?: boolean } = {}) {
   const manifest = await loadProjectManifest(root);
@@ -92,17 +93,9 @@ export async function acquireLock(path: string, now: Date): Promise<() => Promis
   };
 }
 
+/** Replaces a workforce state file whole, owner-only, synced with its directory. */
 export async function atomicWrite(path: string, content: string): Promise<void> {
-  const temporary = resolve(dirname(path), `.${basename(path)}.${process.pid}.${randomUUID()}.tmp`);
-  const handle = await open(temporary, "wx", 0o600);
-  try {
-    await handle.writeFile(content);
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-  await chmod(temporary, 0o600);
-  await rename(temporary, path);
+  await replaceFile(path, content);
 }
 
 export async function transition<T>(input: {

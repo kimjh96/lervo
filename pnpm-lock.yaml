@@ -189,6 +189,9 @@ importers:
       '@lervo/execution-observability':
         specifier: workspace:*
         version: link:../../packages/execution-observability
+      '@lervo/filesystem-durability':
+        specifier: workspace:*
+        version: link:../../packages/filesystem-durability
       '@lervo/interaction-sqlite':
         specifier: workspace:*
         version: link:../../packages/interaction-sqlite
@@ -688,6 +691,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/filesystem-durability':
+        specifier: workspace:*
+        version: link:../filesystem-durability
       '@lervo/project':
         specifier: workspace:*
         version: link:../project
