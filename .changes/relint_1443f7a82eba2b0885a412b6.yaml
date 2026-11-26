@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1443f7a82eba2b0885a412b6"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read a snapshot's HEAD from the repository's files, falling back to git for anything unusual, so each prompt and Stop snapshot spawns fewer git processes."
