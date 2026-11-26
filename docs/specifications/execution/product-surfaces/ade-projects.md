@@ -29,6 +29,7 @@ The core adds a project from one of three sources, each in one command, and then
 | An instruction alone | `lervo project add --new <name> [--into <absolute-path>] --write`  | Creates `<into>/<folder name>`, runs `git init` and `lervo init`, and registers it.                                                       |
 
 - `--into` defaults to the projects location: `~/Lervo` until the owner chooses another, which the core keeps in the user state directory as `projects-location.json` (`lervo project location --set <absolute-path> --write`).
+- The core refuses a projects location inside a Git work tree, when it is set and when a project is added there (`projects_location_invalid`), so no project is created inside another repository. macOS folders ignore case, so a checkout at `~/lervo` is also the default `~/Lervo`.
 - For a new project, the ADE proposes the name from the instruction. The folder name keeps the instruction's ASCII words, joined by hyphens and at most 40 characters, or else is `project-<yyyymmdd>-<4 hex>`. The display name is the instruction's first words, as a workspace title is, at most 80 characters. Both change later.
 - An existing folder at the destination is never reused for a clone or a new project (`project_folder_exists`). A clone or a new project that fails leaves no folder behind (`project_clone_failed`, or the failing step's code).
 - A new project gets its first commit, "Start the project with Lervo", with what Lervo wrote there, the profile included, so the first workspace has a commit to start from. It uses the owner's Git identity, or `Lervo <lervo@localhost.invalid>` when none is configured, and is reported after the fact as an effect notice (`project_first_commit`) whose undo removes the commit and keeps the files. A folder of the owner's files is never committed for them: a project with no commit yet refuses new work with `repository_has_no_commit` until the owner commits. Git runs without prompts, as `lervo workspace start` runs it.
@@ -86,7 +87,7 @@ The core adds a project from one of three sources, each in one command, and then
 | `project_name_invalid`       | The display name is empty, too long, or has control characters.                                                |
 | `project_mark_invalid`       | The image's format, signature, size, or dimensions are outside the bound.                                      |
 | `project_profile_invalid`    | The profile file exists but does not match its schema.                                                         |
-| `projects_location_invalid`  | The projects location is not an absolute, writable directory.                                                  |
+| `projects_location_invalid`  | The projects location is not an absolute, writable directory, or it is inside a Git work tree.                 |
 | `provider_login_unavailable` | The provider CLI reports that no one is signed in.                                                             |
 
 ## Open items
