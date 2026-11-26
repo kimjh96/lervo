@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_860811e65b6482e0080e8078"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A hosted session's shell now shares the Lervo state locations its core was started with, so lervo commands inside a conversation read the same registry and workspaces as the core."
