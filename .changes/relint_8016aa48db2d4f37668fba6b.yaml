@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8016aa48db2d4f37668fba6b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "The Claude Code adapter reads stream and transcript objects through one shared record check instead of four private copies; behavior is unchanged."
