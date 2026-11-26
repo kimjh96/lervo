@@ -58,6 +58,8 @@ describe("the claim log", () => {
         "workforce_busy",
       ]);
       expect(log.deferredSince("s1", "2026-11-27T01:00:05Z")).toEqual([]);
+      expect(log.refusedSince("s1", "2026-11-27T00:59:59Z")).toEqual([refused]);
+      expect(log.refusedSince("s1", "2026-11-27T01:00:00Z")).toEqual([]);
       for (let index = 0; index < CLAIM_LOG_ENTRIES_PER_CONVERSATION; index += 1)
         log.record(
           { ...refusal, toolUseId: `toolu_n${index}` },

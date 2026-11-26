@@ -195,13 +195,25 @@ export class ClaimLog {
 
   /** A session's deferrals since `since`, oldest first. */
   deferredSince(sessionId: string, since: string): ClaimLogEntry[] {
+    return this.since(sessionId, "deferred", since);
+  }
+
+  /**
+   * A session's refusals since `since`, oldest first, so the core records at most one
+   * `assignment.claim.refused` per session, path, and holder in a turn.
+   */
+  refusedSince(sessionId: string, since: string): ClaimLogEntry[] {
+    return this.since(sessionId, "refused", since);
+  }
+
+  private since(sessionId: string, state: ClaimLogState, since: string): ClaimLogEntry[] {
     return (
       this.database
         .prepare(
-          `SELECT * FROM claims WHERE session_id = ? AND state = 'deferred' AND created_at > ?
+          `SELECT * FROM claims WHERE session_id = ? AND state = ? AND created_at > ?
            ORDER BY created_at, rowid`,
         )
-        .all(sessionId, since) as unknown as Row[]
+        .all(sessionId, state, since) as unknown as Row[]
     ).map(entryOf);
   }
 
