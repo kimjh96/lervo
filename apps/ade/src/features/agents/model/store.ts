@@ -1,7 +1,7 @@
 import type { AgentModelChoice, AgentSummary, HireableRole } from "@lervo/session-host-contract";
 import { create } from "zustand";
 
-import { useWorkspaceStore } from "../../workspaces";
+import { useWorkspaceStore } from "../../workspaces/model";
 
 /** The selected project's agents and the roles it can hire (Lervo ADE agents, "The sidebar"). */
 export interface AgentState {

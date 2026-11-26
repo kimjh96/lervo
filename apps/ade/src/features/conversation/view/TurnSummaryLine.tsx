@@ -251,10 +251,21 @@ export function TurnSummaryLine(props: {
     load(endedAtMs === undefined ? { startedAtMs } : { startedAtMs, endedAtMs });
   }, [load, startedAtMs, endedAtMs]);
   const summary = entry?.state === "ready" ? entry.summary : null;
+  // A summary the core could not read says so quietly, where the summary would be.
+  const failed = entry?.state === "failed" ? entry.code : null;
   const shown = summary === null ? [] : facts(summary, props.elapsedMs);
   return (
-    <Presence className={styles.turn}>
-      {summary === null ? null : (
+    <Presence
+      className={styles.turn}
+      contentKey={summary !== null ? "summary" : failed !== null ? "failed" : "none"}
+    >
+      {summary === null ? (
+        failed === null ? null : (
+          <p className={styles.failed}>
+            <FormattedMessage id="conversation.turn.summaryFailed" values={{ code: failed }} />
+          </p>
+        )
+      ) : (
         <div className={styles.summary}>
           <button type="button" className={styles.line} aria-expanded={opened} onClick={toggle}>
             <span className={styles.caret} data-open={opened ? "true" : undefined}>

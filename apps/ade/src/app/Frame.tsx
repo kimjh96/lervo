@@ -53,6 +53,7 @@ function Main(props: { surface: Surface }) {
         firstImages={starting?.images}
         reopenNatively={workspace !== null && workspace.conversationMode !== "native"}
         baseNotice={starting?.baseNotice ?? null}
+        hireFailure={starting?.hireFailure ?? null}
       />
     </div>
   );

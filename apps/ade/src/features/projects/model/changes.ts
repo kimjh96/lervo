@@ -1,5 +1,5 @@
 import { failureCode } from "../../../ports";
-import { reloadWorkspaces } from "../../workspaces";
+import { reloadWorkspaces } from "../../workspaces/model";
 import { bytesOf, keepMark, type ProjectDependencies } from "./controller";
 import { useProjectStore } from "./store";
 

@@ -7,7 +7,7 @@ import {
   type ListCache,
   type ProjectMemory,
 } from "../../../ports";
-import { reloadWorkspaces } from "../../workspaces";
+import { reloadWorkspaces } from "../../workspaces/model";
 import { selectProject } from "./controller";
 import type { ProjectSource } from "./sources";
 

@@ -1,5 +1,5 @@
-import type { Repository, Workspace } from "../../workspaces";
-import { visibleStatus } from "../../workspaces";
+import type { Repository, Workspace } from "../../workspaces/model";
+import { visibleStatus } from "../../workspaces/model";
 
 type Statuses = Readonly<Record<string, Parameters<typeof visibleStatus>[0]>>;
 
