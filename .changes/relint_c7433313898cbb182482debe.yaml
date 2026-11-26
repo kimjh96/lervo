@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c7433313898cbb182482debe"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A workspace start that fails retries its rollback once when the first removal fails, and reports rollbackCause when the rollback still does not finish."
