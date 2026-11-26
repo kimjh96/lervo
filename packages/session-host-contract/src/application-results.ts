@@ -38,6 +38,8 @@ import {
   agentMarkClearResultSchema,
   type AgentMarkReadResult,
   agentMarkReadResultSchema,
+  type AgentContextResult,
+  agentContextResultSchema,
   type AgentsListResult,
   agentsListResultSchema,
 } from "./application-agent-results.js";
@@ -79,6 +81,7 @@ export const applicationCommandNames = [
   "agent.mark.set",
   "agent.mark.clear",
   "agent.mark.read",
+  "agent.context",
   "room.join",
   "room.route",
 ] as const;
@@ -332,6 +335,7 @@ export const applicationResultSchemas = {
   "agent.mark.set": agentMarkSetResultSchema,
   "agent.mark.clear": agentMarkClearResultSchema,
   "agent.mark.read": agentMarkReadResultSchema,
+  "agent.context": agentContextResultSchema,
   "room.join": roomJoinResultSchema,
   "room.route": roomRouteResultSchema,
 } as const;
@@ -370,6 +374,7 @@ export interface ApplicationResults {
   "agent.mark.set": AgentMarkSetResult;
   "agent.mark.clear": AgentMarkClearResult;
   "agent.mark.read": AgentMarkReadResult;
+  "agent.context": AgentContextResult;
   "room.join": RoomJoinResult;
   "room.route": RoomRouteResult;
 }

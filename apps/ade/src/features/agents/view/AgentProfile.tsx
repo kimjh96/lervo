@@ -11,7 +11,6 @@ import {
   useMenus,
   useProjectMemory,
 } from "../../../ports";
-import { Button } from "../../../ui/Button";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { ListRow } from "../../../ui/ListRow";
 import { AgentMark } from "./AgentMark";
@@ -23,6 +22,8 @@ import { renameAgent, setAgentModel, setAgentStatus } from "../model/controller"
 import { chooseAgentMark, clearAgentMark } from "../model/marks";
 import { useAgentStore } from "../model/store";
 import styles from "./AgentProfile.module.css";
+import { LearnedSection } from "./LearnedSection";
+import { PauseSection } from "./PauseSection";
 
 /** Each effort's words, lowest first. */
 const EFFORTS: readonly { value: string; message: MessageDescriptor }[] = [
@@ -124,7 +125,7 @@ export function AgentProfile(props: { agentId: string }) {
   };
   const renames = advertised?.includes("agent.rename") === true;
   const pauses = advertised?.includes("agent.status") === true;
-  const paused = agent.status === "suspended";
+  const learns = advertised?.includes("agent.context") === true;
   const { model } = agent;
   const choosesModel =
     advertised?.includes("agent.model") === true && model !== undefined && models.length > 0;
@@ -261,38 +262,15 @@ export function AgentProfile(props: { agentId: string }) {
         </Presence>
       </section>
       {/* motion: History loads or a workspace reopens */}
+      {learns ? <LearnedSection projectId={projectId} agentId={agent.agentId} /> : null}
+      {/* motion: History loads or a workspace reopens */}
       {pauses ? (
-        <section className={styles.section}>
-          <div className={styles.actions}>
-            <Button
-              variant="outlined"
-              onClick={() =>
-                run(() =>
-                  setAgentStatus(commands, projectId, agent, paused ? "active" : "suspended"),
-                )
-              }
-            >
-              <Presence as="span" className={styles.label} contentKey={paused ? "resume" : "pause"}>
-                {paused ? (
-                  <FormattedMessage id="agents.profile.resume" />
-                ) : (
-                  <FormattedMessage id="agents.profile.pause" />
-                )}
-              </Presence>
-            </Button>
-          </div>
-          <Presence contentKey={paused ? "paused" : "active"}>
-            {paused ? (
-              <p className={styles.note}>
-                <FormattedMessage id="agents.profile.paused" />
-              </p>
-            ) : (
-              <p className={styles.note}>
-                <FormattedMessage id="agents.profile.pauseNote" />
-              </p>
-            )}
-          </Presence>
-        </section>
+        <PauseSection
+          agent={agent}
+          onChange={(pause) =>
+            run(() => setAgentStatus(commands, projectId, agent, pause ? "suspended" : "active"))
+          }
+        />
       ) : null}
       <Presence>
         {failure === null ? null : (
