@@ -130,14 +130,16 @@ export const sessionExitedRequestSchema = request(
 /**
  * Core-link requests and request fields beyond the base ones that a core advertises in
  * `workspace.list`'s `commands`, beside its application commands, so a session host sends them
- * only to a core that answers them. `decoder.session` names `decoder.open`'s `sessionId`, and
- * `decoder.images` names `decoder.send`'s `images`.
+ * only to a core that answers them. `decoder.session` names `decoder.open`'s `sessionId`,
+ * `decoder.images` names `decoder.send`'s `images`, and `workspace.participants` names
+ * `workspace.start`'s `participants`.
  */
 export const advertisedCoreRequestNames = [
   "session.exited",
   "decoder.session",
   "decoder.interrupt",
   "decoder.images",
+  "workspace.participants",
 ] as const;
 
 export const coreLinkRequestSchemas = [

@@ -101,6 +101,10 @@ export const workspaceSummarySchema = {
     conversationModes: conversationModesSchema,
     sessionId: identifierSchema,
     preparedAt: timestampSchema,
+    /** The agent whose session this is, when the conversation started with agents. */
+    agentId: identifierSchema,
+    /** Every agent the conversation started with, the writing one first. */
+    participants: { type: "array", minItems: 1, maxItems: 8, items: identifierSchema },
   },
 } as const;
 

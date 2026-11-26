@@ -43,6 +43,7 @@ import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
 import { runGit } from "./workspace-base-git.js";
 import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
+import { resolveParticipants, withAgentEnvironment } from "./workspace-participants.js";
 import {
   defaultBranchCommit,
   gitWorkspaceEffects,
@@ -92,6 +93,8 @@ export interface WorkspaceStartOptions {
   readonly provider?: string;
   readonly mode?: HostedConversationMode;
   readonly model?: string;
+  /** Agent IDs of the project's team; the first one's session writes. */
+  readonly participants?: unknown;
 }
 
 /**
@@ -125,6 +128,7 @@ export async function startWorkspaceFromInstruction(
     throw invalidWorkspacesHome(
       "Workspaces would land inside a Git repository. Set LERVO_WORKSPACES_HOME to a folder outside every repository.",
     );
+  const participants = await resolveParticipants(repository.repositoryRoot, options.participants);
   const sessionId = randomUUID();
   const hooks = hostedSessionHooks(adapter, sessionId);
   return startWorkspace(
@@ -139,6 +143,7 @@ export async function startWorkspaceFromInstruction(
       suffix: hex(3),
       ...(options.model === undefined ? {} : { model: options.model }),
       ...(hooks === undefined ? {} : { hooks }),
+      ...(participants === undefined ? {} : { participants }),
     },
     {
       adapter,
@@ -209,13 +214,17 @@ export async function openWorkspace(
     sessionHooks === undefined || terminal === undefined
       ? sessionHooks
       : { ...sessionHooks, terminal };
-  const launch = adapter.prepareLaunch({
-    sessionId,
-    mode,
-    workingDirectory,
-    start: resume ? { kind: "resume" } : { kind: "new", instruction: "Continue." },
-    ...(hooks === undefined ? {} : { hooks }),
-  });
+  // The reopened session is the same agent's (Lervo ADE agents, "Participants and sessions").
+  const launch = withAgentEnvironment(
+    adapter.prepareLaunch({
+      sessionId,
+      mode,
+      workingDirectory,
+      start: resume ? { kind: "resume" } : { kind: "new", instruction: "Continue." },
+      ...(hooks === undefined ? {} : { hooks }),
+    }),
+    previous.agentId,
+  );
   if (launch.settingsFile !== null) await writeHostedSessionSettings(launch.settingsFile);
   const written =
     terminal === undefined ? undefined : writtenTerminalHooks(terminal, launch.settingsFile);

@@ -124,6 +124,23 @@ describe("workspace start", () => {
     expect(fake.records[0]?.argumentDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
   });
 
+  it("names the writing agent in the session's environment and records the participants", async () => {
+    const fake = ports();
+    const writer = `agt_${"1".repeat(24)}`;
+    const reader = `agt_${"2".repeat(24)}`;
+    const result = await startWorkspace(
+      { ...request, participants: { agentId: writer, participants: [writer, reader] } },
+      fake.value,
+    );
+    expect(result.launch.environment).toMatchObject({ LERVO_AGENT_ID: writer });
+    expect(fake.records[0]).toMatchObject({ agentId: writer, participants: [writer, reader] });
+    // The events keep their shapes; the agents live in the launch record.
+    expect(fake.events.map((event) => event.type)).toEqual([
+      "application.workspace.started",
+      "terminal.session.launch_prepared",
+    ]);
+  });
+
   it("writes the session's settings file, digests it, and records two events", async () => {
     const fake = ports();
     const result = await startWorkspace(request, fake.value);
