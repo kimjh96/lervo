@@ -29,7 +29,7 @@ export interface EventContractCommandPorts {
 
 export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
   lervo event-contract evidence [--root <path>] [--json]
-  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2-15>] [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2-16>] [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract recover [--root <path>] [--json]`;
 
@@ -58,8 +58,8 @@ async function readEvidence(
   }
   try {
     return JSON.parse(content);
-  } catch {
-    throw new Error("Activation evidence must be valid JSON.");
+  } catch (error) {
+    throw new Error("Activation evidence must be valid JSON.", { cause: error });
   }
 }
 

@@ -77,6 +77,7 @@ async function acquireLock(home: RepositoryCoordinationHome, lockName: string) {
       throw new ProjectStorageError(
         "coordination_busy",
         "Another repository coordination transition is in progress.",
+        { cause: error },
       );
     throw error;
   }

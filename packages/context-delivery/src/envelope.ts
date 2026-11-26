@@ -46,10 +46,11 @@ export async function buildContextEnvelope(
   let envelopeId: string;
   try {
     envelopeId = (input.createEnvelopeId ?? defaultEnvelopeId)();
-  } catch {
+  } catch (error) {
     throw new ContextDeliveryError(
       "invalid_delivery_request",
       "Could not create the context envelope ID.",
+      { cause: error },
     );
   }
   const envelope: AdapterContextEnvelope = {

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_dcb85b143dfae163d916b7cb"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Say which registry to use when a linked worktree's workstream events live in the registered repository but this process records into the worktree's own store."

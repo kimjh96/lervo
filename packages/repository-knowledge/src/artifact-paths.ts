@@ -48,6 +48,8 @@ export async function listKnowledgeArtifactPaths(input: {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "A knowledge artifact directory cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   }
   const suffix = `.${input.extension}`;

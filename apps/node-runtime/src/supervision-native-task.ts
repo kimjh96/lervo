@@ -19,8 +19,9 @@ export class InvalidNativeOwnerProposalError extends Error {
   constructor(
     readonly reasonCode: "invalid_expected_path" | "invalid_task_contract",
     readonly invalidFields: readonly string[] = [],
+    options?: ErrorOptions,
   ) {
-    super(`The owner proposal has ${reasonCode}.`);
+    super(`The owner proposal has ${reasonCode}.`, options);
     this.name = "InvalidNativeOwnerProposalError";
   }
 }
@@ -107,7 +108,7 @@ export function nativeTaskRequirement(
     assertWorkResponsibility(task);
   } catch (error) {
     if (!(error instanceof TypeError)) throw error;
-    throw new InvalidNativeOwnerProposalError("invalid_task_contract");
+    throw new InvalidNativeOwnerProposalError("invalid_task_contract", [], { cause: error });
   }
   return { task, role };
 }

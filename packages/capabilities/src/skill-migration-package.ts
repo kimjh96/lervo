@@ -121,10 +121,11 @@ export async function readMigratedSkillPackage(
     let raw: unknown;
     try {
       raw = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestFile.bytes));
-    } catch {
+    } catch (error) {
       throw new CapabilityPackageError(
         "capability_invalid",
         `${directoryPath}/lervo-skill.json is invalid.`,
+        { cause: error },
       );
     }
     if (!validateSchema("skill", raw).valid)

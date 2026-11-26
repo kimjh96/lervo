@@ -1,5 +1,5 @@
 export const readableEventSchemaVersions = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 ] as const;
 /** An event schema version that every reader of this release accepts. */
 export type EventSchemaVersion = (typeof readableEventSchemaVersions)[number];
@@ -18,3 +18,5 @@ export const hookDeliveryEventSchemaVersion = 13 as const;
 export const baseDeliveryEventSchemaVersion = 14 as const;
 /** The writer version that records agents mentioning each other in a conversation (ADR-0641). */
 export const roomEventSchemaVersion = 15 as const;
+/** The writer version that records a conversation's claims, and an agent's conversation notes. */
+export const coordinationEventSchemaVersion = 16 as const;

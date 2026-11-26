@@ -254,6 +254,7 @@ export async function recordLocalPolicyFile<T>(input: {
         throw new SearchLocalError(
           input.contract.errors.writeFailed,
           `A different source exists for the same ${input.contract.label} ID.`,
+          { cause: error },
         );
       }
     }

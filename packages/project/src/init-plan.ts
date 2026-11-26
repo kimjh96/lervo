@@ -37,10 +37,11 @@ function validateKnowledgePolicyContent(content: string): void {
   let value: unknown;
   try {
     value = parse(content);
-  } catch {
+  } catch (error) {
     throw new LervoProjectError(
       "invalid_yaml",
       ".lervo/knowledge/policy.yaml must contain valid YAML.",
+      { cause: error },
     );
   }
   const policy = value as {
@@ -79,10 +80,11 @@ function validateDecisionTaxonomyContent(content: string): void {
   let value: unknown;
   try {
     value = parse(content);
-  } catch {
+  } catch (error) {
     throw new LervoProjectError(
       "invalid_yaml",
       ".lervo/knowledge/document-layout.yaml must contain valid YAML.",
+      { cause: error },
     );
   }
   validateDecisionTaxonomy(value);

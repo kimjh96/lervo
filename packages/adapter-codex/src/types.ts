@@ -133,8 +133,9 @@ export class CodexAdapterError extends Error {
     readonly code: CodexAdapterErrorCode,
     message: string,
     readonly providerFailureDiagnostic?: ProviderFailureDiagnostic,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "CodexAdapterError";
   }
 }

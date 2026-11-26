@@ -62,6 +62,8 @@ const eventLabels = {
   "assignment.reopened": "Assignment reopened",
   "assignment.claimed": "Assignment claimed",
   "assignment.lease.renewed": "Assignment lease renewed",
+  "assignment.lease.widened": "Assignment lease widened by a claim",
+  "assignment.claim.refused": "Claim refused",
   "assignment.handoff.recorded": "Assignment handoff recorded",
   "assignment.handoff.acknowledged": "Assignment handoff acknowledged",
   "assignment.cancelled": "Assignment cancelled",
@@ -235,6 +237,16 @@ const fieldLabels = {
   openerAgentId: "Agent that opened the exchange",
   occurredAt: "Occurred at",
   appliedInstructions: "Owner rules prepared",
+  leaseGeneration: "Lease generation",
+  expectedPathDigest: "Path set digest",
+  expectedPathCount: "Paths in the lease",
+  addedPathCount: "Paths added",
+  cause: "Cause",
+  holderAgentId: "Holding agent",
+  holderAssignmentId: "Holding assignment",
+  holderWorkspaceId: "Holding workspace",
+  pathDigest: "Path digest",
+  detection: "Detected by",
 };
 
 export function eventLabel(type) {

@@ -283,6 +283,8 @@ async function safeTextFile(
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "A workstream source cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   } finally {
     await handle?.close();
@@ -545,10 +547,12 @@ export async function readCurrentWorkstreamState(
   let value: unknown;
   try {
     value = JSON.parse(source.content);
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The current workstream state is not valid JSON.",
+      undefined,
+      { cause: error },
     );
   }
   if (
@@ -583,10 +587,12 @@ export async function restoreCurrentWorkstreamState(input: {
   let value: unknown;
   try {
     value = JSON.parse(content);
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The workstream recovery artifact is not valid JSON.",
+      undefined,
+      { cause: error },
     );
   }
   if (

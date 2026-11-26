@@ -29,7 +29,7 @@ function envelope(schemaVersion: number, payload: Record<string, unknown>) {
 
 describe("a prompt answered from the cached base (schema 14, ADR-0645)", () => {
   it("is an event type from schema 14", () => {
-    for (let schemaVersion = 1; schemaVersion <= 15; schemaVersion++)
+    for (let schemaVersion = 1; schemaVersion <= 16; schemaVersion++)
       expect(validateSchema("event", envelope(schemaVersion, delivered)).valid).toBe(
         schemaVersion >= 14,
       );

@@ -171,7 +171,7 @@ describe("hosted session usage in resource.usage.recorded (schema 11)", () => {
   it("is readable from schema 11, while the managed shape stays readable everywhere", () => {
     // The envelope refuses the schema-11 fields below 11 even where the payload screen would not.
     const costed = { ...managed, cacheCreationInputTokens: 30, costUsd: 0.5, costBasis: "list" };
-    for (const schemaVersion of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
+    for (const schemaVersion of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]) {
       expect(validateSchema("event", envelope(schemaVersion, hosted)).valid).toBe(
         schemaVersion >= 11,
       );

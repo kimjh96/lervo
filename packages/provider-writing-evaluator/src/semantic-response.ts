@@ -39,8 +39,8 @@ export function parseProviderSemanticEvaluation(
   let value: unknown;
   try {
     value = JSON.parse(content);
-  } catch {
-    throw new Error("The semantic writing evaluation is not a JSON object.");
+  } catch (error) {
+    throw new Error("The semantic writing evaluation is not a JSON object.", { cause: error });
   }
   if (
     value === null ||

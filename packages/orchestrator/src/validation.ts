@@ -70,10 +70,11 @@ export function validateWriteRequest(input: FileWriteRequest): string {
   }
   try {
     return normalizeRepositoryPath(input.path);
-  } catch {
+  } catch (error) {
     throw new ManagedContextError(
       "context_contract_invalid",
       "The file-write target must be a safe repository-relative path.",
+      { cause: error },
     );
   }
 }
@@ -86,10 +87,11 @@ export function validateFileChange(input: FileChangeRecord): string {
   let normalizedPath: string;
   try {
     normalizedPath = normalizeRepositoryPath(input.path);
-  } catch {
+  } catch (error) {
     throw new ManagedContextError(
       "context_contract_invalid",
       "The file-change path must be a safe repository-relative path.",
+      { cause: error },
     );
   }
   const hashesValid =

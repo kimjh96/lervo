@@ -41,7 +41,7 @@ export async function readRemoteCommandHttpJson(
   }
   try {
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-  } catch {
-    throw new Error("The remote command Hub response is not UTF-8 JSON.");
+  } catch (error) {
+    throw new Error("The remote command Hub response is not UTF-8 JSON.", { cause: error });
   }
 }

@@ -30,14 +30,18 @@ export async function loadLocalSupervisionConfig(path: string) {
   let text: string;
   try {
     text = await readOwnerOnlyText(path, 1_048_576);
-  } catch {
-    throw new NodeRuntimeError("unsafe_runtime_file", "Cannot safely read supervision config.");
+  } catch (error) {
+    throw new NodeRuntimeError("unsafe_runtime_file", "Cannot safely read supervision config.", {
+      cause: error,
+    });
   }
   let value: unknown;
   try {
     value = JSON.parse(text);
-  } catch {
-    throw new NodeRuntimeError("invalid_config", "Supervision config must be valid JSON.");
+  } catch (error) {
+    throw new NodeRuntimeError("invalid_config", "Supervision config must be valid JSON.", {
+      cause: error,
+    });
   }
   return parseLocalSupervisionConfig(value, dirname(path));
 }

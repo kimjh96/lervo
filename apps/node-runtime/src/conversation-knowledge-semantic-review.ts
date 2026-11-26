@@ -84,8 +84,9 @@ export class ConversationKnowledgeSemanticReviewError extends Error {
       | "review_provider_boundary_invalid"
       | "review_provider_response_invalid"
       | "review_usage_unavailable",
+    options?: ErrorOptions,
   ) {
-    super(`Conversation knowledge semantic review failed: ${code}.`);
+    super(`Conversation knowledge semantic review failed: ${code}.`, options);
     this.name = "ConversationKnowledgeSemanticReviewError";
   }
 }
@@ -117,8 +118,10 @@ function sourceText(value: ReviewSourceValue): {
       kind: value.kind,
       text: new TextDecoder("utf8", { fatal: true }).decode(value.content),
     };
-  } catch {
-    throw new ConversationKnowledgeSemanticReviewError("review_source_encoding_unsupported");
+  } catch (error) {
+    throw new ConversationKnowledgeSemanticReviewError("review_source_encoding_unsupported", {
+      cause: error,
+    });
   }
 }
 

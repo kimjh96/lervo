@@ -29,8 +29,8 @@ export function matchHubRemoteCommandRoute(pathname: string): HubRemoteCommandHt
   let projectId: string;
   try {
     projectId = decodeURIComponent(segments[4]!);
-  } catch {
-    throw new InvalidHubHttpRequestError();
+  } catch (error) {
+    throw new InvalidHubHttpRequestError({ cause: error });
   }
   if (!HUB_PROJECT_ID_PATTERN.test(projectId)) throw new InvalidHubHttpRequestError();
   const kind = segments[5];
@@ -42,8 +42,8 @@ export function matchHubRemoteCommandRoute(pathname: string): HubRemoteCommandHt
   let artifactId: string;
   try {
     artifactId = decodeURIComponent(segments[6]!);
-  } catch {
-    throw new InvalidHubHttpRequestError();
+  } catch (error) {
+    throw new InvalidHubHttpRequestError({ cause: error });
   }
   if (!/^art_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(artifactId)) {
     throw new InvalidHubHttpRequestError();

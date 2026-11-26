@@ -19,10 +19,14 @@ export async function withKnowledgeSourceWrite<T>(
       throw new RepositoryKnowledgeError(
         "knowledge_materialization_busy",
         "A managed repository operation is active; knowledge materialization must retry.",
+        undefined,
+        { cause: error },
       );
     throw new RepositoryKnowledgeError(
       "knowledge_source_gate_invalid",
       "The repository source gate could not be acquired safely.",
+      undefined,
+      { cause: error },
     );
   }
   try {

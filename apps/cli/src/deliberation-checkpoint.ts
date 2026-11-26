@@ -186,6 +186,7 @@ export async function writeApprovedDeliberationCheckpoint(input: {
       throw new DeliberationCheckpointError(
         "deliberation_checkpoint_exists",
         "An approved deliberation checkpoint cannot be overwritten.",
+        { cause: error },
       );
     }
     throw error;
@@ -229,6 +230,7 @@ export async function readApprovedDeliberationCheckpoint(input: {
       throw new DeliberationCheckpointError(
         "deliberation_checkpoint_not_found",
         "No resumable approved checkpoint was found.",
+        { cause: error },
       );
     }
     throw new DeliberationCheckpointError(
