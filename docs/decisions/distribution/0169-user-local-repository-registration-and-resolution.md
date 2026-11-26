@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-22
+- Amended by: [ADR-0637](../execution/applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md) (the registry also unregisters a project)
 
 ## Context
 

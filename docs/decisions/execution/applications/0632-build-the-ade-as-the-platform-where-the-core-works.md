@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-24
 Amends: [ADR-0613](0613-host-provider-clis-in-a-first-party-development-environment.md) (S2 is ordered now, and a core capability counts as delivered to the ADE only when a hosted session uses it)
-Amended by: [ADR-0633](../providers/hooks/0633-record-a-linked-worktree-in-its-registered-repository.md) (a hosted session in a workspace worktree records into its registered repository)
+Amended by: [ADR-0633](../providers/hooks/0633-record-a-linked-worktree-in-its-registered-repository.md) (a hosted session in a workspace worktree records into its registered repository), [ADR-0637](0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md) (orders the S2 steps after the day of use, and keeps one writer per worktree when several agents share a workspace)
 Related: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0455](0455-ratchet-the-platform-adapter-boundary-on-neutral-seams.md), [ADR-0562](../../foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md), [ADR-0563](../../foundation/0563-keep-the-plan-in-a-ledger-lervo-owns-and-check-it-at-every-stop.md)
 
 ## Context
