@@ -17,6 +17,7 @@ Lervo provides a Discord-visible reference product now and a first-party surface
 - [Lervo ADE design system](product-surfaces/ade-design-system.md): proposed design language, token tiers, and the usage of each foundation, the entry to the visual language and the motion principles.
 - [Lervo ADE visual language](product-surfaces/ade-visual-language.md): proposed glass, color, contrast, terminal, type, motion, and logo tokens for the first-party desktop surface of ADR-0613.
 - [Lervo ADE motion](product-surfaces/ade-motion.md): active motion principles, tokens, and pattern catalog of the ADE.
+- [Lervo ADE craft rules](product-surfaces/ade-craft.md): active rules for glass, controls, placement, motion, and verification that every ADE surface meets.
 - [Context quality](context-quality.md): shared policy, retrieval, section preparation and outcome contracts for terminals, Discord and a future host. Source implementation retains capability limits; real-provider quality, resource qualification and installed parity remain open.
 
 ## Product boundary

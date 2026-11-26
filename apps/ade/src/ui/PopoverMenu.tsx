@@ -19,17 +19,21 @@ const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").match
  * A menu the interface draws, directly below the control that opened it and as wide as it (ADE
  * motion, "Overlays: command palette, menus, popovers"). Its opening and closing motion stay
  * visible, where the system menu freezes the window for a moment after it closes. Up and Down
- * move between items, Return chooses, and Escape or a click outside closes it.
+ * move between items, Return chooses, and Escape or a click outside closes it. As in a macOS menu,
+ * no item is chosen until the pointer or a key chooses one, except that a menu a key opened starts
+ * on its first item.
  */
 export function PopoverMenu(props: {
   /** The bounds of the control that opened the menu, in window coordinates. */
   anchor: { readonly left: number; readonly bottom: number; readonly width: number };
   label: string;
   items: readonly PopoverMenuItem[];
+  /** Whether a key opened the menu, so its first item starts chosen. */
+  openedByKey?: boolean;
   onClose: () => void;
 }) {
   const [closing, setClosing] = useState(false);
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(props.openedByKey === true ? 0 : -1);
   const menu = useRef<HTMLDivElement>(null);
   const { onClose } = props;
   const close = (then?: () => void) => {
@@ -67,12 +71,15 @@ export function PopoverMenu(props: {
       onAnimationEnd={() => {
         if (closing) onClose();
       }}
+      onPointerLeave={() => setActive(-1)}
       onKeyDown={(event) => {
         const count = props.items.length;
         if (event.key === "ArrowDown") setActive((index) => (index + 1) % count);
-        else if (event.key === "ArrowUp") setActive((index) => (index + count - 1) % count);
-        else if (event.key === "Enter") close(props.items[active]?.run);
-        else if (event.key === "Escape") close();
+        else if (event.key === "ArrowUp") setActive((index) => (index < 0 ? count : index) - 1);
+        else if (event.key === "Enter") {
+          const item = props.items[active];
+          if (item !== undefined) close(item.run);
+        } else if (event.key === "Escape") close();
         else return;
         event.preventDefault();
       }}

@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
+import { RowLeading } from "../../../ui/ListRow";
 import type { Repository } from "../../workspaces";
 import { renameProject } from "../model/changes";
 import type { ProjectDependencies } from "../model/controller";
@@ -36,7 +37,7 @@ export function RenameField(props: {
   };
   return (
     <div className={styles.renaming}>
-      {props.leading}
+      <RowLeading>{props.leading}</RowLeading>
       <input
         ref={input}
         className={styles.input}

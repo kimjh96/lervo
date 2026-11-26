@@ -84,6 +84,7 @@
 
 .detail {
   color: var(--color-text-tertiary);
+  text-wrap: balance;
   font-size: var(--type-caption-size);
   line-height: var(--type-caption-line-height);
 }

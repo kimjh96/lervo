@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_81c7a63f1f4477518a22034b"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Add projects with named actions: Add Project opens a menu with Open Folder, Clone Repository, and New Project; Clone and New open a centered glass window with one field and a folder button for the location, and the first run offers the same three as cards."

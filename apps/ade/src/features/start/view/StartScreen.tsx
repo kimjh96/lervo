@@ -46,11 +46,15 @@ const readNothing = () => Promise.reject(new Error("image_not_found"));
  */
 export function StartScreen() {
   const firstRun = useFirstRun();
+  // Until the core's lists or the kept ones arrive, whether this is the first run is unknown, so
+  // nothing shows rather than a screen that the lists would then replace and move.
+  const known = useWorkspaceStore((store) => store.loaded || store.cached);
   // Adding the first project changes the view to the usual start screen (ADE motion, "Changing
   // views").
   return (
-    <ViewPresence view={firstRun.active ? "first-run" : "start"}>
-      {firstRun.active ? (
+    <ViewPresence view={!known ? "unknown" : firstRun.active ? "first-run" : "start"}>
+      {/* motion: Changing views */}
+      {!known ? null : firstRun.active ? (
         <FirstRunWelcome />
       ) : (
         <ConversationImagesProvider read={readNothing}>

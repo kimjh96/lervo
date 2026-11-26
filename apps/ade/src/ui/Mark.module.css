@@ -7,7 +7,6 @@
   color: var(--color-on-mark);
   font-weight: var(--font-weight-semibold);
   line-height: 1;
-  border-radius: var(--radius-sm);
   user-select: none;
 }
 
@@ -15,12 +14,14 @@
   width: var(--size-mark-sm);
   height: var(--size-mark-sm);
   font-size: var(--type-caption-size);
+  border-radius: var(--radius-mark-sm);
 }
 
 .mark[data-size="md"] {
   width: var(--size-mark-md);
   height: var(--size-mark-md);
   font-size: var(--type-meta-size);
+  border-radius: var(--radius-mark-md);
 }
 
 .mark[data-shape="round"] {

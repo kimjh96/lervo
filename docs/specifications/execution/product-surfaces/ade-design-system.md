@@ -1,7 +1,7 @@
 # Lervo ADE design system
 
 Status: `proposed`
-As of: 2026-11-23
+As of: 2026-11-26
 
 This specification is the entry to the design system of the Lervo ADE: its design language, its foundations, and how each is used. The ADE builds on it today. The planned documentation and introduction site build on it next. The token file, `apps/ade/src/design/tokens.json`, is canonical for values. This specification is canonical for what each value means and when to use it. The [visual language](ade-visual-language.md) and the [motion principles](ade-motion.md) are its color, type, and motion chapters. The [design system plan](../../../roadmap/ade/design-system.md) orders the work that completes it.
 
@@ -15,7 +15,7 @@ Attention belongs to the work, not to the interface.
 
 - Nothing moves, glows, or changes color unless work changed. The working status is the only loop.
 - Two colors carry status: working and needs-you. Finished work has no color, and failure uses its own color only where it happened.
-- Surfaces stay quiet: restrained glass, hairline borders, and no decoration.
+- Surfaces stay quiet: restrained glass, surfaces told apart by fill and light rather than drawn lines, and no decoration ([craft rules](ade-craft.md)).
 
 ### Evidence before claims
 
@@ -203,6 +203,8 @@ The app uses no illustration or photography of its own; it shows the images a pe
 - **Charts** for evidence and telemetry use a tokenized categorical palette, defined with the first chart, and label their units.
 
 ## Patterns and content
+
+The [craft rules](ade-craft.md) turn the finish the owner expects into rules a change meets or fails: glass for floating surfaces, fill and light instead of drawn lines, one size per group of controls, named actions, locations shown by folder name, menus hung from their control, centered dialogs, nothing that moves into place, overlays whose motion stays visible, and verification in the real app, frame by frame. Every change to the interface is checked against them.
 
 The [patterns and content chapter](ade-design-patterns.md) defines the recurring situations and the writing:
 

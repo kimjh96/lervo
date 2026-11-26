@@ -31,7 +31,7 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
   const statuses = useWorkspaceStore((store) => store.statuses);
   const renaming = useProjectStore((store) => store.renaming);
   const add = useAddProject();
-  const [menuAt, setMenuAt] = useState<DOMRect | null>(null);
+  const [menuAt, setMenuAt] = useState<{ rect: DOMRect; byKey: boolean } | null>(null);
   const needing = projectsNeedingYou(workspaces, statuses);
   const rename = (project: Repository) => {
     if (context.managed) useProjectStore.setState({ renaming: project.projectId });
@@ -94,7 +94,13 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
           <ListRow
             current={false}
             quiet
-            onClick={(event) => setMenuAt(event.currentTarget.getBoundingClientRect())}
+            // A click a key made has no pointer detail.
+            onClick={(event) =>
+              setMenuAt({
+                rect: event.currentTarget.getBoundingClientRect(),
+                byKey: event.detail === 0,
+              })
+            }
             leading={<PlusIcon size="md" />}
             label={<FormattedMessage id="projects.add" />}
           />
@@ -103,7 +109,8 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
       {/* motion: Overlays: command palette, menus, popovers */}
       {menuAt === null ? null : (
         <PopoverMenu
-          anchor={menuAt}
+          anchor={menuAt.rect}
+          openedByKey={menuAt.byKey}
           label={intl.formatMessage({ id: "projects.add" })}
           items={add.items}
           onClose={() => setMenuAt(null)}

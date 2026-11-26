@@ -7,6 +7,14 @@ import styles from "./ListRow.module.css";
  * optional icon before it and a status or shortcut after it. The current row is raised; a quiet
  * row reads in the secondary color.
  */
+/**
+ * The column a row's icon or mark sits in, centered and one width for every row, so the labels of
+ * a list start at one edge whatever leads them (ADE craft rules, 5).
+ */
+export function RowLeading(props: { children: ReactNode }) {
+  return <span className={styles.leading}>{props.children}</span>;
+}
+
 export function ListRow(props: {
   label: ReactNode;
   current: boolean;
@@ -33,7 +41,7 @@ export function ListRow(props: {
       onDoubleClick={props.onDoubleClick}
       onContextMenu={props.onContextMenu}
     >
-      {props.leading}
+      {props.leading === undefined ? null : <RowLeading>{props.leading}</RowLeading>}
       <span className={styles.label}>{props.label}</span>
       {props.trailing}
     </button>

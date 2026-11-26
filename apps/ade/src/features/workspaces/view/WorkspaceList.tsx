@@ -107,6 +107,11 @@ export function WorkspaceList(props: { projectId: string | null }) {
   const listFailure = useWorkspaceStore((store) => store.listFailure);
   const selected = useWorkspaceStore((store) => store.selected);
   const newWork = useWorkspaceStore((store) => store.newWork);
+  // Work starts in a project, so "New work" shows once the lists are known to hold one; with none,
+  // the start screen offers adding the first (ADE craft rules, 13).
+  const hasProject = useWorkspaceStore(
+    (store) => (store.loaded || store.cached) && store.repositories.length > 0,
+  );
   // Departures are tracked over every workspace, so switching projects never reads as removal.
   const departed = useDeparting(workspaces, workspaceKey);
   const leaving = new Set(departed.map(workspaceKey));
@@ -117,20 +122,27 @@ export function WorkspaceList(props: { projectId: string | null }) {
 
   return (
     <section className={styles.list} aria-label={intl.formatMessage({ id: "workspaces.label" })}>
-      <ListRow
-        current={selected === null}
-        onClick={newWork}
-        leading={<PlusIcon size="md" />}
-        label={<FormattedMessage id="workspaces.new" />}
-        trailing={
-          <Kbd>
-            {intl.formatMessage(
-              { id: "keyboard.command" },
-              { modifier: commandModifier, key: intl.formatMessage({ id: "workspaces.new.key" }) },
-            )}
-          </Kbd>
-        }
-      />
+      <Presence>
+        {hasProject ? (
+          <ListRow
+            current={selected === null}
+            onClick={newWork}
+            leading={<PlusIcon size="md" />}
+            label={<FormattedMessage id="workspaces.new" />}
+            trailing={
+              <Kbd>
+                {intl.formatMessage(
+                  { id: "keyboard.command" },
+                  {
+                    modifier: commandModifier,
+                    key: intl.formatMessage({ id: "workspaces.new.key" }),
+                  },
+                )}
+              </Kbd>
+            }
+          />
+        ) : null}
+      </Presence>
       <Presence className={styles.failure}>
         {listFailure === null ? null : (
           <InlineAlert size="caption">

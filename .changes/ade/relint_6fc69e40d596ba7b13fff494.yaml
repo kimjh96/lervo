@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6fc69e40d596ba7b13fff494"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Add projects with named actions: Add Project opens Open Folder, Clone Repository, and New Project, each with a labeled field and a location you change with the system folder panel, and the first run offers the same three as cards. Adding a project starts no work."

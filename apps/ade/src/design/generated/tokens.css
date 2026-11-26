@@ -88,6 +88,8 @@
   --radius-lg: 14px;
   --radius-xl: 16px;
   --radius-full: 9999px;
+  --radius-mark-sm: 5px;
+  --radius-mark-md: 6px;
   --border-width-strong: 2px;
   --size-control-sm: 24px;
   --size-control-md: 28px;
@@ -101,6 +103,7 @@
   --size-thumbnail: 56px;
   --size-mark-sm: 18px;
   --size-mark-md: 22px;
+  --size-row-leading: 22px;
   --opacity-disabled: 0.45;
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
