@@ -61,6 +61,7 @@ export async function completeTerminalHookTurn({
   expectation,
   timing,
   io,
+  onRepositoryCaptured,
 }: {
   /** The repository the turn's evidence, queues, and shared state belong to. */
   root: string;
@@ -74,9 +75,11 @@ export async function completeTerminalHookTurn({
   expectation: PreparedTerminalTurnExpectation;
   timing: TerminalStageObservationPort;
   io: CliIo;
+  /** ADR-0636: called once the turn's repository is captured; a served Stop may answer then. */
+  onRepositoryCaptured?: () => void;
 }): Promise<number> {
   const lifecycle = await timing.measure("lifecycle_inspection", () =>
-    inspectTerminalLifecycle(root, expectation, undefined, executionRoot),
+    inspectTerminalLifecycle(root, expectation, undefined, executionRoot, onRepositoryCaptured),
   );
   let failureReason: TerminalHookFailureReason | undefined = lifecycleFailureReason(
     lifecycle.issues,

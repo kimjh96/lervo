@@ -80,7 +80,10 @@ export async function changedTerminalPaths(
     return [];
   const before = await readPreparedRepositorySnapshot(root, contextPayload.observationId);
   if (before === null) return [];
-  const after = await captureTerminalRepositorySnapshot(root);
+  // The bytes lifecycle inspection captured; reading again after a served Stop answered could count
+  // the next turn's edits.
+  const after =
+    lifecycleRepositorySnapshot(lifecycle, root) ?? (await captureTerminalRepositorySnapshot(root));
   const paths = new Set([...Object.keys(before.files), ...Object.keys(after.files)]);
   return [...paths].filter((path) => before.files[path] !== after.files[path]).sort();
 }

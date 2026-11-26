@@ -96,10 +96,16 @@ export async function runServedTerminalHook(
   // launch they ask for starts here too, with the session's values applied. A launch asked for
   // after the hook finished, by work a deadline abandoned, fails as a failed launch does.
   let phase: "running" | "recording" | "finished" = "running";
+  // A relaying client receives the records' launches on a second line; otherwise they start here.
+  const later: DetachedLaunch[] = [];
   if (request.session !== undefined)
     handOffDetachedLaunches((launch) => {
       if (phase === "finished") return false;
-      if (phase === "recording") return null;
+      if (phase === "recording") {
+        if (request.relay !== true) return null;
+        later.push(launch);
+        return true;
+      }
       launches.push(launch);
       return true;
     });
@@ -172,6 +178,8 @@ export async function runServedTerminalHook(
     exitCode: 0,
     overran: false,
     launches: [...launches],
+    pending: true,
+    laterLaunches: () => [...later],
     drain: async () => {
       const finished = await run.then(
         () => true,

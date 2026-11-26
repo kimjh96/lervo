@@ -368,3 +368,52 @@ it("still runs a hook whose client read A but had not sent G when the server beg
   expect(JSON.parse(received.slice(1))).toMatchObject({ ok: true, stdout: answer.stdout });
   expect(run).toHaveBeenCalledTimes(1);
 });
+
+it("sends a relaying client the records' launches on a second line once they finish", async () => {
+  let release!: () => void;
+  const records = new Promise<void>((done) => (release = done));
+  const run = vi.fn(async () => ({
+    ...answer,
+    pending: true,
+    drain: async () => {
+      await records;
+      return true;
+    },
+    laterLaunches: () => [{ entry: "/cli/bin.js", args: ["settle-turns"], cwd: "/work", env: {} }],
+  }));
+  const socketPath = await serverWith(run);
+  const lines: string[] = [];
+  const done = new Promise<void>((finish) => {
+    const socket = connect(socketPath);
+    let text = "";
+    socket.on("connect", () =>
+      socket.write(`${JSON.stringify(request({ kind: "stop", input: stopInput, relay: true }))}\n`),
+    );
+    socket.on("data", (chunk) => {
+      text += chunk.toString();
+      if (text === "A") {
+        text = "";
+        socket.write("G");
+      }
+      while (text.includes("\n")) {
+        lines.push(text.slice(0, text.indexOf("\n")));
+        text = text.slice(text.indexOf("\n") + 1);
+        if (lines.length === 1) release();
+      }
+    });
+    socket.on("close", () => finish());
+  });
+  await done;
+  expect(JSON.parse(lines[0]!)).toMatchObject({ ok: true, pending: true });
+  expect(JSON.parse(lines[1]!)).toEqual({
+    launches: [{ entry: "/cli/bin.js", args: ["settle-turns"], cwd: "/work", env: {} }],
+  });
+});
+
+it("ends at the answer for a client that does not relay", async () => {
+  const run = vi.fn(async () => ({ ...answer, pending: true, laterLaunches: () => [] }));
+  const socketPath = await serverWith(run);
+  const received = await exchange(socketPath, JSON.stringify(request()));
+  expect(received.slice(1).trim().split("\n")).toHaveLength(1);
+  expect(JSON.parse(received.slice(1))).not.toHaveProperty("pending");
+});

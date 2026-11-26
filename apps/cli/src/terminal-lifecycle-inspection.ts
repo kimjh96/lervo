@@ -47,9 +47,12 @@ export async function inspectTerminalLifecycle(
   expected?: PreparedTerminalTurnExpectation,
   materialization?: KnowledgeMaterializationSettlement,
   checkoutRoot: string = root,
+  /** Called once the repository is captured, after which the turn's bytes are fixed. */
+  onRepositoryCaptured?: () => void,
 ): Promise<TerminalLifecycleInspection> {
   // Execution-evidence sources scan the whole event log; only knowledge inspection needs them.
   const currentRepository = await captureTerminalRepositorySnapshot(checkoutRoot);
+  onRepositoryCaptured?.();
   const repositoryChange = {
     beforeRevision: expected?.repositoryRevision ?? currentRepository.revision,
     afterRevision: currentRepository.revision,

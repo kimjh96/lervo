@@ -166,6 +166,82 @@ it("sends a Stop with the session's values, and starts the launches the answer n
   expect(launched).toEqual({ runtime: "/runtime", marker: "session" });
 });
 
+it("hands a pending answer's connection to a relay that starts the records' launches", async () => {
+  const f = await fixture();
+  const worker = resolve(f.home, "worker.mjs");
+  await writeFile(
+    worker,
+    'import { writeFileSync } from "node:fs";\nwriteFileSync(process.argv[2], process.env.LERVO_TEST_SESSION_MARKER ?? "");\n',
+  );
+  const written = resolve(f.home, "relayed.txt");
+  let later!: () => void;
+  const server = await listen(f.store, (socket) => {
+    socket.write("A");
+    socket.once("data", () => {
+      // The answer goes out first; the records' launches follow once the client has exited.
+      socket.write(
+        `${JSON.stringify({ ok: true, stdout: "{}\n", stderr: "", exitCode: 0, launches: [], pending: true })}\n`,
+      );
+      later = () =>
+        socket.end(
+          `${JSON.stringify({ launches: [{ entry: worker, args: [written], cwd: f.cwd, env: {} }] })}\n`,
+        );
+    });
+  });
+  const stop = JSON.stringify({ hook_event_name: "Stop", session_id: "s" });
+  expect(await launch(f, stop, { LERVO_TEST_SESSION_MARKER: "session" })).toEqual({
+    code: 0,
+    stdout: "{}\n",
+    stderr: "",
+  });
+  expect(server.requests[0]).toMatchObject({ kind: "stop", relay: true });
+  later();
+  let relayed: string | null = null;
+  for (let attempt = 0; attempt < 150 && relayed === null; attempt++) {
+    relayed = await readFile(written, "utf8").catch(() => null);
+    if (relayed === null) await new Promise((done) => setTimeout(done, 20));
+  }
+  // Started from the session's environment, by the relay the client left behind.
+  expect(relayed).toBe("session");
+});
+
+it.each([
+  ["before the client exits", "whole"],
+  ["split across the answer's chunk", "split"],
+] as const)("relays the records' launches that arrive %s", async (_name, timing) => {
+  const f = await fixture();
+  const worker = resolve(f.home, "worker.mjs");
+  await writeFile(
+    worker,
+    'import { writeFileSync } from "node:fs";\nwriteFileSync(process.argv[2], "ran");\n',
+  );
+  const written = resolve(f.home, `relayed-${timing}.txt`);
+  const answerLine = `${JSON.stringify({ ok: true, stdout: "{}\n", stderr: "", exitCode: 0, launches: [], pending: true })}\n`;
+  const launchesLine = `${JSON.stringify({ launches: [{ entry: worker, args: [written], cwd: f.cwd, env: {} }] })}\n`;
+  await listen(f.store, (socket) => {
+    socket.write("A");
+    socket.once("data", () => {
+      if (timing === "whole") {
+        // The records finish at once: the second line reaches the client while it is still alive.
+        socket.write(answerLine);
+        setImmediate(() => socket.end(launchesLine));
+      } else {
+        // Part of the second line arrives in the answer's own chunk.
+        socket.write(answerLine + launchesLine.slice(0, 12));
+        setTimeout(() => socket.end(launchesLine.slice(12)), 200);
+      }
+    });
+  });
+  const stop = JSON.stringify({ hook_event_name: "Stop", session_id: "s" });
+  expect((await launch(f, stop)).stdout).toBe("{}\n");
+  let ran: string | null = null;
+  for (let attempt = 0; attempt < 150 && ran === null; attempt++) {
+    ran = await readFile(written, "utf8").catch(() => null);
+    if (ran === null) await new Promise((done) => setTimeout(done, 20));
+  }
+  expect(ran).toBe("ran");
+});
+
 it("sends only prompts and Stops, and nothing when the socket is switched off", async () => {
   const f = await fixture();
   const server = await listen(
