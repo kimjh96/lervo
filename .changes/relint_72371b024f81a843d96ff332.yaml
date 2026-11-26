@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_72371b024f81a843d96ff332"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Check Git ignore rules only for a turn's changed paths and reuse the Stop's lifecycle snapshot, so a changed turn's Stop no longer spends about 900 ms re-reading the repository."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_149d3ac3a0d1baba498920b2"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Fix the built CLI hanging at startup on an import cycle that the lifecycle snapshot reuse introduced, by moving the snapshot hand-off into its own module."
