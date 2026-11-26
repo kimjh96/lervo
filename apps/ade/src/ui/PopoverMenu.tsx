@@ -1,14 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { CheckIcon } from "./icons";
 import styles from "./PopoverMenu.module.css";
 
 export interface PopoverMenuItem {
   readonly text: string;
+  /** What leads the item, such as an agent's mark. */
+  readonly leading?: ReactNode;
   /** One quiet line under the item's text, such as what a role does. */
   readonly detail?: string;
   /** The item's shortcut or a short note as text, such as `⌘O`, shown at its end. */
   readonly shortcut?: string;
+  /** In a menu of choices that toggle, whether this one is chosen; it shows a check. */
+  readonly checked?: boolean;
   readonly run: () => void;
 }
 
@@ -34,6 +39,8 @@ export function PopoverMenu(props: {
   openedByKey?: boolean;
   /** A wider menu, for items that carry a line of detail. */
   wide?: boolean;
+  /** A menu of choices that toggle stays open as each is chosen, until Escape or a click outside. */
+  multiple?: boolean;
   onClose: () => void;
 }) {
   const [closing, setClosing] = useState(false);
@@ -44,6 +51,11 @@ export function PopoverMenu(props: {
     then?.();
     if (reducedMotion()) onClose();
     else setClosing(true);
+  };
+  const choose = (item: PopoverMenuItem | undefined) => {
+    if (item === undefined) return;
+    if (props.multiple === true) item.run();
+    else close(item.run);
   };
   const closeRef = useRef(close);
   useEffect(() => {
@@ -81,10 +93,8 @@ export function PopoverMenu(props: {
         const count = props.items.length;
         if (event.key === "ArrowDown") setActive((index) => (index + 1) % count);
         else if (event.key === "ArrowUp") setActive((index) => (index < 0 ? count : index) - 1);
-        else if (event.key === "Enter") {
-          const item = props.items[active];
-          if (item !== undefined) close(item.run);
-        } else if (event.key === "Escape") close();
+        else if (event.key === "Enter") choose(props.items[active]);
+        else if (event.key === "Escape") close();
         else return;
         event.preventDefault();
       }}
@@ -93,13 +103,17 @@ export function PopoverMenu(props: {
         <button
           key={item.text}
           type="button"
-          role="menuitem"
+          role={props.multiple === true ? "menuitemcheckbox" : "menuitem"}
+          aria-checked={props.multiple === true ? item.checked === true : undefined}
           tabIndex={-1}
           className={styles.item}
           data-active={index === active ? "" : undefined}
           onPointerEnter={() => setActive(index)}
-          onClick={() => close(item.run)}
+          onClick={() => choose(item)}
         >
+          {item.leading === undefined ? null : (
+            <span className={styles.leading}>{item.leading}</span>
+          )}
           {item.detail === undefined ? (
             <span>{item.text}</span>
           ) : (
@@ -111,6 +125,11 @@ export function PopoverMenu(props: {
           {item.shortcut === undefined ? null : (
             <span className={styles.shortcut}>{item.shortcut}</span>
           )}
+          {props.multiple === true ? (
+            <span className={styles.check} data-checked={item.checked === true ? "" : undefined}>
+              <CheckIcon size="sm" />
+            </span>
+          ) : null}
         </button>
       ))}
     </div>,

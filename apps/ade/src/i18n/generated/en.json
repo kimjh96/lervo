@@ -31,6 +31,36 @@
       "value": "Agents"
     }
   ],
+  "agents.participants.choose": [
+    {
+      "type": 0,
+      "value": "Choose Participants"
+    }
+  ],
+  "agents.participants.label": [
+    {
+      "type": 0,
+      "value": "Participants: "
+    },
+    {
+      "type": 1,
+      "value": "names"
+    }
+  ],
+  "agents.participants.more": [
+    {
+      "type": 1,
+      "value": "names"
+    },
+    {
+      "type": 0,
+      "value": " +"
+    },
+    {
+      "type": 1,
+      "value": "count"
+    }
+  ],
   "agents.role": [
     {
       "type": 0,

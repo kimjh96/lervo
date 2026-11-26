@@ -63,6 +63,33 @@
   color: var(--color-text-tertiary);
 }
 
+/* A toggled choice's check, at the item's end; an unchosen item keeps its place. */
+.check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--color-accent);
+  transition: opacity var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.check:not([data-checked]) {
+  opacity: 0;
+}
+
+.leading {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--size-row-leading);
+}
+
+/* The text after a leading mark starts as close to it as a list row's label does, and takes the
+   room before the item's end. */
+.leading + * {
+  flex: 1;
+  margin-inline-start: calc(var(--space-6) * -1);
+}
+
 .texts {
   display: flex;
   flex-direction: column;

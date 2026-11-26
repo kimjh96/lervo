@@ -11,3 +11,10 @@
   font-size: var(--type-meta-size);
   white-space: nowrap;
 }
+
+/* The participants' marks sit before the controls. */
+.controls {
+  display: inline-flex;
+  gap: var(--space-12);
+  align-items: center;
+}

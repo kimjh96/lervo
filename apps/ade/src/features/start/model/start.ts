@@ -17,6 +17,11 @@ export interface StartDraft {
   readonly repository: string;
   /** The provider the user chose last, or empty; the core's default applies when it is unknown. */
   readonly provider: string;
+  /**
+   * The agents the conversation starts with, the writing one first, when the person chose them;
+   * absent, the project's default applies (Lervo ADE agents, "Participants and sessions").
+   */
+  readonly participants?: readonly string[];
 }
 
 /** A draft the core can run: an instruction, or attachments to go alone, and a repository. */
@@ -78,6 +83,9 @@ export async function startWork(
       instruction,
       repository: draft.repository,
       ...(draft.provider === "" ? {} : { provider: draft.provider }),
+      ...(draft.participants === undefined || draft.participants.length === 0
+        ? {}
+        : { participants: draft.participants }),
       ...(images.length === 0 ? {} : { images: sentImages(images) }),
     });
     const { workspaceId } = result;

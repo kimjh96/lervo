@@ -10,6 +10,13 @@ import { InputCard, InputField } from "../../../ui/InputCard";
 import { Select } from "../../../ui/Select";
 import { Presence } from "../../../ui/Presence";
 import { ViewPresence } from "../../../ui/ViewPresence";
+import {
+  defaultParticipants,
+  ParticipantsChip,
+  takesParticipants,
+  teamAgents,
+  useAgentStore,
+} from "../../agents";
 import { useHostIsCurrent } from "../../connection";
 import {
   attachmentNoticeValues,
@@ -105,6 +112,13 @@ function StartForm() {
       useStartStore.setState({ returnedImages: [], returnedFiles: [] });
   }, [returnedImages, returnedFiles]);
   const ready = canStart({ ...draft, repository }, attachments.holds) && !attachments.preparing;
+  // The conversation starts with the project's team agents the person chose, or its default;
+  // only a core that takes participants is sent them (Lervo ADE agents, "Participants").
+  const team = teamAgents(useAgentStore((store) => store.agents));
+  const shownProject = useAgentStore((store) => store.projectId);
+  const takes = useWorkspaceStore((store) => takesParticipants(store.advertisedCommands));
+  const offeredTeam = takes && shownProject === repository ? team : [];
+  const participants = draft.participants ?? defaultParticipants(offeredTeam);
   const tray = attachments.tray(intl);
 
   // The input takes focus when the screen opens and on each "New work".
@@ -114,7 +128,12 @@ function StartForm() {
     if (!ready) return;
     // The manifest name, which the workspace list reports for the workspace that results.
     const name = project?.name ?? "";
-    const chosen = { ...draft, repository, provider: provider?.provider ?? "" };
+    const chosen = {
+      ...draft,
+      repository,
+      provider: provider?.provider ?? "",
+      participants: offeredTeam.length === 0 ? [] : participants,
+    };
     const taken = attachments.take();
     void startWork(commands, chosen, name, taken.images, taken.files);
   };
@@ -158,6 +177,15 @@ function StartForm() {
             onSubmit={submit}
           />
           <div className={styles.bar}>
+            <Presence as="span">
+              {offeredTeam.length === 0 ? null : (
+                <ParticipantsChip
+                  team={offeredTeam}
+                  chosen={participants}
+                  onChange={(next) => setDraft({ ...draft, participants: next })}
+                />
+              )}
+            </Presence>
             <Presence as="span">
               {offered.length < 2 || provider === null ? null : (
                 <Select

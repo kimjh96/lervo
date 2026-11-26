@@ -10,10 +10,11 @@ import { Mark } from "../../../ui/Mark";
 import { PopoverMenu } from "../../../ui/PopoverMenu";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
+import { StatusDot } from "../../../ui/StatusDot";
 import { useItemSpace } from "../../../ui/space";
-import { useWorkspaceStore } from "../../workspaces";
+import { statusMessages, useWorkspaceStore } from "../../workspaces";
 import { hireAgent, showProjectAgents } from "../model/controller";
-import { managesAgents, productOwnerRole, teamAgents } from "../model/decisions";
+import { agentActivity, managesAgents, productOwnerRole, teamAgents } from "../model/decisions";
 import { useAgentStore } from "../model/store";
 import styles from "./AgentList.module.css";
 import { roleSummary } from "./role-summary";
@@ -21,6 +22,9 @@ import { roleSummary } from "./role-summary";
 function AgentRow(props: { agent: AgentSummary }) {
   const intl = useIntl();
   const { agent } = props;
+  const activity = useWorkspaceStore((store) =>
+    agentActivity(agent.agentId, store.workspaces, store.statuses),
+  );
   const arrived = useAgentStore((store) => store.arrived.has(agent.agentId));
   // An agent hired while the person watches arrives with the space it takes (ADE motion, 12).
   const space = useItemSpace<HTMLDivElement>(arrived, false);
@@ -38,6 +42,16 @@ function AgentRow(props: { agent: AgentSummary }) {
               {intl.formatMessage({ id: "agents.role" }, { role: agent.roleName })}
             </span>
           </>
+        }
+        trailing={
+          <Presence as="span">
+            {activity === null ? null : (
+              <StatusDot
+                tone={activity === "working" ? "working" : "attention"}
+                label={intl.formatMessage(statusMessages[activity])}
+              />
+            )}
+          </Presence>
         }
       />
     </div>

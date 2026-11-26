@@ -15,6 +15,18 @@
     "defaultMessage": "Agents",
     "description": "The sidebar section that lists the selected project's agents."
   },
+  "agents.participants.choose": {
+    "defaultMessage": "Choose Participants",
+    "description": "Label of the menu that chooses the agents a new conversation starts with."
+  },
+  "agents.participants.label": {
+    "defaultMessage": "Participants: {names}",
+    "description": "Accessible name of the start card's participants chip; names lists the chosen agents."
+  },
+  "agents.participants.more": {
+    "defaultMessage": "{names} +{count}",
+    "description": "The participants chip with more than two agents: two names, then how many more."
+  },
   "agents.role": {
     "defaultMessage": " · {role}",
     "description": "After an agent's name in the sidebar: its role, such as \"· Developer\"."

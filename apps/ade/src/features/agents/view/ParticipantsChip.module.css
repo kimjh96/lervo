@@ -1,0 +1,46 @@
+/* The start card's participants chip: overlapping marks and names on the hover surface. */
+.chip {
+  display: inline-flex;
+  gap: var(--space-6);
+  align-items: center;
+  height: var(--size-control-md);
+  padding-inline: var(--space-4) var(--space-8);
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--type-meta-size);
+  background: var(--color-surface-hover);
+  cursor: pointer;
+  transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.chip:hover,
+.chip[aria-expanded="true"] {
+  background: var(--color-surface-selected);
+}
+
+.chip:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Each mark after the first overlaps the one before, with a ring of the card's surface. */
+.marks {
+  display: inline-flex;
+}
+
+.marks > * {
+  box-shadow: 0 0 0 var(--border-width-strong) var(--color-surface-input);
+}
+
+.marks > * + * {
+  margin-inline-start: calc(var(--space-6) * -1);
+}
+
+.names {
+  overflow: hidden;
+  max-width: var(--layout-choice-width);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
