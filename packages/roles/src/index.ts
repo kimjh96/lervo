@@ -11,3 +11,4 @@ export * from "./publication.js";
 export * from "./repository.js";
 export * from "./repository-role-rendering.js";
 export * from "./types.js";
+export * from "./role-templates.js";
