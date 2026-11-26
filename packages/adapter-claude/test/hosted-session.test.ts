@@ -171,6 +171,7 @@ describe("Claude Code hosted sessions", () => {
         command: "lervo workspace hook --provider claude",
         terminal: {
           command: "lervo terminal hook --provider claude --contract 2",
+          claimCommand: "lervo terminal hook --provider claude --contract 2 --claim",
           events: [{ name: "PreToolUse", matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash" }],
         },
       },
@@ -184,7 +185,7 @@ describe("Claude Code hosted sessions", () => {
         hooks: [
           {
             type: "command",
-            command: "lervo terminal hook --provider claude --contract 2",
+            command: "lervo terminal hook --provider claude --contract 2 --claim",
             timeout: 10,
           },
         ],

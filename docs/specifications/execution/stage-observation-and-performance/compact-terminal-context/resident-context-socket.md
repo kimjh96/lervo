@@ -35,7 +35,7 @@ ADR-0562 sets the target: a prompt hook p95 under 200 milliseconds end to end. A
 ## Request and response
 
 - **Request** (`terminal.context.request`, version 1):
-  - `version`: 1, and `kind`: `prompt` for `UserPromptSubmit` or `stop` for `Stop`. The client parses the input first and sends only those two; `SessionStart` and the workspace recording hooks stay in process. The server declines a request whose input names another event than its kind as `invalid_request`, so a request runs exactly the hook its kind names.
+  - `version`: 1, and `kind`: `prompt` for `UserPromptSubmit`, `stop` for `Stop`, or, from launcher version 7, `tool` for the claim handler's `PreToolUse` ([Claims](#claims)). The client parses the input first and sends only those three; `SessionStart` and the workspace recording hooks stay in process. The server declines a request whose input names another event than its kind as `invalid_request`, so a request runs exactly the hook its kind names.
   - `runtime`: the content hash the store's pointer names, which is the runtime the launcher would load.
   - `cwd`: the realpath of the hook's working directory. The served hook resolves the repository, a linked worktree's execution and evidence roots, and everything else from it, as the in-process hook does.
   - `args`: the launcher's arguments, which carry the provider and the contract.
@@ -113,6 +113,15 @@ Otherwise the copy runs itself, exactly as before, so a clone without Lervo, a C
 - **Launcher.** After an offer fails as `no_server`, `unreachable`, or `declined_busy`, launcher version 6 looks for `base/<key>.json`. It needs a file that grants nothing to group or others and is less than 30 minutes old, allowing one second for a modification time that runs ahead of the clock. Only then does it read the hook input. For a prompt it then prints the file and exits 0 without loading the runtime. It leaves two markers: `<key>.<ms>.<pid>.unserved` with the reason and the cache's age, and `<session>.turn` for the session. Any other decline, a Stop, or a missing, old, or exposed file runs in process as before.
 - **Stop.** Some Stops carry no turn digest, such as Claude's. If the session's turn file is newer than the session's latest prepared context, such a Stop records nothing and answers `{}`; otherwise it would observe the earlier turn again and record that turn's changes twice. If the owner interrupted that earlier turn, its open-turn marker stays, and the next prepared prompt or session start settles it as usual. A Stop that names its turn already matches only its own turn's context, so it skips this check.
 - **Records.** At writer schema 14 the server records each marker as `terminal.context.base_delivered` with `actor.kind: system` and fresh unattributed coordinates, at most 32 per prompt. It leaves an empty marker younger than 10 seconds for the next prompt, because the launcher may still be writing it. Before recording, the server writes a random identity into each marker, so a marker that survived its record is not recorded twice and no identity reveals the checkout. A marker is removed once it is recorded, or unrecorded when it is malformed or a day old; a busy store only delays it. Below schema 14 it removes markers without recording them. See the [payload contract](../../events-and-privacy/event-envelope-compatibility/payload-contracts/terminal-context-base-delivered.md).
+
+## Claims
+
+Lervo ADE coordination (S2h, [ADR-0640](../../../../decisions/execution/orchestration/0640-coordinate-agents-in-the-workstream-and-let-git-store-and-publish.md)) asks the conversation's claim before each write a session makes, through a `PreToolUse` handler. That hook runs on every write, so it must stay cheap whether or not a server takes it.
+
+- The handler's command is the terminal hook command with `--claim`. The runtime answers `PreToolUse` only with that flag, and refuses the flag with any other event.
+- Launcher version 7 sends a claim as the `tool` kind. The server runs it like any other request, but it neither warms the checkout nor keeps a cached base for it, since a claim is no prompt to come.
+- When no server takes a claim, for any reason, the launcher exits 0 with no output, without reading its input or loading the runtime. The provider takes no output as no decision, so the write goes ahead, and the turn's end claims what it changed. A cold in-process hook on every write would cost seconds under memory pressure.
+- The launcher's 16 KiB bound held: folding its thirteen integrity failures into one helper made room for the kind and the deferral.
 
 ## Privacy
 

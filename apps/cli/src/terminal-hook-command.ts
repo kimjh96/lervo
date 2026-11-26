@@ -71,7 +71,11 @@ async function executeTerminalHookCommand(
         args,
         strict: true,
         allowPositionals: false,
-        options: { provider: { type: "string" }, contract: { type: "string" } },
+        options: {
+          provider: { type: "string" },
+          contract: { type: "string" },
+          claim: { type: "boolean" },
+        },
       });
       if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
         throw new Error("--provider must be codex or claude.");
@@ -79,13 +83,17 @@ async function executeTerminalHookCommand(
       if (parsed.values.contract !== "1" && parsed.values.contract !== "2")
         throw new Error("Unsupported terminal integration contract.");
       if (io.stdin === undefined) throw new Error("Provider hook input is unavailable.");
+      const input = parseTerminalHookIngress(await io.stdin());
+      // The claim handler alone answers PreToolUse, so the launcher can defer it unread.
+      if ((parsed.values.claim === true) !== (input.event === "PreToolUse"))
+        throw new Error("Only the claim handler answers PreToolUse.");
       return {
         provider,
         contractId:
           parsed.values.contract === "2"
             ? ("lervo_terminal_hooks_v2" as const)
             : ("lervo_terminal_hooks_v1" as const),
-        input: parseTerminalHookIngress(await io.stdin()),
+        input,
       };
     });
     if (input.event === "PreToolUse") {

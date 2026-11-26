@@ -139,14 +139,13 @@ export function claudeSessionSettings(command: string, terminal?: HostedTerminal
     const handler = {
       ...(event.matcher === undefined ? {} : { matcher: event.matcher }),
       hooks: [
-        {
-          type: "command",
-          command: terminalCommand,
-          timeout:
-            event.name === "PreToolUse"
-              ? CLAIM_HOOK_TIMEOUT_SECONDS
-              : TERMINAL_HOOK_TIMEOUT_SECONDS,
-        },
+        event.name === "PreToolUse"
+          ? {
+              type: "command",
+              command: terminal?.claimCommand ?? terminalCommand,
+              timeout: CLAIM_HOOK_TIMEOUT_SECONDS,
+            }
+          : { type: "command", command: terminalCommand, timeout: TERMINAL_HOOK_TIMEOUT_SECONDS },
       ],
     };
     hooks[event.name] = [...(hooks[event.name] ?? []), handler];

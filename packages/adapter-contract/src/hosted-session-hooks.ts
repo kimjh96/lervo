@@ -29,6 +29,11 @@ export interface HostedTerminalHookEvent {
 export interface HostedTerminalHooks {
   readonly command: string;
   readonly events: readonly HostedTerminalHookEvent[];
+  /**
+   * The command that answers `PreToolUse`, required with that event: the terminal command marked
+   * as the claim handler, so a launcher that no server answers can defer it without reading it.
+   */
+  readonly claimCommand?: string;
 }
 
 /**
@@ -64,6 +69,11 @@ export function hostedSessionHooksProblem(hooks: HostedSessionHooks): string | n
     !names.every((name) => (HOSTED_TERMINAL_HOOK_EVENTS as readonly string[]).includes(name))
   )
     return "The terminal hook events must be known, unique, and at least one.";
+  if (
+    names.includes("PreToolUse") &&
+    (terminal.claimCommand === undefined || !validCommand(terminal.claimCommand))
+  )
+    return "A PreToolUse terminal hook needs a claim command of 1 to 1,024 characters.";
   for (const event of terminal.events) {
     if (event.name === "PreToolUse") {
       if (
