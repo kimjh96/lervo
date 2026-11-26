@@ -17,6 +17,7 @@
   "dependencies": {
     "@lervo/application-contract": "workspace:*",
     "@lervo/event-contract": "workspace:*",
+    "@lervo/filesystem-durability": "workspace:*",
     "@lervo/sqlite-connection": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
     "@lervo/work-controller": "workspace:*",
