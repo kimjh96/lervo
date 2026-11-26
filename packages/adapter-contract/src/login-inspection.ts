@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { userInfo } from "node:os";
 import { isAbsolute } from "node:path";
 import { createProviderProcessEnvironment } from "./provider-process-environment.js";
 import { executableStartReasonCode } from "./runtime-inspection.js";
@@ -21,15 +22,30 @@ export interface ProviderLoginInspection {
     | "probe_timed_out";
 }
 
-/** Deliberately excludes inherited API keys and other credential-bearing environment variables. */
+/** The account name a provider CLI needs to find its stored login, such as in the macOS keychain. */
+function accountName(): string | undefined {
+  try {
+    return process.env.USER ?? userInfo().username;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Deliberately excludes inherited API keys and other credential-bearing environment variables. It
+ * keeps the account name: on macOS, Claude Code finds its login in the keychain by the account in
+ * `USER`, and without it reports no login while one is stored.
+ */
 export function providerLoginEnvironment(context: ProviderLoginContext): Record<string, string> {
   for (const path of [context.homeDirectory, context.configurationDirectory])
     if (typeof path !== "string" || path.length > 4096 || path.includes("\0") || !isAbsolute(path))
       throw new TypeError("The provider login context is invalid.");
+  const account = accountName();
   return createProviderProcessEnvironment({
     PATH: process.env.PATH,
     HOME: context.homeDirectory,
     USERPROFILE: context.homeDirectory,
+    ...(account === undefined ? {} : { USER: account, LOGNAME: account }),
   });
 }
 
