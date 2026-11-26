@@ -62,7 +62,7 @@ There is no onboarding screen. The first run is the start screen itself (owner r
   - Its name is the folder's name, and its mark is its first letter. Both change later in place.
   - The core registers the folder, whatever the host's continuity policy. It runs `lervo init` when the folder has no `.lervo/project.yaml` and `git init` when the folder is not a Git repository. The project appearing in the switcher is the confirmation; only a failure shows a line.
 - Environment checks run quietly: the Lervo CLI, the session host, and each provider CLI, installed and signed in. Only a check that blocks work shows, as one line under the card with one action. The core reports sign-in through `provider.list` and emits `provider_login_unavailable` when the provider CLI reports that no one is signed in.
-- Hiring a product owner is offered in the sidebar, never required. The product owner then staffs within headcount (ADR-0453, ADR-0454). The core ships `product-owner` as a built-in role, taken from this repository's role, so every project can hire one.
+- Hiring a product owner is offered in the sidebar, never required. The product owner then staffs within headcount (ADR-0453, ADR-0454). A project without a `product-owner` role gets one when it first hires a product owner: the core writes the repository role from a template it ships, the same as this repository's role. It is not a built-in role, because the core refuses a repository role that duplicates a built-in one, which would break this repository's role and the agents bound to it.
 - Projects are managed where they are listed. Adding opens the system's folder picker, a name is edited in place, a mark is chosen by clicking it, and removal sits in the context menu, which says that files stay. There is no settings page.
 
 ### Roles are managed in the core
@@ -96,7 +96,7 @@ Everything here works on a node without a Hub. Knowledge scopes, the Hub and nod
 The S2 steps after the day of use run in this order. Orca retires after the day of use and does not wait for them. S2d (Lervo tools) and S2e (hosted observations) keep their place in ADR-0632 and run alongside.
 
 1. **S2f, projects and the first run.**
-   - Core: the project profile, unregister, the sign-in check, project marks, `product-owner` as a built-in role.
+   - Core: the project profile, unregister, the sign-in check, project marks, the product-owner role template.
    - ADE: the switcher with in-place management, and the first run on the start screen.
 2. **S2c, agent identity.**
    - Sessions carry an agent, and the workspace holds an assignment and a growing lease.
