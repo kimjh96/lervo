@@ -82,6 +82,16 @@ impl<C: Core> Host<C> {
         self.start_serially(request, launch).await
     }
 
+    /// Starts the session of an agent that joins a conversation through `room.join`, such as
+    /// one the owner mentions or one the interface reopens, beside the workspace's own session.
+    pub(crate) async fn start_member(&self, request: &Identifier, launch: &Launch) -> HostMessage {
+        let _serial = self.lifecycle.lock().await;
+        let role = Role::Member {
+            initial_delivery: None,
+        };
+        self.start_as(request, launch, role).await
+    }
+
     /// Starts `launch` while the caller holds the lifecycle lock.
     async fn start_serially(&self, request: &Identifier, launch: &Launch) -> HostMessage {
         self.start_as(request, launch, Role::Lead).await

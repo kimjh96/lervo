@@ -237,7 +237,13 @@ impl Core for FakeCore {
         if command != "room.join" {
             return Err(Failure::new(FailureCode::ApplicationUnavailable));
         }
-        let text = |name: &str| arguments[name].as_str().unwrap_or_default().to_owned();
+        let text = |name: &str| {
+            arguments
+                .get(name)
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned()
+        };
         JOINS
             .lock()
             .unwrap()
@@ -256,7 +262,10 @@ impl Core for FakeCore {
                 environment: Vec::new(),
                 working_directory: std::env::temp_dir(),
                 provider: "fake".to_owned(),
-                initial_input: Some(text("instruction")),
+                // Without an instruction the agent's earlier session resumes.
+                initial_input: arguments
+                    .contains_key("instruction")
+                    .then(|| text("instruction")),
                 initial_images: Vec::new(),
                 environment_remove: Vec::new(),
                 transcript: false,
@@ -951,6 +960,17 @@ async fn joins_a_mentioned_agent_and_gives_it_the_delivered_turn() {
             "from-elio".to_owned()
         )]
     );
+
+    // The interface reopening Arin joins it beside the lead, never as the workspace's session.
+    client
+        .send(json!({"kind": "application.command", "requestId": "req_5", "command": "room.join", "arguments": {"workspaceId": "wks_room", "agentId": "agt_arin"}}))
+        .await;
+    loop {
+        if let HostMessage::SessionOpenedMessage(opened) = client.next_message().await {
+            assert_eq!(opened.session_id.as_str(), "ses_room_arin");
+            break;
+        }
+    }
 
     // The workspace's session stays the lead's.
     client
