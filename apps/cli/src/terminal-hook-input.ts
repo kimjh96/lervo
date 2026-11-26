@@ -1,4 +1,8 @@
-import type { ParsedSessionStartInput, ParsedTerminalHookInput } from "./terminal-hook-contract.js";
+import type {
+  ParsedPreToolUseInput,
+  ParsedSessionStartInput,
+  ParsedTerminalHookInput,
+} from "./terminal-hook-contract.js";
 
 const SESSION_START_SOURCES = new Set(["startup", "resume", "clear", "compact"]);
 const PROMPT_MAXIMUM_LENGTH = 64 * 1024;
@@ -14,17 +18,18 @@ function boundedPrompt(prompt: string): string {
   return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut;
 }
 
-/** A prompt or Stop hook input; a `SessionStart` input is refused here. */
+/** A prompt or Stop hook input; a `SessionStart` or `PreToolUse` input is refused here. */
 export function parseTerminalHookInput(value: string): ParsedTerminalHookInput {
   const input = parseTerminalHookIngress(value);
-  if (input.event === "SessionStart") throw new Error("Unsupported provider hook event.");
+  if (input.event === "SessionStart" || input.event === "PreToolUse")
+    throw new Error("Unsupported provider hook event.");
   return input;
 }
 
-/** Any hook input the terminal runtime answers, including a provider `SessionStart`. */
+/** Any hook input the terminal runtime answers, including `SessionStart` and `PreToolUse`. */
 export function parseTerminalHookIngress(
   value: string,
-): ParsedTerminalHookInput | ParsedSessionStartInput {
+): ParsedTerminalHookInput | ParsedSessionStartInput | ParsedPreToolUseInput {
   if (Buffer.byteLength(value) > 256 * 1024)
     throw new Error("Hook input exceeds the bounded input limit.");
   const parsed = JSON.parse(value) as {
@@ -36,11 +41,16 @@ export function parseTerminalHookIngress(
     stop_hook_active?: unknown;
     last_assistant_message?: unknown;
     transcript_path?: unknown;
+    tool_name?: unknown;
+    tool_input?: unknown;
+    tool_use_id?: unknown;
+    cwd?: unknown;
   };
   if (
     parsed?.hook_event_name !== "UserPromptSubmit" &&
     parsed?.hook_event_name !== "Stop" &&
-    parsed?.hook_event_name !== "SessionStart"
+    parsed?.hook_event_name !== "SessionStart" &&
+    parsed?.hook_event_name !== "PreToolUse"
   )
     throw new Error("Unsupported provider hook event.");
   if (
@@ -49,6 +59,27 @@ export function parseTerminalHookIngress(
     parsed.session_id.length > 512
   )
     throw new Error("The provider session coordinate is missing or invalid.");
+  if (parsed.hook_event_name === "PreToolUse") {
+    if (typeof parsed.tool_name !== "string" || !/^[A-Za-z][\w-]{0,127}$/u.test(parsed.tool_name))
+      throw new Error("The provider tool name is missing or invalid.");
+    return {
+      event: "PreToolUse",
+      providerSessionId: parsed.session_id,
+      toolName: parsed.tool_name,
+      toolInput: parsed.tool_input,
+      toolUseId:
+        typeof parsed.tool_use_id === "string" && parsed.tool_use_id.length <= 512
+          ? parsed.tool_use_id
+          : null,
+      workingDirectory:
+        typeof parsed.cwd === "string" &&
+        parsed.cwd.startsWith("/") &&
+        parsed.cwd.length <= 4096 &&
+        !parsed.cwd.includes("\0")
+          ? parsed.cwd
+          : null,
+    };
+  }
   if (parsed.hook_event_name === "SessionStart")
     return {
       event: "SessionStart",

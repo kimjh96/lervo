@@ -19,6 +19,20 @@ export interface ParsedTerminalHookInput {
 }
 
 /**
+ * A provider `PreToolUse` from a hosted session's claim handler (Lervo ADE coordination): a tool
+ * call about to run, read only for the paths it writes.
+ */
+export interface ParsedPreToolUseInput {
+  event: "PreToolUse";
+  providerSessionId: string;
+  toolName: string;
+  toolInput: unknown;
+  toolUseId: string | null;
+  /** The session's working directory when the call was made. */
+  workingDirectory: string | null;
+}
+
+/**
  * A provider `SessionStart` (ADR-0562 section 4): a session started, resumed, cleared, or
  * compacted. It carries no prompt or turn, and it answers with the epoch's base block.
  */

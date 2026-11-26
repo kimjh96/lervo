@@ -38,6 +38,7 @@ import { resolveTerminalRoots } from "./terminal-roots.js";
 import { requestOpenTerminalTurnSettlement } from "./terminal-turn-settlement.js";
 import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
 import { roomBlock } from "./room-context.js";
+import { answerPreToolUse, claimReading, unclaimed, writingSessionOf } from "./write-claims.js";
 
 export function runTerminalHookCommand(
   args: string[],
@@ -87,6 +88,20 @@ async function executeTerminalHookCommand(
         input: parseTerminalHookIngress(await io.stdin()),
       };
     });
+    if (input.event === "PreToolUse") {
+      // Claims at first write (Lervo ADE coordination). The claim is the core's coordination
+      // stage; until it runs, every write goes ahead.
+      io.stdout(
+        await answerPreToolUse({
+          hook: input,
+          answering: claimReading(provider),
+          fallbackDirectory: io.cwd,
+          writing: (session) => writingSessionOf(session),
+          claim: unclaimed,
+        }),
+      );
+      return 0;
+    }
     if (input.event === "SessionStart") {
       // ADR-0562 section 4: the epoch's base block. Without it the next prompt still delivers the
       // full context, so a failure answers with nothing instead of blocking the session.

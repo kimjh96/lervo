@@ -7,10 +7,12 @@ import {
   type HostedSessionCapabilities,
   type HostedTerminalHooks,
   type HostedTranscriptReading,
+  type HostedClaimAnswering,
 } from "@lervo/adapter-contract";
 
 import { claudeSignInState } from "./hosted-sign-in.js";
 import { ClaudeHostedStreamDecoder } from "./hosted-stream.js";
+import { claudeClaimAnswer, claudeWriteIntent } from "./hosted-claims.js";
 import { readClaudeTranscript } from "./hosted-transcript.js";
 
 /**
@@ -107,6 +109,8 @@ export const CLAUDE_HOSTED_ENVIRONMENT: Readonly<Record<string, string>> = {
 
 /** Seconds a terminal hook may take, as the project's own terminal hooks allow. */
 const TERMINAL_HOOK_TIMEOUT_SECONDS = 30;
+/** Seconds a pre-tool claim may hold a tool call; Lervo itself defers after 2 seconds. */
+const CLAIM_HOOK_TIMEOUT_SECONDS = 10;
 
 /**
  * The session-scoped settings: Lervo's handler for the session's start and end, which prints
@@ -122,7 +126,14 @@ export function claudeSessionSettings(command: string, terminal?: HostedTerminal
     const handler = {
       ...(event.matcher === undefined ? {} : { matcher: event.matcher }),
       hooks: [
-        { type: "command", command: terminalCommand, timeout: TERMINAL_HOOK_TIMEOUT_SECONDS },
+        {
+          type: "command",
+          command: terminalCommand,
+          timeout:
+            event.name === "PreToolUse"
+              ? CLAIM_HOOK_TIMEOUT_SECONDS
+              : TERMINAL_HOOK_TIMEOUT_SECONDS,
+        },
       ],
     };
     hooks[event.name] = [...(hooks[event.name] ?? []), handler];
@@ -132,13 +143,15 @@ export function claudeSessionSettings(command: string, terminal?: HostedTerminal
 
 export function createClaudeHostedSessionAdapter(
   executable = "claude",
-): HostedSessionAdapter & HostedStreamDecoding & HostedTranscriptReading {
+): HostedSessionAdapter & HostedStreamDecoding & HostedTranscriptReading & HostedClaimAnswering {
   return {
     createStreamDecoder: () => new ClaudeHostedStreamDecoder(),
     readTranscript: (session) => readClaudeTranscript(session),
     provider: "claude",
     displayName: "Claude Code",
     capabilities: claudeHostedCapabilities,
+    writeIntent: claudeWriteIntent,
+    claimAnswer: claudeClaimAnswer,
     signInState: (environment) => claudeSignInState(executable, environment),
     prepareLaunch(intent: HostedLaunchIntent): HostedLaunch {
       assertHostedLaunchIntent(intent, claudeHostedCapabilities);

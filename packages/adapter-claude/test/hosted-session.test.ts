@@ -134,6 +134,38 @@ describe("Claude Code hosted sessions", () => {
     expect(settings.hooks.Stop).toBeUndefined();
   });
 
+  it("gives a pre-tool claim handler its tools and a shorter timeout", () => {
+    const launch = adapter.prepareLaunch({
+      sessionId,
+      mode: "native",
+      workingDirectory: "/work/repo",
+      start: { kind: "resume" },
+      hooks: {
+        settingsPath: "/state/hosted-settings/session.json",
+        command: "lervo workspace hook --provider claude",
+        terminal: {
+          command: "lervo terminal hook --provider claude --contract 2",
+          events: [{ name: "PreToolUse", matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash" }],
+        },
+      },
+    });
+    const settings = JSON.parse(launch.settingsFile?.content ?? "{}") as {
+      hooks: Record<string, { matcher?: string; hooks: { timeout: number }[] }[]>;
+    };
+    expect(settings.hooks.PreToolUse).toEqual([
+      {
+        matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        hooks: [
+          {
+            type: "command",
+            command: "lervo terminal hook --provider claude --contract 2",
+            timeout: 10,
+          },
+        ],
+      },
+    ]);
+  });
+
   it("resumes the CLI conversation without permission overrides", () => {
     const launch = adapter.prepareLaunch({
       sessionId,
