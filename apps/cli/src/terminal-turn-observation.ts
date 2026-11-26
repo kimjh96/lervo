@@ -29,6 +29,7 @@ import {
   terminalExecutionRootDigest,
 } from "./terminal-turn-settlement.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
+import { answeredFromCachedBaseSince } from "./terminal-cached-base-turn.js";
 
 export function latestTerminalTurnDeclaration(
   events: ProjectStorage["events"],
@@ -198,12 +199,35 @@ export async function preparedTerminalTurnExpectation(
   coordinates: UnmanagedTerminalCoordinates,
   provider: TerminalIntegrationProvider,
   providerSessionId: string,
+  executionRoot: string = root,
 ): Promise<PreparedTerminalTurnExpectation | null> {
   const hint = await preparedContextHint(root, coordinates);
   const storage = await openProjectStorage(root);
   try {
     const context = findLatestPreparedContext(storage.events, coordinates, provider, hint);
     if (context === null) return null;
+    // ADR-0645: a turn the launcher answered from the cached base prepared nothing, so the
+    // session's latest context is an earlier turn's. Its own Stop observed it, or, when the owner
+    // interrupted it, no Stop did and no prompt since prepared a snapshot to settle it with; this
+    // Stop then requests that settlement from the checkout as it is now. A Stop that names its
+    // turn already matched that turn's own context.
+    if (
+      coordinates.providerTurnDigest === null &&
+      (await answeredFromCachedBaseSince(providerSessionId, Date.parse(context.occurredAt)))
+    ) {
+      if ((storage.writableEventSchemaVersion ?? 1) >= turnEndingEventSchemaVersion)
+        await requestOpenTerminalTurnSettlement({
+          root,
+          executionRoot,
+          provider,
+          providerSessionDigest: coordinates.providerSessionDigest,
+          ending: "next_prompt",
+          afterObservationId: null,
+          transcriptEnd: null,
+          now: new Date(),
+        }).catch(() => false);
+      return null;
+    }
     return preparedTurnExpectationFromContext(context, provider, providerSessionId);
   } finally {
     await storage.close();

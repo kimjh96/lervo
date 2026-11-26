@@ -257,7 +257,7 @@ The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/exec
   - `provider_login_unavailable`: the CLI reports no login. This is notice-only.
   - `workspace_in_use`, `workspace_has_changes`, `workspace_use_unverifiable`: retiring a workspace refused and changed nothing. The session host passes each on as `application_failed` with the parameter `coreCode`.
   - `launch_preparation_failed`: the launch stage failed, which `workspace_start_failed` reports with `stage: launch`.
-  - `hosted_events_inactive`: the registered repository's writer selects a schema below 10, so Lervo recorded no hosted session event. The launch goes on, and `hostedEvents` reports `inactive`. `lervo upgrade` activates the current target, schema 13, once every configured reader reads it.
+  - `hosted_events_inactive`: the registered repository's writer selects a schema below 10, so Lervo recorded no hosted session event. The launch goes on, and `hostedEvents` reports `inactive`. `lervo upgrade` activates the current target, schema 14, once every configured reader reads it.
   - `provider_unknown`: no admitted hosted-session adapter has that provider name. The result lists the admitted ones.
   - `conversation_mode_unsupported`: the provider does not declare `nativeConversation`, so only the CLI conversation can start. Nothing changed.
   - `resume_unsupported` and `launch_intent_invalid`: the adapter refused the launch intent before any change.
