@@ -73,17 +73,18 @@ The core adds a project from one of three sources, each in one command, and then
 - Registry changes, including unregistering, stay local operational data and record no event (ADR-0169).
 - A provider sign-in check records nothing. Its result is not stored beyond the 60-second cache.
 
-| Code                         | Meaning                                                                            |
-| ---------------------------- | ---------------------------------------------------------------------------------- |
-| `repository_not_registered`  | No registry entry on this host has that project ID (the registry's existing code). |
-| `project_root_invalid`       | The folder does not exist, is not a directory, or cannot be written.               |
-| `project_folder_exists`      | The destination of a clone or a new project already exists.                        |
-| `project_clone_failed`       | Git could not clone the link; nothing was left behind.                             |
-| `project_name_invalid`       | The display name is empty, too long, or has control characters.                    |
-| `project_mark_invalid`       | The image's format, signature, size, or dimensions are outside the bound.          |
-| `project_profile_invalid`    | The profile file exists but does not match its schema.                             |
-| `projects_location_invalid`  | The projects location is not an absolute, writable directory.                      |
-| `provider_login_unavailable` | The provider CLI reports that no one is signed in.                                 |
+| Code                         | Meaning                                                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `repository_not_registered`  | No registry entry on this host has that project ID (the registry's existing code).                             |
+| `project_root_invalid`       | The folder does not exist, is not a directory, or cannot be written.                                           |
+| `project_folder_exists`      | The destination of a clone or a new project already exists.                                                    |
+| `project_clone_failed`       | Git could not clone the link; nothing was left behind.                                                         |
+| `project_init_failed`        | `lervo init` could not set up the folder as a Lervo project; the folder stays as it was apart from `git init`. |
+| `project_name_invalid`       | The display name is empty, too long, or has control characters.                                                |
+| `project_mark_invalid`       | The image's format, signature, size, or dimensions are outside the bound.                                      |
+| `project_profile_invalid`    | The profile file exists but does not match its schema.                                                         |
+| `projects_location_invalid`  | The projects location is not an absolute, writable directory.                                                  |
+| `provider_login_unavailable` | The provider CLI reports that no one is signed in.                                                             |
 
 ## Open items
 

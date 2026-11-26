@@ -723,6 +723,14 @@
     "defaultMessage": "Superseded a plan item",
     "description": "What Lervo did when the agent ran `lervo plan supersede`, as a quiet line in the conversation."
   },
+  "lervo.command.project.add": {
+    "defaultMessage": "Added a project",
+    "description": "What Lervo did when the agent ran `lervo project add`, as a quiet line in the conversation."
+  },
+  "lervo.command.project.location": {
+    "defaultMessage": "Checked where new projects go",
+    "description": "What Lervo did when the agent ran `lervo project location`, as a quiet line in the conversation."
+  },
   "lervo.command.project.mark.clear": {
     "defaultMessage": "Cleared the project's logo",
     "description": "What Lervo did when the agent ran `lervo project mark clear`, as a quiet line in the conversation."

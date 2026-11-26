@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4a42298851a7e2d302665e46"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Show a quiet line when an agent runs lervo project add or lervo project location."

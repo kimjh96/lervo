@@ -97,6 +97,8 @@ export const lervoCommandMessages: Readonly<Record<LervoCommandId, MessageDescri
   "plan move": { id: "lervo.command.plan.move" },
   "plan start": { id: "lervo.command.plan.start" },
   "plan supersede": { id: "lervo.command.plan.supersede" },
+  "project add": { id: "lervo.command.project.add" },
+  "project location": { id: "lervo.command.project.location" },
   "project mark clear": { id: "lervo.command.project.mark.clear" },
   "project mark set": { id: "lervo.command.project.mark.set" },
   "project rename": { id: "lervo.command.project.rename" },
