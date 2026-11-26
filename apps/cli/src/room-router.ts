@@ -175,13 +175,18 @@ export class RoomRouter {
     const recalled = [...room.recent];
     this.remember(room, { speaker: self.displayName, text });
     const mentioned = mentionedAgents(text, context.team).filter((id) => id !== self.agentId);
-    // A turn that asks another agent first keeps its answers owed; the turn that mentions no one
-    // answers everyone waiting.
-    const waiting = mentioned.length > 0 ? [] : [...(room.owed.get(self.agentId) ?? [])];
-    if (mentioned.length === 0) room.owed.delete(self.agentId);
+    // Naming an agent that asked is the answer to it, never a new question back. A turn that asks
+    // another agent first keeps the other answers owed; the turn that asks no one answers everyone
+    // still waiting.
+    const owed = room.owed.get(self.agentId) ?? new Set<string>();
+    const answered = mentioned.filter((id) => owed.has(id));
+    const asked = mentioned.filter((id) => !owed.has(id));
+    const waiting = asked.length > 0 ? [] : [...owed].filter((id) => !answered.includes(id));
+    for (const id of [...answered, ...waiting]) owed.delete(id);
+    if (owed.size === 0) room.owed.delete(self.agentId);
     const targets = [
-      ...mentioned.map((agentId) => ({ agentId, reason: "mention" as const })),
-      ...waiting.map((agentId) => ({ agentId, reason: "answer" as const })),
+      ...asked.map((agentId) => ({ agentId, reason: "mention" as const })),
+      ...[...answered, ...waiting].map((agentId) => ({ agentId, reason: "answer" as const })),
     ];
     if (targets.length === 0) return { events, deliveries };
     const now = this.now();
