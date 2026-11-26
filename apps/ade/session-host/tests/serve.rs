@@ -102,6 +102,17 @@ impl StreamDecoder for LineDecoder {
                     text: "from-elio".to_owned(),
                 }));
             }
+            // The lead started a conversation of its own, which opens from its first turn.
+            if reply == "start-own" {
+                decoded.push(Decoded::Delivery(RoomDelivery {
+                    delivery_id: "dlv_start".to_owned(),
+                    workspace_id: "wks_started".to_owned(),
+                    agent_id: "agt_elio".to_owned(),
+                    session_id: None,
+                    source_session_id: None,
+                    text: "first-turn".to_owned(),
+                }));
+            }
         }
         decoded
     }
@@ -248,10 +259,20 @@ impl Core for FakeCore {
             .lock()
             .unwrap()
             .push((text("workspaceId"), text("agentId"), text("instruction")));
+        // A conversation its lead started opens as the workspace's own session.
+        let starting = text("workspaceId") == "wks_started";
+        let mut result = Map::new();
+        if starting {
+            result.insert("lead".to_owned(), Value::Bool(true));
+        }
         Ok(CommandOutcome {
-            result: Map::new(),
+            result,
             launch: Some(Launch {
-                session_id: "ses_room_arin".to_owned(),
+                session_id: if starting {
+                    "ses_started".to_owned()
+                } else {
+                    "ses_room_arin".to_owned()
+                },
                 workspace_id: text("workspaceId"),
                 mode: ConversationMode::Native,
                 program: "/bin/sh".to_owned(),
@@ -952,8 +973,16 @@ async fn joins_a_mentioned_agent_and_gives_it_the_delivered_turn() {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
     assert_eq!(arin, ["peer:Elio:from-elio", "agent:from-elio"]);
+    // Tests run side by side, so this one reads only its own conversation's joins.
+    let joins: Vec<_> = JOINS
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|join| join.0 == "wks_room")
+        .cloned()
+        .collect();
     assert_eq!(
-        JOINS.lock().unwrap().as_slice(),
+        joins,
         [(
             "wks_room".to_owned(),
             "agt_arin".to_owned(),
@@ -979,6 +1008,59 @@ async fn joins_a_mentioned_agent_and_gives_it_the_delivered_turn() {
     loop {
         if let HostMessage::SessionOpenedMessage(opened) = client.next_message().await {
             assert_eq!(opened.session_id.as_str(), "ses_room_lead");
+            break;
+        }
+    }
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn opens_a_conversation_its_lead_started_as_the_workspaces_own_session() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_room"}))
+        .await;
+    let HostMessage::SessionOpenedMessage(_) = client.next_message().await else {
+        panic!("expected session.opened")
+    };
+    client
+        .send(json!({"kind": "session.send", "requestId": "req_2", "sessionId": "ses_room_lead", "text": "start-own"}))
+        .await;
+
+    // The started conversation's session runs from its first turn without anyone opening it.
+    let mut started_items = Vec::new();
+    for _ in 0..100 {
+        client
+            .send(json!({"kind": "conversation.range", "requestId": "req_3", "sessionId": "ses_started", "direction": "before", "limit": 50}))
+            .await;
+        loop {
+            match client.next_message().await {
+                HostMessage::ConversationPageMessage(page) => {
+                    started_items = texts(&page.items);
+                    break;
+                }
+                HostMessage::RequestFailedMessage(_) => break,
+                _ => {}
+            }
+        }
+        if started_items.len() >= 2 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(started_items.len(), 2, "{started_items:?}");
+
+    // Opening the new conversation finds that session, as its own.
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_4", "workspaceId": "wks_started"}))
+        .await;
+    loop {
+        if let HostMessage::SessionOpenedMessage(opened) = client.next_message().await {
+            assert_eq!(opened.session_id.as_str(), "ses_started");
             break;
         }
     }

@@ -112,13 +112,28 @@ export function bindWorkspaces(input: {
 
 function status(
   message: HostMessage,
-  input: { notifier: Notifier; text: NotificationText; isFocused: () => boolean },
+  input: {
+    commands: ApplicationCommands;
+    lists: ListCache;
+    notifier: Notifier;
+    text: NotificationText;
+    isFocused: () => boolean;
+  },
 ): void {
   if (message.kind !== "session.status") return;
   const store = useWorkspaceStore.getState();
   const next = message.status;
   const previous = store.statuses[message.sessionId];
   useWorkspaceStore.setState({ statuses: { ...store.statuses, [message.sessionId]: next } });
+  // A session the list does not know, such as an agent's that joined a conversation or one in a
+  // conversation an agent started, refreshes the list once, which then names it.
+  const known = store.workspaces.some(
+    (item) =>
+      item.sessionId === message.sessionId ||
+      item.sessions?.some((member) => member.sessionId === message.sessionId),
+  );
+  if (!known && previous === undefined)
+    void reloadWorkspaces(input.commands, input.lists).catch(() => undefined);
   const workspace = store.workspaces.find((item) => item.sessionId === message.sessionId);
   if (workspace === undefined) return;
   const watched = input.isFocused() && store.selected === workspace.workspaceId;

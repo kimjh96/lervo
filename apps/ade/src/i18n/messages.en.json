@@ -1231,6 +1231,18 @@
     "defaultMessage": "Lervo could not deliver a mention ({code}).",
     "description": "A room line: a mention could not reach the mentioned agent; {code} is the core's code."
   },
+  "room.conversationStarted": {
+    "defaultMessage": "{agent} started <link>{title}</link>",
+    "description": "A room line: an agent started a conversation of its own for work that belongs apart; the title opens it."
+  },
+  "room.conversationStartedBy": {
+    "defaultMessage": "Started by {agent} in <link>{title}</link>",
+    "description": "A room line at the top of a conversation an agent started; the title opens the conversation it was started in."
+  },
+  "room.conversationStartedByElsewhere": {
+    "defaultMessage": "Started by {agent}",
+    "description": "A room line at the top of a conversation an agent started, when the conversation it was started in is gone."
+  },
   "room.joined": {
     "defaultMessage": "{agent} joined · mentioned by {by}",
     "description": "A room line: an agent joined the conversation because another agent mentioned it."
