@@ -1,0 +1,15 @@
+{
+  "repositories": [
+    {
+      "projectId": "prj_0123456789abcdef",
+      "name": "argo",
+      "displayName": "Argo Web",
+      "mark": {
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "mediaType": "image/png"
+      },
+      "root": "/Users/owner/work/argo"
+    },
+    { "projectId": "prj_fedcba9876543210", "name": "lervo", "displayName": "lervo", "mark": null }
+  ]
+}

@@ -6,10 +6,8 @@ import {
   type HostedDecodedEvent,
   type HostedSentImage,
   type HostedStreamDecoder,
-  type HostedTranscriptItem,
   type HostedTurnUsage,
 } from "@lervo/adapter-contract";
-import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 import {
   advertisedCoreRequestNames,
   applicationCommandNames,
@@ -17,12 +15,10 @@ import {
 } from "@lervo/session-host-contract";
 
 import { CommandFailure, errorCode } from "./command-error-output.js";
+import type { CoreLinkHandlers } from "./core-link-handlers.js";
 import { lines } from "./core-link-lines.js";
 import { TurnUsageQueue } from "./core-link-usage-queue.js";
 import { withoutShellOutput } from "./lervo-command-detail.js";
-import type { HostedProviderSummary } from "./hosted-session-adapters.js";
-import type { HostedTurnUsageOutcome } from "./hosted-turn-usage-events.js";
-import type { RepositorySummary, WorkspaceSummary } from "./workspace-list-service.js";
 import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 
@@ -37,37 +33,7 @@ export const MAX_PENDING_TURN_USAGE = 256;
 type Request = { kind: string; id: number } & Record<string, unknown>;
 type Started = WorkspaceStartResult | WorkspaceOpenResult;
 
-/** What the core link asks of the Lervo core. Failures are thrown with a stable `code`. */
-export interface CoreLinkHandlers {
-  startWorkspace(arguments_: Record<string, unknown>): Promise<WorkspaceStartResult>;
-  listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[] }>;
-  listRepositories(): Promise<{ repositories: RepositorySummary[] }>;
-  listProviders(): Promise<{ providers: HostedProviderSummary[]; defaultProvider: string }>;
-  openWorkspace(workspaceId: string, mode?: "native" | "cli"): Promise<WorkspaceOpenResult>;
-  createDecoder(provider: string): HostedStreamDecoder;
-  readTranscript(
-    workspaceId: string,
-    offset: number,
-    limit: number,
-  ): Promise<{ items: HostedTranscriptItem[]; complete: boolean }>;
-  /** Retires a hosted workspace without discarding work. */
-  retireWorkspace(workspaceId: string): Promise<object>;
-  /** What the core recorded about turns of a workspace's hosted session. */
-  summarizeTurns?(arguments_: Record<string, unknown>): Promise<object>;
-  /** Records a hosted session's process exit unless its own hook recorded the end. */
-  recordSessionExit(sessionId: string, exitCode: number | null): Promise<{ status: string }>;
-  /**
-   * What the core adds to a decoded or transcript item before the session host receives it, such
-   * as the Lervo command a shell call ran.
-   */
-  annotate?(content: HostedDecodedContent): HostedDecodedContent;
-  /** Records the usage a hosted session's decoder reported for its finished turns. */
-  recordTurnUsage(
-    sessionId: string,
-    accounting: ResourceAccountingDescriptor,
-    usage: readonly HostedTurnUsage[],
-  ): Promise<HostedTurnUsageOutcome>;
-}
+export type { CoreLinkHandlers } from "./core-link-handlers.js";
 
 /** Why the core link ended. `message_invalid` means the session host sent a malformed line. */
 export type CoreLinkEnd = "input_closed" | "message_invalid";
@@ -178,6 +144,24 @@ export class CoreLinkServer {
           if (summarize === undefined)
             throw new CommandFailure("command_unsupported", "This core keeps no turn records.");
           return summarize(request.arguments as Record<string, unknown>);
+        });
+        return;
+      }
+      case "project.add":
+      case "project.rename":
+      case "project.mark.set":
+      case "project.mark.clear":
+      case "project.mark.read":
+      case "project.unregister":
+      case "projects.location": {
+        const run = this.handlers.runProjectCommand;
+        this.respond(request.id, async () => {
+          if (run === undefined)
+            throw new CommandFailure("command_unsupported", "This core manages no projects.");
+          return run(
+            request.command as string,
+            (request.arguments ?? {}) as Record<string, unknown>,
+          );
         });
         return;
       }

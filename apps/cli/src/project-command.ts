@@ -2,29 +2,22 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import {
-  clearProjectMark,
-  markAssetPath,
-  PROJECT_PROFILE_PATH,
-  ProjectProfileError,
-  type ProjectProfileV1,
-  readProjectProfile,
-  renameProject,
-  setProjectMark,
-} from "@lervo/project";
-import {
-  defaultRepositoryRegistryPath,
-  RepositoryRegistryError,
-  resolveRegisteredRepository,
-} from "@lervo/repository-registry";
+import { ProjectProfileError } from "@lervo/project";
+import { RepositoryRegistryError } from "@lervo/repository-registry";
 
-import { noticeEffect } from "./effect-notice.js";
 import {
   addProject,
   ProjectAddError,
   projectsLocation,
   setProjectsLocation,
 } from "./project-add.js";
+import {
+  addedProjectView,
+  clearReportedProjectMark,
+  renameReportedProject,
+  setReportedProjectMark,
+  showProject,
+} from "./project-service.js";
 import type { CliIo } from "./types.js";
 
 export const projectUsage = [
@@ -73,43 +66,6 @@ function required(value: string | undefined, flag: string): string {
   return value;
 }
 
-/** The project's root on this host and its manifest name, resolved through the registry. */
-async function locate(projectId: string, registry: string | undefined) {
-  const registryPath = registry === undefined ? defaultRepositoryRegistryPath() : resolve(registry);
-  const registration = await resolveRegisteredRepository({ registryPath, projectId });
-  return { root: registration.repositoryRoot, name: registration.name };
-}
-
-/** What the terminal and the ADE show: the display name, falling back to the manifest's. */
-function view(projectId: string, name: string, profile: ProjectProfileV1 | null) {
-  return {
-    projectId,
-    name,
-    displayName: profile?.displayName ?? name,
-    mark: profile?.mark ?? null,
-  };
-}
-
-async function report(
-  root: string,
-  projectId: string,
-  change: { before: ProjectProfileV1; after: ProjectProfileV1 },
-  reason: string,
-  undo: string,
-): Promise<void> {
-  const mark = change.after.mark;
-  await noticeEffect({
-    repositoryRoot: root,
-    effect: "project_profile",
-    subject: `${projectId}:${Date.now()}`,
-    targets: mark === null ? [PROJECT_PROFILE_PATH] : [PROJECT_PROFILE_PATH, markAssetPath(mark)],
-    reason,
-    reviewers: ["profile_reread"],
-    verdict: "verified",
-    undo,
-  });
-}
-
 /** `add` and `location`, which need no registered project (Lervo ADE projects, "Adding a project"). */
 async function runProjectSetup(
   verb: "add" | "location",
@@ -147,19 +103,8 @@ async function runProjectSetup(
         ? { kind: "clone", url: values.clone, into }
         : { kind: "new", name: values.new!, into },
   );
-  const { registration } = added;
-  return print(
-    {
-      projectId: registration.projectId,
-      name: registration.name,
-      displayName: added.displayName,
-      root: registration.repositoryRoot,
-      source: added.source,
-      gitInitialized: added.gitInitialized,
-      lervoInitialized: added.lervoInitialized,
-    },
-    `${added.displayName} is a project at ${registration.repositoryRoot}`,
-  );
+  const view = addedProjectView(added);
+  return print(view, `${view.displayName} is a project at ${view.root}`);
 }
 
 async function run(args: string[], io: CliIo): Promise<number> {
@@ -169,15 +114,12 @@ async function run(args: string[], io: CliIo): Promise<number> {
   const json = values.json === true;
   if (verb === "add" || verb === "location") return runProjectSetup(verb, values, io);
   const projectId = required(values.project, "--project");
-  const { root, name } = await locate(projectId, values.registry);
   const output = (value: object, text: string) => {
     io.stdout(json ? `${JSON.stringify(value)}\n` : `${text}\n`);
     return 0;
   };
   if (verb === "show") {
-    const read = await readProjectProfile(root);
-    const profile = read.state === "present" ? read.profile : null;
-    const shown = { ...view(projectId, name, profile), profile: read.state };
+    const shown = await showProject(projectId, values.registry);
     return output(shown, `${shown.displayName}${shown.mark === null ? "" : " (mark)"}`);
   }
   if (values.write !== true)
@@ -185,31 +127,27 @@ async function run(args: string[], io: CliIo): Promise<number> {
       "write_required",
       "This command changes the project; pass --write.",
     );
-  const quote = (text: string) => `'${text.replaceAll("'", "'\\''")}'`;
   if (verb === "rename") {
-    const change = await renameProject(root, name, required(values.name, "--name"));
-    const undo = `lervo project rename --project ${projectId} --name ${quote(change.before.displayName)} --write`;
-    await report(root, projectId, change, "project_renamed", undo);
-    return output(view(projectId, name, change.after), `Renamed to ${change.after.displayName}`);
+    const view = await renameReportedProject(
+      projectId,
+      required(values.name, "--name"),
+      values.registry,
+    );
+    return output(view, `Renamed to ${view.displayName}`);
   }
   if (verb === "mark" && sub === "set") {
     const file = required(values.image, "--image");
     if (file.includes("\0"))
       throw new ProjectCommandError("project_mark_invalid", "The image path is invalid.");
-    const change = await setProjectMark(root, name, await readFile(resolve(file)));
-    const undo =
-      change.before.mark === null
-        ? `lervo project mark clear --project ${projectId} --write`
-        : `git -C ${quote(root)} checkout HEAD -- ${PROJECT_PROFILE_PATH} .lervo/assets`;
-    await report(root, projectId, change, "project_mark_set", undo);
-    return output(view(projectId, name, change.after), "Mark set");
+    const view = await setReportedProjectMark(
+      projectId,
+      await readFile(resolve(file)),
+      values.registry,
+    );
+    return output(view, "Mark set");
   }
-  if (verb === "mark" && sub === "clear") {
-    const change = await clearProjectMark(root, name);
-    const undo = `git -C ${quote(root)} checkout HEAD -- ${PROJECT_PROFILE_PATH} .lervo/assets`;
-    await report(root, projectId, change, "project_mark_cleared", undo);
-    return output(view(projectId, name, change.after), "Mark cleared");
-  }
+  if (verb === "mark" && sub === "clear")
+    return output(await clearReportedProjectMark(projectId, values.registry), "Mark cleared");
   throw new ProjectCommandError(
     "project_command_unknown",
     `Unknown project command.\n${projectUsage}`,

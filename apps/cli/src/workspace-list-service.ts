@@ -2,6 +2,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { readProjectProfile } from "@lervo/project";
 import {
   defaultRepositoryRegistryPath,
   listRegisteredRepositories,
@@ -37,12 +38,31 @@ export interface WorkspaceSummary {
 }
 
 /** The host's registered repositories, by name. */
+/**
+ * The registered repositories with their profiles: display name and mark, and this host's root,
+ * which the interface uses only to show the folder (Lervo ADE projects, "Core link").
+ */
 export async function listRepositories(): Promise<{ repositories: RepositorySummary[] }> {
   const registrations = await listRegisteredRepositories(defaultRepositoryRegistryPath());
+  const repositories = await Promise.all(
+    registrations.map(async ({ projectId, name, repositoryRoot }) => {
+      const read = await readProjectProfile(repositoryRoot).catch(() => ({
+        state: "absent" as const,
+      }));
+      const profile = read.state === "present" ? read.profile : null;
+      return {
+        projectId,
+        name,
+        displayName: profile?.displayName ?? name,
+        mark: profile?.mark ?? null,
+        root: repositoryRoot,
+      };
+    }),
+  );
   return {
-    repositories: registrations
-      .map(({ projectId, name }) => ({ projectId, name }))
-      .sort((left, right) => left.name.localeCompare(right.name)),
+    repositories: repositories.sort((left, right) =>
+      left.displayName.localeCompare(right.displayName),
+    ),
   };
 }
 

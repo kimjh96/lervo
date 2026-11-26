@@ -1,0 +1,7 @@
+{
+  "command": "project.mark.read",
+  "result": {
+    "projectId": "prj_0123456789abcdef",
+    "image": { "sha256": "not-a-hash", "mediaType": "image/png", "data": "iVBORw0KGgo=" }
+  }
+}

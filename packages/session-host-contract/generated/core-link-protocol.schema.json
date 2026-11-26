@@ -392,6 +392,26 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "mark": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectMark"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
         }
       }
     },
@@ -765,6 +785,188 @@
         }
       }
     },
+    "ProjectMark": {
+      "title": "ProjectMark",
+      "type": "object",
+      "required": [
+        "sha256",
+        "mediaType"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "mediaType": {
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        }
+      }
+    },
+    "ProjectAddResult": {
+      "title": "ProjectAddResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "name",
+        "displayName",
+        "root",
+        "source"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "source": {
+          "enum": [
+            "folder",
+            "clone",
+            "new"
+          ]
+        },
+        "gitInitialized": {
+          "type": "boolean"
+        },
+        "lervoInitialized": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ProjectRenameResult": {
+      "title": "ProjectRenameResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "displayName"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "ProjectMarkSetResult": {
+      "title": "ProjectMarkSetResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "mark"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "mark": {
+          "$ref": "#/$defs/ProjectMark"
+        }
+      }
+    },
+    "ProjectMarkClearResult": {
+      "title": "ProjectMarkClearResult",
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "ProjectMarkReadResult": {
+      "title": "ProjectMarkReadResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "image"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "sha256",
+                "mediaType",
+                "data"
+              ],
+              "properties": {
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "mediaType": {
+                  "enum": [
+                    "image/png",
+                    "image/jpeg",
+                    "image/webp"
+                  ]
+                },
+                "data": {
+                  "type": "string",
+                  "maxLength": 700000
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ProjectUnregisterResult": {
+      "title": "ProjectUnregisterResult",
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "ProjectsLocationResult": {
+      "title": "ProjectsLocationResult",
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      }
+    },
     "CoreCommandRequest": {
       "title": "CoreCommandRequest",
       "type": "object",
@@ -794,7 +996,14 @@
             "repository.list",
             "provider.list",
             "workspace.retire",
-            "turn.summary"
+            "turn.summary",
+            "project.add",
+            "project.rename",
+            "project.mark.set",
+            "project.mark.clear",
+            "project.mark.read",
+            "project.unregister",
+            "projects.location"
           ]
         },
         "arguments": {
