@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ce4095febcc6808633606507"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Read the boot identity once per process, take a Stop's HEAD from its lifecycle snapshot, and start the newest-workstream read with a small page, trimming repeated work from every Stop."

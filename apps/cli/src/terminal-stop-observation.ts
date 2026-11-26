@@ -1,3 +1,4 @@
+import { lifecycleRepositorySnapshot } from "./terminal-lifecycle-snapshot.js";
 import { openProjectStorage } from "@lervo/project-storage";
 import { gitHeadRevision } from "./terminal-repository-revision.js";
 import {
@@ -110,7 +111,11 @@ export async function recordObservedTerminalTurn(input: {
       input.provider,
       input.hookInput.transcriptPath,
     );
-    const repositoryRevision = await gitHeadRevision(checkout);
+    // The HEAD lifecycle inspection's snapshot just read, instead of another `git` process.
+    const inspectedCommits = lifecycleRepositorySnapshot(input.lifecycle, checkout)?.commits;
+    const repositoryRevision =
+      (inspectedCommits === undefined ? undefined : Object.values(inspectedCommits)[0]) ??
+      (await gitHeadRevision(checkout));
     // ADR-0605: only a host that runs knowledge jobs receives one.
     const admission = await readRepositoryKnowledgeJobAdmission(input.root);
     let knowledgeJobQueued = false;
