@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { prepareTerminalBaseContext } from "../src/terminal-degraded-context.js";
+import {
+  prepareTerminalBaseContext,
+  prepareTerminalBaseParts,
+} from "../src/terminal-degraded-context.js";
 import { formatDegradedTerminalContext } from "../src/terminal-compact-format.js";
 import { TERMINAL_HOOK_BUDGET_MS } from "../src/terminal-hook-budget.js";
 
@@ -86,5 +89,17 @@ describe("independent compact fallback", () => {
     const lines = await pending;
     expect(lines.join("\n")).toContain("publication.language=en");
     expect(lines.join("\n")).not.toContain("Applied owner rules:");
+  });
+
+  it("says when a read reached the deadline, and not when one only failed", async () => {
+    vi.useFakeTimers();
+    ports.instructions.mockImplementation(() => new Promise(() => undefined));
+    const pending = prepareTerminalBaseParts("/repository", performance.now() + 200, 2048);
+    await vi.advanceTimersByTimeAsync(201);
+    expect((await pending).abandoned).toBe(true);
+    ports.instructions.mockRejectedValue(new Error("unreadable rules"));
+    expect(
+      (await prepareTerminalBaseParts("/repository", performance.now() + 200, 2048)).abandoned,
+    ).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { CloseIcon } from "./icons";
+import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "./icons";
 import styles from "./ImageViewer.module.css";
 
 /** Longer than the closing motion: a window that runs no animation closes after it. */
@@ -10,24 +10,6 @@ const CLOSE_FALLBACK_MS = 400;
 export interface ViewedImage {
   readonly src: string;
   readonly alt: string;
-}
-
-function ChevronIcon(props: { direction: "left" | "right" }) {
-  return (
-    <svg
-      aria-hidden="true"
-      width={16}
-      height={16}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d={props.direction === "left" ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"} />
-    </svg>
-  );
 }
 
 /**
@@ -120,7 +102,7 @@ export function ImageViewer(props: {
             disabled={index === 0}
             onClick={() => onIndex(index - 1)}
           >
-            <ChevronIcon direction="left" />
+            <ChevronLeftIcon size="lg" />
           </button>
           <button
             type="button"
@@ -130,7 +112,7 @@ export function ImageViewer(props: {
             disabled={index === images.length - 1}
             onClick={() => onIndex(index + 1)}
           >
-            <ChevronIcon direction="right" />
+            <ChevronRightIcon size="lg" />
           </button>
           <p className={styles.count}>{props.labels.count}</p>
         </>

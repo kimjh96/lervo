@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_869303bdfa8b5d501a2d1c5a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "In a conversation, naming the agent that asked is the answer to it, so an exchange ends there instead of bouncing back and forth."

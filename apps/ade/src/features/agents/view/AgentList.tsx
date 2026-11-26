@@ -64,12 +64,11 @@ function AgentRow(props: { agent: AgentSummary }) {
  * nothing.
  */
 export function AgentList(props: { projectId: string | null }) {
-  const intl = useIntl();
   const commands = useApplicationCommands();
   const advertised = useWorkspaceStore((store) => store.advertisedCommands);
   const managed = managesAgents(advertised);
-  const { agents, roles, loaded, failure, projectId: shown } = useAgentStore();
-  const [menuAt, setMenuAt] = useState<{ rect: DOMRect; byKey: boolean } | null>(null);
+  const loaded = useAgentStore((store) => store.loaded);
+  const shown = useAgentStore((store) => store.projectId);
   const { projectId } = props;
 
   // The lists reload on every connection and after each change; the agents follow them, so a
@@ -78,8 +77,20 @@ export function AgentList(props: { projectId: string | null }) {
     if (managed && projectId !== null) void showProjectAgents(commands, projectId);
   }, [advertised, commands, managed, projectId]);
 
-  // Nothing shows until the first list is known, so no heading stands over nothing.
-  if (!managed || projectId === null || !loaded || shown === null) return null;
+  // Nothing shows until the first list is known, so no heading stands over nothing. The list
+  // then opens its space as it fades in, together with the conversations' heading, so the rows
+  // below slide once instead of jumping (ADE motion, "Space").
+  const ready = managed && projectId !== null && loaded && shown !== null;
+  return <Presence>{ready ? <Agents shown={shown} /> : null}</Presence>;
+}
+
+/** The team's rows, the hire menu, and a failure, once the project's list is known. */
+function Agents(props: { shown: string }) {
+  const intl = useIntl();
+  const commands = useApplicationCommands();
+  const { agents, roles, failure } = useAgentStore();
+  const [menuAt, setMenuAt] = useState<{ rect: DOMRect; byKey: boolean } | null>(null);
+  const { shown } = props;
   const team = teamAgents(agents);
   const owner = productOwnerRole(roles);
   const hire = (roleId: string) => void hireAgent(commands, shown, roleId);

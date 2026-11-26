@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
 import { preloadConversation, WorkspaceConversation } from "../features/conversation";
-import { AgentList, AgentProfile, managesAgents } from "../features/agents";
+import { AgentList, AgentProfile, managesAgents, useAgentStore } from "../features/agents";
 import { AddProjectSheet, ProjectSwitcher, useCurrentProject } from "../features/projects";
 import { StartScreen, type Surface, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
@@ -67,6 +67,9 @@ export function Frame() {
   const project = useCurrentProject();
   // An older core answers no agent command: the sidebar then lists conversations alone.
   const agentsManaged = useWorkspaceStore((store) => managesAgents(store.advertisedCommands));
+  // The conversations' heading arrives with the agents above it, in the same frame, so the rows
+  // below slide once (ADE motion, "Space").
+  const agentsShown = useAgentStore((store) => store.loaded);
   // The conversation's chunk loads once the start screen has painted.
   useEffect(() => {
     const timer = setTimeout(preloadConversation, 0);
@@ -81,7 +84,7 @@ export function Frame() {
         <WorkspaceList
           projectId={project?.projectId ?? null}
           beforeRows={<AgentList projectId={project?.projectId ?? null} />}
-          conversationsHeading={agentsManaged}
+          conversationsHeading={agentsManaged && agentsShown}
         />
         <div className={styles.footer}>
           <ConnectionStatus />

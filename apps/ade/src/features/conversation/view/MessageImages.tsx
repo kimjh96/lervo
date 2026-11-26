@@ -5,11 +5,12 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { imageCache } from "../model/images";
 import { useImageUrl, useOpenImages } from "./ConversationImages";
 import styles from "./MessageImages.module.css";
+import { sizes } from "../../../design/generated/sizes";
 
 /** The longest a lone image shows in a bubble; several show as square tiles. */
-const ONE_WIDTH = 280;
-const ONE_HEIGHT = 200;
-const TILE = 112;
+const ONE_WIDTH = sizes.image.single;
+const ONE_HEIGHT = sizes.image.singleHeight;
+const TILE = sizes.image.tile;
 
 /** The size a lone image shows at: its own shape within the bubble's bound. */
 export function shownSize(mark: ImageMark): { width: number; height: number } {

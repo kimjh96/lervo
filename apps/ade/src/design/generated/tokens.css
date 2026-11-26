@@ -108,6 +108,9 @@
   --size-mark-md: 22px;
   --size-mark-lg: 56px;
   --size-row-leading: 22px;
+  --size-image-single: 280px;
+  --size-image-single-height: 200px;
+  --size-image-tile: 112px;
   --opacity-disabled: 0.45;
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;

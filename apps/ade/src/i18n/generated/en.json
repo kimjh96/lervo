@@ -410,6 +410,56 @@
       "value": "name"
     }
   ],
+  "conversation.files.size.B": [
+    {
+      "type": 1,
+      "value": "value"
+    },
+    {
+      "type": 0,
+      "value": " B"
+    }
+  ],
+  "conversation.files.size.GB": [
+    {
+      "type": 1,
+      "value": "value"
+    },
+    {
+      "type": 0,
+      "value": " GB"
+    }
+  ],
+  "conversation.files.size.KB": [
+    {
+      "type": 1,
+      "value": "value"
+    },
+    {
+      "type": 0,
+      "value": " KB"
+    }
+  ],
+  "conversation.files.size.MB": [
+    {
+      "type": 1,
+      "value": "value"
+    },
+    {
+      "type": 0,
+      "value": " MB"
+    }
+  ],
+  "conversation.files.size.TB": [
+    {
+      "type": 1,
+      "value": "value"
+    },
+    {
+      "type": 0,
+      "value": " TB"
+    }
+  ],
   "conversation.files.tooMany": [
     {
       "type": 0,
@@ -1545,6 +1595,12 @@
     {
       "type": 0,
       "value": "Set the scope of an agent's mandate"
+    }
+  ],
+  "lervo.command.agent.model": [
+    {
+      "type": 0,
+      "value": "Changed an agent's model"
     }
   ],
   "lervo.command.agent.rename": [
@@ -2783,6 +2839,20 @@
     {
       "type": 0,
       "value": " turns in 10 minutes. The agent that started the exchange summarizes it; reply to start again."
+    }
+  ],
+  "room.rejoinFailed": [
+    {
+      "type": 0,
+      "value": "Lervo could not reopen an agent's session here ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
     }
   ],
   "start.error.application_unavailable": [

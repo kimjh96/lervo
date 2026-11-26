@@ -1,17 +1,28 @@
-/* A floating pill (visual language, "Floating controls"): glass over content. `Presence` around
-   it brings its arrival and its leaving. */
+/* A floating pill (visual language, "Floating controls"): glass over content, edged and shadowed
+   like every floating surface (ADE craft rules, 1). `Presence` with the rise arrival brings it, so
+   its glass shows from the first frame, and its words fade in on their own (craft rules, 14). */
 .pill {
   padding-block: var(--space-6);
   padding-inline: var(--space-14);
-  border: 1px solid var(--color-border-default);
+  border: 1px solid var(--color-border-window);
   border-radius: var(--radius-full);
   color: var(--color-text-secondary);
   font: inherit;
   font-size: var(--type-meta-size);
   background: var(--color-surface-floating);
-  box-shadow: var(--shadow-raised);
+  box-shadow: var(--shadow-window);
   backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
   cursor: pointer;
+}
+
+.label {
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label {
+    animation: none;
+  }
 }
 
 .pill:focus-visible {

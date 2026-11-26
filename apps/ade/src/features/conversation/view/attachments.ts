@@ -12,6 +12,7 @@ import {
 } from "../../../ports";
 import type { TrayFile, TrayImage } from "../../../ui/AttachmentTray";
 import {
+  type SizeUnit,
   baseName,
   extension,
   fileSize,
@@ -256,6 +257,21 @@ export function useAttachments(options: {
   };
 }
 
+/** Each size unit's words. */
+const SIZE_UNITS: Readonly<Record<SizeUnit, MessageDescriptor>> = {
+  B: { id: "conversation.files.size.B" },
+  KB: { id: "conversation.files.size.KB" },
+  MB: { id: "conversation.files.size.MB" },
+  GB: { id: "conversation.files.size.GB" },
+  TB: { id: "conversation.files.size.TB" },
+};
+
+/** A size in the locale's numbers, such as "84 KB" or "1.2 MB". */
+function sizeText(intl: IntlShape, size: ReturnType<typeof fileSize>): string {
+  const value = intl.formatNumber(size.value, { maximumFractionDigits: size.decimals });
+  return intl.formatMessage(SIZE_UNITS[size.unit], { value });
+}
+
 /** A waiting file as its chip shows it: the folder it is in, and its size or that it is a folder. */
 function trayFile(intl: IntlShape, key: string, file: AttachedFile): TrayFile {
   const folder = folderName(file.path);
@@ -263,7 +279,7 @@ function trayFile(intl: IntlShape, key: string, file: AttachedFile): TrayFile {
     ? intl.formatMessage({ id: "conversation.files.folder" })
     : file.size === null
       ? "none"
-      : fileSize(file.size);
+      : sizeText(intl, fileSize(file.size));
   return {
     key,
     name: file.name,

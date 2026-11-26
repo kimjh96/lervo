@@ -119,6 +119,7 @@ const roomMessages: Readonly<Record<string, MessageDescriptor>> = {
   room_joined: { id: "room.joined" },
   room_paused: { id: "room.paused" },
   room_delivery_failed: { id: "room.deliveryFailed" },
+  room_rejoin_failed: { id: "room.rejoinFailed" },
 };
 
 function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
