@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1f14a0e230499ad210ecc879"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "An agent can start a conversation of its own with lervo workspace start --started-by; it opens from its first turn when the agent's turn ends, at most four an hour per agent."

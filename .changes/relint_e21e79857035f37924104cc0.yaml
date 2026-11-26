@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e21e79857035f37924104cc0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Replace workforce state and cached-base files through one durable primitive that syncs the file and its directory, so a rename survives a power loss."

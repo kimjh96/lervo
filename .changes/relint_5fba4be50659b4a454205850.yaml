@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5fba4be50659b4a454205850"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Hosted Claude sessions in the ADE ask their questions with choices the person picks in the conversation, and the core answers the session host's session.answer through decoder.answer."
