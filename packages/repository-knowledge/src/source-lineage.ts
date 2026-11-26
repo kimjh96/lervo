@@ -490,10 +490,12 @@ export async function loadDocumentMoveLineages(input: {
       ids.add(lineageId);
       loaded.push({ file, bytes, value });
     }
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "The document move lineage is invalid.",
+      undefined,
+      { cause: error },
     );
   }
   const moves = loaded.filter(

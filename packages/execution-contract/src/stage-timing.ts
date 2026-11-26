@@ -26,8 +26,9 @@ export class ExecutionStageTimingError extends Error {
       | "stage_token_invalid"
       | "stage_tree_invalid",
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "ExecutionStageTimingError";
   }
 }
@@ -166,8 +167,10 @@ export class ExecutionStageRecorder {
     let value: bigint;
     try {
       value = this.options.clock();
-    } catch {
-      throw new ExecutionStageTimingError("clock_invalid", "The monotonic clock failed.");
+    } catch (error) {
+      throw new ExecutionStageTimingError("clock_invalid", "The monotonic clock failed.", {
+        cause: error,
+      });
     }
     if (typeof value !== "bigint" || value < 0n) {
       throw new ExecutionStageTimingError(

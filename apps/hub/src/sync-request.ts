@@ -34,8 +34,8 @@ export function matchHubSyncRoute(pathname: string): HubSyncHttpRoute | null {
   let projectId: string;
   try {
     projectId = decodeURIComponent(segments[4]!);
-  } catch {
-    throw new InvalidHubHttpRequestError();
+  } catch (error) {
+    throw new InvalidHubHttpRequestError({ cause: error });
   }
   if (!HUB_PROJECT_ID_PATTERN.test(projectId)) throw new InvalidHubHttpRequestError();
   const kind = segments[5];

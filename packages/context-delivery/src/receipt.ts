@@ -20,10 +20,11 @@ function defaultEvidenceReceiptId(): string {
 function createEvidenceReceiptId(factory: () => string): string {
   try {
     return factory();
-  } catch {
+  } catch (error) {
     throw new ContextDeliveryError(
       "invalid_context_evidence",
       "Could not create the E3 context receipt ID.",
+      { cause: error },
     );
   }
 }

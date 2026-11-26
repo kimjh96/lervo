@@ -153,6 +153,7 @@ export async function loadDeliberationWorkflowSource(
       throw new DeliberationPolicySourceError(
         "deliberation_policy_not_found",
         "The requested deliberation policy was not found.",
+        { cause: error },
       );
     }
     throw new DeliberationPolicySourceError(

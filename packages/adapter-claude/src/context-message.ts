@@ -18,7 +18,7 @@ export async function buildManagedContextMessage(
     materialized = await materializeContextEnvelope(session, envelope, resolveArtifact);
   } catch (error) {
     if (error instanceof ContextMaterializationError) {
-      throw new ClaudeAdapterError(error.code, error.message);
+      throw new ClaudeAdapterError(error.code, error.message, { cause: error });
     }
     throw error;
   }

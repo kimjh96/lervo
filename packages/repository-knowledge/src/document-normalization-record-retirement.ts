@@ -41,10 +41,12 @@ async function readNormalizationRecord(
             .filter((output): output is string => typeof output === "string")
         : [],
     };
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "A document normalization lifecycle record cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   } finally {
     await handle?.close();

@@ -11,8 +11,9 @@ export class ContextMaterializationError extends Error {
   constructor(
     readonly code: ContextMaterializationFailureCode,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "ContextMaterializationError";
   }
 }
@@ -32,10 +33,11 @@ function decodeUtf8(bytes: Uint8Array): string {
   let content: string;
   try {
     content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  } catch {
+  } catch (error) {
     throw new ContextMaterializationError(
       "context_materialization_failed",
       "Context documents must be valid UTF-8.",
+      { cause: error },
     );
   }
   if (!Buffer.from(content, "utf8").equals(Buffer.from(bytes))) {
@@ -63,10 +65,11 @@ async function materializeDocument(
     }
     try {
       bytes = new Uint8Array(await resolveArtifact(document.delivery.uri));
-    } catch {
+    } catch (error) {
       throw new ContextMaterializationError(
         "context_materialization_failed",
         "The CAS context document could not be read.",
+        { cause: error },
       );
     }
   }

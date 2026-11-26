@@ -103,10 +103,12 @@ async function safeHash(path: string): Promise<string> {
     )
       throw new Error("sidecar changed");
     return sha256(bytes);
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The knowledge registry cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   } finally {
     await handle?.close();

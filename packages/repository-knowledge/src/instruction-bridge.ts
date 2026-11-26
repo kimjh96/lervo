@@ -196,10 +196,12 @@ async function safeOptionalFile(path: string, maximumBytes: number): Promise<Buf
     )
       throw new Error("file changed");
     return bytes;
-  } catch {
+  } catch (error) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "The instruction bridge file cannot be read safely.",
+      undefined,
+      { cause: error },
     );
   } finally {
     await handle?.close();
@@ -341,6 +343,8 @@ export async function createKnowledgeInstructionBridgePlan(input: {
       throw new RepositoryKnowledgeError(
         "knowledge_reconciliation_conflict",
         "The provider instruction target has an invalid managed-block structure.",
+        undefined,
+        { cause: error },
       );
     }
     throw error;

@@ -18,7 +18,9 @@ The audit confirmed and corrected these structural violations:
 - Pure knowledge migration rendering and approval parsing were separated from plan/apply mutation.
 - The stable terminal command path became a one-line facade over the cohesive terminal-integration runtime.
 
-No generic `manager`, `service`, `helper`, or `utils` dumping module, unbounded `TODO` or `FIXME`, repository-wide lint suppression, provider-adapter dependency leak, or package-direction violation remained. Three inline `no-unsafe-finally` suppressions remain; each is narrow, adjacent to its fail-closed cleanup or lease-release reason, and required by its failure contract.
+No generic `manager`, `service`, `helper`, or `utils` dumping module, unbounded `TODO` or `FIXME`, provider-adapter dependency leak, or package-direction violation remained. Three inline `no-unsafe-finally` suppressions remain; each is narrow, adjacent to its fail-closed cleanup or lease-release reason, and required by its failure contract.
+
+ESLint's bulk-suppression file, `eslint-suppressions.json`, holds no entries as of 2026-11-27: every catch clause that throws a new error now passes the caught error as `cause`. Six other inline suppressions remain in production source, each on a single line with its reason beside it. In `packages/context`, two `lervo/require-caught-error-cause` suppressions keep private caller paths and source content out of boundary errors. In `apps/ade`, four suppressions cover React-hook and accessibility rules.
 
 ## Continuous gate
 

@@ -26,7 +26,7 @@ export async function readSyncHttpJson(response: Response, maximumBytes: number)
   }
   try {
     return JSON.parse(utf8.decode(bytes));
-  } catch {
-    throw new Error("The Hub synchronization response is not UTF-8 JSON.");
+  } catch (error) {
+    throw new Error("The Hub synchronization response is not UTF-8 JSON.", { cause: error });
   }
 }

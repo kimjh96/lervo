@@ -72,8 +72,8 @@ async function preparedSuccessor(input: {
       let value: unknown;
       try {
         value = JSON.parse(content);
-      } catch {
-        throw new Error("The prepared successor snapshot is not valid JSON.");
+      } catch (error) {
+        throw new Error("The prepared successor snapshot is not valid JSON.", { cause: error });
       }
       if (
         !validateSchema("workstreamSnapshot", value).valid ||

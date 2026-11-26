@@ -232,6 +232,7 @@ export async function writeObservation(path: string, value: unknown): Promise<vo
         throw new SearchLocalError(
           "observation_conflict",
           "A different source exists for the same search observation ID.",
+          { cause: error },
         );
       }
     }

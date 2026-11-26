@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_537b797f78392e2e9d774f2f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Carry the caught error as the cause of every error rethrown from a catch block, removing all 133 bulk lint suppressions."

@@ -252,8 +252,8 @@ export class WorkstreamRevisionReader {
     let snapshot: unknown;
     try {
       snapshot = JSON.parse(content);
-    } catch {
-      throw new Error("A local workstream snapshot artifact is not JSON.");
+    } catch (error) {
+      throw new Error("A local workstream snapshot artifact is not JSON.", { cause: error });
     }
     if (
       !validateSchema("workstreamSnapshot", snapshot).valid ||

@@ -36,10 +36,11 @@ export function assertKnowledgeGraphPage(input: {
   for (const relation of result.relations.items) {
     try {
       assertKnowledgeGraphRelationIntegrity(relation);
-    } catch {
+    } catch (error) {
       throw new HubTraceError(
         "source_inconsistent",
         "A Hub knowledge graph relation ID is invalid.",
+        { cause: error },
       );
     }
     if (

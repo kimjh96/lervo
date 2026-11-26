@@ -228,10 +228,12 @@ export class CodexResponsesNoToolClient implements CodexAppServerClient {
       let decoded: unknown;
       try {
         decoded = JSON.parse(responseBody) as unknown;
-      } catch {
+      } catch (error) {
         throw new CodexAdapterError(
           "provider_protocol_failed",
           "The Codex Responses result is not valid JSON.",
+          undefined,
+          { cause: error },
         );
       }
       const raw = responseRecord(decoded);

@@ -18,7 +18,7 @@ export async function buildManagedContextItems(
     materialized = await materializeContextEnvelope(session, envelope, resolveArtifact);
   } catch (error) {
     if (error instanceof ContextMaterializationError) {
-      throw new CodexAdapterError(error.code, error.message);
+      throw new CodexAdapterError(error.code, error.message, undefined, { cause: error });
     }
     throw error;
   }
