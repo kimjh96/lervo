@@ -52,6 +52,7 @@ Agents work together by mentioning each other directly, by role and by what each
 - `agent.model` (`projectId`, `agentId`, `revision`, `tier`, `effort`) sets them, as `lervo agent model` does, and returns the agent in the `agents.list` shape. The agent's next session runs with them; a running session keeps its model.
 - `agents.list` also reports `models`, the provider's model for each tier with its name, most capable first, which the profile offers.
 - `agent.rename` (`projectId`, `agentId`, `revision`, `name`) renames an agent in place, as `lervo agent rename` does, and records the existing `agent.identity.changed` event.
+- `agent.status` (`projectId`, `agentId`, `revision`, `status`) pauses an agent (`suspended`) or lets it work again (`active`), as `lervo agent status` does. Retiring cannot be undone, so it stays a terminal command (invariant 10), and the core link refuses `retired` with `agent_argument_invalid`.
 - The agent's profile (slice 3) shows the model and effort and changes them.
 
 ## State, events, privacy, and failure meaning

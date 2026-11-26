@@ -94,6 +94,17 @@ export const agentModelResultSchema = {
   properties: { projectId: identifierSchema, agent: agentSummarySchema },
 } as const;
 
+/**
+ * `agent.status`: the agent paused or working again. Only the reversible pair is offered here;
+ * retiring stays a terminal command (Lervo ADE agents, "The profile").
+ */
+export const agentStatusResultSchema = {
+  title: "AgentStatusResult",
+  type: "object",
+  required: ["projectId", "agent"],
+  properties: { projectId: identifierSchema, agent: agentSummarySchema },
+} as const;
+
 /** `agent.rename`: the agent with the name the owner gave it. */
 export const agentRenameResultSchema = {
   title: "AgentRenameResult",
@@ -117,3 +128,4 @@ export type AgentHireResult = FromSchema<typeof agentHireResultSchema>;
 export type AgentModelResult = FromSchema<typeof agentModelResultSchema>;
 export type AgentRenameResult = FromSchema<typeof agentRenameResultSchema>;
 export type AgentModelChoice = FromSchema<typeof agentModelChoiceSchema>;
+export type AgentStatusResult = FromSchema<typeof agentStatusResultSchema>;

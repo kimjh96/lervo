@@ -1225,6 +1225,22 @@
         }
       }
     },
+    "AgentStatusResult": {
+      "title": "AgentStatusResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
     "RoomSession": {
       "title": "RoomSession",
       "type": "object",
@@ -1335,6 +1351,7 @@
             "agent.hire",
             "agent.model",
             "agent.rename",
+            "agent.status",
             "room.join",
             "room.route"
           ]

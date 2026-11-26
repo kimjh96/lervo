@@ -3,6 +3,7 @@ import {
   agentModel,
   changeAgentDisplayName,
   changeAgentModel,
+  changeAgentStatus,
   listAgents,
   modelEfforts,
   modelTiers,
@@ -31,6 +32,7 @@ export const coreLinkAgentCommands = new Set([
   "agent.hire",
   "agent.model",
   "agent.rename",
+  "agent.status",
 ]);
 
 /** A changing command's expected revision, which a stale view fails. */
@@ -109,6 +111,17 @@ async function answer(command: string, arguments_: Record<string, unknown>): Pro
       roles,
       ...(models.length === 0 ? {} : { models }),
     };
+  }
+  if (command === "agent.status") {
+    // Pausing and resuming undo each other; retiring cannot be undone, so it stays in the
+    // terminal (invariant 10).
+    const status = oneOf<"active" | "suspended">(arguments_, "status", ["active", "suspended"]);
+    const agentId = text(arguments_, "agentId", 64);
+    const expectedRevision = revisionOf(arguments_);
+    const agent = await mutateWorkforceState(root, (recordEvent) =>
+      changeAgentStatus({ repositoryRoot: root, agentId, status, expectedRevision, recordEvent }),
+    );
+    return { projectId, agent: view(agent, names, new Set()) };
   }
   if (command === "agent.rename") {
     const agentId = text(arguments_, "agentId", 64);

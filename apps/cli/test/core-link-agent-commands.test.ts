@@ -158,6 +158,37 @@ describe("the core link's agent commands", () => {
     ).rejects.toMatchObject({ code: "agent_state_conflict" });
   });
 
+  it("pauses and resumes an agent, and leaves retiring to the terminal", async () => {
+    const { projectId } = await project();
+    const hired = (await runCoreLinkAgentCommand("agent.hire", {
+      projectId,
+      role: "writer",
+      name: "Nia",
+    })) as { agent: { agentId: string; revision: number } };
+    const paused = (await runCoreLinkAgentCommand("agent.status", {
+      projectId,
+      agentId: hired.agent.agentId,
+      revision: hired.agent.revision,
+      status: "suspended",
+    })) as { agent: { status: string; revision: number } };
+    expect(paused.agent.status).toBe("suspended");
+    const resumed = (await runCoreLinkAgentCommand("agent.status", {
+      projectId,
+      agentId: hired.agent.agentId,
+      revision: paused.agent.revision,
+      status: "active",
+    })) as { agent: { status: string } };
+    expect(resumed.agent.status).toBe("active");
+    await expect(
+      runCoreLinkAgentCommand("agent.status", {
+        projectId,
+        agentId: hired.agent.agentId,
+        revision: 3,
+        status: "retired",
+      }),
+    ).rejects.toMatchObject({ code: "agent_argument_invalid" });
+  });
+
   it("records each agent's origin once through the upgrade stage, then lists the recorded one", async () => {
     const { projectId, root } = await project();
     const steward = await registerAgent({
