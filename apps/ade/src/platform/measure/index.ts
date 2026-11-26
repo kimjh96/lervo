@@ -214,6 +214,16 @@ async function conversation(): Promise<Report> {
     return found !== null && found.querySelectorAll("[data-index]").length > 0 ? found : null;
   });
   const firstPaint = (await nextPaint()) - opened;
+  // Each step of the open, from the click: the `lervo:conversation-` marks the controller sets.
+  const steps = Object.fromEntries(
+    performance
+      .getEntriesByType("mark")
+      .filter((mark) => mark.name.startsWith("lervo:conversation-") && mark.startTime >= opened)
+      .map((mark) => [
+        mark.name.slice("lervo:conversation-".length),
+        rounded(mark.startTime - opened),
+      ]),
+  );
   const frames: number[] = [];
   let previous = await nextPaint();
   for (let frame = 0; frame < 600; frame += 1) {
@@ -224,6 +234,7 @@ async function conversation(): Promise<Report> {
   }
   return {
     firstPaintMs: rounded(firstPaint),
+    firstPaintSteps: JSON.stringify(steps),
     frames: frames.length,
     frameP50Ms: rounded(quantile(frames, 0.5)),
     frameP95Ms: rounded(quantile(frames, 0.95)),

@@ -295,9 +295,9 @@ The page now bundles both modules with the main script and checks the permission
 
 - **The harness first measured the start screen's card.** Since the conversation became a lazy chunk, it can mount a moment after the click, so the streaming and keystroke scenarios typed into the start screen's field. The streaming scenario then sent nothing. The harness now waits for the conversation's log and its reply card before it types, and the figures above come from the reply card.
 - **Within target:** streaming to the page and to screen, keystroke echo, scrolling, and the hidden window. The trail's maximum missed by 22 ms at a load average of 12, while its p95 met the target.
-- **First paint** misses again, at 279 ms against 100 ms, in line with the earlier 165–324 ms.
+- **First paint** missed again, at 279 ms against 100 ms, in line with the earlier 165–324 ms. Marks for each step of the open (`lervo:conversation-open`, `-not-running`, `-opened`, `-attached`, `-page`), which the scenario now reports, showed where the time went. The controller began opening about 300 ms after the click, and everything after that took about 45 ms. The conversation was a `React.lazy` component. A chunk the frame had preloaded still suspended on its first render, and React holds a revealed Suspense boundary back for 300 ms. The conversation now loads through its own loader, which renders a loaded chunk at once. First paint then measured 135 and 143 ms at a load average near 8: the open starts 9–25 ms after the click, and the newest page arrives 44–79 ms after it.
 
-**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. What is left is the first paint of the 100,000-item conversation, and the trail's maximum on an idle Mac.
+**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. What is left is the first paint of the 100,000-item conversation, now within about 40 ms of its target under load, and the trail's maximum, both to be measured on an idle Mac.
 
 ### S1.6c measurements
 

@@ -58,6 +58,7 @@ export class ConversationController implements ConversationSource {
    * last window at once, and the newest page replaces it when it arrives.
    */
   async open(): Promise<void> {
+    performance.mark("lervo:conversation-open");
     const first = this.target.firstMessage;
     useConversationStore.setState({
       sessionId: null,
@@ -164,10 +165,12 @@ export class ConversationController implements ConversationSource {
         return;
       }
       try {
+        performance.mark("lervo:conversation-not-running");
         const opened = await this.client.request({
           kind: "session.open",
           workspaceId: this.target.workspaceId,
         });
+        performance.mark("lervo:conversation-opened");
         if (opened.kind === "session.opened") this.sessionId = opened.sessionId;
         await this.attachAndLoad();
       } catch (reopening) {
@@ -190,7 +193,10 @@ export class ConversationController implements ConversationSource {
 
   private async attachAndLoad(): Promise<void> {
     await this.client.post({ kind: "session.attach", sessionId: this.sessionId, afterSequence: 0 });
+    // `lervo:` marks time each step of opening a conversation for the interface harness.
+    performance.mark("lervo:conversation-attached");
     const page = await this.range("latest");
+    performance.mark("lervo:conversation-page");
     const current = useConversationStore.getState().window;
     // Until the session reports the first message, the stand-in stays.
     const waiting = page.items.length === 0 && current.items[0]?.itemId === FIRST_MESSAGE_ID;
