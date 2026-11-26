@@ -54,7 +54,7 @@ Each side has four layers. Dependencies point inward only.
 
 - Rust items are private by default, and `pub(crate)` comes before `pub`. A crate exports only what its consumers use.
 - TypeScript features and packages export through one `index.ts`. Deep imports fail lint.
-- Mutable state has one owner. Each session's state belongs to its session actor in the session host, and each feature's UI state belongs to one store. Other code reads through messages or selectors.
+- Mutable state has one owner. Each session's state belongs to its session actor in the session host. A feature's shared UI state belongs to one store in its model; state that belongs to one instance, such as an input card's attachments or one conversation's turn summaries, belongs to a store that instance creates from the model. Presentation state that performs no I/O, such as which tool lines are open, may stay in the view. Other code reads through messages or selectors.
 
 ### Extensibility and flexibility
 
