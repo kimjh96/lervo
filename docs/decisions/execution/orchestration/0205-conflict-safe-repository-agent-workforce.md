@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-25
-- Amended by: [ADR-0643](0643-record-which-agents-are-lervos-own.md) (agents record whether they are the team's or Lervo's own)
+- Amended by: [ADR-0643](0643-record-which-agents-are-lervos-own.md) (agents record whether they are the team's or Lervo's own), [ADR-0647](0647-choose-each-agents-model-and-effort-by-its-role.md) (team agents record the model and effort their role chose)
 
 ## Context
 

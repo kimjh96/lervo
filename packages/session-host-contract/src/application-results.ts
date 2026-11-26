@@ -26,6 +26,8 @@ import {
 import {
   type AgentHireResult,
   agentHireResultSchema,
+  type AgentModelResult,
+  agentModelResultSchema,
   type AgentsListResult,
   agentsListResultSchema,
 } from "./application-agent-results.js";
@@ -61,6 +63,7 @@ export const applicationCommandNames = [
   "projects.location",
   "agents.list",
   "agent.hire",
+  "agent.model",
   "room.join",
   "room.route",
 ] as const;
@@ -305,6 +308,7 @@ export const applicationResultSchemas = {
   "projects.location": projectsLocationResultSchema,
   "agents.list": agentsListResultSchema,
   "agent.hire": agentHireResultSchema,
+  "agent.model": agentModelResultSchema,
   "room.join": roomJoinResultSchema,
   "room.route": roomRouteResultSchema,
 } as const;
@@ -337,6 +341,7 @@ export interface ApplicationResults {
   "projects.location": ProjectsLocationResult;
   "agents.list": AgentsListResult;
   "agent.hire": AgentHireResult;
+  "agent.model": AgentModelResult;
   "room.join": RoomJoinResult;
   "room.route": RoomRouteResult;
 }

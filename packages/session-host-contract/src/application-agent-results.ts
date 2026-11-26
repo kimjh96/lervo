@@ -8,6 +8,23 @@ import { identifierSchema } from "./primitives.js";
 
 const roleIdSchema = { type: "string", minLength: 1, maxLength: 64 } as const;
 
+/**
+ * The model and effort an agent's sessions run with (ADR-0647): a tier of the provider's line-up,
+ * named for the interface, and whether its role or the owner chose them.
+ */
+export const agentModelSchema = {
+  title: "AgentModel",
+  type: "object",
+  required: ["tier", "effort", "source"],
+  properties: {
+    tier: { enum: ["frontier", "strong", "balanced", "fast"] },
+    effort: { enum: ["low", "medium", "high", "xhigh", "max"] },
+    source: { enum: ["role", "owner"] },
+    /** The provider's name for the tier's model, such as "Opus"; absent when it names none. */
+    displayName: { type: "string", minLength: 1, maxLength: 40 },
+  },
+} as const;
+
 /** One agent of a project, as the sidebar shows it. */
 export const agentSummarySchema = {
   title: "AgentSummary",
@@ -23,6 +40,8 @@ export const agentSummarySchema = {
     provider: { type: "string", maxLength: 32 },
     parentAgentId: { anyOf: [identifierSchema, { type: "null" }] },
     revision: { type: "integer", minimum: 1 },
+    /** A team agent's model; Lervo's own agents run under Lervo's model routes and have none. */
+    model: agentModelSchema,
   },
 } as const;
 
@@ -51,6 +70,14 @@ export const agentsListResultSchema = {
   },
 } as const;
 
+/** `agent.model`: the agent with the model and effort the owner chose. */
+export const agentModelResultSchema = {
+  title: "AgentModelResult",
+  type: "object",
+  required: ["projectId", "agent"],
+  properties: { projectId: identifierSchema, agent: agentSummarySchema },
+} as const;
+
 /** `agent.hire`: the agent the core hired for the owner. */
 export const agentHireResultSchema = {
   title: "AgentHireResult",
@@ -63,3 +90,4 @@ export type AgentSummary = FromSchema<typeof agentSummarySchema>;
 export type HireableRole = FromSchema<typeof hireableRoleSchema>;
 export type AgentsListResult = FromSchema<typeof agentsListResultSchema>;
 export type AgentHireResult = FromSchema<typeof agentHireResultSchema>;
+export type AgentModelResult = FromSchema<typeof agentModelResultSchema>;

@@ -89,6 +89,42 @@ describe("the core link's agent commands", () => {
     ).rejects.toMatchObject({ code: "agent_state_conflict" });
   });
 
+  it("lists a team agent's model by its role and changes it as the owner chooses", async () => {
+    const { projectId } = await project();
+    const hired = (await runCoreLinkAgentCommand("agent.hire", {
+      projectId,
+      role: "product-owner",
+    })) as { agent: { agentId: string; revision: number; model: unknown } };
+    expect(hired.agent.model).toEqual({
+      tier: "strong",
+      effort: "high",
+      source: "role",
+      displayName: "Opus",
+    });
+    const changed = (await runCoreLinkAgentCommand("agent.model", {
+      projectId,
+      agentId: hired.agent.agentId,
+      revision: hired.agent.revision,
+      tier: "frontier",
+      effort: "xhigh",
+    })) as { agent: { model: unknown } };
+    expect(changed.agent.model).toEqual({
+      tier: "frontier",
+      effort: "xhigh",
+      source: "owner",
+      displayName: "Fable",
+    });
+    await expect(
+      runCoreLinkAgentCommand("agent.model", {
+        projectId,
+        agentId: hired.agent.agentId,
+        revision: 2,
+        tier: "huge",
+        effort: "high",
+      }),
+    ).rejects.toMatchObject({ code: "agent_argument_invalid" });
+  });
+
   it("records each agent's origin once through the upgrade stage, then lists the recorded one", async () => {
     const { projectId, root } = await project();
     const steward = await registerAgent({

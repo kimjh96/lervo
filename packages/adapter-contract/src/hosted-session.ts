@@ -67,6 +67,8 @@ export interface HostedLaunchIntent {
     { readonly kind: "new"; readonly instruction: string } | { readonly kind: "resume" };
   /** The model that Lervo's model selection chose for the role, when it chose one. */
   readonly model?: string;
+  /** How much the model works before it answers, when Lervo chose it (ADR-0647). */
+  readonly effort?: HostedEffort;
   /** Lervo's hook handler, for an adapter that declares `hooks`. */
   readonly hooks?: HostedSessionHooks;
   /** `write` when absent. `read` needs an adapter that declares `readAccess`. */
@@ -101,6 +103,20 @@ export interface HostedLaunch {
 }
 
 /** One provider's hosted sessions. */
+/**
+ * The tiers of a provider's line-up an agent can run on (ADR-0647): its most capable model, a
+ * strong one, a balanced one, and a fast one.
+ */
+export type HostedModelTier = "frontier" | "strong" | "balanced" | "fast";
+
+/** How much the model works before it answers, lowest first. */
+export type HostedEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
+/** The provider's model for each tier, with the name the interface shows for it. */
+export type HostedModels = Readonly<
+  Record<HostedModelTier, { readonly model: string; readonly displayName: string }>
+>;
+
 export interface HostedSessionAdapter {
   readonly provider: string;
   /**
@@ -109,6 +125,11 @@ export interface HostedSessionAdapter {
    */
   readonly displayName: string;
   readonly capabilities: HostedSessionCapabilities;
+  /**
+   * The provider's model for each tier, which an agent's model and effort choose from. Absent when
+   * the provider cannot be told which model to run, and its own default runs.
+   */
+  readonly models?: HostedModels;
   /** Throws `HostedLaunchError` for an intent the provider cannot run. */
   prepareLaunch(intent: HostedLaunchIntent): HostedLaunch;
   /**

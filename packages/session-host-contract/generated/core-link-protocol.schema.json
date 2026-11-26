@@ -1048,6 +1048,45 @@
         "revision": {
           "type": "integer",
           "minimum": 1
+        },
+        "model": {
+          "title": "AgentModel",
+          "type": "object",
+          "required": [
+            "tier",
+            "effort",
+            "source"
+          ],
+          "properties": {
+            "tier": {
+              "enum": [
+                "frontier",
+                "strong",
+                "balanced",
+                "fast"
+              ]
+            },
+            "effort": {
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ]
+            },
+            "source": {
+              "enum": [
+                "role",
+                "owner"
+              ]
+            },
+            "displayName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
         }
       }
     },
@@ -1235,6 +1274,7 @@
             "projects.location",
             "agents.list",
             "agent.hire",
+            "agent.model",
             "room.join",
             "room.route"
           ]
