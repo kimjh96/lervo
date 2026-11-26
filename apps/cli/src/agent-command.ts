@@ -10,11 +10,12 @@ import {
   type AgentStatus,
   type WorkforceProvider,
 } from "@lervo/agent-workforce";
-import { resolveRoleContract } from "@lervo/roles";
+import { ensureTemplateRole, resolveRoleContract } from "@lervo/roles";
 
 import { agentContextUsage, runAgentContextCommand } from "./agent-context-command.js";
 import { agentMandateUsage, runAgentMandateCommand } from "./agent-mandate-command.js";
 import { agentLivenessUsage, runAgentLivenessCommand } from "./agent-liveness-command.js";
+import { noticeEffect } from "./effect-notice.js";
 import type { CliIo } from "./types.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
@@ -104,6 +105,8 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
     const provider = parsed.values.provider ?? "any";
     if (!["codex", "claude", "any"].includes(provider))
       throw new Error("The agent provider is invalid.");
+    // A project without a template role, such as `product-owner`, gets it on its first hire.
+    const template = await ensureTemplateRole(root, role(parsed.values.role));
     await resolveRoleContract(root, role(parsed.values.role));
     const agent = await mutateWorkforceState(root, (recordEvent) =>
       registerAgent({
@@ -119,6 +122,17 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
         recordEvent,
       }),
     );
+    if (template === "written")
+      await noticeEffect({
+        repositoryRoot: root,
+        effect: "role_template_written",
+        subject: `${agent.roleId}:${agent.agentId}`,
+        targets: [`.lervo/roles/${agent.roleId}.json`],
+        reason: "first_hire_of_template_role",
+        reviewers: ["role_contract_resolved"],
+        verdict: "verified",
+        undo: `lervo agent status --agent ${agent.agentId} --status retired --revision ${agent.revision} --write`,
+      });
     output(
       io,
       agent,

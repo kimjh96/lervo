@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3be67fe301fa68622bfb695e"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Hiring a product owner in a project without that role now writes .lervo/roles/product-owner.json from the core's template first, so every project can hire one; an existing role file is never replaced."
