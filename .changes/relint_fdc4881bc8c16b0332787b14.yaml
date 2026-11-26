@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fdc4881bc8c16b0332787b14"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Check event payload coordinates through one table keyed by event type instead of a chain of type comparisons; accepted and refused payloads are unchanged."
