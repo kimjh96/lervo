@@ -15,6 +15,8 @@ use tokio::sync::{mpsc, watch};
 use crate::messages;
 use crate::subscriber::{Output, Subscriber, encoded};
 use lervo_session_core::ports::{ConversationMode, SentImage};
+use lervo_session_core::transcript::NoticeValue;
+use std::collections::BTreeMap;
 
 /// How long an ended session still answers attaches and ranges before its actor exits. After
 /// that, `session.open` starts the session again.
@@ -80,6 +82,17 @@ pub(crate) enum Command {
     Stop,
     /// Ends an ended session's retention early, so its actor exits and its memory returns.
     Release,
+    /// Gives the session a turn another agent's mention delivered, after its running turn
+    /// (Lervo ADE rooms).
+    Deliver {
+        delivery_id: String,
+        text: String,
+    },
+    /// Shows a line of what the conversation's room did, such as a delivery that failed.
+    Notice {
+        code: String,
+        parameters: BTreeMap<String, NoticeValue>,
+    },
 }
 
 /// A handle that sends commands to a session's actor.

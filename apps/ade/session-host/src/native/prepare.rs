@@ -1,14 +1,16 @@
 //! Starting a native session: its index opened under the cap on all indexes, rebuilt from the
 //! provider's transcript when needed, and its provider process spawned, before its actor runs.
 
+use std::collections::VecDeque;
 use std::path::PathBuf;
 
-use lervo_session_core::ports::{ConversationMode, Launch, SentImage, StreamDecoder};
+use lervo_session_core::ports::{ConversationMode, Launch, RoomDelivery, SentImage, StreamDecoder};
 use lervo_session_core::retention::INDEX_CAP_BYTES;
 use lervo_session_core::transcript::{Input, Transcript};
 use lervo_session_protocol::Identifier;
 use lervo_session_store::{StoreError, retention};
 use lervo_session_stream::{StreamCommand, StreamError, StreamProcess};
+use tokio::sync::mpsc;
 
 use super::{ExitReport, Native};
 use crate::index::Index;
@@ -96,8 +98,15 @@ pub(crate) fn prepare<D: StreamDecoder>(
 }
 
 impl<D: StreamDecoder> Prepared<D> {
-    /// Starts the session's actor and returns its handle.
-    pub(crate) fn start(self, watchers: StatusSink, on_exit: ExitReport) -> SessionHandle {
+    /// Starts the session's actor and returns its handle. `deliveries` takes the turns its
+    /// mentions set off; `initial_delivery` names the delivery its first instruction performs.
+    pub(crate) fn start(
+        self,
+        watchers: StatusSink,
+        on_exit: ExitReport,
+        deliveries: mpsc::UnboundedSender<RoomDelivery>,
+        initial_delivery: Option<String>,
+    ) -> SessionHandle {
         let (handle, commands, ended) = SessionHandle::new(ConversationMode::Native, self.channel);
         let actor = Native {
             fanout: Fanout::new(self.session, ended, watchers),
@@ -108,6 +117,10 @@ impl<D: StreamDecoder> Prepared<D> {
             index: self.index,
             decoder: self.decoder,
             on_exit: Some(on_exit),
+            deliveries,
+            initial_delivery,
+            in_turn: false,
+            waiting: VecDeque::new(),
         };
         tokio::spawn(actor.run(self.process, commands));
         handle

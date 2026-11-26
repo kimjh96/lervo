@@ -176,7 +176,13 @@ impl Terminal {
                 false,
             )),
             // After the end, input and resizes have no process to reach.
-            Command::Input(_) | Command::Resize { .. } | Command::Stop | Command::Release => {}
+            // A terminal conversation is never a room: agents join only the native one.
+            Command::Input(_)
+            | Command::Resize { .. }
+            | Command::Stop
+            | Command::Release
+            | Command::Deliver { .. }
+            | Command::Notice { .. } => {}
         }
     }
 

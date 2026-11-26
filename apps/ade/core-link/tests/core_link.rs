@@ -486,3 +486,64 @@ async fn keeps_the_old_process_when_the_new_executable_cannot_start() {
     assert!(core.command("workspace.list", none()).await.is_ok());
     assert_eq!(started(&starts), 1);
 }
+
+/// The requests of `kind` a stand-in collected, in order.
+fn collected(reports: &std::path::Path, kind: &str) -> Vec<Value> {
+    std::fs::read_to_string(reports)
+        .unwrap_or_default()
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .filter(|request| request["kind"] == kind)
+        .collect()
+}
+
+#[tokio::test]
+async fn routes_mentions_only_through_a_process_that_advertised_deliveries() {
+    for (release, routed) in [("rooms", true), ("current", false)] {
+        let reports = std::env::temp_dir().join(format!(
+            "lervo-decoder-deliveries-{release}-{}.log",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&reports);
+        let core = reporting(release, &reports);
+        core.command("workspace.list", none()).await.unwrap();
+        let launch = core
+            .command("workspace.start", arguments("go"))
+            .await
+            .unwrap()
+            .launch
+            .unwrap();
+        let mut decoder = core.decoder(&launch);
+        let (input, _) = decoder
+            .send_delivery("[Lervo room] From Ciel (Developer):\nhi", "dlv_1")
+            .await;
+        assert!(!input.is_empty(), "{release}: the decoder did not open");
+        let opened = collected(&reports, "decoder.open");
+        assert_eq!(
+            opened[0].get("deliveries").is_some(),
+            routed,
+            "{release}: {opened:?}"
+        );
+        let sent = collected(&reports, "decoder.send");
+        assert_eq!(
+            sent[0].get("deliveryId").is_some(),
+            routed,
+            "{release}: {sent:?}"
+        );
+        let decoded = decoder.output(b"mention\n").await;
+        let delivered: Vec<_> = decoded
+            .iter()
+            .filter_map(|event| match event {
+                Decoded::Delivery(delivery) => Some(delivery),
+                _ => None,
+            })
+            .collect();
+        if routed {
+            assert_eq!(delivered.len(), 1, "{decoded:?}");
+            assert_eq!(delivered[0].agent_id, "agt_arin");
+            assert_eq!(delivered[0].session_id, None);
+            assert!(delivered[0].text.starts_with("[Lervo room] From Elio"));
+        }
+        let _ = std::fs::remove_file(&reports);
+    }
+}

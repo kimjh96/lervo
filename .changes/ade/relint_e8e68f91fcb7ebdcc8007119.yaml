@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e8e68f91fcb7ebdcc8007119"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "The session host performs room deliveries: a mentioned agent's running session gets the turn after its current one, or the agent joins the conversation first with its own session; a failed delivery shows as a line where the mention was made."

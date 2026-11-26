@@ -43,6 +43,9 @@ const SESSION_EXITED: &str = "session.exited";
 /// `decoder.open`'s `sessionId`, which a resident process advertises the same way. With it, the
 /// process records the usage of the session's turns.
 const DECODER_SESSION: &str = "decoder.session";
+/// `decoder.open`'s `deliveries`, `decoder.send`'s `deliveryId`, and the deliveries a decoded
+/// answer carries (Lervo ADE rooms). Without it, a session's mentions reach no other agent.
+const DECODER_DELIVERIES: &str = "decoder.deliveries";
 /// `decoder.interrupt`, which stops a native session's running turn. An older resident process
 /// ends the link on a request it cannot validate, so only one that advertised it hears it.
 const DECODER_INTERRUPT: &str = "decoder.interrupt";

@@ -31,6 +31,13 @@ const MAX_TRANSCRIPT_TEXT_BYTES: usize = 64 * 1024 * 1024;
 /// its provider 8 seconds after asking it to end, so this leaves room for that.
 const STOP_DEADLINE: Duration = Duration::from_secs(10);
 
+/// Whose session a launch starts: the workspace's own, or an agent's that joined its conversation
+/// (Lervo ADE rooms), whose first instruction may perform a delivery.
+pub(crate) enum Role {
+    Lead,
+    Member { initial_delivery: Option<String> },
+}
+
 impl<C: Core> Host<C> {
     /// The workspace's running session in `mode`, or a session the core prepares. A session that
     /// runs in another mode stops first; if it does not end in time, the switch fails with
@@ -77,6 +84,16 @@ impl<C: Core> Host<C> {
 
     /// Starts `launch` while the caller holds the lifecycle lock.
     async fn start_serially(&self, request: &Identifier, launch: &Launch) -> HostMessage {
+        self.start_as(request, launch, Role::Lead).await
+    }
+
+    /// Starts `launch` in its role while the caller holds the lifecycle lock.
+    pub(crate) async fn start_as(
+        &self,
+        request: &Identifier,
+        launch: &Launch,
+        role: Role,
+    ) -> HostMessage {
         let (Some(session), Some(workspace)) = (
             messages::identifier(&launch.session_id),
             messages::identifier(&launch.workspace_id),
@@ -130,7 +147,18 @@ impl<C: Core> Host<C> {
                 .await
                 .map_err(|_| start_failed(request, "task_failed"))
                 .and_then(|prepared| prepared.map_err(|error| native_failed(request, &error)))
-                .map(|prepared| prepared.start(self.watch.clone(), on_exit))
+                .map(|prepared| {
+                    let initial = match &role {
+                        Role::Lead => None,
+                        Role::Member { initial_delivery } => initial_delivery.clone(),
+                    };
+                    prepared.start(
+                        self.watch.clone(),
+                        on_exit,
+                        self.deliveries.clone(),
+                        initial,
+                    )
+                })
             }
         };
         match started {
@@ -144,7 +172,10 @@ impl<C: Core> Host<C> {
                     ],
                 );
                 let message = opened(request, &session, &workspace, &handle);
-                self.registry().insert(workspace, session, handle);
+                match role {
+                    Role::Lead => self.registry().insert(workspace, session, handle),
+                    Role::Member { .. } => self.registry().insert_member(session, handle),
+                }
                 message
             }
             Err(failure) => failure,

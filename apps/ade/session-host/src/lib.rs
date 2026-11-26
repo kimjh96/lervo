@@ -14,6 +14,7 @@ mod messages;
 mod native;
 mod rebuild;
 mod registry;
+mod rooms;
 pub mod serve;
 mod session;
 mod subscriber;

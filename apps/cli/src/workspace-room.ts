@@ -1,7 +1,7 @@
 // An agent joining a conversation, and where the owner's turn goes (Lervo ADE rooms).
 import { randomUUID } from "node:crypto";
 
-import { hasTranscriptReader, type HostedLaunch } from "@lervo/adapter-contract";
+import type { HostedLaunch } from "@lervo/adapter-contract";
 import { MAXIMUM_ROOM_AGENTS } from "@lervo/session-host-contract";
 
 import { CommandFailure } from "./command-error-output.js";
@@ -132,7 +132,9 @@ export async function joinWorkspaceRoom(
     agentId,
     provider: adapter.provider,
     resumed: resume,
-    transcript: resume && hasTranscriptReader(adapter),
+    // The transcript the core reads is the lead's session's, so a joined agent's session keeps
+    // its history in its own conversation index instead.
+    transcript: false,
     launch,
     hostedEvents,
   };
