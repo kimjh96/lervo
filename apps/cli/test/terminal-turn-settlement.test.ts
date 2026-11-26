@@ -1,7 +1,17 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  rm,
+  stat,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { openProjectStorage } from "@lervo/project-storage";
@@ -28,6 +38,10 @@ import {
   readTerminalTurnSettlementDrops,
 } from "../src/terminal-turn-settlement-lease.js";
 import { settleTerminalTurns } from "../src/terminal-turn-settlement-worker.js";
+import {
+  terminalCachedBaseDirectory,
+  terminalCachedBaseNameDigest,
+} from "../src/terminal-cached-base-turn.js";
 
 const run = promisify(execFile);
 const roots: string[] = [];
@@ -220,6 +234,40 @@ describe("turns that end without a Stop hook", () => {
     expect(await settleTerminalTurns(root)).toBe(0);
     expect(await events(root, ["terminal.turn.observed"])).toHaveLength(1);
     expect(await listTerminalTurnSettlements(root)).toEqual([]);
+  }, 60_000);
+
+  it("settles an interrupted turn whose next prompt was answered from the cached base", async () => {
+    const root = await repository(12);
+    // The launcher keeps its store under the home directory; keep this test's apart.
+    vi.stubEnv("HOME", dirname(root));
+    const session = { session_id: "cached-session" };
+    await hook(root, { hook_event_name: "UserPromptSubmit", ...session, prompt: "Raise it." });
+    const [first] = await events(root, ["terminal.context.prepared"]);
+    // The owner interrupts turn 1; the launcher answers turn 2 from the cached base, which
+    // prepares nothing and leaves the session's turn file.
+    await writeFile(resolve(root, "login.ts"), "export const maximum = 1024;\n");
+    const directory = terminalCachedBaseDirectory();
+    await mkdir(directory, { recursive: true });
+    const turnFile = resolve(directory, `${terminalCachedBaseNameDigest("cached-session")}.turn`);
+    await writeFile(turnFile, "");
+    const later = new Date(Date.parse(first!.occurredAt) + 1000);
+    await utimes(turnFile, later, later);
+    await hook(root, { hook_event_name: "Stop", ...session, last_assistant_message: "Done." });
+
+    // Stop 2 observes nothing itself; turn 1 is settled as a turn that ended without a Stop.
+    expect(await events(root, ["terminal.turn.observed"])).toEqual([]);
+    const [request] = await listTerminalTurnSettlements(root);
+    expect(request).toMatchObject({
+      contextEventId: first?.eventId,
+      ending: "next_prompt",
+      afterObservationId: null,
+    });
+    expect(await settleTerminalTurns(root)).toBe(1);
+    const [settled] = await events(root, ["terminal.turn.observed"]);
+    expect(settled?.payload).toMatchObject({
+      contextEventId: first?.eventId,
+      ending: "next_prompt",
+    });
   }, 60_000);
 
   it("leaves a turn that Stop observed, and records nothing below schema 12", async () => {

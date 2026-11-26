@@ -306,14 +306,15 @@ export async function serveTerminalContext(entry: string): Promise<void> {
       // its base, while the server stays busy, so nothing else shares the process.
       return {
         ...answer,
-        afterDrain: async () => {
-          await keepTerminalCachedBase({
-            store: dirname(dirname(entry)),
-            cwd: request.cwd,
-            args: request.args,
-            environment: request.environment,
-          });
-        },
+        afterDrain: async () =>
+          (
+            await keepTerminalCachedBase({
+              store: dirname(dirname(entry)),
+              cwd: request.cwd,
+              args: request.args,
+              environment: request.environment,
+            })
+          ).settled,
       };
     },
     // Exit so the host starts a fresh server: abandoned work must not reach the next request.

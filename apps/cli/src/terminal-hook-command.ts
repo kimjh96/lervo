@@ -212,9 +212,17 @@ async function executeTerminalHookCommand(
         return 0;
       }
       const expectation = await timing.measure("lifecycle_inspection", () =>
-        preparedTerminalTurnExpectation(root, coordinates, provider, input.providerSessionId),
+        preparedTerminalTurnExpectation(
+          root,
+          coordinates,
+          provider,
+          input.providerSessionId,
+          executionRoot,
+        ),
       );
       if (expectation === null) {
+        // A turn answered from the cached base may have left an interrupted turn to settle.
+        await launchTerminalTurnSettlements(root, executionRoot).catch(() => false);
         io.stdout("{}\n");
         return 0;
       }

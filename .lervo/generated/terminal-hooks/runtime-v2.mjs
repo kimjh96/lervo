@@ -418,7 +418,8 @@ async function cached() {
     `${file}.${Date.now()}.${process.pid}.unserved`,
     JSON.stringify({ reason, age: Math.max(age, 0) }),
   );
-  await leave(`${at(`${hookInput.session_id}`)}.turn`, "");
+  const session = hookInput.session_id;
+  if (typeof session === "string") await leave(`${at(session)}.turn`, "");
   return answer;
 }
 if (

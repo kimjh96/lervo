@@ -141,7 +141,8 @@ export interface TerminalCachedBasePorts {
   roots: (cwd: string) => Promise<{ evidenceRoot: string; executionRoot: string }>;
   /** Whether a workspace that is not removed claims the checkout. */
   claimed: (executionRoot: string) => Promise<boolean>;
-  prepare: (evidenceRoot: string, executionRoot: string) => Promise<string[]>;
+  /** Prepares the base by `deadline`, a `performance.now()` time. */
+  prepare: (evidenceRoot: string, executionRoot: string, deadline: number) => Promise<string[]>;
   openStorage: (evidenceRoot: string) => Promise<DeliveryStorage>;
 }
 
@@ -153,22 +154,30 @@ const defaultPorts: TerminalCachedBasePorts = {
       (workspace) => workspace.pathDigest === pathDigest && workspace.state !== "removed",
     );
   },
-  prepare: (evidenceRoot, executionRoot) =>
-    prepareTerminalBaseContext(evidenceRoot, performance.now() + PREPARATION_MS, executionRoot),
+  prepare: (evidenceRoot, executionRoot, deadline) =>
+    prepareTerminalBaseContext(evidenceRoot, deadline, executionRoot),
   openStorage: openProjectStorage,
 };
 
-/** Records the checkout's delivery markers at writer schema 14 and removes them either way. */
-async function recordDeliveries(
-  directory: string,
-  key: string,
-  open: () => Promise<DeliveryStorage>,
-  now: number,
-): Promise<number> {
-  const names = (await readdir(directory))
+/** The checkout's delivery markers, oldest first, at most 32. */
+async function markerNames(directory: string, key: string): Promise<string[]> {
+  return (await readdir(directory))
     .filter((name) => MARKER_NAME.exec(name)?.[1] === key)
     .sort()
     .slice(0, MAXIMUM_MARKERS);
+}
+
+/**
+ * Records the checkout's delivery markers at writer schema 14. Each is removed before it is
+ * recorded, so a server that exits in between loses a delivery rather than recording it twice:
+ * the count stays a lower bound.
+ */
+async function recordDeliveries(
+  directory: string,
+  names: readonly string[],
+  open: () => Promise<DeliveryStorage>,
+  now: number,
+): Promise<number> {
   if (names.length === 0) return 0;
   const markers: Marker[] = [];
   for (const name of names) {
@@ -181,6 +190,8 @@ async function recordDeliveries(
     const marker = parseMarker(name, content, now);
     if (marker !== null) markers.push(marker);
   }
+  // A marker an older writer cannot record, or one too old or malformed, is dropped unrecorded.
+  await Promise.all(markers.map((marker) => rm(resolve(directory, marker.name), { force: true })));
   const recordable = markers.filter((marker) => marker.payload !== null);
   let recorded = 0;
   if (recordable.length > 0) {
@@ -210,15 +221,21 @@ async function recordDeliveries(
       await storage.close();
     }
   }
-  // A marker an older writer cannot record, or one too old or malformed, is dropped unrecorded.
-  await Promise.all(markers.map((marker) => rm(resolve(directory, marker.name), { force: true })));
   return recorded;
 }
+
+/** The base directory is swept at most hourly: every served prompt would otherwise list it. */
+const SWEEP_INTERVAL_MS = 60 * 60_000;
+const lastSweeps = new Map<string, number>();
 
 /**
  * After a served prompt drained: records the checkout's pending deliveries, then refreshes its
  * cached base when it is missing or older than five minutes. A checkout a workspace claims gets
  * none, because workspace attachment can block its prompts and a cached answer would skip that.
+ * With a fresh base and no markers it only checks two names, so most prompts pay nothing more.
+ *
+ * `settled` is false when preparation reached its deadline: the reads it abandoned may still run,
+ * and the server must not serve the next hook beside them, so it exits as after an overrun.
  */
 export async function keepTerminalCachedBase(input: {
   store: string;
@@ -227,35 +244,43 @@ export async function keepTerminalCachedBase(input: {
   environment: Parameters<typeof terminalCachedBaseKey>[2];
   now?: () => number;
   ports?: Partial<TerminalCachedBasePorts>;
-}): Promise<{ recorded: number; refreshed: boolean }> {
+}): Promise<{ recorded: number; refreshed: boolean; settled: boolean }> {
   const now = input.now ?? Date.now;
   const ports = { ...defaultPorts, ...input.ports };
   const directory = resolve(input.store, TERMINAL_CACHED_BASE_DIRECTORY);
   await mkdir(directory, { recursive: true, mode: 0o700 });
+  if (now() - (lastSweeps.get(directory) ?? Number.NEGATIVE_INFINITY) > SWEEP_INTERVAL_MS) {
+    lastSweeps.set(directory, now());
+    await sweepOldFiles(directory, now()).catch(() => undefined);
+  }
   const key = terminalCachedBaseKey(input.cwd, input.args, input.environment);
   const file = resolve(directory, `${key}.json`);
+  const age = await ageMilliseconds(file, now());
+  // Modification times carry fractions of a millisecond, so a file just written can look a
+  // moment younger than the clock; a second's allowance still refreshes one dated in the future.
+  const fresh = age !== null && age > -1_000 && age < REFRESH_AFTER_MS;
+  const names = await markerNames(directory, key);
+  if (fresh && names.length === 0) return { recorded: 0, refreshed: false, settled: true };
   const { evidenceRoot, executionRoot } = await ports.roots(input.cwd);
   // Each step stands alone: a busy store must not keep the base from being refreshed.
   const recorded = await recordDeliveries(
     directory,
-    key,
+    names,
     () => ports.openStorage(evidenceRoot),
     now(),
   ).catch(() => 0);
-  await sweepOldFiles(directory, now()).catch(() => undefined);
+  if (fresh) return { recorded, refreshed: false, settled: true };
   if (await ports.claimed(executionRoot)) {
     await rm(file, { force: true });
-    return { recorded, refreshed: false };
+    return { recorded, refreshed: false, settled: true };
   }
-  const age = await ageMilliseconds(file, now());
-  // Modification times carry fractions of a millisecond, so a file just written can look a
-  // moment younger than the clock; a second's allowance still refreshes one dated in the future.
-  if (age !== null && age > -1_000 && age < REFRESH_AFTER_MS) return { recorded, refreshed: false };
-  const lines = await ports.prepare(evidenceRoot, executionRoot);
+  const deadline = performance.now() + PREPARATION_MS;
+  const lines = await ports.prepare(evidenceRoot, executionRoot, deadline);
+  const settled = performance.now() < deadline;
   // A base whose owner rules did not load in time would stand for half an hour without them; the
   // next served prompt tries again instead.
   if (!lines.some((line) => line.startsWith("Applied owner rules: ")))
-    return { recorded, refreshed: false };
+    return { recorded, refreshed: false, settled };
   await writeAtomically(file, formatTerminalCachedBase(lines, new Date(now())));
-  return { recorded, refreshed: true };
+  return { recorded, refreshed: true, settled };
 }

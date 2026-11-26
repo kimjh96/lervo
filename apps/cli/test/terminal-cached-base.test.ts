@@ -70,7 +70,7 @@ const keep = (path: string, value: TerminalCachedBasePorts, now = Date.now) =>
 it("writes the base as the prompt answer the launcher prints, owner-only", async () => {
   const path = await store();
   const { value } = ports();
-  expect(await keep(path, value)).toEqual({ recorded: 0, refreshed: true });
+  expect(await keep(path, value)).toEqual({ recorded: 0, refreshed: true, settled: true });
   const file = resolve(
     path,
     "base",
@@ -97,7 +97,12 @@ it("keeps no base for a checkout a workspace claims, and removes one found there
   const path = await store();
   await keep(path, ports().value);
   const { value } = ports({ claimed: async () => true });
-  expect(await keep(path, value)).toEqual({ recorded: 0, refreshed: false });
+  // The claim is checked when the base is due for a refresh.
+  expect(await keep(path, value, () => Date.now() + 5 * 60_000 + 1000)).toEqual({
+    recorded: 0,
+    refreshed: false,
+    settled: true,
+  });
   expect((await readdir(resolve(path, "base"))).filter((name) => name.endsWith(".json"))).toEqual(
     [],
   );
@@ -127,7 +132,7 @@ it("refreshes the base even when the store cannot record deliveries", async () =
       throw new Error("database is locked");
     },
   });
-  expect(await keep(path, value)).toEqual({ recorded: 0, refreshed: true });
+  expect(await keep(path, value)).toEqual({ recorded: 0, refreshed: true, settled: true });
 });
 
 it("leaves a marker the launcher may still be writing, and sweeps day-old files", async () => {
@@ -240,4 +245,23 @@ it("caps the cached context like any compact context", () => {
   const long = ["Read AGENTS.md.", "x".repeat(10_000)];
   const answer = JSON.parse(formatTerminalCachedBase(long, new Date(0)));
   expect(Buffer.byteLength(answer.hookSpecificOutput.additionalContext)).toBeLessThanOrEqual(4096);
+});
+
+it("reports work it left running when preparation reached its deadline", async () => {
+  const path = await store();
+  const { value } = ports({
+    prepare: async (_evidence, _execution, deadline) => {
+      while (performance.now() <= deadline) await new Promise((done) => setTimeout(done, 20));
+      return ["Read AGENTS.md."];
+    },
+  });
+  expect(await keep(path, value)).toEqual({ recorded: 0, refreshed: false, settled: false });
+});
+
+it("does nothing more while the base is fresh and no delivery waits", async () => {
+  const path = await store();
+  await keep(path, ports().value);
+  const roots = vi.fn(async () => ({ evidenceRoot: "/repository", executionRoot: "/repository" }));
+  expect((await keep(path, ports({ roots }).value)).refreshed).toBe(false);
+  expect(roots).not.toHaveBeenCalled();
 });
