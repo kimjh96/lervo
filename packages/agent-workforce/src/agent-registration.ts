@@ -78,7 +78,12 @@ export async function registerAgentOnce(input: {
     capabilityPackageIds,
     generatedAt: now.toISOString(),
   });
-  if (current.value.agents.length >= workforceLimits.maximumAgents)
+  // ADR-0643: Lervo's own agents never take the team's places, and the team's never take Lervo's.
+  const lervo = input.origin === "lervo";
+  const sameOrigin = current.value.agents.filter(
+    (agent) => (agent.origin === "lervo") === lervo,
+  ).length;
+  if (sameOrigin >= (lervo ? workforceLimits.maximumLervoAgents : workforceLimits.maximumAgents))
     fail("agent_state_conflict", "The repository agent limit was reached.");
   const createdAt = now.toISOString();
   const agentId = id("agt", { projectId: current.projectId, nonce: randomUUID() });

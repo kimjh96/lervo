@@ -89,6 +89,7 @@ async function runPracticeAssignment<T>(input: {
       displayName: name,
       responsibilityPaths,
       recordEvent,
+      origin: "lervo",
     }));
   if (
     agent.roleContractHash !== binding.contractHash ||

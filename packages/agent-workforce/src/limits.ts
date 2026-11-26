@@ -1,5 +1,8 @@
 export const workforceLimits = {
+  /** The team's agents; Lervo's own agents count separately (ADR-0643). */
   maximumAgents: 256,
+  /** Lervo's own agents, active and retired; pruning keeps the retired ones far below it. */
+  maximumLervoAgents: 128,
   maximumAssignments: 10_000,
   maximumDelegationDepth: 8,
   maximumAssignmentDependencies: 64,

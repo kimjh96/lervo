@@ -129,6 +129,7 @@ export async function withConvergenceAssignment(input: {
       displayName: roleName,
       responsibilityPaths,
       recordEvent: (event) => recordConvergenceWorkforceEvent(input.storage, event),
+      origin: "lervo",
     });
   if (
     agent.roleVersion !== binding.version ||

@@ -1,5 +1,6 @@
 import {
   changeAgentStatus,
+  pruneRetiredLervoAgents,
   listAgents,
   listAssignments,
   type WorkforceAgent,
@@ -142,5 +143,7 @@ export async function retireSupersededConvergenceAgents(input: {
     });
     retired.push(agent.agentId);
   }
+  // ADR-0643: each renewal retires a set, so keep only the latest retired ones.
+  if (retired.length > 0) await pruneRetiredLervoAgents({ repositoryRoot: input.repositoryRoot });
   return retired;
 }
