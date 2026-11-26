@@ -1,11 +1,12 @@
 import { AgentWorkforceError, listAgents, type WorkforceAgent } from "@lervo/agent-workforce";
 import { lervoAgentIds, loadConvergenceDelegation } from "@lervo/repository-knowledge-runtime";
-import { listRoleContracts, listRoleTemplates, RoleContractError } from "@lervo/roles";
+import { RoleContractError } from "@lervo/roles";
 import { RepositoryRegistryError } from "@lervo/repository-registry";
 
 import { hireAgent } from "./agent-hire.js";
 import { CommandFailure } from "./command-error-output.js";
 import { locateProject } from "./project-service.js";
+import { roleCatalog } from "./role-catalog.js";
 
 /**
  * The agent commands of the core link (Lervo ADE agents, "Core link"): a project's agents with
@@ -38,23 +39,6 @@ function view(agent: WorkforceAgent, roleNames: Map<string, string>, lervos: Set
     parentAgentId: agent.parentAgentId,
     revision: agent.revision,
   };
-}
-
-async function roleCatalog(root: string) {
-  const roles: { roleId: string; name: string; description: string; source: string }[] = (
-    await listRoleContracts(root)
-  ).map((role) => ({
-    roleId: role.roleId,
-    name: role.definition.profile.name,
-    description: role.definition.profile.description,
-    source: role.sourceKind,
-  }));
-  // A template role, such as the product owner, can be hired before the project has it: hiring
-  // writes it (Lervo ADE projects, "The product-owner role template").
-  for (const template of listRoleTemplates())
-    if (!roles.some((role) => role.roleId === template.roleId))
-      roles.push({ ...template, source: "repository" });
-  return { roles, names: new Map(roles.map((role) => [role.roleId, role.name])) };
 }
 
 async function answer(command: string, arguments_: Record<string, unknown>): Promise<object> {

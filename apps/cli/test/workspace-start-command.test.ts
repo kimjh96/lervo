@@ -13,6 +13,7 @@ import { runCli } from "../src/main.js";
 import { listRepositories, listWorkspaces } from "../src/workspace-list-service.js";
 import { openWorkspace, startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
 import { joinWorkspaceRoom, routeRoomTurn } from "../src/workspace-room.js";
+import { roomBlock } from "../src/room-context.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -421,6 +422,14 @@ describe("agents joining a conversation", () => {
         { agentId: researcher.agentId, sessionId: joined.sessionId, access: "read" },
       ],
     });
+
+    // Each agent's session learns who it is, who else is here, and how a mention works.
+    const block = await roomBlock(started.sessionId);
+    expect(block).toContain(
+      `you are ${lead.displayName}, the Developer, in this conversation with ${researcher.displayName} (Researcher)`,
+    );
+    expect(block).toContain("write @Name in your reply");
+    expect(await roomBlock("00000000-0000-4000-8000-000000000000")).toBeNull();
 
     // Joining again continues the agent's session, and reopening still opens the lead's.
     const again = await joinWorkspaceRoom({ workspaceId, agentId: researcher.agentId });

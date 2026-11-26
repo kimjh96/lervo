@@ -1,0 +1,125 @@
+import type { HostedDecodedEvent } from "@lervo/adapter-contract";
+import { describe, expect, it } from "vitest";
+
+import { EXCHANGE_LIMIT, RoomRouter, type RoomContext } from "../src/room-router.js";
+
+const team = [
+  { agentId: "agt_elio", displayName: "Elio", roleName: "Product Owner" },
+  { agentId: "agt_ciel", displayName: "Ciel", roleName: "Developer" },
+  { agentId: "agt_arin", displayName: "Arin", roleName: "Researcher" },
+];
+
+function context(agentId: string, sessions: Record<string, string>): RoomContext {
+  return { workspaceId: "wsp_1", agentId, team, sessions: new Map(Object.entries(sessions)) };
+}
+
+function said(text: string): HostedDecodedEvent[] {
+  return [
+    { kind: "status", event: "turn_started" },
+    { kind: "start", content: { kind: "agent_message", text: "" }, createdAtMs: 1 },
+    { kind: "delta", text },
+    { kind: "finish" },
+    { kind: "status", event: "turn_finished" },
+  ];
+}
+
+function owner(text: string): HostedDecodedEvent[] {
+  return [{ kind: "item", content: { kind: "user_message", text }, createdAtMs: 1 }];
+}
+
+function router() {
+  let id = 0;
+  const room = new RoomRouter(
+    () => 1_000_000,
+    () => `dlv_${++id}`,
+  );
+  const sessions = { agt_elio: "s-elio", agt_ciel: "s-ciel" };
+  room.know("s-elio", context("agt_elio", sessions));
+  room.know("s-ciel", context("agt_ciel", sessions));
+  return room;
+}
+
+describe("routing between a conversation's agents", () => {
+  it("delivers mentions, shows them as the sender's, joins newcomers, and returns answers", () => {
+    const room = router();
+    expect(room.sent("s-elio", undefined, owner("Implement retries."))).toEqual(
+      owner("Implement retries."),
+    );
+
+    const elio = room.observe("s-elio", said("@Ciel please implement retries."));
+    expect(elio.deliveries).toEqual([
+      expect.objectContaining({ deliveryId: "dlv_1", agentId: "agt_ciel", sessionId: "s-ciel" }),
+    ]);
+    const toCiel = elio.deliveries[0]?.text ?? "";
+    expect(toCiel).toContain("[Lervo room] From Elio (Product Owner):");
+    expect(toCiel).toContain("- Owner: Implement retries.");
+
+    // The delivered turn shows as Elio's message, never as the owner's.
+    expect(room.sent("s-ciel", "dlv_1", owner(toCiel))).toEqual([
+      {
+        kind: "item",
+        content: { kind: "peer_message", from: "Elio", text: "@Ciel please implement retries." },
+        createdAtMs: 1,
+      },
+    ]);
+
+    // Asking Arin first keeps the answer to Elio owed; Arin, without a session, joins.
+    const ciel = room.observe("s-ciel", said("Before I start: @Arin is Retry-After in seconds?"));
+    expect(ciel.deliveries.map((item) => [item.agentId, item.sessionId])).toEqual([
+      ["agt_arin", null],
+    ]);
+    expect(ciel.events.at(-1)).toMatchObject({
+      content: {
+        kind: "lervo_notice",
+        code: "room_joined",
+        parameters: { agent: "Arin", by: "Ciel" },
+      },
+    });
+
+    room.know(
+      "s-arin",
+      context("agt_arin", { ...{ agt_elio: "s-elio", agt_ciel: "s-ciel" }, agt_arin: "s-arin" }),
+    );
+    room.sent("s-arin", "dlv_2", owner(ciel.deliveries[0]?.text ?? ""));
+    const arin = room.observe("s-arin", said("Seconds, but the sandbox omits it."));
+    expect(arin.deliveries.map((item) => item.agentId)).toEqual(["agt_ciel"]);
+    expect(arin.deliveries[0]?.text).toContain("[Lervo room] Answer from Arin (Researcher):");
+
+    room.sent("s-ciel", "dlv_3", owner(arin.deliveries[0]?.text ?? ""));
+    const done = room.observe("s-ciel", said("Implemented with a 2 s default."));
+    expect(done.deliveries.map((item) => item.agentId)).toEqual(["agt_elio"]);
+  });
+
+  it("pauses at the exchange budget, asks the opener to summarize, and resumes on the owner's turn", () => {
+    const room = router();
+    room.sent("s-elio", undefined, owner("Discuss the plan."));
+    let paused: ReturnType<RoomRouter["observe"]> | undefined;
+    for (let turn = 0; turn <= EXCHANGE_LIMIT && paused === undefined; turn += 1) {
+      const [session, mention] = turn % 2 === 0 ? ["s-elio", "@Ciel"] : ["s-ciel", "@Elio"];
+      const answer = room.observe(session, said(`${mention} round ${turn}`));
+      if (
+        answer.events.some(
+          (event) => event.kind === "item" && event.content.kind === "lervo_notice",
+        )
+      )
+        paused = answer;
+      else
+        room.sent(session === "s-elio" ? "s-ciel" : "s-elio", answer.deliveries[0]?.deliveryId, []);
+    }
+    expect(paused?.events.at(-1)).toMatchObject({
+      content: { code: "room_paused", parameters: { limit: EXCHANGE_LIMIT } },
+    });
+    expect(paused?.deliveries.map((item) => item.agentId)).toEqual(["agt_elio"]);
+    expect(paused?.deliveries[0]?.text).toContain("Summarize the exchange for the owner");
+    // While paused, mentions deliver nothing; the owner's turn opens a new exchange.
+    expect(room.observe("s-ciel", said("@Elio one more")).deliveries).toEqual([]);
+    room.sent("s-elio", undefined, owner("Go on."));
+    expect(room.observe("s-elio", said("@Ciel continue")).deliveries).toHaveLength(1);
+  });
+
+  it("leaves a session outside any conversation untouched", () => {
+    const room = router();
+    const events = said("@Ciel hello");
+    expect(room.observe("s-unknown", events)).toEqual({ events, deliveries: [] });
+  });
+});

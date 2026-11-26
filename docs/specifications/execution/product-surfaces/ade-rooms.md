@@ -26,7 +26,7 @@ Agents mention each other directly, choosing by role and by what each has learne
 
 - **The owner's turn.** A turn that mentions agents goes to each mentioned agent. Any other turn goes to the lead. A mentioned agent that is not a participant joins first.
 - **An agent's turn.** When an agent's turn ends, the core reads its final message for mentions. Each mentioned agent receives one turn: who mentioned it, the message, and the conversation's turns since that agent last spoke, at most 8 turns and 16 KiB. A mentioned agent that is not a participant joins first.
-- **Replies.** The answer to an agent's mention returns to the agent that mentioned, as a turn, even when the answer mentions no one. An owner's mention needs no return.
+- **Replies.** The answer to an agent's mention returns to the agent that mentioned, as a turn, even when the answer mentions no one. A turn that first asks another agent keeps the answer owed, and the agent's next turn that mentions no one answers everyone waiting. An owner's mention needs no return.
 - **A busy agent.** A delivery to an agent whose turn is running waits and goes when that turn ends, in the order the deliveries were made.
 - **What a mention is.** `@` followed by the display name of an active team agent of the project, matched without regard to case, at a word boundary, outside code spans and code blocks. Any other `@` text stays text. Lervo's own agents are never mentioned.
 - **Bounds.** Agent-to-agent deliveries in one conversation are bounded by ADR-0454's exchange budget, 12 in 10 minutes, and by a depth of 8 from the turn that started the chain. An owner turn resets both. When a bound is reached:
@@ -64,9 +64,9 @@ The resident core decodes every hosted session's output, so it sees each turn en
 - **The owner's turn.** `room.route` (`workspaceId`, `text`) answers the agent IDs the turn goes to, in order: the mentioned agents, or the lead. The ADE sends the turn to each through `session.send`, as it sends one today, joining first where needed.
 - **Echoes.** A delivered turn reaches the recipient's stream as its user message. The core's decoder for that session knows the delivery it encoded and decodes the echo as a `peer_message` whose `from` is the mentioning agent's display name, never as the owner's message.
 - **Room lines.** The core adds `lervo_notice` items to the conversation for what the room does:
-  - `room.joined`, with the agent and who mentioned it;
-  - `room.paused`, with the turn count and limit;
-  - `room.delivery_failed`, with the agent and a code.
+  - `room_joined`, with the agent and who mentioned it;
+  - `room_paused`, with the turn count and limit;
+  - `room_delivery_failed`, with the agent and a code.
 - **Advertising.** The core advertises `room.route`, `room.join`, and `decoder.deliveries`. The session host and the ADE use none of them with a core that does not, and an older ADE sees one-agent conversations as before.
 
 ## The ADE

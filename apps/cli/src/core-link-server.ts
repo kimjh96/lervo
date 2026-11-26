@@ -14,6 +14,8 @@ import { errorCode } from "./command-error-output.js";
 import { commandAnswer, type Started } from "./core-link-commands.js";
 import type { CoreLinkHandlers } from "./core-link-handlers.js";
 import { lines } from "./core-link-lines.js";
+import { RoomLink, roomTranscriptContent } from "./room-link.js";
+import type { RoomDelivery } from "./room-router.js";
 import { TurnUsageQueue } from "./core-link-usage-queue.js";
 import { withoutShellOutput } from "./lervo-command-detail.js";
 
@@ -45,6 +47,7 @@ export class CoreLinkServer {
   /** Usage of decoders opened before their session was named, by decoder. */
   private readonly pendingUsage = new Map<string, HostedTurnUsage[]>();
   private readonly pending = new Set<Promise<void>>();
+  private readonly rooms: RoomLink;
   readonly usage: TurnUsageQueue;
 
   constructor(
@@ -54,6 +57,10 @@ export class CoreLinkServer {
     this.usage = new TurnUsageQueue((sessionId, accounting, usage) =>
       this.handlers.recordTurnUsage(sessionId, accounting, usage),
     );
+    this.rooms = new RoomLink(handlers.loadRoomContext, (task) => {
+      this.pending.add(task);
+      void task.finally(() => this.pending.delete(task));
+    });
   }
 
   /** Serves until the input ends or a malformed line arrives, then lets running commands finish. */
@@ -122,8 +129,17 @@ export class CoreLinkServer {
       request.command as string,
       (request.arguments ?? {}) as Record<string, unknown>,
     );
-    if (answer.kind === "launch") this.track(request.id, answer.run);
-    else this.respond(request.id, answer.run);
+    if (answer.kind === "result") {
+      this.respond(request.id, answer.run);
+      return;
+    }
+    // A joined agent's session is one more place its conversation's mentions reach.
+    const joins = request.command === "room.join";
+    this.track(request.id, async () => {
+      const started = await answer.run();
+      if (joins) this.rooms.joined();
+      return started;
+    });
   }
 
   private page(request: Request): void {
@@ -140,7 +156,10 @@ export class CoreLinkServer {
               kind: "transcript.page",
               id: request.id,
               complete: page.complete,
-              items: page.items.map((item) => ({ ...item, content: this.annotated(item.content) })),
+              items: page.items.map((item) => ({
+                ...item,
+                content: this.annotated(roomTranscriptContent(item.content)),
+              })),
             }),
           ),
         (error: unknown) => this.fail(request.id, error),
@@ -223,6 +242,7 @@ export class CoreLinkServer {
         // The session host names a decoder it opened unnamed: keep it, and record the turns it
         // already decoded. Their coordinates are deterministic, so nothing counts twice.
         this.decoderSessions.set(decoderId, request.sessionId);
+        this.rooms.opened(decoderId, request.sessionId, request.deliveries === true);
         const pending = this.pendingUsage.get(decoderId) ?? [];
         this.pendingUsage.delete(decoderId);
         if (pending.length > 0 && reportsUsage(existing))
@@ -232,9 +252,10 @@ export class CoreLinkServer {
       }
       this.decoders.set(decoderId, this.handlers.createDecoder(request.provider as string));
       this.pendingUsage.delete(decoderId);
-      if (typeof request.sessionId === "string")
+      if (typeof request.sessionId === "string") {
         this.decoderSessions.set(decoderId, request.sessionId);
-      else this.decoderSessions.delete(decoderId);
+        this.rooms.opened(decoderId, request.sessionId, request.deliveries === true);
+      } else this.decoderSessions.delete(decoderId);
       this.decoded(request.id, []);
     } catch (error) {
       this.fail(request.id, error);
@@ -245,6 +266,7 @@ export class CoreLinkServer {
     const decoderId = request.decoderId as string;
     const decoder = this.decoders.get(decoderId);
     if (request.kind === "decoder.close") {
+      this.rooms.closed(decoderId, this.decoderSessions.get(decoderId));
       this.decoders.delete(decoderId);
       this.decoderSessions.delete(decoderId);
       this.pendingUsage.delete(decoderId);
@@ -265,7 +287,13 @@ export class CoreLinkServer {
         this.fail(request.id, { code: "images_unsupported" });
         return;
       }
-      this.decoded(request.id, sent.events, Buffer.from(sent.input).toString("base64"));
+      const shown = this.rooms.sent(
+        decoderId,
+        this.decoderSessions.get(decoderId),
+        request.deliveryId as string | undefined,
+        sent.events,
+      );
+      this.decoded(request.id, shown, Buffer.from(sent.input).toString("base64"));
       return;
     }
     if (request.kind === "decoder.interrupt") {
@@ -277,7 +305,12 @@ export class CoreLinkServer {
       this.decoded(request.id, stopping.events, Buffer.from(stopping.input).toString("base64"));
       return;
     }
-    this.decoded(request.id, decoder.output(Buffer.from(request.data as string, "base64")));
+    const routed = this.rooms.output(
+      decoderId,
+      this.decoderSessions.get(decoderId),
+      decoder.output(Buffer.from(request.data as string, "base64")),
+    );
+    this.decoded(request.id, routed.events, undefined, routed.deliveries);
     // Usage leaves the decoder after the events are answered: to the queue for a named session,
     // and held, bounded, for one the session host has not named yet.
     if (!reportsUsage(decoder)) return;
@@ -294,7 +327,12 @@ export class CoreLinkServer {
     this.pendingUsage.set(decoderId, pending.slice(overflow));
   }
 
-  private decoded(id: number, events: readonly HostedDecodedEvent[], input?: string): void {
+  private decoded(
+    id: number,
+    events: readonly HostedDecodedEvent[],
+    input?: string,
+    deliveries?: readonly RoomDelivery[],
+  ): void {
     this.write(
       JSON.stringify({
         kind: "decoder.decoded",
@@ -305,6 +343,7 @@ export class CoreLinkServer {
             : event,
         ),
         ...(input === undefined ? {} : { input }),
+        ...(deliveries === undefined || deliveries.length === 0 ? {} : { deliveries }),
       }),
     );
   }
