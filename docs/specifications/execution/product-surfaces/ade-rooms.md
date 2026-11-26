@@ -125,5 +125,5 @@ Channels may later group conversations by topic, as Discord channels group threa
 
 ## Open items
 
-- Whether a read-access participant may run the conversation's tests, which write only build output, before S2h's claims.
+- Whether a read-access participant may run the conversation's tests. S2h's claims skip the build output Git ignores, so this depends only on the read-access tool allowlist ([Lervo ADE coordination](ade-coordination.md#read-access-participants)).
 - How long a joined agent's session stays open after its last turn before the session host stops it.
