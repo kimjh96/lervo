@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -34,6 +34,20 @@ import {
 } from "../src/terminal-workspace-boundary.js";
 import { startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
 
+/** A claim failure the next coordination stage meets, after its assignment was created. */
+const claimFailure = vi.hoisted(() => ({ next: null as Error | null }));
+vi.mock("@lervo/agent-workforce", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@lervo/agent-workforce")>();
+  return {
+    ...actual,
+    claimAssignment: (input: Parameters<typeof actual.claimAssignment>[0]) => {
+      const failure = claimFailure.next;
+      claimFailure.next = null;
+      return failure === null ? actual.claimAssignment(input) : Promise.reject(failure);
+    },
+  };
+});
+
 const execute = promisify(execFile);
 const roots: string[] = [];
 const instruction = "Change the log format\nUse one line per request.";
@@ -59,7 +73,10 @@ function io(cwd: string, stdin = "") {
 }
 
 /** A registered Lervo repository whose writer selects `schemaVersion`. */
-async function fixture(schemaVersion: number | null) {
+async function fixture(
+  schemaVersion: number | null,
+  options: { gate?: boolean; linkedHome?: boolean } = {},
+) {
   const root = await realpath(await mkdtemp(resolve(tmpdir(), "lervo-workspace-coordination-")));
   roots.push(root);
   const repository = resolve(root, "app");
@@ -69,7 +86,13 @@ async function fixture(schemaVersion: number | null) {
   await mkdir(bin);
   await writeFile(resolve(bin, "claude"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   vi.stubEnv("LERVO_USER_STATE_DIRECTORY", state);
+  // A home reached through a symbolic link names the worktree by a path that is not its real one.
+  if (options.linkedHome === true) {
+    await mkdir(resolve(root, "real-workspaces"));
+    await symlink(resolve(root, "real-workspaces"), resolve(root, "workspaces"));
+  }
   vi.stubEnv("LERVO_WORKSPACES_HOME", resolve(root, "workspaces"));
+  if (options.gate !== false) vi.stubEnv("LERVO_COORDINATION", "1");
   vi.stubEnv("CLAUDE_CONFIG_DIR", resolve(root, "claude"));
   vi.stubEnv("PATH", `${bin}${delimiter}${process.env.PATH ?? ""}`);
   await git(repository, "init", "--initial-branch", "main");
@@ -285,6 +308,76 @@ describe("the coordination stage of lervo workspace start", () => {
     } finally {
       await storage.close();
     }
+  });
+
+  it("stays inactive at schema 16 while the stage's gate is closed", async () => {
+    const app = await fixture(16, { gate: false });
+    const started = await startWorkspaceFromInstruction({
+      instruction,
+      repository: app.projectId,
+      participants: [app.lead.agentId],
+    });
+    expect(started.coordination).toEqual({ status: "inactive", code: "coordination_inactive" });
+    expect(await listWorkspaces(app.repository)).toEqual([]);
+  });
+
+  it("cancels the new assignment when the lead's claim fails, and starts anyway", async () => {
+    const app = await fixture(16);
+    claimFailure.next = Object.assign(new Error("busy"), { code: "workforce_busy" });
+    const started = await startWorkspaceFromInstruction({
+      instruction,
+      repository: app.projectId,
+      participants: [app.lead.agentId],
+    });
+    expect(started.coordination).toEqual({
+      status: "unavailable",
+      code: "coordination_unavailable",
+      cause: "workforce_busy",
+    });
+    expect(
+      (await listAssignments(app.repository))
+        .filter((item) => item.taskType === CONVERSATION_TASK_TYPE)
+        .map((item) => [item.status, item.lease]),
+    ).toEqual([["cancelled", null]]);
+    expect(await listWorkspaces(app.repository)).toEqual([]);
+    expect((await events(app.repository)).map((event) => event.type)).toEqual(
+      expect.arrayContaining(["assignment.created", "assignment.cancelled"]),
+    );
+  });
+
+  it("names the worktree by its real path when the workspaces home is a symbolic link", async () => {
+    const app = await fixture(16, { linkedHome: true });
+    const started = await startWorkspaceFromInstruction({
+      instruction,
+      repository: app.projectId,
+      participants: [app.lead.agentId],
+    });
+    expect(started.coordination).toEqual({ status: "active" });
+    const worktree = started.launch.workingDirectory;
+    const real = await realpath(worktree);
+    expect(real).not.toBe(worktree);
+    const workspace = (await readNewestConversationWorkspace(app.repository, started.workspaceId))!;
+    expect(workspace).toMatchObject({
+      pathDigest: repositoryCoordinateDigest(real),
+      ownerWorkspacePath: real,
+    });
+    const gitDirectory = await git(worktree, "rev-parse", "--path-format=absolute", "--git-dir");
+    expect(
+      JSON.parse(await readFile(resolve(gitDirectory, "lervo-workspace-owner.json"), "utf8")),
+    ).toEqual(terminalWorkspaceMarker(workspace));
+    // Through the link or its real path, the session finds the conversation's two roots.
+    for (const cwd of [worktree, real])
+      expect(await resolveTerminalRoots(cwd)).toMatchObject({
+        evidenceRoot: app.repository,
+        reason: "linked_worktree",
+      });
+    expect(
+      await attachTerminalWorkspace({
+        root: worktree,
+        provider: "claude",
+        providerSessionId: started.sessionId,
+      }),
+    ).toBeNull();
   });
 
   it("keeps one root for a worker workspace beside a conversation's", async () => {

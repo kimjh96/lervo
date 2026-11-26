@@ -8,11 +8,7 @@ import { resolve } from "node:path";
 import { isConversationWorkspace, readNewestCheckoutWorkspace } from "@lervo/agent-workforce";
 import { replaceFile } from "@lervo/filesystem-durability";
 import { baseDeliveryEventSchemaVersion } from "@lervo/event-contract";
-import {
-  openProjectStorage,
-  repositoryCoordinateDigest,
-  type ProjectStorage,
-} from "@lervo/project-storage";
+import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
   terminalBaseDeliveryReasons,
   type TerminalContextBaseDeliveredEventPayload,
@@ -26,6 +22,7 @@ import {
   terminalCachedBaseNameDigest,
 } from "./terminal-cached-base-turn.js";
 import { TERMINAL_CONTEXT_ENVIRONMENT } from "./terminal-context-request.js";
+import { checkoutPathDigests } from "./checkout-path-digests.js";
 import { resolveTerminalRoots } from "./terminal-roots.js";
 
 /** The launcher prints a cached base younger than this; the server refreshes it well before. */
@@ -162,7 +159,7 @@ const defaultPorts: TerminalCachedBasePorts = {
   claimed: async (executionRoot) => {
     const newest = await readNewestCheckoutWorkspace(
       executionRoot,
-      repositoryCoordinateDigest(executionRoot),
+      await checkoutPathDigests(executionRoot),
     );
     return newest !== null && !isConversationWorkspace(newest);
   },

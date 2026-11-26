@@ -8,12 +8,12 @@ import { basename, dirname, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 import { isConversationWorkspace, readNewestCheckoutWorkspace } from "@lervo/agent-workforce";
-import { repositoryCoordinateDigest } from "@lervo/project-storage";
 import {
   defaultRepositoryRegistryPath,
   listRegisteredRepositories,
 } from "@lervo/repository-registry";
 
+import { checkoutPathDigests } from "./checkout-path-digests.js";
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
 
 const run = promisify(execFile);
@@ -116,7 +116,7 @@ export const defaultTerminalRootsPorts: TerminalRootsPorts = {
     return roots.filter((root): root is string => root !== null);
   },
   async workerCheckout(root) {
-    const newest = await readNewestCheckoutWorkspace(root, repositoryCoordinateDigest(root)).catch(
+    const newest = await readNewestCheckoutWorkspace(root, await checkoutPathDigests(root)).catch(
       () => null,
     );
     return newest !== null && !isConversationWorkspace(newest);

@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { chmod, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, link, mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -161,6 +161,8 @@ describe("conversation workspace records", () => {
     expect(newestCheckoutWorkspace([first, removed], checkout)).toBe(first);
     expect(isSupersededCheckoutGeneration(first, [first, removed])).toBe(false);
     expect(newestCheckoutWorkspace([first], `sha256:${"d".repeat(64)}`)).toBeNull();
+    // A checkout named by its given path and its real path is found by either digest.
+    expect(newestCheckoutWorkspace([first], [`sha256:${"d".repeat(64)}`, checkout])).toBe(first);
     // A worker's single record is the newest of its checkout, as before.
     expect(newestCheckoutWorkspace([worker()], checkout)?.kind).toBeUndefined();
   });
@@ -276,6 +278,22 @@ describe("the claim path key", () => {
     );
     expect(keys[1]).toEqual(keys[0]);
     expect(keys[2]).toEqual(keys[0]);
+  });
+
+  it("removes a creation's abandoned temporary file on the next use", async () => {
+    const fixture = await repository();
+    const key = await readOrCreateClaimPathKey(fixture.root);
+    const path = resolve(fixture.records.home.root, CLAIM_PATH_KEY_FILE);
+    const abandoned = `${path}.4242.0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c.tmp`;
+    const fresh = `${path}.4243.1b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c.tmp`;
+    await link(path, abandoned);
+    await writeFile(fresh, "in flight", { mode: 0o600 });
+    const past = new Date(Date.now() - 120_000);
+    await utimes(abandoned, past, past);
+    expect(await readOrCreateClaimPathKey(fixture.root)).toEqual(key);
+    await expect(stat(abandoned)).rejects.toMatchObject({ code: "ENOENT" });
+    // A temporary file younger than a minute may be another creation's, still in flight.
+    expect((await stat(fresh)).isFile()).toBe(true);
   });
 
   it("fails closed on a key that is not owner-only or not 32 bytes", async () => {

@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import { link, lstat, open, readFile, rm } from "node:fs/promises";
+import { link, lstat, open, readdir, readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
@@ -9,11 +9,15 @@ import { MINIMUM_CLAIM_PATH_KEY_BYTES } from "./claim-path-digest.js";
 import { AgentWorkforceError } from "./types.js";
 
 /**
- * The repository instance's claim path secret: 32 random bytes in its coordination home, under the
- * Git common directory, which every checkout of the instance shares and nothing tracks or
- * publishes. `assignment.claim.refused` keys its `pathDigest` with it (Lervo ADE coordination).
+ * The repository instance's claim path secret: 32 random bytes in its coordination home, which
+ * every checkout of the instance shares and nothing tracks or publishes: under the Git common
+ * directory, or `.lervo/data/repository-coordination-v1` of a checkout outside Git, which
+ * `.lervo/.gitignore` excludes. `assignment.claim.refused` keys its `pathDigest` with it (Lervo
+ * ADE coordination). A filesystem without owner-only modes, such as WSL's drvfs, fails closed.
  */
 export const CLAIM_PATH_KEY_FILE = "claim-path-key";
+/** A creation's temporary file older than this was left by a process that stopped mid-write. */
+const ABANDONED_TEMPORARY_MS = 60_000;
 
 function unsafe(message: string): never {
   throw new AgentWorkforceError("workforce_state_invalid", message);
@@ -74,6 +78,8 @@ export async function readOrCreateClaimPathKey(
 ): Promise<Uint8Array> {
   const home = await resolveRepositoryCoordinationHome(repositoryRoot);
   const path = resolve(home.root, CLAIM_PATH_KEY_FILE);
+  // A creation that stopped between its link and its cleanup leaves a second name of the key.
+  await removeAbandonedTemporaries(home.root);
   try {
     return await readKey(path);
   } catch (error) {
@@ -81,4 +87,15 @@ export async function readOrCreateClaimPathKey(
   }
   await createKey(path, options.generate ?? (() => new Uint8Array(randomBytes(32))));
   return readKey(path);
+}
+
+/** Removes the temporary files of creations that stopped before they removed their own. */
+async function removeAbandonedTemporaries(directory: string, now = Date.now()): Promise<void> {
+  for (const name of await readdir(directory)) {
+    if (!name.startsWith(`${CLAIM_PATH_KEY_FILE}.`) || !name.endsWith(".tmp")) continue;
+    const path = resolve(directory, name);
+    const info = await lstat(path).catch(() => null);
+    if (info !== null && now - info.mtimeMs > ABANDONED_TEMPORARY_MS)
+      await rm(path, { force: true });
+  }
 }

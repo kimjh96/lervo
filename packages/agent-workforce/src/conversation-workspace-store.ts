@@ -15,12 +15,12 @@ import {
 } from "./workspace-store.js";
 import type { AgentWorkspace } from "./workspace-types.js";
 
-/** The newest record of the checkout at `pathDigest` that is not `removed`, or null. */
+/** The newest record of the checkout named by `pathDigests` that is not `removed`, or null. */
 export async function readNewestCheckoutWorkspace(
   repositoryRoot: string,
-  pathDigest: string,
+  pathDigests: string | readonly string[],
 ): Promise<AgentWorkspace | null> {
-  return newestCheckoutWorkspace(await listWorkspaces(repositoryRoot), pathDigest);
+  return newestCheckoutWorkspace(await listWorkspaces(repositoryRoot), pathDigests);
 }
 
 /** The conversation's newest generation that is not `removed`, or null. */

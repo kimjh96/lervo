@@ -17,6 +17,7 @@ import {
   terminalWorkspaceMarker,
   terminalWriterSessionId,
 } from "./terminal-workspace-boundary.js";
+import { checkoutPathDigests } from "./checkout-path-digests.js";
 import {
   terminalWorkspaceIsolationFailure,
   type TerminalWorkspaceBinding,
@@ -30,7 +31,7 @@ export async function attachTerminalWorkspace(input: {
 }): Promise<TerminalWorkspaceBinding | null> {
   const pathDigest = repositoryCoordinateDigest(input.root);
   const workspaces = await listWorkspaces(input.root);
-  const newest = newestCheckoutWorkspace(workspaces, pathDigest);
+  const newest = newestCheckoutWorkspace(workspaces, await checkoutPathDigests(input.root));
   // A conversation's generation is not a worker attachment: its session keeps the linked
   // worktree's hooks until conversation claims and their Stop land (Lervo ADE coordination).
   if (newest === null || isConversationWorkspace(newest)) return null;

@@ -1,11 +1,16 @@
 // The real effects of `lervo workspace start`'s coordination stage: the registered repository's
 // writer and workforce, its Node's coordination mode, and the new worktree's Git host.
+import { realpath } from "node:fs/promises";
+
 import {
   CONVERSATION_LEASE_MS,
   CONVERSATION_TASK_TYPE,
+  cancelAssignment,
   claimAssignment,
   createAssignment,
+  createAssignmentCancellationPlan,
   listAgents,
+  listAssignments,
   recordConversationWorkspaceGeneration,
 } from "@lervo/agent-workforce";
 import { loadProjectManifest } from "@lervo/project";
@@ -27,9 +32,10 @@ import {
 import { recordWorkforceEvent } from "./workforce-events.js";
 import { defaultBranchOf } from "./workspace-base.js";
 import { runGit } from "./workspace-base-git.js";
-import type {
-  WorkspaceCoordinationPorts,
-  WorkspaceCoordinationRequest,
+import {
+  coordinationStageEnabled,
+  type WorkspaceCoordinationPorts,
+  type WorkspaceCoordinationRequest,
 } from "./workspace-coordination.js";
 
 const ACCEPTANCE_CRITERION = "The conversation's sealed change passes its verification.";
@@ -77,17 +83,27 @@ async function integrationTargetDigest(repositoryRoot: string): Promise<string> 
   return repositoryCoordinateDigest(`refs/heads/${target.branch}`);
 }
 
+/** What the stage reads before it writes anything. */
+interface ConversationFacts {
+  readonly lead: Awaited<ReturnType<typeof listAgents>>[number];
+  readonly marker: WorkspaceOwnershipMarker;
+  readonly host: GitWorkspaceHostAdapter;
+  readonly baseCommit: string;
+  /** The worktree's real path, whose digest the marker and every checkout reader use. */
+  readonly checkoutPath: string;
+  readonly targetDigest: string;
+  readonly suites: string[];
+}
+
 /**
- * Everything the stage writes rests on facts read first: the marker the start wrote, the active
- * lead, a clean checkout at its post-replay head, the target, and the suite. A failure among them
- * writes nothing. After that the assignment, its claim, and the record follow in that order; a
- * failure between them leaves at most a path-less assignment whose lease lapses within 10
- * minutes, which holds no path.
+ * The facts the stage's writes rest on: the marker the start wrote, the active lead, and a clean
+ * checkout bound to that marker at its post-replay head, plus the target and the suite. A failure
+ * here writes nothing.
  */
-async function establish(
+async function readFacts(
   request: WorkspaceCoordinationRequest,
   marker: WorkspaceOwnershipMarker | null,
-): Promise<void> {
+): Promise<ConversationFacts> {
   if (marker === null)
     throw new CommandFailure("coordination_marker_absent", "The start wrote no workspace marker.");
   const { repositoryRoot, workspacePath } = request;
@@ -96,10 +112,18 @@ async function establish(
   );
   if (lead === undefined || lead.status !== "active")
     throw new CommandFailure("coordination_lead_inactive", "The conversation's lead is inactive.");
+  const checkoutPath = await realpath(workspacePath);
   const baseCommit = await runGit(workspacePath, ["rev-parse", "--verify", "HEAD^{commit}"]);
   const host = new GitWorkspaceHostAdapter();
   const inspected = await host.inspect({ repositoryRoot, workspacePath, baseCommit, marker });
-  if (inspected.status !== "present" || !inspected.markerMatched || inspected.clean !== true)
+  if (
+    inspected.status !== "present" ||
+    !inspected.markerMatched ||
+    inspected.clean !== true ||
+    marker.pathDigest !== repositoryCoordinateDigest(checkoutPath) ||
+    marker.adapterKind !== host.kind ||
+    marker.adapterVersion !== host.version
+  )
     throw new CommandFailure(
       "coordination_checkout_unproven",
       "The new worktree is not a clean checkout bound to its marker.",
@@ -108,6 +132,60 @@ async function establish(
     integrationTargetDigest(repositoryRoot),
     conversationSuites(repositoryRoot),
   ]);
+  return { lead, marker, host, baseCommit, checkoutPath, targetDigest, suites };
+}
+
+/**
+ * Claims the new assignment for the lead. When the claim fails, the still-queued assignment is
+ * cancelled (`requested`), so a failed stage leaves no assignment that waits for a claimant; a
+ * cancellation that fails too is reported as `coordination_assignment_stranded`.
+ */
+async function claimOrWithdraw(
+  input: Parameters<typeof claimAssignment>[0],
+): Promise<Awaited<ReturnType<typeof claimAssignment>>> {
+  try {
+    return await claimAssignment(input);
+  } catch (claimError) {
+    try {
+      const plan = createAssignmentCancellationPlan({
+        assignments: await listAssignments(input.repositoryRoot),
+        assignmentId: input.assignmentId,
+        reason: "requested",
+      });
+      await cancelAssignment({
+        repositoryRoot: input.repositoryRoot,
+        assignmentId: input.assignmentId,
+        reason: "requested",
+        expectedPlanId: plan.planId,
+        ...(input.recordEvent === undefined ? {} : { recordEvent: input.recordEvent }),
+      });
+    } catch (cancelError) {
+      throw new CommandFailure(
+        "coordination_assignment_stranded",
+        "The lead's claim failed and the conversation assignment could not be cancelled.",
+        {
+          assignmentId: input.assignmentId,
+          claimCause: errorCode(claimError),
+          cancelCause: errorCode(cancelError),
+        },
+      );
+    }
+    throw claimError;
+  }
+}
+
+/**
+ * Creates the conversation assignment, claims it for the lead, and records generation 1, in that
+ * order. A failed claim cancels the assignment. A failed record leaves the claimed assignment,
+ * which holds no path and whose lease lapses within 10 minutes; nothing then refers to it.
+ */
+async function establish(
+  request: WorkspaceCoordinationRequest,
+  provisionedMarker: WorkspaceOwnershipMarker | null,
+): Promise<void> {
+  const facts = await readFacts(request, provisionedMarker);
+  const { repositoryRoot } = request;
+  const { lead, marker, host } = facts;
   const storage = await openProjectStorage(repositoryRoot);
   try {
     const recordEvent = (event: Parameters<typeof recordWorkforceEvent>[1]) =>
@@ -123,11 +201,11 @@ async function establish(
       workstreamId: request.workstreamId,
       priority: CONVERSATION_PRIORITY,
       acceptanceCriteria: [ACCEPTANCE_CRITERION],
-      verificationSuiteIds: suites,
+      verificationSuiteIds: facts.suites,
       now,
       recordEvent,
     });
-    const claimed = await claimAssignment({
+    const claimed = await claimOrWithdraw({
       repositoryRoot,
       assignmentId: assignment.assignmentId,
       expectedRevision: assignment.revision,
@@ -149,12 +227,12 @@ async function establish(
       agentId: lead.agentId,
       leaseGeneration: claimed.lease!.generation,
       host: { kind: host.kind, version: host.version, nativeInstanceDigest: null },
-      baseCommit,
-      integrationTargetDigest: targetDigest,
+      baseCommit: facts.baseCommit,
+      integrationTargetDigest: facts.targetDigest,
       creationPlanId: marker.creationPlanId,
       markerHash: terminalWorkspaceDigest(marker),
       pathDigest: marker.pathDigest,
-      ownerWorkspacePath: workspacePath,
+      ownerWorkspacePath: facts.checkoutPath,
       inspection: { hostInspected: true, markerMatched: true, checkoutClean: true },
       now: new Date(),
     });
@@ -168,6 +246,7 @@ export function conversationCoordinationPorts(
   provisionedMarker: () => WorkspaceOwnershipMarker | null,
 ): WorkspaceCoordinationPorts {
   return {
+    stageEnabled: () => coordinationStageEnabled(process.env),
     writerSchemaVersion,
     hubCoordinated: repositoryHubCoordinated,
     establish: (request) => establish(request, provisionedMarker()),

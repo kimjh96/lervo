@@ -1,8 +1,8 @@
 // The real effects of `lervo workspace start` and `open`: Git and the workstream service.
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdir, rm } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, realpath, rm } from "node:fs/promises";
+import { basename, dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { conversationWorkspaceRecordId } from "@lervo/agent-workforce";
@@ -48,18 +48,24 @@ export async function defaultBranchCommit(root: string): Promise<string> {
 /**
  * The ownership marker of the conversation's first generation. It names the generation's own
  * workspace record, derived from the conversation's workspace ID, so every reader that rebuilds a
- * marker from a record finds it; a later generation replaces it by compare-and-swap.
+ * marker from a record finds it; a later generation replaces it by compare-and-swap. The adapter
+ * names itself, and the path digest is of the worktree's real path, as the record's is.
  */
-function ownership(placement: WorkspacePlacement, repositoryInstanceId: string) {
+function ownership(
+  placement: WorkspacePlacement,
+  repositoryInstanceId: string,
+  host: { kind: "git"; version: string },
+  realWorkspacePath: string,
+) {
   const marker: WorkspaceOwnershipMarker = {
     schemaVersion: 1,
     workspaceId: conversationWorkspaceRecordId(placement.workspaceId, 1),
     generation: 1,
     repositoryInstanceId,
-    adapterKind: "git",
-    adapterVersion: "1.0.0",
+    adapterKind: host.kind,
+    adapterVersion: host.version,
     creationPlanId: `wpl_${hex(12)}`,
-    pathDigest: repositoryCoordinateDigest(placement.workspacePath),
+    pathDigest: repositoryCoordinateDigest(realWorkspacePath),
   };
   return {
     repositoryRoot: placement.repositoryRoot,
@@ -148,8 +154,11 @@ export function gitWorkspaceEffects() {
     },
     async provisionWorkspace(placement: WorkspacePlacement): Promise<void> {
       const home = await resolveRepositoryCoordinationHome(placement.repositoryRoot);
-      owned = ownership(placement, home.repositoryInstanceId);
-      await mkdir(dirname(placement.workspacePath), { recursive: true });
+      const parent = dirname(placement.workspacePath);
+      await mkdir(parent, { recursive: true });
+      // The worktree does not exist yet; its real path is its parent's real path and its leaf.
+      const real = resolve(await realpath(parent), basename(placement.workspacePath));
+      owned = ownership(placement, home.repositoryInstanceId, host, real);
       await host.provisionBranch({
         ...owned,
         branch: placement.branch,

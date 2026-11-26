@@ -25,8 +25,22 @@ export interface WorkspaceCoordinationRequest {
   readonly sessionId: string;
 }
 
+/**
+ * Whether this release runs the coordination stage. Schema 16 also carries conversation notes, so
+ * it may be activated before claims are complete: the stage stays closed until the claim handler
+ * and the turn's reconciliation land (Lervo ADE coordination, slice 1), whatever the writer selects.
+ */
+export const COORDINATION_STAGE_ENABLED = false;
+
+/** The stage's gate: this release's switch, or `LERVO_COORDINATION=1` for canaries and tests. */
+export function coordinationStageEnabled(environment: NodeJS.ProcessEnv): boolean {
+  return COORDINATION_STAGE_ENABLED || environment.LERVO_COORDINATION === "1";
+}
+
 /** What the coordination stage reads and writes; each is replaced in tests. */
 export interface WorkspaceCoordinationPorts {
+  /** Whether the stage's gate is open (`coordinationStageEnabled`). */
+  stageEnabled(): boolean;
   /** The event schema the registered repository's writer selects. */
   writerSchemaVersion(repositoryRoot: string): Promise<number>;
   /** Whether a Node of this host reserves the repository's paths at the Hub. */
@@ -36,7 +50,8 @@ export interface WorkspaceCoordinationPorts {
 }
 
 /**
- * The coordination stage of `lervo workspace start` with a lead. A workforce transition never
+ * The coordination stage of `lervo workspace start` with a lead. A closed gate is
+ * `coordination_inactive`, as a writer below schema 16 is. A workforce transition never
  * commits without its event, so a lease could not grow below schema 16, and a Hub-coordinated
  * repository reserves fixed paths at the Hub before a claim: both stay `inactive`. Any failure is
  * `unavailable` with the failure's code, never a failed start.
@@ -46,7 +61,10 @@ export async function coordinateConversationWorkspace(
   ports: WorkspaceCoordinationPorts,
 ): Promise<WorkspaceCoordination> {
   try {
-    if ((await ports.writerSchemaVersion(request.repositoryRoot)) < coordinationEventSchemaVersion)
+    if (
+      !ports.stageEnabled() ||
+      (await ports.writerSchemaVersion(request.repositoryRoot)) < coordinationEventSchemaVersion
+    )
       return { status: "inactive", code: "coordination_inactive" };
     if (await ports.hubCoordinated(request.repositoryRoot))
       return { status: "inactive", code: "hub_coordinated_unsupported" };

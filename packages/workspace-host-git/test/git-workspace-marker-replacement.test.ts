@@ -1,12 +1,17 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdtemp, readdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { hostname, tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { GitWorkspaceHostAdapter } from "../src/index.js";
+import {
+  acquireMarkerLock,
+  MARKER_LOCK_GRACE_MS,
+  MARKER_LOCK_STALE_MS,
+} from "../src/marker-lock.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -26,6 +31,22 @@ const second = {
   generation: 2,
   creationPlanId: "wpl_1123456789abcdef01234567",
 };
+
+/** A lock as a holder writes it; by default this host's, past the stale gate. */
+function lockContent(holder: {
+  pid: number;
+  hostname?: string;
+  createdAt?: Date;
+  token?: string;
+}): string {
+  return `${JSON.stringify({
+    schemaVersion: 1,
+    token: holder.token ?? "crashed-holder",
+    pid: holder.pid,
+    hostname: holder.hostname ?? hostname(),
+    createdAt: (holder.createdAt ?? new Date(Date.now() - 2 * MARKER_LOCK_STALE_MS)).toISOString(),
+  })}\n`;
+}
 
 /** A provisioned worktree whose marker names generation 1. */
 async function provisioned() {
@@ -105,10 +126,36 @@ describe("Git workspace marker replacement", () => {
     expect(JSON.parse(await readFile(fixture.markerPath, "utf8"))).toEqual(first);
   });
 
-  it("waits for no live replacement and recovers a lock whose process is gone", async () => {
+  it("refuses while a live replacement holds the lock and takes over a crashed one", async () => {
     const fixture = await provisioned();
     const lock = `${fixture.markerPath}.lock`;
-    await writeFile(lock, `${process.pid}\n`);
+    const replace = () =>
+      fixture.adapter.replaceMarker({
+        workspacePath: fixture.workspacePath,
+        expected: first,
+        next: second,
+      });
+    // A young lock is live whatever its process, and another host's lock is never stale.
+    await writeFile(lock, lockContent({ pid: 2147483646, createdAt: new Date() }));
+    await expect(replace()).rejects.toMatchObject({ code: "host_operation_in_progress" });
+    await writeFile(lock, lockContent({ pid: 2147483646, hostname: "another-host" }));
+    await expect(replace()).rejects.toMatchObject({ code: "host_operation_in_progress" });
+    // An old lock of this host whose process is alive still holds.
+    await writeFile(lock, lockContent({ pid: process.pid }));
+    await expect(replace()).rejects.toMatchObject({ code: "host_operation_in_progress" });
+    expect(JSON.parse(await readFile(fixture.markerPath, "utf8"))).toEqual(first);
+
+    // No process has this ID and the lock is past the gate: a crashed replacement's, taken over.
+    await writeFile(lock, lockContent({ pid: 2147483646 }));
+    await replace();
+    expect(JSON.parse(await readFile(fixture.markerPath, "utf8"))).toEqual(second);
+    await expect(stat(lock)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("treats an empty lock as a partial write until its grace has passed", async () => {
+    const fixture = await provisioned();
+    const lock = `${fixture.markerPath}.lock`;
+    await writeFile(lock, "");
     await expect(
       fixture.adapter.replaceMarker({
         workspacePath: fixture.workspacePath,
@@ -116,16 +163,44 @@ describe("Git workspace marker replacement", () => {
         next: second,
       }),
     ).rejects.toMatchObject({ code: "host_operation_in_progress" });
-    expect(JSON.parse(await readFile(fixture.markerPath, "utf8"))).toEqual(first);
-
-    // No process has this ID, so the lock is a crashed replacement's and is taken over.
-    await writeFile(lock, "2147483646\n");
+    const past = new Date(Date.now() - 2 * MARKER_LOCK_GRACE_MS);
+    await utimes(lock, past, past);
     await fixture.adapter.replaceMarker({
       workspacePath: fixture.workspacePath,
       expected: first,
       next: second,
     });
     expect(JSON.parse(await readFile(fixture.markerPath, "utf8"))).toEqual(second);
+  });
+});
+
+describe("the marker lock", () => {
+  it("lets exactly one of two concurrent takeovers of a stale lock hold it", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-marker-lock-"));
+    roots.push(root);
+    const lock = resolve(root, "marker.lock");
+    await writeFile(lock, lockContent({ pid: 2147483646 }));
+    const outcomes = await Promise.allSettled([acquireMarkerLock(lock), acquireMarkerLock(lock)]);
+    const held = outcomes.filter((outcome) => outcome.status === "fulfilled");
+    expect(held).toHaveLength(1);
+    expect(outcomes.find((outcome) => outcome.status === "rejected")).toMatchObject({
+      reason: { code: "host_operation_in_progress" },
+    });
+    const holder = JSON.parse(await readFile(lock, "utf8")) as { pid: number };
+    expect(holder.pid).toBe(process.pid);
+    await (held[0] as PromiseFulfilledResult<() => Promise<void>>).value();
     await expect(stat(lock)).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await readdir(root)).sort()).toEqual([]);
+  });
+
+  it("never removes another holder's lock on release", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-marker-lock-"));
+    roots.push(root);
+    const lock = resolve(root, "marker.lock");
+    const release = await acquireMarkerLock(lock);
+    const other = lockContent({ pid: process.pid, token: "another-holder", createdAt: new Date() });
+    await writeFile(lock, other);
+    await release();
+    expect(await readFile(lock, "utf8")).toBe(other);
   });
 });

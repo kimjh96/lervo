@@ -48,17 +48,19 @@ function newestFirst(left: AgentWorkspace, right: AgentWorkspace): number {
 }
 
 /**
- * The newest record of the checkout at `pathDigest` that is not `removed`, or null. Root
+ * The newest record of the checkout that is not `removed`, or null. A checkout may be named by
+ * more than one path digest, such as that of its path as given and that of its real path. Root
  * resolution, workspace attachment, and cleanup read a checkout through this record, so an older
  * generation that waits for integration never speaks for the checkout while a newer one lives.
  */
 export function newestCheckoutWorkspace(
   workspaces: readonly AgentWorkspace[],
-  pathDigest: string,
+  pathDigests: string | readonly string[],
 ): AgentWorkspace | null {
+  const digests = new Set(typeof pathDigests === "string" ? [pathDigests] : pathDigests);
   return (
     workspaces
-      .filter((workspace) => workspace.pathDigest === pathDigest && workspace.state !== "removed")
+      .filter((workspace) => digests.has(workspace.pathDigest) && workspace.state !== "removed")
       .sort(newestFirst)[0] ?? null
   );
 }

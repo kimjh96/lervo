@@ -2,7 +2,9 @@ import { workspaceStartCoordinationSchema } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
 import {
+  COORDINATION_STAGE_ENABLED,
   coordinateConversationWorkspace,
+  coordinationStageEnabled,
   type WorkspaceCoordinationPorts,
 } from "../src/workspace-coordination.js";
 
@@ -21,6 +23,7 @@ function ports(
 ): WorkspaceCoordinationPorts & { established: number } {
   const value = {
     established: 0,
+    stageEnabled: () => true,
     writerSchemaVersion: async () => 16,
     hubCoordinated: async () => false,
     async establish() {
@@ -45,6 +48,18 @@ describe("the coordination stage", () => {
       });
       expect(below.established).toBe(0);
     }
+    // The gate stays closed until claims are complete, whatever the writer selects.
+    const closed = ports({ stageEnabled: () => false });
+    expect(await coordinateConversationWorkspace(request, closed)).toEqual({
+      status: "inactive",
+      code: "coordination_inactive",
+    });
+    expect(closed.established).toBe(0);
+    expect(COORDINATION_STAGE_ENABLED).toBe(false);
+    expect(coordinationStageEnabled({})).toBe(false);
+    expect(coordinationStageEnabled({ LERVO_COORDINATION: "1" })).toBe(true);
+    expect(coordinationStageEnabled({ LERVO_COORDINATION: "true" })).toBe(false);
+
     const hub = ports({ hubCoordinated: async () => true });
     expect(await coordinateConversationWorkspace(request, hub)).toEqual({
       status: "inactive",
