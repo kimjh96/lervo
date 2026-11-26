@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ebf217a2b5eca4943d5ff8c0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A watched directory removed and created again before its event arrived now re-arms the watch, instead of leaving it on the removed directory."
