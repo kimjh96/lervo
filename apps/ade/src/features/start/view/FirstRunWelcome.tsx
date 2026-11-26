@@ -1,29 +1,13 @@
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useFiles } from "../../../ports";
-import { FolderIcon, PlusIcon } from "../../../ui/icons";
+import { CloneIcon, FolderIcon, PlusIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { Presence } from "../../../ui/Presence";
 import { Waiting } from "../../../ui/Waiting";
 import { useFileDrop } from "../../conversation";
 import { useAddProject, useAddStore } from "../../projects";
 import styles from "./FirstRunWelcome.module.css";
-
-/** A down arrow into a tray, for cloning. */
-function CloneIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-      <path
-        d="M8 2v8m0 0-3-3m3 3 3-3M3 12.5h10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 /**
  * The start screen with no project yet (Lervo ADE projects, "The first run"): adding a project is
@@ -53,7 +37,7 @@ export function FirstRunWelcome() {
     },
     {
       key: "clone",
-      icon: <CloneIcon />,
+      icon: <CloneIcon size="lg" />,
       title: intl.formatMessage({ id: "start.firstRun.clone.title" }),
       detail: intl.formatMessage({ id: "start.firstRun.clone.detail" }),
       run: add.cloneRepository,

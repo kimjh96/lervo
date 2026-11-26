@@ -1,4 +1,5 @@
-// ADE motion, "Coming and going": an element that a view shows only sometimes either sits in
+// ADE motion, "Coming and going" and "Changing in place": an element that a view shows only
+// sometimes, or swaps for another in place, either sits in
 // `Presence`, which fades it in and out, or names the pattern of the motion catalog that governs
 // it in a `{/* motion: <pattern> */}` comment just before it, or inside the braces of an attribute
 // such as `trailing={/* motion: Finished status */ a ? <Dot /> : null}`. Nothing comes or goes
@@ -13,14 +14,21 @@ function isEmpty(node) {
   );
 }
 
-/** Whether an expression shows its content only sometimes: `a ? b : null` or `a && b`. */
+const isJsx = (node) => node?.type === "JSXElement" || node?.type === "JSXFragment";
+
+/**
+ * Whether an expression shows its content only sometimes, `a ? b : null` or `a && b`, or swaps
+ * one element for another in place, `a ? <A /> : <B />` (ADE motion, "Changing in place").
+ */
 function isConditional(expression) {
   if (expression?.type === "ConditionalExpression")
-    return isEmpty(expression.consequent) || isEmpty(expression.alternate);
+    return (
+      isEmpty(expression.consequent) ||
+      isEmpty(expression.alternate) ||
+      (isJsx(expression.consequent) && isJsx(expression.alternate))
+    );
   return expression?.type === "LogicalExpression" && expression.operator === "&&";
 }
-
-const isJsx = (node) => node?.type === "JSXElement" || node?.type === "JSXFragment";
 
 /** Whether a conditional's shown branch is an element, as in `trailing={a ? <Dot /> : null}`. */
 function showsElement(expression) {

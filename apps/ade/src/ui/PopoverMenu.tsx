@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 
 import { CheckIcon } from "./icons";
 import styles from "./PopoverMenu.module.css";
+import { sizes } from "../design/generated/sizes";
 
 export interface PopoverMenuItem {
   readonly text: string;
@@ -18,7 +19,8 @@ export interface PopoverMenuItem {
 }
 
 /** The gap between the control and its menu (`space.4`). */
-const MENU_GAP = 4;
+/** A menu hangs 4 px below its control (ADE craft rules, 10). */
+const MENU_GAP = sizes.space["4"];
 
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
