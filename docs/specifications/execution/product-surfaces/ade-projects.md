@@ -38,7 +38,7 @@ The core adds a project from one of three sources, each in one command, and then
 - `lervo project rename --project <id> --name <text> --write` writes the display name to the profile.
 - `lervo project mark set --project <id> --image <file> --write` and `lervo project mark clear --project <id> --write` set and clear the mark.
 - `lervo repository unregister --project <id> --write` removes this host's registry entry only. It never touches the project's files, worktrees, workspaces, or state. Workspaces of an unregistered project stay on disk and reappear when the project is added again.
-- Rename and mark changes are repository writes under invariant 10: the core writes them at once, keeps the previous profile in the commit history, and reports the change in the project's records. They never wait for approval.
+- Rename and mark changes are repository writes under invariant 10: the core writes them at once and reports each as an effect notice (below). They never wait for approval.
 
 ## Provider sign-in
 
@@ -66,9 +66,9 @@ The core adds a project from one of three sources, each in one command, and then
 - **The switcher.** The sidebar's first row shows the selected project's mark and display name. It opens a list of projects with their marks and `⌘1`–`⌘9`, and a dot on any project whose workspaces need the owner. "Add project…" opens the folder picker. Double-clicking a name edits it in place. Clicking a mark chooses an image. The context menu holds "Change logo…", "Rename", "Show in Finder", and "Remove from Lervo", with "Files stay where they are." under the last.
 - **Blocking checks.** Only a check that blocks work shows, as one line under the start card: the provider's sign-in, a session host older than the interface, or a core link that cannot be reached.
 
-## Events, privacy, and failure meaning
+## Notices, privacy, and failure meaning
 
-- `project.profile.updated` (schema follows the event envelope): `projectId`, `changed` (`displayName`, `mark`, or both), and `markSha256` when the mark changed. It carries no display name text and no path.
+- A rename or mark change is reported after the fact as an effect notice (`effect`: `project_profile`, ADR-0561's journal), with the profile path and the mark's hash as targets and the command that restores the previous value as its undo. It carries no display name text and no absolute path, and it adds no event type, so no reader has to change first.
 - Registry changes, including unregistering, stay local operational data and record no event (ADR-0169).
 - A provider sign-in check records nothing. Its result is not stored beyond the 60-second cache.
 
