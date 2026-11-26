@@ -14,6 +14,7 @@ export * from "./project-verification.js";
 export * from "./provider-write-bridge.js";
 export * from "./repository-snapshot.js";
 export * from "./repository-snapshot-file-cache.js";
+export { repositorySnapshotGitHead } from "./repository-snapshot-git.js";
 export * from "./stage-observation.js";
 export * from "./types.js";
 export * from "./workspace-provisioning.js";

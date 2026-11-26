@@ -72,3 +72,54 @@ it("counts only other authors' commits, never Lervo's own or merge commits", asy
     commitsBehind: 2,
   });
 });
+
+it("answers again from the measurement while both commits stay the same", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-workstream-head-cache-"));
+  roots.push(root);
+  await git(root, "init", "--quiet", "--initial-branch=main");
+  await commit(root, "recorded.txt", "owner@example.invalid");
+  const snapshot = {
+    repositoryHead: { commit: await git(root, "rev-parse", "HEAD"), observedAt: "" },
+  };
+  await commit(root, "first.txt", "owner@example.invalid");
+  expect(await measureWorkstreamHeadDistance(root, snapshot)).toEqual({
+    status: "measured",
+    commitsBehind: 1,
+  });
+  // Without Git, only a kept measurement can answer.
+  const path = process.env.PATH;
+  process.env.PATH = "";
+  try {
+    expect(await measureWorkstreamHeadDistance(root, snapshot)).toEqual({
+      status: "measured",
+      commitsBehind: 1,
+    });
+  } finally {
+    process.env.PATH = path;
+  }
+  // A new HEAD is measured again.
+  await commit(root, "second.txt", "owner@example.invalid");
+  expect(await measureWorkstreamHeadDistance(root, snapshot)).toEqual({
+    status: "measured",
+    commitsBehind: 2,
+  });
+});
+
+it("measures an unresolvable distance again, since a fetch can resolve it", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-workstream-head-missing-"));
+  roots.push(root);
+  await git(root, "init", "--quiet", "--initial-branch=main");
+  await commit(root, "only.txt", "owner@example.invalid");
+  const snapshot = { repositoryHead: { commit: "a".repeat(40), observedAt: "" } };
+  expect(await measureWorkstreamHeadDistance(root, snapshot)).toEqual({ status: "unresolvable" });
+  const path = process.env.PATH;
+  process.env.PATH = "";
+  try {
+    // Git is gone, so this can only be a fresh attempt failing, not a kept answer.
+    expect(await measureWorkstreamHeadDistance(root, snapshot)).toEqual({
+      status: "unresolvable",
+    });
+  } finally {
+    process.env.PATH = path;
+  }
+});
