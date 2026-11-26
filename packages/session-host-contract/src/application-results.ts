@@ -6,6 +6,23 @@
  */
 import type { FromSchema } from "json-schema-to-ts";
 
+import {
+  type ProjectAddResult,
+  projectAddResultSchema,
+  type ProjectMarkClearResult,
+  projectMarkClearResultSchema,
+  type ProjectMarkReadResult,
+  projectMarkReadResultSchema,
+  projectMarkOrNullSchema,
+  type ProjectMarkSetResult,
+  projectMarkSetResultSchema,
+  type ProjectRenameResult,
+  projectRenameResultSchema,
+  type ProjectsLocationResult,
+  projectsLocationResultSchema,
+  type ProjectUnregisterResult,
+  projectUnregisterResultSchema,
+} from "./application-project-results.js";
 import { identifierSchema } from "./primitives.js";
 import { conversationModeSchema } from "./session.js";
 
@@ -20,6 +37,13 @@ export const applicationCommandNames = [
   "provider.list",
   "workspace.retire",
   "turn.summary",
+  "project.add",
+  "project.rename",
+  "project.mark.set",
+  "project.mark.clear",
+  "project.mark.read",
+  "project.unregister",
+  "projects.location",
 ] as const;
 
 /** Commands every core answers. Any other command is sent only to a core that advertises it. */
@@ -30,6 +54,7 @@ export const baseApplicationCommandNames = [
 ] as const;
 
 const nameSchema = { type: "string", minLength: 1, maxLength: 256 } as const;
+const rootSchema = { type: "string", minLength: 1, maxLength: 4096 } as const;
 const timestampSchema = { type: "string", minLength: 1, maxLength: 64 } as const;
 
 /** The conversation modes a provider offers, the native conversation first when it has one. */
@@ -91,11 +116,22 @@ export const workspaceListResultSchema = {
   },
 } as const;
 
+/**
+ * One registered repository. `displayName` and `mark` come from its profile; `root` is this
+ * host's folder for it, local operational data the interface uses only to show it in Finder.
+ * Older cores omit all three.
+ */
 export const repositorySummarySchema = {
   title: "RepositorySummary",
   type: "object",
   required: ["projectId", "name"],
-  properties: { projectId: identifierSchema, name: nameSchema },
+  properties: {
+    projectId: identifierSchema,
+    name: nameSchema,
+    displayName: nameSchema,
+    mark: projectMarkOrNullSchema,
+    root: rootSchema,
+  },
 } as const;
 
 /** `repository.list`: the host's registered repositories, by name. */
@@ -298,6 +334,13 @@ export const applicationResultSchemas = {
   "provider.list": providerListResultSchema,
   "workspace.retire": workspaceRetireResultSchema,
   "turn.summary": turnSummaryResultSchema,
+  "project.add": projectAddResultSchema,
+  "project.rename": projectRenameResultSchema,
+  "project.mark.set": projectMarkSetResultSchema,
+  "project.mark.clear": projectMarkClearResultSchema,
+  "project.mark.read": projectMarkReadResultSchema,
+  "project.unregister": projectUnregisterResultSchema,
+  "projects.location": projectsLocationResultSchema,
 } as const;
 
 export type ApplicationCommandName = (typeof applicationCommandNames)[number];
@@ -321,4 +364,11 @@ export interface ApplicationResults {
   "provider.list": ProviderListResult;
   "workspace.retire": WorkspaceRetireResult;
   "turn.summary": TurnSummaryResult;
+  "project.add": ProjectAddResult;
+  "project.rename": ProjectRenameResult;
+  "project.mark.set": ProjectMarkSetResult;
+  "project.mark.clear": ProjectMarkClearResult;
+  "project.mark.read": ProjectMarkReadResult;
+  "project.unregister": ProjectUnregisterResult;
+  "projects.location": ProjectsLocationResult;
 }

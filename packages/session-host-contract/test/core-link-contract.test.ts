@@ -118,6 +118,9 @@ describe("core-link protocol contract", () => {
     const names = new Map<string, keyof typeof applicationResultSchemas>([
       ["provider-list", "provider.list"],
       ["repository-list", "repository.list"],
+      ["repository-list-profiles", "repository.list"],
+      ["project-add", "project.add"],
+      ["project-mark-read", "project.mark.read"],
       ["workspace-list", "workspace.list"],
       ["workspace-list-older-core", "workspace.list"],
       ["workspace-start", "workspace.start"],

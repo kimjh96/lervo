@@ -57,7 +57,8 @@ The core adds a project from one of three sources, each in one command, and then
 ## Core link
 
 - `repository.list` adds `displayName`, `mark` (`null` or `{ sha256, mediaType }`), and `root`, the absolute path, which is local operational data the ADE uses only to show the folder in Finder.
-- New application commands: `project.add` (`source`: `folder`, `clone`, or `new`, with its argument and optional `into`), `project.rename`, `project.mark.set` (Base64 image within the bound), `project.mark.clear`, `project.mark.read` (returns the image's format and Base64 bytes), `project.unregister`, and `projects.location.set`.
+- New application commands: `project.add` (`source`: `folder` with `path`, `clone` with `url`, or `new` with `name`, and an optional `into`), `project.rename`, `project.mark.set` (Base64 image within the bound), `project.mark.clear`, `project.mark.read` (returns the image's format, hash, and Base64 bytes, or null), `project.unregister`, and `projects.location` (returns the location, after setting it when `path` is given). Their results are named after them, such as `ProjectMarkSetResult`, as the session host looks them up.
+- A clone asked over the core link stops after 100 seconds, within the session host's 120-second command deadline, and leaves nothing behind. A larger repository clones from the terminal, whose limit is 10 minutes, until the ADE shows a clone's progress.
 - A core link from an older release does not name these commands, and the ADE hides what needs them.
 
 ## The ADE

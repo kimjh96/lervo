@@ -2,6 +2,7 @@ import { cliCommandCatalog } from "./cli-command-catalog.js";
 import { CommandFailure } from "./command-error-output.js";
 import { type CoreLinkHandlers, CoreLinkServer } from "./core-link-server.js";
 import { createHostedStreamDecoder, listHostedProviders } from "./hosted-session-adapters.js";
+import { runCoreLinkProjectCommand } from "./core-link-project-commands.js";
 import { listRepositories, listWorkspaces } from "./workspace-list-service.js";
 import {
   openWorkspace,
@@ -47,6 +48,7 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   listWorkspaces,
   listRepositories,
   listProviders: () => listHostedProviders(),
+  runProjectCommand: runCoreLinkProjectCommand,
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,
   readTranscript: (workspaceId, offset, limit) => transcripts.read(workspaceId, offset, limit),

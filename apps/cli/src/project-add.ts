@@ -167,7 +167,10 @@ async function adopt(root: string, name: string) {
 }
 
 /** Adds a project from a folder, a clone link, or a name alone, and registers it on this host. */
-export async function addProject(source: ProjectSource): Promise<AddedProject> {
+export async function addProject(
+  source: ProjectSource,
+  options: { cloneTimeoutMs?: number } = {},
+): Promise<AddedProject> {
   if (source.kind === "folder") {
     if (!isAbsolute(source.path))
       throw new ProjectAddError("project_root_invalid", "The folder must be an absolute path.");
@@ -184,7 +187,7 @@ export async function addProject(source: ProjectSource): Promise<AddedProject> {
       throw new ProjectAddError("project_folder_exists", `${destination} already exists.`);
     try {
       await runGit(source.into, ["clone", "--quiet", "--", source.url, destination], {
-        timeout: CLONE_TIMEOUT_MS,
+        timeout: options.cloneTimeoutMs ?? CLONE_TIMEOUT_MS,
       });
     } catch (error) {
       // The destination did not exist before, so whatever a failed clone left is its own.

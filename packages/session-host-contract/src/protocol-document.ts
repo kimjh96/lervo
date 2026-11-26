@@ -1,4 +1,14 @@
 import {
+  projectAddResultSchema,
+  projectMarkClearResultSchema,
+  projectMarkReadResultSchema,
+  projectMarkSchema,
+  projectMarkSetResultSchema,
+  projectRenameResultSchema,
+  projectsLocationResultSchema,
+  projectUnregisterResultSchema,
+} from "./application-project-results.js";
+import {
   providerCapabilitiesSchema,
   providerListResultSchema,
   providerSummarySchema,
@@ -86,6 +96,14 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     workspaceRetireResultSchema,
     turnSummarySchema,
     turnSummaryResultSchema,
+    projectMarkSchema,
+    projectAddResultSchema,
+    projectRenameResultSchema,
+    projectMarkSetResultSchema,
+    projectMarkClearResultSchema,
+    projectMarkReadResultSchema,
+    projectUnregisterResultSchema,
+    projectsLocationResultSchema,
   ].map((schema) => [schema.title, schema] as const),
   ...[
     ...coreLinkRequestSchemas,
