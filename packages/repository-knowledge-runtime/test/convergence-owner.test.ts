@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
@@ -12,6 +12,7 @@ import {
   readConvergenceOwnerFence,
 } from "../src/convergence-owner-fence.js";
 import { CONVERGENCE_OWNER_LEASE_TTL_MS } from "../src/convergence-owner-verdict.js";
+import { PROVIDER_UNADMITTED_INELIGIBILITY_MS } from "../src/convergence-owner-eligibility.js";
 import { commitFreshnessPaths } from "../src/freshness-commit.js";
 import { fixture } from "./fixture.js";
 import { FakeConvergenceOwnerHub, peerHost, writeHostConfig } from "./convergence-owner-hosts.js";
@@ -264,6 +265,62 @@ describe("cross-host convergence ownership", () => {
       });
       expect(ownerEvents(mac.storage).at(-1)).toMatchObject({ reason: "delegation" });
       expect(await wsl.ownership().observe()).toMatchObject({ role: "owner" });
+    },
+  );
+
+  it(
+    "yields the lease while no provider its delegation allows is admitted on the owner",
+    { timeout: 120_000 },
+    async () => {
+      const { mac, wsl, advance, now } = await twoHosts();
+      expect(await mac.ownership().observe()).toMatchObject({ role: "owner" });
+      // The owner's Claude CLI is logged out; only a provider the delegation does not allow runs.
+      const admission = (claude: boolean) =>
+        JSON.stringify({
+          observedAt: new Date(now()).toISOString(),
+          detectionFailure: null,
+          providers: [
+            {
+              provider: "claude",
+              version: "2.1.280",
+              executableHash: `sha256:${"a".repeat(64)}`,
+              admitted: claude,
+              reason: claude ? null : "probe_failed",
+              exposedTools: [],
+            },
+            {
+              provider: "codex",
+              version: "0.156.1",
+              executableHash: `sha256:${"b".repeat(64)}`,
+              admitted: true,
+              reason: null,
+              exposedTools: [],
+            },
+          ],
+          selected: null,
+          waiting: !claude,
+        });
+      await mkdir(resolve(mac.root, ".lervo/state/knowledge"), { recursive: true, mode: 0o700 });
+      await writeFile(
+        resolve(mac.root, ".lervo/state/knowledge/provider-clis.json"),
+        admission(false),
+        {
+          mode: 0o600,
+        },
+      );
+      expect(await mac.ownership().observe()).toMatchObject({
+        role: "ineligible",
+        reason: "knowledge_authority_unavailable",
+      });
+      expect(ownerEvents(mac.storage).at(-1)).toMatchObject({ reason: "delegation" });
+      expect(await wsl.ownership().observe()).toMatchObject({ role: "owner" });
+      // An hour later the observation may be stale: the host contends again, behind the owner.
+      advance(PROVIDER_UNADMITTED_INELIGIBILITY_MS);
+      expect(await wsl.ownership().observe()).toMatchObject({ role: "owner" });
+      expect(await mac.ownership().observe()).toMatchObject({
+        role: "waiting_owner",
+        holder: { label: "wsl" },
+      });
     },
   );
 
