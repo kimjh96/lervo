@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import {
@@ -66,12 +66,14 @@ export async function capturePersistentRepositorySnapshot(
   policy: RepositorySnapshotPolicy = defaultRepositorySnapshotPolicy,
   fileReader?: RepositorySnapshotFileReader,
 ): Promise<RepositorySnapshot> {
-  let previous: RepositorySnapshotCacheState | undefined;
-  try {
-    const value: unknown = JSON.parse(await readFile(cachePath, "utf8"));
-    if (validCache(value)) previous = value;
-  } catch {
-    previous = undefined;
+  let previous = await rememberedCache(cachePath);
+  if (previous === undefined) {
+    try {
+      const value: unknown = JSON.parse(await readFile(cachePath, "utf8"));
+      if (validCache(value)) previous = value;
+    } catch {
+      previous = undefined;
+    }
   }
   let captured: { snapshot: RepositorySnapshot; cache: RepositorySnapshotCacheState };
   try {
@@ -90,14 +92,49 @@ export async function capturePersistentRepositorySnapshot(
   return captured.snapshot;
 }
 
+/**
+ * The cache this process last wrote, by path, with the written file's identity. A long-lived
+ * process, such as the context server, then reuses it instead of reading and checking its own
+ * 2.4 MB file again on every prompt. Any other writer replaces the file, which changes its identity,
+ * so the file is read again.
+ */
+const written = new Map<string, { identity: string; cache: RepositorySnapshotCacheState }>();
+const REMEMBERED_CACHE_LIMIT = 8;
+
+function fileIdentity(stats: { dev: bigint; ino: bigint; size: bigint; mtimeNs: bigint }): string {
+  return `${stats.dev}:${stats.ino}:${stats.size}:${stats.mtimeNs}`;
+}
+
+async function rememberedCache(
+  cachePath: string,
+): Promise<RepositorySnapshotCacheState | undefined> {
+  const remembered = written.get(cachePath);
+  if (remembered === undefined) return undefined;
+  const stats = await lstat(cachePath, { bigint: true }).catch(() => null);
+  return stats !== null && stats.isFile() && fileIdentity(stats) === remembered.identity
+    ? remembered.cache
+    : undefined;
+}
+
 async function persistCache(cachePath: string, cache: RepositorySnapshotCacheState): Promise<void> {
   // Unique per write: two captures in one process, such as a resident's health refresh and its
   // detached knowledge scan, must not interleave into one temporary file.
   const temporary = `${cachePath}.${process.pid}.${randomUUID()}.tmp`;
+  written.delete(cachePath);
   try {
     await mkdir(dirname(cachePath), { recursive: true, mode: 0o700 });
-    await writeFile(temporary, JSON.stringify(cache), { mode: 0o600 });
+    const handle = await open(temporary, "w", 0o600);
+    let identity: string;
+    try {
+      await handle.writeFile(JSON.stringify(cache));
+      // The identity of these bytes, which a rename keeps.
+      identity = fileIdentity(await handle.stat({ bigint: true }));
+    } finally {
+      await handle.close();
+    }
     await rename(temporary, cachePath);
+    if (written.size >= REMEMBERED_CACHE_LIMIT) written.delete(written.keys().next().value!);
+    written.set(cachePath, { identity, cache });
   } catch {
     // The cache is an optimization; failing to persist it never fails the capture.
     await rm(temporary, { force: true }).catch(() => undefined);

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a314c56f9fbf6ec2dd93d7ee"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A long-lived process reuses the snapshot cache it last wrote while the file keeps the identity it wrote, instead of reading and checking it again on every prompt."

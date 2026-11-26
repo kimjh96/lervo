@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
@@ -27,4 +27,25 @@ it("reuses persisted stat-identity hashes without changing snapshot semantics", 
   // A corrupt cache falls back to an ordinary full capture.
   await writeFile(cache, "{not json");
   expect(await capturePersistentRepositorySnapshot(root, cache)).toEqual(second);
+});
+
+it("reads the cache again once another writer replaced the one this process wrote", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-cache-writer-"));
+  roots.push(root);
+  await writeFile(resolve(root, "a.txt"), "alpha\n");
+  const cache = resolve(root, ".lervo/state/cache/snapshot.json");
+  const first = await capturePersistentRepositorySnapshot(root, cache);
+  // Another process writes a cache whose entry trusts a wrong hash for the same stat identity.
+  // Reading it shows in the result, which is how a trusted cache behaves; keeping the remembered
+  // one would hide that the file changed.
+  const written = JSON.parse(await readFile(cache, "utf8")) as {
+    entries: [string, { hash: string }][];
+  };
+  const forged = `sha256:${"f".repeat(64)}`;
+  written.entries[0]![1].hash = forged;
+  await writeFile(`${cache}.other`, JSON.stringify(written));
+  await rename(`${cache}.other`, cache);
+  const second = await capturePersistentRepositorySnapshot(root, cache);
+  expect(second.files["a.txt"]).toBe(forged);
+  expect(first.files["a.txt"]).not.toBe(forged);
 });
