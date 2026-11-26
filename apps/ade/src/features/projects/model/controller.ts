@@ -6,7 +6,7 @@ import {
   type ListCache,
   type ProjectMemory,
 } from "../../../ports";
-import { useWorkspaceStore } from "../../workspaces";
+import { useWorkspaceStore } from "../../workspaces/model";
 import { useProjectStore } from "./store";
 
 /** The adapters the project actions use. */

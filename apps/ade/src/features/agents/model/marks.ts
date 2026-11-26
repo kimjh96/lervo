@@ -2,7 +2,7 @@
 // core as a project asset, and shown wherever the agent's mark is, from the thumbnails the ADE
 // keeps by the image's hash, as it does for project marks.
 import type { ApplicationCommands, Choosers, Files, Images, ProjectMemory } from "../../../ports";
-import { bytesOf, keepMark } from "../../projects";
+import { bytesOf, keepMark } from "../../projects/model";
 import { showProjectAgents } from "./controller";
 import { useAgentStore } from "./store";
 

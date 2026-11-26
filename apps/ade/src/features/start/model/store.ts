@@ -31,6 +31,11 @@ export interface PendingStart {
   readonly workspaceId: string | null;
   /** What the created workspace started without, when the core said so. */
   readonly baseNotice: BaseNotice | null;
+  /**
+   * The core's code when the Product Owner the start card proposed could not be hired; the work
+   * then starts without it, and its conversation says so.
+   */
+  readonly hireFailure: string | null;
   /** The images pasted with the instruction, as its first message shows them. */
   readonly images: readonly ImageMark[];
 }

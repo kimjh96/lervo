@@ -861,6 +861,20 @@
       "value": "The agent starts in a moment"
     }
   ],
+  "conversation.route.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not check this reply for mentions ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": "), so only the conversation's lead received it."
+    }
+  ],
   "conversation.stop": [
     {
       "type": 0,
@@ -1427,6 +1441,20 @@
       },
       "offset": 0,
       "pluralType": "cardinal"
+    }
+  ],
+  "conversation.turn.summaryFailed": [
+    {
+      "type": 0,
+      "value": "Lervo could not read this turn's summary ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
     }
   ],
   "conversation.turn.took": [
@@ -2581,6 +2609,20 @@
     {
       "type": 1,
       "value": "subtype"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "notice.start.hire_failed": [
+    {
+      "type": 0,
+      "value": "This work started without a Product Owner, because Lervo could not hire one ("
+    },
+    {
+      "type": 1,
+      "value": "code"
     },
     {
       "type": 0,
