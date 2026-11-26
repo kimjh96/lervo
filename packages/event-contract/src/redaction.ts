@@ -344,6 +344,8 @@ export const eventPayloadAllowlists = {
     "previousEffort",
     "modelTier",
     "effort",
+    "previousMarkSha256",
+    "markSha256",
     "previousDisplayName",
     "displayName",
     "displayNameSource",

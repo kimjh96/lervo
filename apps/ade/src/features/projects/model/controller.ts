@@ -59,8 +59,12 @@ export function bytesOf(data: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
+/**
+ * Keeps a mark's thumbnail by its image's hash, for a project's mark or an agent's image alike,
+ * so the mark shows at once on the next launch.
+ */
 export async function keepMark(
-  dependencies: ProjectDependencies,
+  dependencies: Pick<ProjectDependencies, "images" | "memory">,
   sha256: string,
   image: Blob,
 ): Promise<void> {

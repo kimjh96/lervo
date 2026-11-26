@@ -107,3 +107,17 @@
   gap: var(--space-8);
   padding-inline: var(--space-10);
 }
+
+/* The agent's mark opens the image panel, or a menu to change or remove its image. */
+.markButton {
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.markButton:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}

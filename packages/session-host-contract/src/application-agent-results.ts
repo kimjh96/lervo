@@ -4,6 +4,7 @@
  */
 import type { FromSchema } from "json-schema-to-ts";
 
+import { projectMarkOrNullSchema } from "./application-project-results.js";
 import { identifierSchema } from "./primitives.js";
 
 const roleIdSchema = { type: "string", minLength: 1, maxLength: 64 } as const;
@@ -42,6 +43,8 @@ export const agentSummarySchema = {
     revision: { type: "integer", minimum: 1 },
     /** A team agent's model; Lervo's own agents run under Lervo's model routes and have none. */
     model: agentModelSchema,
+    /** The image the owner chose, as a project's mark; null shows the first letter. */
+    mark: projectMarkOrNullSchema,
   },
 } as const;
 
@@ -113,6 +116,47 @@ export const agentRenameResultSchema = {
   properties: { projectId: identifierSchema, agent: agentSummarySchema },
 } as const;
 
+/** `agent.mark.set`: the agent with the image the owner chose. */
+export const agentMarkSetResultSchema = {
+  title: "AgentMarkSetResult",
+  type: "object",
+  required: ["projectId", "agent"],
+  properties: { projectId: identifierSchema, agent: agentSummarySchema },
+} as const;
+
+/** `agent.mark.clear`: the agent without an image, showing its first letter again. */
+export const agentMarkClearResultSchema = {
+  title: "AgentMarkClearResult",
+  type: "object",
+  required: ["projectId", "agent"],
+  properties: { projectId: identifierSchema, agent: agentSummarySchema },
+} as const;
+
+/** `agent.mark.read`: the agent's image as Base64, or null when it has none. */
+export const agentMarkReadResultSchema = {
+  title: "AgentMarkReadResult",
+  type: "object",
+  required: ["projectId", "agentId", "image"],
+  properties: {
+    projectId: identifierSchema,
+    agentId: identifierSchema,
+    image: {
+      anyOf: [
+        {
+          type: "object",
+          required: ["sha256", "mediaType", "data"],
+          properties: {
+            sha256: { type: "string", pattern: "^[0-9a-f]{64}$" },
+            mediaType: { enum: ["image/png", "image/jpeg", "image/webp"] },
+            data: { type: "string", maxLength: 700_000 },
+          },
+        },
+        { type: "null" },
+      ],
+    },
+  },
+} as const;
+
 /** `agent.hire`: the agent the core hired for the owner. */
 export const agentHireResultSchema = {
   title: "AgentHireResult",
@@ -129,3 +173,6 @@ export type AgentModelResult = FromSchema<typeof agentModelResultSchema>;
 export type AgentRenameResult = FromSchema<typeof agentRenameResultSchema>;
 export type AgentModelChoice = FromSchema<typeof agentModelChoiceSchema>;
 export type AgentStatusResult = FromSchema<typeof agentStatusResultSchema>;
+export type AgentMarkSetResult = FromSchema<typeof agentMarkSetResultSchema>;
+export type AgentMarkClearResult = FromSchema<typeof agentMarkClearResultSchema>;
+export type AgentMarkReadResult = FromSchema<typeof agentMarkReadResultSchema>;

@@ -1,6 +1,6 @@
 import { useIntl } from "react-intl";
 
-import { Mark } from "../../../ui/Mark";
+import { AgentMark } from "./AgentMark";
 import { useAgentStore } from "../model/store";
 import styles from "./ParticipantsChip.module.css";
 import { Presence } from "../../../ui/Presence";
@@ -30,14 +30,7 @@ export function ParticipantMarks(props: { participants: readonly string[] | unde
           title={names}
         >
           {shown.map((agent) => (
-            <Mark
-              key={agent.agentId}
-              id={agent.agentId}
-              name={agent.displayName}
-              src={null}
-              size="sm"
-              shape="round"
-            />
+            <AgentMark key={agent.agentId} agent={agent} size="sm" />
           ))}
         </span>
       )}
