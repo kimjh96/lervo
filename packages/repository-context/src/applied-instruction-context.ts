@@ -30,9 +30,12 @@ export async function prepareAppliedInstructionContext(input: {
   const targetDigest = canonicalHash({ paths: targets, ...input.targets });
   try {
     const paths = await generatedInstructionPaths(input.repositoryRoot);
-    const sources = [];
-    for (const path of paths)
-      sources.push(await readInstructionSource(input.repositoryRoot, path, targets, input.targets));
+    // Reads run together; each prompt prepares these, and one at a time they added up.
+    const sources = await Promise.all(
+      paths.map((path) =>
+        readInstructionSource(input.repositoryRoot, path, targets, input.targets),
+      ),
+    );
     const result = packInstructionSources({
       sources: resolveInstructionPrecedence(sources),
       targetDigest,
@@ -46,19 +49,16 @@ export async function prepareAppliedInstructionContext(input: {
         "document_changed_during_read",
         "Instruction membership changed.",
       );
-    for (const source of sources) {
-      const current = await readInstructionSource(
-        input.repositoryRoot,
-        source.path,
-        targets,
-        input.targets,
+    const current = await Promise.all(
+      sources.map((source) =>
+        readInstructionSource(input.repositoryRoot, source.path, targets, input.targets),
+      ),
+    );
+    if (current.some((reread, index) => reread.contentHash !== sources[index]!.contentHash))
+      throw new ContextPreparationError(
+        "document_changed_during_read",
+        "Instruction source changed.",
       );
-      if (current.contentHash !== source.contentHash)
-        throw new ContextPreparationError(
-          "document_changed_during_read",
-          "Instruction source changed.",
-        );
-    }
     return result;
   } catch (error) {
     return {
