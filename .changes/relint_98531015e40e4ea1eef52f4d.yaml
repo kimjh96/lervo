@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_98531015e40e4ea1eef52f4d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "lervo project location and project add refuse a projects location inside a Git work tree, so a checkout at ~/lervo, which macOS also reads as ~/Lervo, never receives new projects."

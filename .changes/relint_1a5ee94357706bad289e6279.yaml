@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1a5ee94357706bad289e6279"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "The context server keeps the checkouts it served in the last 30 minutes warm, preparing the latest one every idle minute and the remembered ones right after it starts."
