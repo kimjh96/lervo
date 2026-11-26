@@ -247,6 +247,38 @@ describe("a linked worktree of a registered repository", () => {
     ).toHaveLength(0);
   }, 60_000);
 
+  it("names the registry when this process records the worktree into its own store", async () => {
+    const { worktree } = await linkedWorktree(false);
+    await cli(
+      worktree,
+      ["workstream", "start", "--stdin", "--apply-now", "--json"],
+      JSON.stringify({
+        schemaVersion: 1,
+        title: "Fix the login form",
+        objective: "Make the login form accept a long password.",
+        status: "active",
+        blockers: [],
+        nextActions: [],
+        notes: [],
+        references: [],
+        pendingApprovals: [],
+        pendingDecisions: [],
+      }),
+    );
+    // A process whose registry lacks the repository, as a session that did not get the
+    // starter's state directory, resolves the worktree as its own single root.
+    vi.stubEnv("LERVO_USER_STATE_DIRECTORY", resolve(worktree, "..", "other-state"));
+    const errors: string[] = [];
+    const code = await runCli(["workstream", "current"], {
+      cwd: worktree,
+      stdout: () => undefined,
+      stderr: (message) => errors.push(message),
+    });
+    expect(code).not.toBe(0);
+    expect(errors.join("")).toContain("this linked worktree records into its own");
+    expect(errors.join("")).toContain("LERVO_USER_STATE_DIRECTORY");
+  });
+
   it("reads the repository's evidence in status commands and never unbinds the checkout", async () => {
     const { main, worktree } = await linkedWorktree();
     await cli(
@@ -367,11 +399,11 @@ describe("a linked worktree of a registered repository", () => {
     // A read that treats the checkout as its own repository, as unrouted commands did: before,
     // it bound the workstream to main, found the checkout's branch unbound, and cleared the
     // projection. Now it binds the checkout's branch and fails on the history this store lacks,
-    // leaving the projection in place.
+    // naming where that history is, and leaves the projection in place.
     const storage = await openProjectStorage(worktree);
     try {
       await expect(verifiedCurrentWorkstream(storage)).rejects.toThrow(
-        "no committed snapshot event",
+        "this linked worktree records into its own",
       );
     } finally {
       await storage.close();
