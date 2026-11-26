@@ -102,6 +102,17 @@ impl StreamDecoder for LineDecoder {
                     text: "from-elio".to_owned(),
                 }));
             }
+            // A turn that mentions Tarin sets off a delivery the core refuses to join.
+            if reply == "mention-tarin" {
+                decoded.push(Decoded::Delivery(RoomDelivery {
+                    delivery_id: "dlv_refused".to_owned(),
+                    workspace_id: "wks_refused".to_owned(),
+                    agent_id: "agt_tarin".to_owned(),
+                    session_id: None,
+                    source_session_id: Some("ses_refused_lead".to_owned()),
+                    text: "to-tarin".to_owned(),
+                }));
+            }
             // The lead started a conversation of its own, which opens from its first turn.
             if reply == "start-own" {
                 decoded.push(Decoded::Delivery(RoomDelivery {
@@ -221,6 +232,11 @@ impl Core for FakeCore {
                 ConversationMode::Native,
                 "while read line; do printf 'reply:%s\\n' \"$line\"; done",
             ),
+            "wks_refused" => (
+                "ses_refused_lead",
+                ConversationMode::Native,
+                "while read line; do printf 'reply:%s\\n' \"$line\"; done",
+            ),
             _ => return Err(Failure::new(FailureCode::WorkspaceStartFailed)),
         };
         Ok(Launch {
@@ -259,6 +275,13 @@ impl Core for FakeCore {
             .lock()
             .unwrap()
             .push((text("workspaceId"), text("agentId"), text("instruction")));
+        // A paused agent cannot join; the core says why.
+        if text("agentId") == "agt_tarin" {
+            return Err(Failure {
+                core_code: Some("mention_target_inactive".to_owned()),
+                ..Failure::new(FailureCode::ApplicationFailed)
+            });
+        }
         // A conversation its lead started opens as the workspace's own session.
         let starting = text("workspaceId") == "wks_started";
         let mut result = Map::new();
@@ -932,6 +955,55 @@ async fn stops_a_provider_with_sigterm_and_reports_its_exit() {
     );
     let _ = std::fs::remove_file(term_marker());
 
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn tells_the_mentioning_conversation_when_the_mentioned_agent_cannot_join() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_refused"}))
+        .await;
+    let HostMessage::SessionOpenedMessage(_) = client.next_message().await else {
+        panic!("expected session.opened")
+    };
+    client
+        .send(json!({"kind": "session.send", "requestId": "req_2", "sessionId": "ses_refused_lead", "text": "mention-tarin"}))
+        .await;
+
+    // The mention's own conversation shows the core's reason as a room line.
+    let mut line = None;
+    for _ in 0..100 {
+        client
+            .send(json!({"kind": "conversation.range", "requestId": "req_3", "sessionId": "ses_refused_lead", "direction": "before", "limit": 50}))
+            .await;
+        loop {
+            match client.next_message().await {
+                HostMessage::ConversationPageMessage(page) => {
+                    line = serde_json::to_value(&page.items)
+                        .unwrap()
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .find(|item| item["code"] == "room_delivery_failed")
+                        .cloned();
+                    break;
+                }
+                HostMessage::RequestFailedMessage(_) => break,
+                _ => {}
+            }
+        }
+        if line.is_some() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    let line = line.expect("a room_delivery_failed line");
+    assert_eq!(line["kind"], "lervo_notice");
+    assert_eq!(line["parameters"]["code"], "mention_target_inactive");
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();
 }
