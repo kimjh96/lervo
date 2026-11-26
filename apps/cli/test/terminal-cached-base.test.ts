@@ -162,8 +162,10 @@ it("never records a delivery twice when its marker survived", async () => {
   await writeFile(marker, content);
   const { value, append } = ports();
   expect((await keep(path, value)).recorded).toBe(1);
-  // As if removing it had failed after the record.
-  await writeFile(marker, content);
+  const id = (append.mock.calls[0]![0] as { eventId: string }).eventId.slice("evt_".length);
+  expect(id).toMatch(/^[a-f0-9]{32}$/u);
+  // As if removing it had failed after the record: the marker still names its identity.
+  await writeFile(marker, JSON.stringify({ ...JSON.parse(content), id }));
   await rm(resolve(directory, `${key}.json`));
   expect((await keep(path, value)).recorded).toBe(0);
   expect(append).toHaveBeenCalledTimes(1);

@@ -1,7 +1,7 @@
 // ADR-0645: the context server keeps each checkout's base answer current, and the launcher prints
 // it for a prompt the server could not take. The launcher leaves a marker for each such prompt,
 // which the server records as `terminal.context.base_delivered` on its next served prompt there.
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -85,6 +85,9 @@ async function ageMilliseconds(path: string, now: number): Promise<number | null
 interface Marker {
   name: string;
   payload: TerminalContextBaseDeliveredEventPayload | null;
+  /** The random identity the server gave the delivery, once it tried to record it. */
+  id: string | null;
+  content: Record<string, unknown> | null;
 }
 
 /** A marker the launcher may still be writing, which is left for the next prompt. */
@@ -94,9 +97,10 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
   const match = MARKER_NAME.exec(name)!;
   const deliveredAt = Number(match[2]);
   if (content === "" && now - deliveredAt < MARKER_SETTLE_MS) return null;
-  if (now - deliveredAt > MARKER_RETENTION_MS) return { name, payload: null };
+  const dropped = { name, payload: null, id: null, content: null };
+  if (now - deliveredAt > MARKER_RETENTION_MS) return dropped;
   try {
-    const value = JSON.parse(content) as { reason?: unknown; age?: unknown };
+    const value = JSON.parse(content) as { reason?: unknown; age?: unknown; id?: unknown };
     const reason = terminalBaseDeliveryReasons.find((known) => known === value.reason);
     if (
       reason === undefined ||
@@ -104,7 +108,7 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
       (value.age as number) < 0 ||
       (value.age as number) > MAXIMUM_CACHE_AGE_MS
     )
-      return { name, payload: null };
+      return dropped;
     return {
       name,
       payload: {
@@ -112,9 +116,11 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
         cacheAgeMilliseconds: value.age as number,
         deliveredAt: new Date(deliveredAt).toISOString(),
       },
+      id: typeof value.id === "string" && /^[a-f0-9]{32}$/u.test(value.id) ? value.id : null,
+      content: value as Record<string, unknown>,
     };
   } catch {
-    return { name, payload: null };
+    return dropped;
   }
 }
 
@@ -175,10 +181,10 @@ async function markerNames(directory: string, key: string): Promise<string[]> {
 }
 
 /**
- * Records the checkout's delivery markers at writer schema 14. Each event's identity derives from
- * its marker's name, so a marker that a failed removal or an exit left behind is recognised and
- * never recorded twice; a marker stays until it was recorded or proved unrecordable, so a busy
- * store only delays it.
+ * Records the checkout's delivery markers at writer schema 14. Each delivery gets a random
+ * identity, written into its marker before the record, so a marker that a failed removal or an
+ * exit left behind is recognised and never recorded twice, and no identity reveals the checkout.
+ * A marker stays until it was recorded or proved unrecordable, so a busy store only delays it.
  */
 async function recordDeliveries(
   directory: string,
@@ -199,6 +205,14 @@ async function recordDeliveries(
     if (marker !== null) markers.push(marker);
   }
   const recordable = markers.filter((marker) => marker.payload !== null);
+  for (const marker of recordable)
+    if (marker.id === null) {
+      marker.id = randomUUID().replaceAll("-", "");
+      await writeAtomically(
+        resolve(directory, marker.name),
+        JSON.stringify({ ...marker.content, id: marker.id }),
+      );
+    }
   let recorded = 0;
   if (recordable.length > 0) {
     const storage = await open();
@@ -206,7 +220,7 @@ async function recordDeliveries(
       if ((storage.writableEventSchemaVersion ?? 1) >= baseDeliveryEventSchemaVersion) {
         storage.events.transact((transaction) => {
           for (const marker of recordable) {
-            const id = createHash("sha256").update(marker.name).digest("hex").slice(0, 32);
+            const id = marker.id!;
             if (storage.events.get(`evt_${id}`) !== null) continue;
             transaction.append({
               eventId: `evt_${id}`,
@@ -284,8 +298,8 @@ export async function keepTerminalCachedBase(input: {
     await rm(file, { force: true });
     return { recorded, refreshed: false, settled: true };
   }
-  // A store too slow to prepare a base waits five minutes between attempts, so a checkout whose
-  // base cannot be written does not restart the server at every prompt.
+  // A checkout whose base could not be prepared waits five minutes before the next attempt, so a
+  // slow or failing store does not restart or hold the server at every prompt.
   const retry = resolve(directory, `${key}.retry`);
   const waited = await ageMilliseconds(retry, now());
   if (waited !== null && waited > -1_000 && waited < REFRESH_AFTER_MS)
@@ -303,6 +317,14 @@ export async function keepTerminalCachedBase(input: {
     return { recorded, refreshed: false, settled };
   }
   await rm(retry, { force: true });
-  await writeAtomically(file, formatTerminalCachedBase(lines, new Date(now())));
+  // A base that cannot be written leaves the old one to expire; `settled` still reports reads.
+  const written = await writeAtomically(
+    file,
+    formatTerminalCachedBase(lines, new Date(now())),
+  ).then(
+    () => true,
+    () => false,
+  );
+  if (!written) return { recorded, refreshed: false, settled };
   return { recorded, refreshed: true, settled };
 }

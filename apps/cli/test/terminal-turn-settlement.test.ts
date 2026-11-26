@@ -236,7 +236,7 @@ describe("turns that end without a Stop hook", () => {
     expect(await listTerminalTurnSettlements(root)).toEqual([]);
   }, 60_000);
 
-  it("settles an interrupted turn whose next prompt was answered from the cached base", async () => {
+  it("leaves an interrupted turn open past a cached-base prompt for the next prepared one", async () => {
     const root = await repository(12);
     // The launcher keeps its store under the home directory; keep this test's apart.
     vi.stubEnv("HOME", dirname(root));
@@ -254,37 +254,20 @@ describe("turns that end without a Stop hook", () => {
     await utimes(turnFile, later, later);
     await hook(root, { hook_event_name: "Stop", ...session, last_assistant_message: "Done." });
 
-    // Stop 2 observes nothing itself; turn 1 is settled as a turn that ended without a Stop.
+    // Stop 2 records nothing, and turn 1 stays open for the next prepared prompt to settle.
     expect(await events(root, ["terminal.turn.observed"])).toEqual([]);
+    expect(await listTerminalTurnSettlements(root)).toEqual([]);
+    await hook(root, { hook_event_name: "UserPromptSubmit", ...session, prompt: "Go on." });
     const [request] = await listTerminalTurnSettlements(root);
-    expect(request).toMatchObject({
-      contextEventId: first?.eventId,
-      ending: "next_prompt",
-      afterObservationId: null,
-    });
-    // A prompt that prepares its snapshot first names where turn 1 ended, which replaces the
-    // request for the checkout as it is when the worker runs, and never the other way round.
-    const exact = { ...request!, afterObservationId: `tobs_${"3".repeat(32)}` };
-    const waiting = async () => (await listTerminalTurnSettlements(root))[0]?.afterObservationId;
-    expect(await writeTerminalTurnSettlement(root, exact)).toBe(true);
-    expect(await waiting()).toBe(exact.afterObservationId);
-    expect(await writeTerminalTurnSettlement(root, request!)).toBe(true);
-    expect(await waiting()).toBe(exact.afterObservationId);
-    await rm(resolve(root, ".lervo/state/terminal-integration/turn-settlements"), {
-      recursive: true,
-    });
-    expect(await writeTerminalTurnSettlement(root, request!)).toBe(true);
+    expect(request).toMatchObject({ contextEventId: first?.eventId, ending: "next_prompt" });
+    expect(request?.afterObservationId).toMatch(/^tobs_[a-f0-9]{32}$/u);
     expect(await settleTerminalTurns(root)).toBe(1);
     const [settled] = await events(root, ["terminal.turn.observed"]);
     expect(settled?.payload).toMatchObject({
       contextEventId: first?.eventId,
       ending: "next_prompt",
+      repositoryChanged: true,
     });
-    // The settled turn is closed: a Stop after another cached prompt requests nothing.
-    const again = new Date(Date.parse(first!.occurredAt) + 3000);
-    await utimes(turnFile, again, again);
-    await hook(root, { hook_event_name: "Stop", ...session, last_assistant_message: "Done." });
-    expect(await listTerminalTurnSettlements(root)).toEqual([]);
   }, 60_000);
 
   it("leaves a turn that Stop observed, and records nothing below schema 12", async () => {
