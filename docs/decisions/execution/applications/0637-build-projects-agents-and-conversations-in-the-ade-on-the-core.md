@@ -56,11 +56,11 @@ There is no onboarding screen. The first run is the start screen itself (owner r
 
 - With no project registered, the start card takes any of three things, and each becomes a project in one action. Nothing is uploaded: a project stays where its files are.
   - An existing folder, dropped or chosen.
-  - A repository link, which the core clones into the owner's projects location (`~/Lervo` until the owner changes it once).
+  - A repository link, which the core clones into the owner's projects location (`~/Lervo` until the owner chooses another in the card).
   - An instruction alone, for which the core creates a new folder in that location, named from the instruction, and starts the conversation in it.
 - The resulting project:
   - Its name is the folder's name, and its mark is its first letter. Both change later in place.
-  - The core registers the folder, whatever the host's continuity policy. It runs `lervo init` when the folder has no `.lervo/project.yaml` and `git init` when the folder is not a Git repository. It then reports what it did in one quiet line.
+  - The core registers the folder, whatever the host's continuity policy. It runs `lervo init` when the folder has no `.lervo/project.yaml` and `git init` when the folder is not a Git repository. The project appearing in the switcher is the confirmation; only a failure shows a line.
 - Environment checks run quietly: the Lervo CLI, the session host, and each provider CLI, installed and signed in. Only a check that blocks work shows, as one line under the card with one action. The core reports sign-in through `provider.list` and emits `provider_login_unavailable` when the provider CLI reports that no one is signed in.
 - Hiring a product owner is offered in the sidebar, never required. The product owner then staffs within headcount (ADR-0453, ADR-0454). The core ships `product-owner` as a built-in role, taken from this repository's role, so every project can hire one.
 - Projects are managed where they are listed. Adding opens the system's folder picker, a name is edited in place, a mark is chosen by clicking it, and removal sits in the context menu, which says that files stay. There is no settings page.
@@ -83,21 +83,9 @@ Roles are managed in the core, with their authority handled apart from their wor
 
 Git stores and publishes, and coordination between agents moves to the workstream, with leases that grow with the work and integration in small steps ([ADR-0640](../orchestration/0640-coordinate-agents-in-the-workstream-and-let-git-store-and-publish.md)).
 
-### A conversation is a core room with participants
+### Agents talk in core rooms and keep their own context
 
-- A conversation has an ID, its project, its participants (the owner and one or more agents), and its turns.
-  - Agent-to-agent turns, mentions, and threads go through the core's identity, assignment, and handoff records (ADR-0632, foundation 5).
-  - The core implements ADR-0454's room model as records the ADE reads and the terminal can use. It is built for the core, not ported from the Discord runtime, which never implemented it.
-- Creating a conversation chooses its agents. The product owner is the default when one is hired, otherwise a developer.
-- Each project has one team room, where its agents coordinate. The sidebar shows the agents and their status, never the room's messages.
-- The conversation shows an agent's mark and name when the speaker changes. A conversation with one agent looks as it does today.
-
-### Agents accumulate their own context
-
-- Once a session carries an agent, each turn is attributable to that agent.
-- ADR-0454's memory from conversation applies to ADE turns: after each turn an agent publishes, the agent writes a bounded self-summary. The summary is agent-scoped, non-canonical, and expires after 30 days. The agent context event schema gains its memory kind before any writer emits it.
-- Reviewed decisions, feedback, and verified improvements reach the agent's expertise layer (ADR-0386) through the knowledge resident. Unreviewed generated claims stay out.
-- Agent records and their context follow the project across hosts only once S2c replicates them. Until then each clone keeps its own.
+A conversation is a core room with participants. Agents mention each other by role and by what they have learned, and each keeps its own context from that work ([ADR-0641](../../coordination/conversations/agent-organization/0641-let-agents-mention-each-other-in-core-rooms-and-keep-their-own-context.md)).
 
 ### Local first, open to the cloud
 
@@ -145,5 +133,5 @@ Each step defines its new events and states, with required fields, privacy handl
   - With the provider signed out, one line under the start card reports `provider_login_unavailable` with its action.
   - A new project can hire a product owner.
 - **S2c.** ADR-0632's check: two hosted sessions with different agents run in one workspace, each with its own identity and lease, and only one of them writes in a worktree generation. A path one session writes cannot be written by the other. A new conversation chooses its agents, and they show as participants.
-- **S2g.** An agent's reply that mentions another agent reaches that agent through core records. The team room shows both turns. After the turn, the mentioned agent has a memory-from-conversation entry.
+- **S2g.** Without the owner, an agent mentions another agent whose role or context its work needs, and the turn reaches that agent through core records. The team room shows both turns. After the turn, the mentioned agent has a memory-from-conversation entry.
 - **S2h.** Two agents claiming overlapping paths conflict at claim time. A sealed change integrates through the integration command and reaches people as one pull request.
