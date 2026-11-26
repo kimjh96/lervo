@@ -1,6 +1,9 @@
 import type { SessionStatus, Workspace } from "./types";
 
-/** Workspaces grouped by repository, repositories by name, each group newest first. */
+/**
+ * Workspaces grouped by repository, repositories by name. Each group keeps the core's order, latest
+ * activity first, in which opening a conversation never moves it (Lervo ADE core link).
+ */
 export function groupByRepository(
   workspaces: readonly Workspace[],
 ): { repositoryName: string; workspaces: Workspace[] }[] {
@@ -14,7 +17,7 @@ export function groupByRepository(
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([repositoryName, group]) => ({
       repositoryName,
-      workspaces: group.sort((left, right) => right.preparedAt.localeCompare(left.preparedAt)),
+      workspaces: group,
     }));
 }
 

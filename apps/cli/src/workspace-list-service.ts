@@ -9,7 +9,11 @@ import {
 } from "@lervo/repository-registry";
 import { readPrivateJsonFile } from "@lervo/repository-knowledge-runtime";
 
-import { type HostedLaunchRecord, hostedLaunchRecordsPath } from "./hosted-launch-records.js";
+import {
+  type HostedLaunchRecord,
+  hostedLaunchRecordsPath,
+  listedTime,
+} from "./hosted-launch-records.js";
 import { hostedProviderModes } from "./hosted-session-adapters.js";
 import { worktreesByBranch } from "./workspace-start-effects.js";
 
@@ -42,7 +46,10 @@ export interface WorkspaceSummary {
   sessions?: { agentId: string; sessionId: string; access: "write" | "read" }[];
 }
 
-/** A workspace's lead record, the newest record of each agent in it, and its last activity. */
+/**
+ * A workspace's lead record, the newest record of each agent in it, and its last activity: the
+ * latest time any of its records places it in the list, so a reopen never moves it down.
+ */
 interface ListedWorkspace {
   lead: HostedLaunchRecord;
   agents: Map<string, HostedLaunchRecord>;
@@ -90,7 +97,9 @@ async function latestRecords(): Promise<ListedWorkspace[]> {
     if (lead === undefined) continue;
     const agents = known?.agents ?? new Map<string, HostedLaunchRecord>();
     if (record.agentId !== undefined) agents.set(record.agentId, record);
-    listed.set(record.workspaceId, { lead, agents, activeAt: record.preparedAt });
+    const listedAt = listedTime(record);
+    const activeAt = known === undefined || listedAt > known.activeAt ? listedAt : known.activeAt;
+    listed.set(record.workspaceId, { lead, agents, activeAt });
   }
   return [...listed.values()].sort((left, right) => right.activeAt.localeCompare(left.activeAt));
 }
