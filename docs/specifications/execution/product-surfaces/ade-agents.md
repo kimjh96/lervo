@@ -43,7 +43,7 @@ Agents work together by mentioning each other directly, by role and by what each
 - The hosted launch record keeps `agentId`, the writing agent, and `participants`. The provider process's environment carries `LERVO_AGENT_ID`, at the start and when the conversation reopens, so hooks and turn evidence can attribute its work. The closed launch schema does not change; the variable rides the launch's environment.
 - `workspace.list` reports each conversation's `agentId` and `participants`.
 - The conversation's header shows the participants' marks, the writing agent first. An agent in the sidebar shows the status of the conversations whose session is its own: needs the owner when any does, working when any works.
-- When the speaking agent changes, its mark, name, and role precede its turn; collaboration records, such as context passed between agents or paths claimed, show as quiet lines. These arrive with S2g, when more than one agent speaks in a conversation.
+- When the speaking agent changes, its mark, name, and role precede its turn; collaboration records, such as context passed between agents or paths claimed, show as quiet lines. These arrive with S2g, when more than one agent speaks in a conversation ([Lervo ADE rooms](ade-rooms.md)).
 
 ## State, events, privacy, and failure meaning
 
