@@ -22,6 +22,8 @@ import {
 } from "@lervo/sync";
 
 import { knowledgeHostHubCandidates } from "./knowledge-host-hub-candidates.js";
+import { readFollowControl } from "./host-follow-state.js";
+import { hostUpgradeLayout, type HostUpgradeLayout } from "./host-upgrade-layout.js";
 
 /** Composes the ADR-0466 owner with the Hub lease adapter for CLI-hosted knowledge workers. */
 export function createKnowledgeConvergenceOwnership(
@@ -50,6 +52,7 @@ export function createKnowledgePublisher(
     publishKnowledgeOutputs({
       repositoryRoot,
       forge,
+      mergeHold: releaseTrainHold,
       ...(context === undefined ? {} : { events: context.events }),
     });
 }
@@ -82,4 +85,16 @@ export function createKnowledgeConvergenceContinuity(
       hostname: hostname(),
     }),
   });
+}
+
+/**
+ * While this host's release follower is paused, a CLI release train is between its cut and its
+ * tag: merging a knowledge publication then moves main and supersedes the release's preparation.
+ * The publication waits as at any merge gate and merges once the follower resumes.
+ */
+export async function releaseTrainHold(
+  layout: HostUpgradeLayout = hostUpgradeLayout({}),
+): Promise<string | null> {
+  const control = await readFollowControl(layout).catch(() => null);
+  return control?.paused === true ? "release_train" : null;
 }

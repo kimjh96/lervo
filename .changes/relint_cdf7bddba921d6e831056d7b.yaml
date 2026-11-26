@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cdf7bddba921d6e831056d7b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Hold knowledge publication merges while this host's CLI release follower is paused, so a release train's preparation is not superseded mid-train."

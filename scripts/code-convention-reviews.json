@@ -137,7 +137,7 @@
     },
     {
       "path": "packages/repository-knowledge-runtime/src/knowledge-publication.ts",
-      "contentHash": "sha256:697801e39cf9e1e6f70e6d03a59b2f46159749cc085522151e70ae3f976b9233",
+      "contentHash": "sha256:07eee3625f79218105ae7a01ff54911de762690182e6221fe8a2d5ed5c6687ef",
       "responsibility": "Knowledge publication orchestration",
       "rationale": "The module sequences one owner publication (standing, repair, scope, policy plan, head, merge, supersession, catch-up) into one durable state, failure code and wait. GitHub-derived standing and history, pull patches, the head and pull request, waits, base-change tracking, check recovery, policy, failure, merge gate, Git inventory, forge transport, body, tip and state are sibling modules (ADR-0596, ADR-0603, ADR-0607).",
       "disposition": "cohesive"
