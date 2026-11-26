@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_700ef64f677c161c145db940"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Terminal hooks wait up to 500 ms, not 100 ms, for the context server to accept a request before running in their own process, so a server paging back in still answers."
