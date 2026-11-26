@@ -116,3 +116,4 @@ export type AgentsListResult = FromSchema<typeof agentsListResultSchema>;
 export type AgentHireResult = FromSchema<typeof agentHireResultSchema>;
 export type AgentModelResult = FromSchema<typeof agentModelResultSchema>;
 export type AgentRenameResult = FromSchema<typeof agentRenameResultSchema>;
+export type AgentModelChoice = FromSchema<typeof agentModelChoiceSchema>;

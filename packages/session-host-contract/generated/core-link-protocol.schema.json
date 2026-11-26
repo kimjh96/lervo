@@ -1193,6 +1193,38 @@
         }
       }
     },
+    "AgentModelResult": {
+      "title": "AgentModelResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "AgentRenameResult": {
+      "title": "AgentRenameResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
     "RoomSession": {
       "title": "RoomSession",
       "type": "object",

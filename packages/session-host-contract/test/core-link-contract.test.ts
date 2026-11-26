@@ -97,6 +97,17 @@ describe("core-link protocol contract", () => {
 
   it("names one result schema for every application command", () => {
     expect(coreCommandRequestSchema.properties.command.enum).toEqual(applicationCommandNames);
+    // The session host finds each command's result in the document by this title.
+    const defined = Object.keys(
+      (coreLinkProtocolDocument() as { $defs: Record<string, unknown> }).$defs,
+    );
+    for (const command of applicationCommandNames) {
+      const title = `${command
+        .split(/[._]/u)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("")}Result`;
+      expect(defined, command).toContain(title);
+    }
     expect(Object.keys(applicationResultSchemas).toSorted()).toEqual(
       [...applicationCommandNames].toSorted(),
     );

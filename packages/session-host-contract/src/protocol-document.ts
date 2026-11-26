@@ -10,6 +10,8 @@ import {
 } from "./application-project-results.js";
 import {
   agentHireResultSchema,
+  agentModelResultSchema,
+  agentRenameResultSchema,
   agentsListResultSchema,
   agentSummarySchema,
   hireableRoleSchema,
@@ -118,6 +120,8 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     hireableRoleSchema,
     agentsListResultSchema,
     agentHireResultSchema,
+    agentModelResultSchema,
+    agentRenameResultSchema,
     roomSessionSchema,
     roomJoinResultSchema,
     roomRouteResultSchema,
