@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c18c3c7a39a5c1ae37fbc5b4"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "The terminal hook reads a Claude Code PreToolUse call for the paths it writes, the groundwork for claims at first write; until the coordination stage claims them, every write goes ahead as before."

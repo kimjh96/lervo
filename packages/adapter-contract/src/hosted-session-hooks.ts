@@ -7,14 +7,20 @@ import { isAbsolute } from "node:path";
 export const MAX_HOOK_COMMAND_CHARACTERS = 1024;
 
 /** The provider events a hosted session's terminal hooks may answer. */
-export const HOSTED_TERMINAL_HOOK_EVENTS = ["SessionStart", "UserPromptSubmit", "Stop"] as const;
+export const HOSTED_TERMINAL_HOOK_EVENTS = [
+  "SessionStart",
+  "UserPromptSubmit",
+  "Stop",
+  "PreToolUse",
+] as const;
 
 /** One provider event the terminal hooks answer, such as `UserPromptSubmit`. */
 export interface HostedTerminalHookEvent {
   readonly name: (typeof HOSTED_TERMINAL_HOOK_EVENTS)[number];
   /**
    * Limits a `SessionStart` handler to the sources the worktree's own hooks leave out, such as
-   * `resume|compact`, so no source runs Lervo twice; absent, the handler answers every source.
+   * `resume|compact`, so no source runs Lervo twice; absent, the handler answers every source. A
+   * `PreToolUse` handler must name the tools whose writes Lervo claims, such as `Edit|Write`.
    */
   readonly matcher?: string;
 }
@@ -58,12 +64,19 @@ export function hostedSessionHooksProblem(hooks: HostedSessionHooks): string | n
     !names.every((name) => (HOSTED_TERMINAL_HOOK_EVENTS as readonly string[]).includes(name))
   )
     return "The terminal hook events must be known, unique, and at least one.";
-  for (const event of terminal.events)
-    if (
+  for (const event of terminal.events) {
+    if (event.name === "PreToolUse") {
+      if (
+        event.matcher === undefined ||
+        !/^[A-Z][A-Za-z]*(?:\|[A-Z][A-Za-z]*){0,7}$/u.test(event.matcher)
+      )
+        return "A PreToolUse terminal hook takes a matcher of one to eight tool names.";
+    } else if (
       event.matcher !== undefined &&
       (event.name !== "SessionStart" || !/^[a-z]+(?:\|[a-z]+){0,7}$/u.test(event.matcher))
     )
       return "Only a SessionStart terminal hook takes a matcher of session sources.";
+  }
   return null;
 }
 

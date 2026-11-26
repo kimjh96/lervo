@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./claims": {
+      "types": "./dist/hosted-claims.d.ts",
+      "default": "./dist/hosted-claims.js"
     }
   },
   "scripts": {

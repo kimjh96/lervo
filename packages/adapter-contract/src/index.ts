@@ -17,6 +17,7 @@ export * from "./repository-work-deadline.js";
 
 export * from "./login-inspection.js";
 export * from "./hosted-conversation.js";
+export * from "./hosted-claims.js";
 export * from "./hosted-images.js";
 export * from "./hosted-session.js";
 export * from "./hosted-session-checks.js";
