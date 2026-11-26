@@ -38,7 +38,7 @@ import { resolveTerminalRoots } from "./terminal-roots.js";
 import { requestOpenTerminalTurnSettlement } from "./terminal-turn-settlement.js";
 import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
 import { roomBlock } from "./room-context.js";
-import { answerPreToolUse, claimReading, unclaimed, writingSessionOf } from "./write-claims.js";
+import { answerClaimHook } from "./write-claims.js";
 
 export function runTerminalHookCommand(
   args: string[],
@@ -99,15 +99,7 @@ async function executeTerminalHookCommand(
     if (input.event === "PreToolUse") {
       // Claims at first write (Lervo ADE coordination). The claim is the core's coordination
       // stage; until it runs, every write goes ahead.
-      io.stdout(
-        await answerPreToolUse({
-          hook: input,
-          answering: claimReading(provider),
-          fallbackDirectory: io.cwd,
-          writing: (session) => writingSessionOf(session),
-          claim: unclaimed,
-        }),
-      );
+      io.stdout(await answerClaimHook(input, provider, io.cwd));
       return 0;
     }
     if (input.event === "SessionStart") {

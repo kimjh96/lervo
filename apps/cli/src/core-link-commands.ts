@@ -87,7 +87,8 @@ export function commandAnswer(
     case "agent.status":
     case "agent.mark.set":
     case "agent.mark.clear":
-    case "agent.mark.read": {
+    case "agent.mark.read":
+    case "agent.context": {
       const run = handlers.runAgentCommand;
       return optional(
         run && ((args) => run(command, args)),

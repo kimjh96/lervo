@@ -22,6 +22,7 @@ import {
   readAgentMarkImage,
   setAgentMark,
 } from "./core-link-agent-marks.js";
+import { learnedEntries } from "./core-link-agent-context.js";
 import { defaultHostedProvider, hostedProviderModels } from "./hosted-session-adapters.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 import { CommandFailure } from "./command-error-output.js";
@@ -42,6 +43,7 @@ export const coreLinkAgentCommands = new Set([
   "agent.mark.set",
   "agent.mark.clear",
   "agent.mark.read",
+  "agent.context",
 ]);
 
 /** A changing command's expected revision, which a stale view fails. */
@@ -147,6 +149,10 @@ async function answer(command: string, arguments_: Record<string, unknown>): Pro
       }),
     );
     return { projectId, agent: view(agent, names, new Set()) };
+  }
+  if (command === "agent.context") {
+    const agentId = text(arguments_, "agentId", 64);
+    return { projectId, agentId, entries: await learnedEntries(root, agentId) };
   }
   if (command === "agent.mark.read") {
     const agentId = text(arguments_, "agentId", 64);

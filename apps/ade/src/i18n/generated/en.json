@@ -165,6 +165,94 @@
       "value": "name"
     }
   ],
+  "agents.profile.learned": [
+    {
+      "type": 0,
+      "value": "What it has learned"
+    }
+  ],
+  "agents.profile.learned.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not read what it has learned ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "agents.profile.learned.kind.conversation_note": [
+    {
+      "type": 0,
+      "value": "Conversation note"
+    }
+  ],
+  "agents.profile.learned.kind.decision_rationale": [
+    {
+      "type": 0,
+      "value": "Decision"
+    }
+  ],
+  "agents.profile.learned.kind.expertise": [
+    {
+      "type": 0,
+      "value": "Expertise"
+    }
+  ],
+  "agents.profile.learned.kind.other": [
+    {
+      "type": 0,
+      "value": "Note"
+    }
+  ],
+  "agents.profile.learned.kind.relationship": [
+    {
+      "type": 0,
+      "value": "Relationship"
+    }
+  ],
+  "agents.profile.learned.kind.work_outcome": [
+    {
+      "type": 0,
+      "value": "Work outcome"
+    }
+  ],
+  "agents.profile.learned.kind.working_preference": [
+    {
+      "type": 0,
+      "value": "Working preference"
+    }
+  ],
+  "agents.profile.learned.meta": [
+    {
+      "type": 1,
+      "value": "kind"
+    },
+    {
+      "type": 0,
+      "value": " · "
+    },
+    {
+      "type": 1,
+      "value": "date"
+    }
+  ],
+  "agents.profile.learned.none": [
+    {
+      "type": 0,
+      "value": "Nothing yet. What the agent learns in its conversations appears here."
+    }
+  ],
+  "agents.profile.learned.restricted": [
+    {
+      "type": 0,
+      "value": "Kept to the agent's own sessions."
+    }
+  ],
   "agents.profile.model": [
     {
       "type": 0,
@@ -2913,6 +3001,126 @@
     {
       "type": 0,
       "value": "New Project"
+    }
+  ],
+  "room.claimConflict": [
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " was stopped at "
+    },
+    {
+      "type": 8,
+      "value": "code",
+      "children": [
+        {
+          "type": 1,
+          "value": "path"
+        }
+      ]
+    },
+    {
+      "type": 0,
+      "value": " · "
+    },
+    {
+      "type": 1,
+      "value": "holder"
+    },
+    {
+      "type": 0,
+      "value": " holds it in "
+    },
+    {
+      "type": 8,
+      "value": "link",
+      "children": [
+        {
+          "type": 1,
+          "value": "title"
+        }
+      ]
+    }
+  ],
+  "room.claimConflictHeld": [
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " was stopped at "
+    },
+    {
+      "type": 8,
+      "value": "code",
+      "children": [
+        {
+          "type": 1,
+          "value": "path"
+        }
+      ]
+    },
+    {
+      "type": 0,
+      "value": " · "
+    },
+    {
+      "type": 1,
+      "value": "holder"
+    },
+    {
+      "type": 0,
+      "value": " holds it"
+    }
+  ],
+  "room.claimDeferred": [
+    {
+      "type": 0,
+      "value": "Lervo checks this turn's claims at its end ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")"
+    }
+  ],
+  "room.claimRefused": [
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " was stopped at "
+    },
+    {
+      "type": 8,
+      "value": "code",
+      "children": [
+        {
+          "type": 1,
+          "value": "path"
+        }
+      ]
+    },
+    {
+      "type": 0,
+      "value": " ("
+    },
+    {
+      "type": 1,
+      "value": "reason"
+    },
+    {
+      "type": 0,
+      "value": ")"
     }
   ],
   "room.conversationStarted": [

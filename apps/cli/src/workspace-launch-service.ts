@@ -20,6 +20,7 @@ import {
   hostedLaunchSessions,
   latestHostedLaunch,
   launchArgumentDigest,
+  listedTime,
   recordHostedLaunch,
   type HostedLaunchRecord,
 } from "./hosted-launch-records.js";
@@ -263,6 +264,8 @@ export async function openWorkspace(
     argumentDigest: launchArgumentDigest(launch),
     settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
     preparedAt: new Date().toISOString(),
+    // Opening is no activity: the conversation keeps its place in the list.
+    listedAt: listedTime(previous),
   };
   await recordLaunch(record);
   const hostedEvents = await recordEvents(repositoryRoot, [launchPreparedEvent(record)]);
