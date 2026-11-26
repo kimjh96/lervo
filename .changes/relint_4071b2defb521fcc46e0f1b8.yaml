@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4071b2defb521fcc46e0f1b8"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Knowledge commits are no longer held by a REBASE_HEAD that Git left behind after a rebase ended; only a running rebase, merge, cherry-pick, revert, bisect, or index lock holds them."

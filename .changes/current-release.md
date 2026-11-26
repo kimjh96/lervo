@@ -1,7 +1,8 @@
-<!-- lervo-release package="@lervo/cli" version="0.57.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.58.0" schema="1" -->
 
 ## What's changed
 
-- Read a snapshot's HEAD from the repository's files, falling back to git for anything unusual, so each prompt and Stop snapshot spawns fewer git processes.
-- Read event schema 13 in the CLI, the Node, and the Hub: execution.stages.observed can say how a terminal hook's answer was delivered, with its answer time or why it ran in its own process. Automatic writer activation stays at schema 12.
-- Read owner rule files together instead of one at a time when a prompt prepares its applied rules and lists rule titles.
+- Knowledge commits are no longer held by a REBASE_HEAD that Git left behind after a rebase ended; only a running rebase, merge, cherry-pick, revert, bisect, or index lock holds them.
+- Repository snapshots walk while Git lists ignored paths again, using the previous capture's list for paths it saw, which cuts about 25 ms from each prompt and Stop snapshot with identical results.
+- Served prompts reuse the measured distance between the workstream's recorded commit and HEAD while HEAD has not moved, instead of running two git commands per prompt.
+- Terminal hooks record how their answer was delivered: the context server's answer time, or the closed reason a hook ran in its own process. Repository upgrades activate event schema 13 once every configured reader reads it.
