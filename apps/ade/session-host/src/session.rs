@@ -246,6 +246,16 @@ impl Fanout {
         }
     }
 
+    /// Whether a client shows the session now, its conversation or its terminal.
+    pub(crate) fn attended(&self) -> bool {
+        !self.subscribers.is_empty()
+    }
+
+    /// Whether the agent waits for the person, as a question does.
+    pub(crate) fn needs_user(&self) -> bool {
+        self.status == SessionStatus::NeedsUser
+    }
+
     pub(crate) fn detach(&mut self, connection: u64) {
         self.subscribers
             .retain(|subscriber| subscriber.connection() != connection);

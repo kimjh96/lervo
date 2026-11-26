@@ -35,6 +35,11 @@ const EXIT_GRACE: Duration = Duration::from_secs(5);
 /// end to the exit report.
 const STOP_GRACE: Duration = Duration::from_secs(8);
 
+/// How long a session no one shows and no work holds keeps its provider running (Lervo ADE
+/// sessions, "Idle sessions"). Each provider process holds about 150 MB; reopening the
+/// conversation resumes the session, and a mention joins the agent again.
+const IDLE_STOP: Duration = Duration::from_secs(10 * 60);
+
 /// Called once with the provider's exit code, or none after a signal, when its process ended.
 pub(crate) type ExitReport = Box<dyn FnOnce(Option<u8>) + Send>;
 
@@ -98,7 +103,21 @@ impl<D: StreamDecoder> Native<D> {
         let kill = tokio::time::sleep(Duration::ZERO);
         tokio::pin!(kill);
         let mut kill_armed = false;
+        // Armed while the session rests: unattended, between turns, asking nothing, owed nothing.
+        let idle = tokio::time::sleep(IDLE_STOP);
+        tokio::pin!(idle);
+        let mut idle_armed = false;
+        let mut idled = false;
         loop {
+            let rests = !stopped
+                && !self.fanout.attended()
+                && !self.in_turn
+                && !self.fanout.needs_user()
+                && self.waiting.is_empty();
+            if rests && !idle_armed {
+                idle.as_mut().reset(tokio::time::Instant::now() + IDLE_STOP);
+            }
+            idle_armed = rests;
             tokio::select! {
                 output = process.output() => match output {
                     Ok(Some(bytes)) => {
@@ -149,6 +168,13 @@ impl<D: StreamDecoder> Native<D> {
                     kill_armed = false;
                     let _ = process.kill().await;
                 }
+                () = &mut idle, if idle_armed => {
+                    // The provider ends as a stop ends it; the conversation and its index stay.
+                    stopped = true;
+                    idled = true;
+                    idle_armed = false;
+                    ask_to_end(&mut process, kill.as_mut(), &mut kill_armed).await;
+                }
             }
         }
         self.apply(vec![Decoded::Conversation(Input::Finish)]);
@@ -173,6 +199,11 @@ impl<D: StreamDecoder> Native<D> {
             stopped,
             exited_cleanly,
         )));
+        // A session that rested until it stopped does not linger: the next attach finds none, and
+        // the interface opens it again, which resumes the provider's session.
+        if idled {
+            return;
+        }
         linger(&mut commands, |command| self.command(command)).await;
     }
 

@@ -151,6 +151,14 @@ An agent that needs the owner to decide asks with choices the owner picks in the
 - **Answering in prose.** A reply sent while a question waits answers it in the owner's own words: the decoder first tells Claude Code that the owner replied instead of choosing, then sends the reply.
 - **What the conversation keeps.** The question with its choices and the owner's answer are ordinary items of the index. The `AskUserQuestion` tool call adds no tool line, since the question and the answer already show it. A conversation rebuilt from Claude Code's transcript shows the call as a tool line, since the transcript holds no choices.
 
+## Idle sessions
+
+A provider process holds about 150 MB. Without a limit, every conversation opened since the session host started kept one: four visited conversations held five Claude Code processes and 746 MB (measured 2026-11-27).
+
+- **When a session rests.** No client shows it, no turn runs, no question waits for the person, and no delivered turn waits. A session that rests for 10 minutes has its provider asked to end, as `session.stop` does. Its conversation and index stay.
+- **Coming back.** The stopped session does not linger, so the next attach finds no session, and the interface opens the workspace again. The core then resumes the provider's session, and the conversation continues where it was. A mention of an agent whose session stopped joins it again the same way (Lervo ADE rooms).
+- **What never stops.** A conversation on screen, a running turn, and a question that waits for the person.
+
 ## The turn summary
 
 A finished turn ends with one quiet line of what the core recorded about it (approved mockup 3, "The Lervo turn summary"): how long the turn took, then only what it did beyond the usual, such as _48s · 2 documents found · 3 files changed · Workstream updated_. An ordinary turn reads as its time alone. The line opens to a card of the rows that have something to say, in four parts: what Lervo gave the agent (documents it selected, the workstream revision), what the agent used (documents its Lervo searches found, documents its answer cited), the outcome (files changed, the workstream revision it ended at, a completion check that blocked or did not run), and the provider-reported usage with a list-price cost.
