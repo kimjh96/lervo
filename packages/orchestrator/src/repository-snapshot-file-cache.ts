@@ -3,16 +3,29 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import {
-  captureRepositorySnapshotIncrementally,
   defaultRepositorySnapshotPolicy,
-  partialRepositorySnapshotCache,
   type RepositorySnapshot,
-  type RepositorySnapshotCacheState,
   type RepositorySnapshotFileReader,
   type RepositorySnapshotPolicy,
 } from "./repository-snapshot.js";
+import {
+  captureRepositorySnapshotIncrementally,
+  partialRepositorySnapshotCache,
+  type RepositorySnapshotCacheState,
+} from "./repository-snapshot-cache.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
+
+/** A path inside the repository, as Git lists it: relative, without `..` or a NUL byte. */
+function repositoryRelativePath(path: unknown): boolean {
+  return (
+    typeof path === "string" &&
+    path.length > 0 &&
+    !path.startsWith("/") &&
+    !path.includes("\0") &&
+    !path.split("/").includes("..")
+  );
+}
 
 function validCache(value: unknown): value is RepositorySnapshotCacheState {
   const cache = value as RepositorySnapshotCacheState | null;
@@ -22,6 +35,8 @@ function validCache(value: unknown): value is RepositorySnapshotCacheState {
     cache.schemaVersion === 1 &&
     typeof cache.cacheKey === "string" &&
     Array.isArray(cache.entries) &&
+    (cache.ignoredPaths === undefined ||
+      (Array.isArray(cache.ignoredPaths) && cache.ignoredPaths.every(repositoryRelativePath))) &&
     cache.entries.every(
       (item) =>
         Array.isArray(item) &&
