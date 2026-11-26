@@ -13,7 +13,8 @@ use lervo_session_transport::token::Token;
 use crate::diagnostics::Diagnostics;
 use crate::registry::Registry;
 use crate::watch::{self, WatchSender};
-use lervo_session_core::ports::Core;
+use lervo_session_core::ports::{Core, RoomDelivery};
+use tokio::sync::mpsc;
 
 pub(crate) struct Host<C> {
     /// Shared, so an ended session can report its exit after the request that started it.
@@ -29,6 +30,10 @@ pub(crate) struct Host<C> {
     /// never held across a wait, so other clients' messages flow meanwhile.
     pub(crate) lifecycle: tokio::sync::Mutex<()>,
     pub(crate) next_channel: AtomicU32,
+    /// Where native sessions send the turns their mentions set off (Lervo ADE rooms).
+    pub(crate) deliveries: mpsc::UnboundedSender<RoomDelivery>,
+    /// The other end, which `serve` hands to the delivery worker once.
+    delivered: Mutex<Option<mpsc::UnboundedReceiver<RoomDelivery>>>,
 }
 
 impl<C: Core> Host<C> {
@@ -40,6 +45,7 @@ impl<C: Core> Host<C> {
         indexes: PathBuf,
         diagnostics: Diagnostics,
     ) -> Self {
+        let (deliveries, delivered) = mpsc::unbounded_channel();
         Self {
             core: Arc::new(core),
             codec,
@@ -51,7 +57,18 @@ impl<C: Core> Host<C> {
             watch: watch::spawn(),
             lifecycle: tokio::sync::Mutex::new(()),
             next_channel: AtomicU32::new(1),
+            deliveries,
+            delivered: Mutex::new(Some(delivered)),
         }
+    }
+
+    /// The deliveries native sessions send, for the worker that performs them; none after the
+    /// first call.
+    pub(crate) fn take_deliveries(&self) -> Option<mpsc::UnboundedReceiver<RoomDelivery>> {
+        self.delivered
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .take()
     }
 
     /// The registry, for a quick lookup or insert. Never hold it across an await.

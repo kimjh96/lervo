@@ -31,6 +31,9 @@ impl<C: Core> Host<C> {
                 } else {
                     Vec::new()
                 };
+                // An agent joining a conversation runs beside its lead, never as the workspace's
+                // session (Lervo ADE rooms).
+                let joins = command.command.as_str() == "room.join";
                 let host = Arc::clone(self);
                 tokio::spawn(async move {
                     let request = command.request_id;
@@ -44,7 +47,12 @@ impl<C: Core> Host<C> {
                             reply.send(messages::application_result(&request, outcome.result));
                             if let Some(mut launch) = outcome.launch {
                                 launch.initial_images = images;
-                                reply.send(host.start(&request, &launch).await);
+                                let started = if joins {
+                                    host.start_member(&request, &launch).await
+                                } else {
+                                    host.start(&request, &launch).await
+                                };
+                                reply.send(started);
                             }
                         }
                     }

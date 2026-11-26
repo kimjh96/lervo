@@ -69,6 +69,9 @@ pub async fn run<C: Core>(
         layout.indexes.clone(),
         diagnostics.clone(),
     ));
+    if let Some(delivered) = host.take_deliveries() {
+        tokio::spawn(Arc::clone(&host).deliver_all(delivered));
+    }
 
     tokio::pin!(shutdown);
     let mut next_connection = 0_u64;

@@ -58,6 +58,13 @@ impl Registry {
             .then(|| (session.clone(), handle.clone()))
     }
 
+    /// A session of an agent that joined its workspace's conversation. It never becomes the
+    /// workspace's session, which stays the lead's (Lervo ADE rooms).
+    pub(crate) fn insert_member(&mut self, session: Identifier, handle: SessionHandle) {
+        self.channels.insert(handle.channel, session.clone());
+        self.sessions.insert(session, handle);
+    }
+
     pub(crate) fn insert(
         &mut self,
         workspace: Identifier,

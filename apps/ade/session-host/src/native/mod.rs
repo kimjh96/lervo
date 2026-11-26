@@ -1,13 +1,14 @@
 //! The native conversation's actor: the provider's structured stream, decoded by the core's
 //! adapter into conversation items that the index stores and subscribers receive.
 
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::time::Duration;
 
 use lervo_session_core::paging::{item_id, page};
 use lervo_session_core::status::{EndReason, SessionEvent};
-use lervo_session_core::transcript::{Change, Input, Transcript, coalesce};
+use lervo_session_core::transcript::{Change, Content, Input, Transcript, coalesce};
 use lervo_session_protocol::codec::{decode_record, encode};
 use lervo_session_protocol::{ConversationItem, RequestFailedMessageCode};
 use lervo_session_stream::StreamProcess;
@@ -19,7 +20,7 @@ use crate::index::Index;
 use crate::items::to_wire;
 use crate::messages;
 use crate::session::{Command, Fanout, Range, linger};
-use lervo_session_core::ports::{Decoded, Failure, SentImage, StreamDecoder};
+use lervo_session_core::ports::{Decoded, Failure, RoomDelivery, SentImage, StreamDecoder};
 
 mod prepare;
 
@@ -48,6 +49,14 @@ struct Native<D> {
     index: Index,
     decoder: D,
     on_exit: Option<ExitReport>,
+    /// Where the turns this session's mentions set off go: the session host's delivery worker.
+    deliveries: mpsc::UnboundedSender<RoomDelivery>,
+    /// The delivery the first instruction performs, for an agent that joined with it.
+    initial_delivery: Option<String>,
+    /// Between a turn's start and its finish; a delivered turn waits until the turn ends.
+    in_turn: bool,
+    /// Delivered turns waiting for the running turn, oldest first.
+    waiting: VecDeque<(String, String)>,
 }
 
 impl<D: StreamDecoder> Native<D> {
@@ -69,10 +78,14 @@ impl<D: StreamDecoder> Native<D> {
         self.fanout.change(SessionEvent::Launched);
         if let Some(text) = self.initial_input.take() {
             let images = std::mem::take(&mut self.initial_images);
-            // A decoder that cannot carry images still gets the instruction.
-            let encoded = match self.encode(&text, &images).await {
-                Ok(encoded) => encoded,
-                Err(_) => self.decoder.send(&text).await,
+            // A joining agent's first instruction is the turn delivered to it, shown as its
+            // sender's; a decoder that cannot carry images still gets the instruction.
+            let encoded = match self.initial_delivery.take() {
+                Some(delivery) => self.decoder.send_delivery(&text, &delivery).await,
+                None => match self.encode(&text, &images).await {
+                    Ok(encoded) => encoded,
+                    Err(_) => self.decoder.send(&text).await,
+                },
             };
             if process.input(&encoded.0).await.is_ok() {
                 self.apply(encoded.1);
@@ -90,6 +103,7 @@ impl<D: StreamDecoder> Native<D> {
                     Ok(Some(bytes)) => {
                         let decoded = self.decoder.output(&bytes).await;
                         self.apply(decoded);
+                        self.deliver_waiting(&mut process).await;
                     }
                     Ok(None) | Err(_) => break,
                 },
@@ -114,6 +128,10 @@ impl<D: StreamDecoder> Native<D> {
                             }
                             Err(failure) => reply.send(messages::core_failed(&request, &failure)),
                         }
+                    }
+                    Some(Command::Deliver { delivery_id, text }) => {
+                        self.waiting.push_back((delivery_id, text));
+                        self.deliver_waiting(&mut process).await;
                     }
                     Some(Command::Interrupt { request, reply }) => {
                         match self.decoder.interrupt().await {
@@ -189,7 +207,36 @@ impl<D: StreamDecoder> Native<D> {
                     RequestFailedMessageCode::SessionEnded,
                 ));
             }
-            Command::Input(_) | Command::Resize { .. } | Command::Stop | Command::Release => {}
+            Command::Notice { code, parameters } => {
+                self.apply(vec![Decoded::Conversation(Input::Item {
+                    content: Content::LervoNotice { code, parameters },
+                    created_at_ms: now_ms(),
+                })])
+            }
+            // A delivery to an ended session is lost with it; the conversation's next mention
+            // joins the agent again.
+            Command::Input(_)
+            | Command::Resize { .. }
+            | Command::Stop
+            | Command::Release
+            | Command::Deliver { .. } => {}
+        }
+    }
+
+    /// Gives the session the oldest delivered turn once no turn runs. One at a time: the turn it
+    /// starts holds the rest until it finishes.
+    async fn deliver_waiting(&mut self, process: &mut StreamProcess) {
+        if self.in_turn {
+            return;
+        }
+        let Some((delivery_id, text)) = self.waiting.pop_front() else {
+            return;
+        };
+        let (bytes, decoded) = self.decoder.send_delivery(&text, &delivery_id).await;
+        if process.input(&bytes).await.is_ok() {
+            // The turn counts as running from now, so a second delivery waits for it.
+            self.in_turn = true;
+            self.apply(decoded);
         }
     }
 
@@ -201,9 +248,21 @@ impl<D: StreamDecoder> Native<D> {
             match decoded {
                 Decoded::Status(event) => {
                     self.flush(&mut pending);
+                    match event {
+                        SessionEvent::TurnStarted => self.in_turn = true,
+                        SessionEvent::TurnFinished => self.in_turn = false,
+                        _ => {}
+                    }
                     self.fanout.change(event);
                 }
                 Decoded::Conversation(input) => pending.extend(self.transcript.apply(input)),
+                Decoded::Delivery(mut delivery) => {
+                    delivery
+                        .source_session_id
+                        .get_or_insert_with(|| self.fanout.session().as_str().to_owned());
+                    // The worker outlives every session; a host shutting down drops the turn.
+                    let _ = self.deliveries.send(delivery);
+                }
             }
         }
         self.flush(&mut pending);
@@ -317,4 +376,12 @@ async fn ask_to_end(process: &mut StreamProcess, kill: Pin<&mut Sleep>, armed: &
     } else {
         let _ = process.kill().await;
     }
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |since| {
+            u64::try_from(since.as_millis()).unwrap_or(u64::MAX)
+        })
 }

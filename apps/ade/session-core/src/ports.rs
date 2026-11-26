@@ -137,6 +137,23 @@ pub enum Decoded {
     Status(SessionEvent),
     /// A conversation item, or text for the streaming one.
     Conversation(Input),
+    /// A turn for another agent of the conversation, which the session host gives it.
+    Delivery(RoomDelivery),
+}
+
+/// A turn for another agent of the conversation (Lervo ADE rooms, "The core link and the session
+/// host"). The session host gives it to the agent's session, joining the agent first through
+/// `room.join` when it has none, and after the session's running turn.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RoomDelivery {
+    pub delivery_id: String,
+    pub workspace_id: String,
+    pub agent_id: String,
+    /// The agent's session in the conversation; none when the agent joins with this turn.
+    pub session_id: Option<String>,
+    /// The session whose turn set the delivery off, which shows a delivery that failed.
+    pub source_session_id: Option<String>,
+    pub text: String,
 }
 
 /// An image the user sent with a message: its media type and its bytes as Base64, as the
@@ -152,6 +169,16 @@ pub struct SentImage {
 pub trait StreamDecoder: Send + 'static {
     /// Encodes the user's text for the provider's standard input, with what to show for it.
     fn send(&mut self, text: &str) -> impl Future<Output = (Vec<u8>, Vec<Decoded>)> + Send;
+
+    /// Encodes a delivered turn, so the core shows it as its sender's message rather than the
+    /// user's. A decoder whose core does not route deliveries sends it as the user's text.
+    fn send_delivery(
+        &mut self,
+        text: &str,
+        _delivery_id: &str,
+    ) -> impl Future<Output = (Vec<u8>, Vec<Decoded>)> + Send {
+        self.send(text)
+    }
 
     /// Decodes a chunk of standard output. Chunks split anywhere, so the decoder keeps partial
     /// records until their end arrives.

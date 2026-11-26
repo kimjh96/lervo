@@ -9,8 +9,8 @@ use lervo_session_protocol::core_link::CoreLinkResponse;
 use serde_json::{Value, json};
 
 use crate::{
-    CoreLink, DECODE_DEADLINE, DECODER_IMAGES, DECODER_INTERRUPT, DECODER_SESSION,
-    OUTPUT_CHUNK_BYTES, events, failures,
+    CoreLink, DECODE_DEADLINE, DECODER_DELIVERIES, DECODER_IMAGES, DECODER_INTERRUPT,
+    DECODER_SESSION, OUTPUT_CHUNK_BYTES, events, failures,
 };
 
 /// One native session's decoder in the resident process. It opens there on first use and again
@@ -25,6 +25,9 @@ pub struct LinkDecoder {
     /// Whether the open decoder heard the session's ID. One opened before its resident process
     /// advertised `decoder.session` opens again, named, before the next turn.
     named: bool,
+    /// Whether the open decoder routes its conversation's mentions, as one opened with
+    /// `deliveries` does.
+    routed: bool,
     /// Between a turn's start and its finish, as the decoded status events say.
     in_turn: bool,
     /// The last output ended inside a line, which the resident process holds until the rest.
@@ -55,6 +58,7 @@ impl LinkDecoder {
             session_id,
             open: false,
             named: false,
+            routed: false,
             in_turn: false,
             mid_line: false,
             holding: false,
@@ -89,7 +93,10 @@ impl LinkDecoder {
     /// `decoder.session` hears the session's ID, because an older one ends the link on a field it
     /// cannot validate; when that process was replaced meanwhile, the decoder opens without it
     /// and the new process records no usage for it.
-    async fn open_decoder(&self) -> Result<(CoreLinkResponse, bool), Failure> {
+    ///
+    /// A process that also advertised `decoder.deliveries` routes the session's mentions: the
+    /// session host performs the deliveries its answers carry (Lervo ADE rooms).
+    async fn open_decoder(&self) -> Result<(CoreLinkResponse, bool, bool), Failure> {
         let opened = json!({
             "kind": "decoder.open",
             "decoderId": self.decoder_id,
@@ -98,15 +105,19 @@ impl LinkDecoder {
         if let Some(generation) = self.core.advertiser_of(DECODER_SESSION) {
             let mut named = opened.clone();
             named["sessionId"] = Value::from(self.session_id.as_str());
+            let routed = self.core.advertiser_of(DECODER_DELIVERIES) == Some(generation);
+            if routed {
+                named["deliveries"] = Value::from(true);
+            }
             if let Ok((response, _)) = self
                 .core
                 .ask_on(named, DECODE_DEADLINE, Some(generation), false)
                 .await
             {
-                return Ok((response, true));
+                return Ok((response, true, routed));
             }
         }
-        Ok((self.core.ask(opened, DECODE_DEADLINE).await?, false))
+        Ok((self.core.ask(opened, DECODE_DEADLINE).await?, false, false))
     }
 
     /// Sends `request` for this decoder, opening it first if needed and once more if the resident
@@ -114,11 +125,12 @@ impl LinkDecoder {
     async fn decode(&mut self, request: Value) -> Result<(Vec<Decoded>, Option<String>), Failure> {
         for _ in 0..2 {
             if !self.open {
-                let (response, named) = self.open_decoder().await?;
+                let (response, named, routed) = self.open_decoder().await?;
                 match response {
                     CoreLinkResponse::DecoderDecodedResponse(_) => {
                         self.open = true;
                         self.named = named;
+                        self.routed = routed;
                     }
                     CoreLinkResponse::CoreFailedResponse(response) => {
                         return Err(failures::from_core(&response.code, None));
@@ -131,7 +143,9 @@ impl LinkDecoder {
             }
             match self.core.ask(request.clone(), DECODE_DEADLINE).await? {
                 CoreLinkResponse::DecoderDecodedResponse(response) => {
-                    let decoded = response.events.into_iter().map(events::decoded).collect();
+                    let mut decoded: Vec<Decoded> =
+                        response.events.into_iter().map(events::decoded).collect();
+                    decoded.extend(response.deliveries.into_iter().map(events::delivery));
                     return Ok((decoded, response.input.map(|input| input.to_string())));
                 }
                 CoreLinkResponse::CoreFailedResponse(response)
@@ -180,12 +194,11 @@ impl LinkDecoder {
     async fn message(&mut self, request: Value) -> (Vec<u8>, Vec<Decoded>) {
         // Between turns the decoder holds no partial state, so one opened before its process
         // advertised `decoder.session` opens again, named, and this turn's usage is recorded.
-        if self.open
-            && !self.named
-            && !self.in_turn
-            && !self.mid_line
-            && self.core.advertiser_of(DECODER_SESSION).is_some()
-        {
+        // Likewise a decoder opened before its process advertised `decoder.deliveries` opens
+        // again, routed, so the conversation's mentions start reaching other agents.
+        let renamed = !self.named && self.core.advertiser_of(DECODER_SESSION).is_some();
+        let rerouted = !self.routed && self.core.advertiser_of(DECODER_DELIVERIES).is_some();
+        if self.open && (renamed || rerouted) && !self.in_turn && !self.mid_line {
             self.open = false;
         }
         let answer = self.decode(request).await;
@@ -209,6 +222,17 @@ impl LinkDecoder {
 impl StreamDecoder for LinkDecoder {
     async fn send(&mut self, text: &str) -> (Vec<u8>, Vec<Decoded>) {
         let request = json!({"kind": "decoder.send", "decoderId": self.decoder_id, "text": text});
+        self.message(request).await
+    }
+
+    /// Only a resident process that advertised `decoder.deliveries` hears the delivery, so an
+    /// older one never ends the link on a field it cannot validate.
+    async fn send_delivery(&mut self, text: &str, delivery_id: &str) -> (Vec<u8>, Vec<Decoded>) {
+        let mut request =
+            json!({"kind": "decoder.send", "decoderId": self.decoder_id, "text": text});
+        if self.core.advertiser_of(DECODER_DELIVERIES).is_some() {
+            request["deliveryId"] = Value::from(delivery_id);
+        }
         self.message(request).await
     }
 

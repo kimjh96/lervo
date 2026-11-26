@@ -2,9 +2,11 @@
 # A stand-in for `lervo application serve --stdio`: it answers each core-link request by its id
 # with a fixed response, and exits when a command's instruction is "crash". Its first argument
 # picks a release: "older" advertises no commands and ends on `provider.list`, as a release from
-# before the provider list does, and "invalid" answers `provider.list` with a malformed result.
+# before the provider list does, "invalid" answers `provider.list` with a malformed result, and
+# "rooms" also advertises `decoder.deliveries` and answers output "mention\n" (`bWVudGlvbgo=`)
+# with a finished turn that delivers a mention.
 # Its second argument, when given, is a file that collects every `session.exited`,
-# `decoder.open`, and `decoder.interrupt` it receives (an "older" release ends on a
+# `decoder.open`, `decoder.send`, and `decoder.interrupt` it receives (an "older" release ends on a
 # `decoder.open` that names a session and on any `decoder.interrupt`),
 # and its third, a file that gets one line each time the process starts. Output "finish\n"
 # (`ZmluaXNoCg==`) finishes the turn.
@@ -24,6 +26,7 @@ while IFS= read -r line; do
         *'"workspace.list"'*)
           case "$release" in
             older) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[]}}\n' "$id" ;;
+            rooms) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited","decoder.session","decoder.interrupt","decoder.deliveries"]}}\n' "$id" ;;
             *) printf '{"kind":"core.result","id":%s,"result":{"workspaces":[],"commands":["workspace.start","workspace.list","repository.list","provider.list","session.exited","decoder.session","decoder.interrupt"]}}\n' "$id" ;;
           esac ;;
         older:*'"provider.list"'*) exit 1 ;;
@@ -48,10 +51,13 @@ while IFS= read -r line; do
       [ -n "$reports" ] && printf '%s\n' "$line" >> "$reports"
       case "$release" in older) exit 1 ;; esac
       printf '{"kind":"decoder.decoded","id":%s,"events":[],"input":"c3RvcAo="}\n' "$id" ;;
-    decoder.send) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"item","content":{"kind":"user_message","text":"hi"},"createdAtMs":1},{"kind":"status","event":"turn_started"}],"input":"aGkK"}\n' "$id" ;;
+    decoder.send)
+      [ -n "$reports" ] && printf '%s\n' "$line" >> "$reports"
+      printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"item","content":{"kind":"user_message","text":"hi"},"createdAtMs":1},{"kind":"status","event":"turn_started"}],"input":"aGkK"}\n' "$id" ;;
     decoder.output)
       case "$line" in
         *ZmluaXNoCg==*) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"status","event":"turn_finished"}]}\n' "$id"; continue ;;
+        *bWVudGlvbgo=*) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"status","event":"turn_finished"}],"deliveries":[{"deliveryId":"7c1e2d3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f","workspaceId":"wsp_1","agentId":"agt_arin","sessionId":null,"text":"[Lervo room] From Elio (Product Owner):\\n@Arin is it in seconds?"}]}\n' "$id"; continue ;;
       esac
       printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"start","content":{"kind":"agent_message","text":""},"createdAtMs":2},{"kind":"delta","text":"ok"},{"kind":"finish"}]}\n' "$id" ;;
     *) printf '{"kind":"decoder.decoded","id":%s,"events":[]}\n' "$id" ;;

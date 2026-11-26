@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use lervo_session_core::ports::{
-    CommandOutcome, ConversationMode, Core, Decoded, Failure, FailureCode, Launch, StreamDecoder,
-    TranscriptPage,
+    CommandOutcome, ConversationMode, Core, Decoded, Failure, FailureCode, Launch, RoomDelivery,
+    StreamDecoder, TranscriptPage,
 };
 use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{Content, Input};
@@ -30,6 +30,9 @@ use tokio::net::unix::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::sync::oneshot;
 
 struct FakeCore;
+
+/// The `room.join` arguments the fake core received: workspace, agent, and instruction.
+static JOINS: std::sync::Mutex<Vec<(String, String, String)>> = std::sync::Mutex::new(Vec::new());
 
 /// The exits that sessions reported to the fake core, by session.
 static EXITS: std::sync::Mutex<Vec<(String, Option<u8>)>> = std::sync::Mutex::new(Vec::new());
@@ -57,6 +60,18 @@ impl StreamDecoder for LineDecoder {
         (format!("{text}\n").into_bytes(), vec![shown])
     }
 
+    /// A delivered turn shows as its sender's message, as the core decodes it.
+    async fn send_delivery(&mut self, text: &str, _delivery_id: &str) -> (Vec<u8>, Vec<Decoded>) {
+        let shown = Decoded::Conversation(Input::Item {
+            content: Content::PeerMessage {
+                from: "Elio".to_owned(),
+                text: text.to_owned(),
+            },
+            created_at_ms: 1,
+        });
+        (format!("{text}\n").into_bytes(), vec![shown])
+    }
+
     async fn output(&mut self, bytes: &[u8]) -> Vec<Decoded> {
         self.partial.extend_from_slice(bytes);
         let mut decoded = Vec::new();
@@ -76,6 +91,17 @@ impl StreamDecoder for LineDecoder {
                 Decoded::Conversation(Input::Finish),
                 Decoded::Status(SessionEvent::TurnFinished),
             ]);
+            // A turn that mentions Arin sets off a delivery, which joins Arin.
+            if reply == "mention-arin" {
+                decoded.push(Decoded::Delivery(RoomDelivery {
+                    delivery_id: "dlv_1".to_owned(),
+                    workspace_id: "wks_room".to_owned(),
+                    agent_id: "agt_arin".to_owned(),
+                    session_id: None,
+                    source_session_id: None,
+                    text: "from-elio".to_owned(),
+                }));
+            }
         }
         decoded
     }
@@ -179,6 +205,11 @@ impl Core for FakeCore {
                 ConversationMode::Native,
                 "while read line; do printf 'reply:%s\\n' \"$line\"; done",
             ),
+            "wks_room" => (
+                "ses_room_lead",
+                ConversationMode::Native,
+                "while read line; do printf 'reply:%s\\n' \"$line\"; done",
+            ),
             _ => return Err(Failure::new(FailureCode::WorkspaceStartFailed)),
         };
         Ok(Launch {
@@ -197,12 +228,49 @@ impl Core for FakeCore {
         })
     }
 
+    /// Joins Arin to `wks_room` with a session of its own that starts from the delivered turn.
     async fn command(
         &self,
-        _command: &str,
-        _arguments: Map<String, Value>,
+        command: &str,
+        arguments: Map<String, Value>,
     ) -> Result<CommandOutcome, Failure> {
-        Err(Failure::new(FailureCode::ApplicationUnavailable))
+        if command != "room.join" {
+            return Err(Failure::new(FailureCode::ApplicationUnavailable));
+        }
+        let text = |name: &str| {
+            arguments
+                .get(name)
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned()
+        };
+        JOINS
+            .lock()
+            .unwrap()
+            .push((text("workspaceId"), text("agentId"), text("instruction")));
+        Ok(CommandOutcome {
+            result: Map::new(),
+            launch: Some(Launch {
+                session_id: "ses_room_arin".to_owned(),
+                workspace_id: text("workspaceId"),
+                mode: ConversationMode::Native,
+                program: "/bin/sh".to_owned(),
+                arguments: vec![
+                    "-c".to_owned(),
+                    "while read line; do printf 'reply:%s\\n' \"$line\"; done".to_owned(),
+                ],
+                environment: Vec::new(),
+                working_directory: std::env::temp_dir(),
+                provider: "fake".to_owned(),
+                // Without an instruction the agent's earlier session resumes.
+                initial_input: arguments
+                    .contains_key("instruction")
+                    .then(|| text("instruction")),
+                initial_images: Vec::new(),
+                environment_remove: Vec::new(),
+                transcript: false,
+            }),
+        })
     }
 
     async fn session_exited(&self, session_id: &str, exit_code: Option<u8>) {
@@ -452,6 +520,9 @@ fn texts(items: &[ConversationItem]) -> Vec<String> {
         .map(|item| match item {
             ConversationItem::UserMessageItem(item) => format!("user:{}", *item.text),
             ConversationItem::AgentMessageItem(item) => format!("agent:{}", *item.text),
+            ConversationItem::PeerMessageItem(item) => {
+                format!("peer:{}:{}", *item.from, *item.text)
+            }
             other => format!("other:{other:?}"),
         })
         .collect()
@@ -839,6 +910,78 @@ async fn stops_a_provider_with_sigterm_and_reports_its_exit() {
         "term"
     );
     let _ = std::fs::remove_file(term_marker());
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn joins_a_mentioned_agent_and_gives_it_the_delivered_turn() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_room"}))
+        .await;
+    let HostMessage::SessionOpenedMessage(_) = client.next_message().await else {
+        panic!("expected session.opened")
+    };
+    client
+        .send(json!({"kind": "session.send", "requestId": "req_2", "sessionId": "ses_room_lead", "text": "mention-arin"}))
+        .await;
+
+    // Arin joins with its own session, which starts from the delivered turn and answers it.
+    let mut arin = Vec::new();
+    for _ in 0..100 {
+        client
+            .send(json!({"kind": "conversation.range", "requestId": "req_3", "sessionId": "ses_room_arin", "direction": "before", "limit": 50}))
+            .await;
+        loop {
+            match client.next_message().await {
+                HostMessage::ConversationPageMessage(page) => {
+                    arin = texts(&page.items);
+                    break;
+                }
+                HostMessage::RequestFailedMessage(_) => break,
+                _ => {}
+            }
+        }
+        if arin.len() >= 2 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(arin, ["peer:Elio:from-elio", "agent:from-elio"]);
+    assert_eq!(
+        JOINS.lock().unwrap().as_slice(),
+        [(
+            "wks_room".to_owned(),
+            "agt_arin".to_owned(),
+            "from-elio".to_owned()
+        )]
+    );
+
+    // The interface reopening Arin joins it beside the lead, never as the workspace's session.
+    client
+        .send(json!({"kind": "application.command", "requestId": "req_5", "command": "room.join", "arguments": {"workspaceId": "wks_room", "agentId": "agt_arin"}}))
+        .await;
+    loop {
+        if let HostMessage::SessionOpenedMessage(opened) = client.next_message().await {
+            assert_eq!(opened.session_id.as_str(), "ses_room_arin");
+            break;
+        }
+    }
+
+    // The workspace's session stays the lead's.
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_4", "workspaceId": "wks_room"}))
+        .await;
+    loop {
+        if let HostMessage::SessionOpenedMessage(opened) = client.next_message().await {
+            assert_eq!(opened.session_id.as_str(), "ses_room_lead");
+            break;
+        }
+    }
 
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();

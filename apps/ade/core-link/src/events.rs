@@ -3,15 +3,29 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use lervo_session_core::ports::{ConversationMode, Decoded, Launch};
+use lervo_session_core::ports::{ConversationMode, Decoded, Launch, RoomDelivery};
 use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{
     Content, Input, MAX_IMAGE_MARKS_BYTES, MAX_TOOL_DETAIL_BYTES, NoticeValue, ToolStatus,
 };
 use lervo_session_protocol::core_link::{
     ConversationMode as WireMode, CoreLaunch, DecodedContent, DecodedEvent, DecodedStatusEvent,
-    ParametersValue, ToolActivityContentStatus, TranscriptPageResponseItemsItem,
+    ParametersValue, RoomDelivery as WireDelivery, ToolActivityContentStatus,
+    TranscriptPageResponseItemsItem,
 };
+
+/// A turn the core asks the session host to give another agent of the conversation. The
+/// session that decoded it fills in itself as the source.
+pub fn delivery(delivery: WireDelivery) -> Decoded {
+    Decoded::Delivery(RoomDelivery {
+        delivery_id: delivery.delivery_id.to_string(),
+        workspace_id: delivery.workspace_id.to_string(),
+        agent_id: delivery.agent_id.to_string(),
+        session_id: delivery.session_id.map(|session| session.to_string()),
+        source_session_id: None,
+        text: delivery.text.to_string(),
+    })
+}
 
 pub fn decoded(event: DecodedEvent) -> Decoded {
     match event {
