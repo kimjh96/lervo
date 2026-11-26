@@ -30,6 +30,7 @@ export async function loadRoomContext(sessionId: string): Promise<RoomContext | 
     if (room.agentId !== undefined) sessions.set(room.agentId, room.sessionId);
   return {
     workspaceId: record.workspaceId,
+    projectId: record.projectId,
     agentId: record.agentId,
     team: await teamAgents(repository.repositoryRoot),
     sessions,
@@ -57,6 +58,7 @@ export async function roomBlock(sessionId: string): Promise<string | null> {
     }.`,
     others.length === 0 ? null : `The project's team: ${named(others)}.`,
     "When your work needs another agent's role or what it knows, write @Name in your reply. Your message reaches that agent, and its answer comes back to you as a turn. Mention the product owner only for priorities and decisions; never route work through it. A mention grants no access beyond your own.",
+    `When work is your own and belongs apart from this conversation, start a conversation you lead: run \`lervo workspace start --repository ${context.projectId} --started-by ${self.agentId} --title "<title>" --json\` with its first turn on standard input. It opens when your turn ends. Never start one for work this conversation already covers.`,
   ]
     .filter((line) => line !== null)
     .join("\n");

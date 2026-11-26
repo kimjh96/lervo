@@ -96,6 +96,10 @@ export interface WorkspaceStartOptions {
   readonly model?: string;
   /** Agent IDs of the project's team; the first one's session writes. */
   readonly participants?: unknown;
+  /** The conversation's title, instead of the instruction's first line. */
+  readonly title?: string;
+  /** The team agent that started the conversation and leads it (Lervo ADE rooms, slice 2). */
+  readonly startedBy?: string;
 }
 
 /**
@@ -150,6 +154,8 @@ export async function startWorkspaceFromInstruction(
       ...chosen,
       ...(hooks === undefined ? {} : { hooks }),
       ...(participants === undefined ? {} : { participants }),
+      ...(options.title === undefined ? {} : { title: options.title }),
+      ...(options.startedBy === undefined ? {} : { startedBy: options.startedBy }),
     },
     {
       adapter,

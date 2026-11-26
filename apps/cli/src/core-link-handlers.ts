@@ -13,6 +13,7 @@ import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 import type { RoomJoinResult } from "./workspace-room.js";
 import type { RoomContext } from "./room-router.js";
+import type { PendingStart } from "./room-starts.js";
 
 /** What the core link asks of the Lervo core. Failures are thrown with a stable `code`. */
 export interface CoreLinkHandlers {
@@ -37,6 +38,8 @@ export interface CoreLinkHandlers {
   joinRoom?(arguments_: Record<string, unknown>): Promise<RoomJoinResult>;
   /** What the core knows of a session's conversation, for routing its mentions. */
   loadRoomContext?(sessionId: string): Promise<RoomContext | null>;
+  /** The conversations an agent started that have not opened (Lervo ADE rooms, slice 2). */
+  pendingStarts?(agentId: string): Promise<readonly PendingStart[]>;
   /** The agents an owner's turn goes to (Lervo ADE rooms, "Routing"). */
   routeRoom?(arguments_: Record<string, unknown>): Promise<{ agents: string[] }>;
   /** What the core recorded about turns of a workspace's hosted session. */

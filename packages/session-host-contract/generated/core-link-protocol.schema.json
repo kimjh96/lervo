@@ -1291,6 +1291,9 @@
         },
         "resumed": {
           "type": "boolean"
+        },
+        "lead": {
+          "const": true
         }
       }
     },

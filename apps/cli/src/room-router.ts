@@ -3,11 +3,14 @@ import type { HostedDecodedContent, HostedDecodedEvent } from "@lervo/adapter-co
 
 import { envelopeText, readEnvelope, type RoomTurn } from "./room-envelope.js";
 import { mentionedAgents } from "./room-mentions.js";
+import type { PendingStart } from "./room-starts.js";
 import type { TeamAgent } from "./workspace-participants.js";
 
 /** What the core knows of a session's conversation, loaded when the session host names it. */
 export interface RoomContext {
   readonly workspaceId: string;
+  /** The project the conversation belongs to, which a conversation the agent starts shares. */
+  readonly projectId: string;
   /** The session's own agent. */
   readonly agentId: string;
   readonly team: readonly TeamAgent[];
@@ -60,7 +63,10 @@ export class RoomRouter {
   private readonly contexts = new Map<string, RoomContext>();
   private readonly rooms = new Map<string, Room>();
   private readonly turns = new Map<string, SessionTurn>();
-  private readonly deliveries = new Map<string, { depth: number; from: string }>();
+  private readonly deliveries = new Map<
+    string,
+    { depth: number; from: string; startedIn?: string }
+  >();
 
   constructor(
     private readonly now: () => number = Date.now,
@@ -70,6 +76,56 @@ export class RoomRouter {
   /** Records what the core loaded about a session's conversation. */
   know(sessionId: string, context: RoomContext): void {
     this.contexts.set(sessionId, context);
+  }
+
+  /** The agent of a session whose conversation the core loaded, or null. */
+  agentOf(sessionId: string): string | null {
+    return this.contexts.get(sessionId)?.agentId ?? null;
+  }
+
+  /**
+   * The deliveries that open the conversations a session's agent started, when its turn ends
+   * (Lervo ADE rooms, "How an agent starts a conversation"), and the line each adds here.
+   */
+  starts(
+    sessionId: string,
+    starts: readonly PendingStart[],
+  ): { events: HostedDecodedEvent[]; deliveries: RoomDelivery[] } {
+    const context = this.contexts.get(sessionId);
+    const self = context?.team.find((agent) => agent.agentId === context.agentId);
+    if (context === undefined || self === undefined) return { events: [], deliveries: [] };
+    const events: HostedDecodedEvent[] = [];
+    const deliveries: RoomDelivery[] = [];
+    for (const start of starts) {
+      if (start.agentId !== self.agentId) continue;
+      const deliveryId = this.newId();
+      this.deliveries.set(deliveryId, {
+        depth: 0,
+        from: self.displayName,
+        startedIn: context.workspaceId,
+      });
+      events.push(
+        this.notice("conversation_started", {
+          agent: self.displayName,
+          title: start.title,
+          workspace: start.workspaceId,
+        }),
+      );
+      deliveries.push({
+        deliveryId,
+        workspaceId: start.workspaceId,
+        agentId: self.agentId,
+        sessionId: null,
+        text: envelopeText({
+          from: self.displayName,
+          role: self.roleName,
+          message: start.text,
+          recent: [],
+          reason: "start",
+        }),
+      });
+    }
+    return { events, deliveries };
   }
 
   /** Forgets a session whose decoder closed. */
@@ -114,9 +170,21 @@ export class RoomRouter {
         // A delivered turn is never the owner's: it shows as its sender's message, or not at all
         // when it only asks for a summary that the paused line already announced.
         const read = readEnvelope(event.content.text);
-        return read === null
-          ? []
-          : [{ ...event, content: { kind: "peer_message", from: read.from, text: read.message } }];
+        if (read === null) return [];
+        const peer: HostedDecodedEvent = {
+          ...event,
+          content: { kind: "peer_message", from: read.from, text: read.message },
+        };
+        // A conversation an agent started opens with who started it, and from where.
+        return delivery?.startedIn === undefined
+          ? [peer]
+          : [
+              this.notice("conversation_started_by", {
+                agent: read.from,
+                workspace: delivery.startedIn,
+              }),
+              peer,
+            ];
       }
       if (context !== undefined) {
         const room = this.room(context.workspaceId);

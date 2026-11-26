@@ -57,10 +57,14 @@ export class CoreLinkServer {
     this.usage = new TurnUsageQueue((sessionId, accounting, usage) =>
       this.handlers.recordTurnUsage(sessionId, accounting, usage),
     );
-    this.rooms = new RoomLink(handlers.loadRoomContext, (task) => {
-      this.pending.add(task);
-      void task.finally(() => this.pending.delete(task));
-    });
+    this.rooms = new RoomLink(
+      handlers.loadRoomContext,
+      (task) => {
+        this.pending.add(task);
+        void task.finally(() => this.pending.delete(task));
+      },
+      handlers.pendingStarts,
+    );
   }
 
   /** Serves until the input ends or a malformed line arrives, then lets running commands finish. */
