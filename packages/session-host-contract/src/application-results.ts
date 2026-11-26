@@ -28,6 +28,8 @@ import {
   agentHireResultSchema,
   type AgentModelResult,
   agentModelResultSchema,
+  type AgentRenameResult,
+  agentRenameResultSchema,
   type AgentsListResult,
   agentsListResultSchema,
 } from "./application-agent-results.js";
@@ -64,6 +66,7 @@ export const applicationCommandNames = [
   "agents.list",
   "agent.hire",
   "agent.model",
+  "agent.rename",
   "room.join",
   "room.route",
 ] as const;
@@ -309,6 +312,7 @@ export const applicationResultSchemas = {
   "agents.list": agentsListResultSchema,
   "agent.hire": agentHireResultSchema,
   "agent.model": agentModelResultSchema,
+  "agent.rename": agentRenameResultSchema,
   "room.join": roomJoinResultSchema,
   "room.route": roomRouteResultSchema,
 } as const;
@@ -342,6 +346,7 @@ export interface ApplicationResults {
   "agents.list": AgentsListResult;
   "agent.hire": AgentHireResult;
   "agent.model": AgentModelResult;
+  "agent.rename": AgentRenameResult;
   "room.join": RoomJoinResult;
   "room.route": RoomRouteResult;
 }

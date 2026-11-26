@@ -1147,6 +1147,33 @@
           "items": {
             "$ref": "#/$defs/HireableRole"
           }
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "title": "AgentModelChoice",
+            "type": "object",
+            "required": [
+              "tier",
+              "displayName"
+            ],
+            "properties": {
+              "tier": {
+                "enum": [
+                  "frontier",
+                  "strong",
+                  "balanced",
+                  "fast"
+                ]
+              },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
+          }
         }
       }
     },
@@ -1275,6 +1302,7 @@
             "agents.list",
             "agent.hire",
             "agent.model",
+            "agent.rename",
             "room.join",
             "room.route"
           ]

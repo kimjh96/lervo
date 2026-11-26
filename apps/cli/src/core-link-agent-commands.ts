@@ -1,6 +1,7 @@
 import {
   AgentWorkforceError,
   agentModel,
+  changeAgentDisplayName,
   changeAgentModel,
   listAgents,
   modelEfforts,
@@ -14,7 +15,7 @@ import { RoleContractError } from "@lervo/roles";
 import { RepositoryRegistryError } from "@lervo/repository-registry";
 
 import { hireAgent } from "./agent-hire.js";
-import { hostedProviderModels } from "./hosted-session-adapters.js";
+import { defaultHostedProvider, hostedProviderModels } from "./hosted-session-adapters.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 import { CommandFailure } from "./command-error-output.js";
 import { locateProject } from "./project-service.js";
@@ -25,7 +26,20 @@ import { roleCatalog } from "./role-catalog.js";
  * whether each is the team's or Lervo's own, the roles it can hire, hiring for the owner, and the
  * model and effort a team agent runs with (ADR-0647).
  */
-export const coreLinkAgentCommands = new Set(["agents.list", "agent.hire", "agent.model"]);
+export const coreLinkAgentCommands = new Set([
+  "agents.list",
+  "agent.hire",
+  "agent.model",
+  "agent.rename",
+]);
+
+/** A changing command's expected revision, which a stale view fails. */
+function revisionOf(arguments_: Record<string, unknown>): number {
+  const revision = arguments_.revision;
+  if (!Number.isSafeInteger(revision) || (revision as number) < 1)
+    throw new CommandFailure("agent_argument_invalid", "revision is the agent's revision.");
+  return revision as number;
+}
 
 function oneOf<T extends string>(
   arguments_: Record<string, unknown>,
@@ -83,12 +97,36 @@ async function answer(command: string, arguments_: Record<string, unknown>): Pro
       .filter((agent) => agent.status !== "retired")
       .toSorted((left, right) => left.createdAt.localeCompare(right.createdAt));
     const lervos = lervoAgentIds(agents, await delegationOf(root));
-    return { projectId, agents: agents.map((agent) => view(agent, names, lervos)), roles };
+    const offered = hostedProviderModels(defaultHostedProvider);
+    // Most capable first, as the profile's menu lists them.
+    const models =
+      offered === undefined
+        ? []
+        : modelTiers.map((tier) => ({ tier, displayName: offered[tier].displayName }));
+    return {
+      projectId,
+      agents: agents.map((agent) => view(agent, names, lervos)),
+      roles,
+      ...(models.length === 0 ? {} : { models }),
+    };
+  }
+  if (command === "agent.rename") {
+    const agentId = text(arguments_, "agentId", 64);
+    const displayName = text(arguments_, "name", 40);
+    const expectedRevision = revisionOf(arguments_);
+    const agent = await mutateWorkforceState(root, (recordEvent) =>
+      changeAgentDisplayName({
+        repositoryRoot: root,
+        agentId,
+        displayName,
+        expectedRevision,
+        recordEvent,
+      }),
+    );
+    return { projectId, agent: view(agent, names, new Set()) };
   }
   if (command === "agent.model") {
-    const revision = arguments_.revision;
-    if (!Number.isSafeInteger(revision) || (revision as number) < 1)
-      throw new CommandFailure("agent_argument_invalid", "revision is the agent's revision.");
+    const revision = revisionOf(arguments_);
     const agentId = text(arguments_, "agentId", 64);
     const tier = oneOf<ModelTier>(arguments_, "tier", modelTiers);
     const effort = oneOf<ModelEffort>(arguments_, "effort", modelEfforts);

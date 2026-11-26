@@ -50,6 +50,8 @@ Agents work together by mentioning each other directly, by role and by what each
 - Each team agent runs on a model and at an effort its role chose when it was hired, and the owner can change both ([ADR-0647](../../../decisions/execution/orchestration/0647-choose-each-agents-model-and-effort-by-its-role.md)). The product owner starts on the strong model (Opus) at high effort, a developer on the strong model at extra-high effort, and a writer on the balanced model (Sonnet) at medium effort.
 - `agents.list` reports each team agent's `model`: `tier`, `effort`, `source` (`role` or `owner`), and `displayName`, the provider's name for the tier's model. Lervo's own agents report none.
 - `agent.model` (`projectId`, `agentId`, `revision`, `tier`, `effort`) sets them, as `lervo agent model` does, and returns the agent in the `agents.list` shape. The agent's next session runs with them; a running session keeps its model.
+- `agents.list` also reports `models`, the provider's model for each tier with its name, most capable first, which the profile offers.
+- `agent.rename` (`projectId`, `agentId`, `revision`, `name`) renames an agent in place, as `lervo agent rename` does, and records the existing `agent.identity.changed` event.
 - The agent's profile (slice 3) shows the model and effort and changes them.
 
 ## State, events, privacy, and failure meaning

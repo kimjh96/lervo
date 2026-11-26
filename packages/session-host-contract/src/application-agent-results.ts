@@ -58,6 +58,17 @@ export const hireableRoleSchema = {
   },
 } as const;
 
+/** One model a team agent can run on, as the agent's profile offers it (ADR-0647). */
+export const agentModelChoiceSchema = {
+  title: "AgentModelChoice",
+  type: "object",
+  required: ["tier", "displayName"],
+  properties: {
+    tier: { enum: ["frontier", "strong", "balanced", "fast"] },
+    displayName: { type: "string", minLength: 1, maxLength: 40 },
+  },
+} as const;
+
 /** `agents.list`: the project's active and suspended agents and the roles it can hire. */
 export const agentsListResultSchema = {
   title: "AgentsListResult",
@@ -67,12 +78,25 @@ export const agentsListResultSchema = {
     projectId: identifierSchema,
     agents: { type: "array", maxItems: 256, items: agentSummarySchema },
     roles: { type: "array", maxItems: 128, items: hireableRoleSchema },
+    /**
+     * The models a team agent can run on, most capable first; absent when the provider names
+     * none, and its own default runs.
+     */
+    models: { type: "array", maxItems: 8, items: agentModelChoiceSchema },
   },
 } as const;
 
 /** `agent.model`: the agent with the model and effort the owner chose. */
 export const agentModelResultSchema = {
   title: "AgentModelResult",
+  type: "object",
+  required: ["projectId", "agent"],
+  properties: { projectId: identifierSchema, agent: agentSummarySchema },
+} as const;
+
+/** `agent.rename`: the agent with the name the owner gave it. */
+export const agentRenameResultSchema = {
+  title: "AgentRenameResult",
   type: "object",
   required: ["projectId", "agent"],
   properties: { projectId: identifierSchema, agent: agentSummarySchema },
@@ -91,3 +115,4 @@ export type HireableRole = FromSchema<typeof hireableRoleSchema>;
 export type AgentsListResult = FromSchema<typeof agentsListResultSchema>;
 export type AgentHireResult = FromSchema<typeof agentHireResultSchema>;
 export type AgentModelResult = FromSchema<typeof agentModelResultSchema>;
+export type AgentRenameResult = FromSchema<typeof agentRenameResultSchema>;
