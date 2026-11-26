@@ -120,6 +120,36 @@ describe("a served prompt answered before its records (ADR-0636)", () => {
   });
 });
 
+describe("a served Stop (ADR-0636)", () => {
+  it.each([
+    ["answers a non-worker Stop with {} before its records", null, ["{}\n"]],
+    ["lets a worker's Stop decide after its records", "worker", []],
+  ] as const)("%s", async (_name, executionKind, early) => {
+    ports.expectation.mockResolvedValue({
+      observationId: "tobs_expected123",
+      workspaceBinding: executionKind === null ? null : { executionKind },
+    });
+    ports.stop.mockImplementation(async ({ io }: { io: { stdout: (value: string) => void } }) => {
+      io.stdout("{}\n");
+      return 0;
+    });
+    const answers: string[] = [];
+    await runTerminalHookCommand(
+      ["--provider", "claude", "--contract", "2"],
+      {
+        cwd: "/repository",
+        stdout: () => undefined,
+        stderr: () => undefined,
+        stdin: async () => JSON.stringify({ hook_event_name: "Stop", session_id: "s" }),
+        answer: (value) => answers.push(value),
+      },
+      { createTerminalStageObservation: () => new DisabledTerminalStageObservation() },
+    );
+    expect(answers).toEqual(early);
+    expect(ports.stop).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("rejected hook input (ADR-0635)", () => {
   it.each([
     ["unreadable JSON", "{not json"],

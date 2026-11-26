@@ -210,6 +210,12 @@ async function executeTerminalHookCommand(
         return 0;
       }
       stageContext.observationId = expectation.observationId;
+      // ADR-0636: only a worker's Stop can answer with a block; any other Stop answers `{}`, so a
+      // served one answers now and records after.
+      if (io.answer !== undefined && expectation.workspaceBinding?.executionKind !== "worker") {
+        answered = true;
+        io.answer("{}\n");
+      }
       return await completeTerminalHookTurn({
         root,
         executionRoot,

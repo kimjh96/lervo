@@ -18,9 +18,9 @@
     },
     {
       "path": "apps/cli/src/terminal-hook-launcher.mjs",
-      "contentHash": "sha256:e42d8e852a209134bc9350ffa3cf0c3360b29b24b1257b55a042531570496b06",
+      "contentHash": "sha256:5ab833adeb7b150c48d444f4dc2029af4822fc23ca6cfdde2aace504c048204e",
       "responsibility": "Standalone terminal hook launcher: verify and load the runtime, delegate, or ask the context server",
-      "rationale": "Repositories commit this file alone as .lervo/generated/terminal-hooks/runtime-v2.mjs and run it before any runtime exists, so it cannot import sibling modules; its verification, delegation, and socket client share the store checks and must ship as one file.",
+      "rationale": "Repositories commit this file alone as .lervo/generated/terminal-hooks/runtime-v2.mjs and run it before any runtime exists, so it cannot import sibling modules; its verification, delegation, socket client, and launch relay share the store checks and must ship as one file.",
       "disposition": "cohesive"
     },
     {

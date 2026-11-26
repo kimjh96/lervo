@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
-import { connect } from "node:net";
+import { connect, Socket } from "node:net";
 import { homedir } from "node:os";
 import { relative, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // Raised whenever the launcher's behavior changes. A repository's copy hands the hook to the host's
 // launcher when that one is at least as new, so the copy itself rarely needs rewriting.
-const launcherVersion = 2;
+const launcherVersion = 3;
 const hash = (bytes) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const assetNames = [
   "native/cas-io-darwin.node",
@@ -253,6 +253,25 @@ async function startLaunches(launches) {
     ),
   );
 }
+const relayFlag = "--lervo-launch-relay";
+const relayed = (text) => {
+  try {
+    return JSON.parse(text.split("\n")[0]).launches ?? [];
+  } catch {
+    return [];
+  }
+};
+if (process.argv[2] === relayFlag) {
+  const socket = new Socket({ fd: 3 });
+  let text = "";
+  socket.on("data", (chunk) => (text += chunk));
+  await new Promise((done) => {
+    socket.on("close", done).on("error", done);
+    setTimeout(done, 30000).unref();
+  });
+  await startLaunches(relayed(text));
+  process.exit(0);
+}
 const delegatedKey = Symbol.for("lervo.terminalHook.delegated");
 async function thisLauncher() {
   const self = await realpath(fileURLToPath(import.meta.url)).catch(() => null);
@@ -319,6 +338,7 @@ async function served() {
     launcher: await thisLauncher(),
     session: sessionEnvironment(),
     umask: process.umask(),
+    relay: true,
   });
   return new Promise((done) => {
     const socket = connect(resolve(store, "context.s"));
@@ -363,6 +383,15 @@ async function served() {
       if (answer.ok !== true) return finish({});
       state = "answered";
       clearTimeout(timer);
+      const later = received.subarray(end + 1).toString();
+      if (answer.pending === true && !later.includes("\n")) {
+        // The records go on: a detached relay keeps this connection and starts their launches.
+        socket.pause();
+        spawn(process.execPath, [fileURLToPath(import.meta.url), relayFlag], {
+          detached: true,
+          stdio: ["ignore", "ignore", "ignore", socket],
+        }).unref();
+      } else if (answer.pending === true) answer.launches.push(...relayed(later));
       void startLaunches(answer.launches).finally(() => finish(answer));
     });
     socket.on("close", lost);

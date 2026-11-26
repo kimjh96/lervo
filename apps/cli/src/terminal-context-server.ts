@@ -68,6 +68,11 @@ export interface TerminalContextRequest {
   session?: TerminalContextSessionEnvironment;
   /** The session's file mode creation mask, which the served hook's writes use. Older clients omit it. */
   umask?: number;
+  /**
+   * The client hands the connection to a launch relay when an answer is pending (ADR-0636), so
+   * launches the records ask for still start in the provider's session. Older clients omit it.
+   */
+  relay?: true;
 }
 
 export interface TerminalContextAnswer {
@@ -78,6 +83,12 @@ export interface TerminalContextAnswer {
   overran: boolean;
   /** Detached processes the hook asked for, which its client starts in the provider's session. */
   launches?: DetachedLaunch[];
+  /**
+   * The answer went out before the hook's records (ADR-0636). For a relaying client, the launches
+   * those records ask for follow on a second line once they finish.
+   */
+  pending?: boolean;
+  laterLaunches?: () => DetachedLaunch[];
   /**
    * Waits, after the answer went out, for work the hook left running; false when some did not
    * settle in time. The server serves no other request meanwhile.
@@ -117,6 +128,7 @@ export function parseTerminalContextRequest(line: string): TerminalContextReques
     Object.keys(environment).sort().join(",") !== [...TERMINAL_CONTEXT_ENVIRONMENT].join(",") ||
     !Object.values(environment).every((entry) => entry === null || typeof entry === "string") ||
     !validTerminalContextSessionEnvironment(item.session) ||
+    (item.relay !== undefined && item.relay !== true) ||
     (item.umask !== undefined &&
       (!Number.isInteger(item.umask) ||
         (item.umask as number) < 0 ||
@@ -285,17 +297,23 @@ export function startTerminalContextServer(input: {
         .run(current)
         .then(
           async (answer) => {
-            if (!socket.destroyed)
-              socket.end(
-                `${JSON.stringify({
-                  ok: true,
-                  stdout: answer.stdout,
-                  stderr: answer.stderr,
-                  exitCode: answer.exitCode,
-                  launches: answer.launches ?? [],
-                })}\n`,
-              );
+            const relayed = answer.pending === true && current.relay === true;
+            const line = `${JSON.stringify({
+              ok: true,
+              stdout: answer.stdout,
+              stderr: answer.stderr,
+              exitCode: answer.exitCode,
+              launches: answer.launches ?? [],
+              ...(relayed ? { pending: true } : {}),
+            })}\n`;
+            if (!socket.destroyed) {
+              if (relayed) socket.write(line);
+              else socket.end(line);
+            }
             const drained = (await answer.drain?.()) ?? true;
+            // The relay that holds the connection now starts what the records asked for.
+            if (relayed && !socket.destroyed)
+              socket.end(`${JSON.stringify({ launches: answer.laterLaunches?.() ?? [] })}\n`);
             return answer.overran || !drained;
           },
           () => {
