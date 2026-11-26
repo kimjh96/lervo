@@ -168,8 +168,15 @@ describe("lervo workspace start and open", () => {
     expect(records).not.toContain("build version");
     expect(records).not.toContain(app.root);
 
+    // Without a profile, the display name is the manifest's name and there is no mark.
     expect((await listRepositories()).repositories).toEqual([
-      { projectId: app.projectId, name: "app" },
+      {
+        projectId: app.projectId,
+        name: "app",
+        displayName: "app",
+        mark: null,
+        root: app.repository,
+      },
     ]);
     expect((await listWorkspaces()).workspaces).toEqual([
       expect.objectContaining({
