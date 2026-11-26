@@ -1,0 +1,52 @@
+.ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* The ring sits a step outside the mark, so the mark keeps its size and the row its rhythm. It
+   fades in over enter and out over leave in its last color. */
+.ring::after {
+  position: absolute;
+  inset: calc(var(--size-ring-gap) * -1);
+  border: var(--size-ring-width) solid transparent;
+  border-radius: var(--radius-full);
+  transition: border-color var(--motion-duration-leave) var(--motion-easing-standard);
+  content: "";
+  pointer-events: none;
+}
+
+.ring[data-shown]::after {
+  transition-duration: var(--motion-duration-enter);
+}
+
+.ring[data-shown][data-tone="attention"]::after {
+  border-color: var(--color-status-needs-you);
+}
+
+/* Breathing starts once the ring has faded in, from full strength, so it never jumps. */
+.ring[data-shown][data-tone="working"]::after {
+  border-color: var(--color-status-working);
+  animation: breathe var(--motion-duration-breathe) var(--motion-easing-breathe)
+    var(--motion-duration-enter) infinite alternate-reverse;
+}
+
+@keyframes breathe {
+  from {
+    opacity: var(--motion-breathe-min-opacity);
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring::after {
+    transition: none;
+  }
+
+  .ring[data-shown][data-tone="working"]::after {
+    animation: none;
+  }
+}

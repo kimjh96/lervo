@@ -9,6 +9,7 @@ import { ListRow } from "../../../ui/ListRow";
 import { useDeparting } from "../../../ui/departing";
 import { useItemSpace } from "../../../ui/space";
 import { StatusDot } from "../../../ui/StatusDot";
+import { WorkingLabel } from "../../../ui/WorkingLabel";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
 import { groupByRepository, visibleStatus } from "../model/decisions";
@@ -73,17 +74,18 @@ function WorkspaceRows(props: { workspaces: readonly Workspace[]; leaving: Reado
           >
             <ListRow
               current={current}
-              quiet={status === null && !current}
               onClick={() => select(workspace.workspaceId)}
-              label={workspace.title ?? workspace.branch}
+              label={
+                <WorkingLabel
+                  title={workspace.title ?? workspace.branch}
+                  working={status === "working" ? intl.formatMessage(statusMessages.working) : null}
+                />
+              }
               trailing={
                 <Presence as="span">
-                  {status === null ? null : (
-                    <StatusDot
-                      tone={status === "working" ? "working" : "attention"}
-                      label={intl.formatMessage(statusMessages[status])}
-                    />
-                  )}
+                  {status === "needsYou" ? (
+                    <StatusDot label={intl.formatMessage(statusMessages.needsYou)} />
+                  ) : null}
                 </Presence>
               }
             />

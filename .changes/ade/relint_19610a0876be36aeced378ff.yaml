@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_19610a0876be36aeced378ff"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Quieter status in the sidebar: a working conversation's title shimmers instead of showing a dot, an agent's mark wears a thin ring while it works or needs you, and only what needs you keeps the amber dot."

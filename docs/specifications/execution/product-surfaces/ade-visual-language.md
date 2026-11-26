@@ -54,7 +54,7 @@ Each token is semantic. Components use tokens, never raw values.
 | `color.diff.added`          | `#8FD3B6`                | `#1A7F5A`                | Added lines                                                 |
 | `color.diff.removed`        | `#F29A8E`                | `#B42318`                | Removed lines                                               |
 
-Finished work has no status color. A status dot always has a text equivalent for assistive technology.
+Finished work has no status color. Every status, whether a dot, a ring, or a working title, has a text equivalent for assistive technology.
 
 ## Contrast evidence
 
@@ -100,7 +100,8 @@ The worst backgrounds are the black backdrop in light mode and the white backdro
 | Token                                         | Value           | Use                                                                                           |
 | --------------------------------------------- | --------------- | --------------------------------------------------------------------------------------------- |
 | `size.control.sm` / `md` / `lg`               | 24 / 28 / 34 px | Segments, chips, and icon buttons in input cards                                              |
-| `size.dot.default` / `attention`              | 6 / 7 px        | Status and working dots; the needs-you dot                                                    |
+| `size.dot.default` / `attention`              | 6 / 7 px        | The working line's dot; the needs-you dot                                                     |
+| `size.ring.width` / `gap`                     | 1.5 / 3 px      | The status ring around an agent's mark, and how far it sits outside the mark                  |
 | `size.icon.sm` / `md` / `lg`                  | 12 / 14 / 16 px | Icons beside captions, in rows, and in buttons                                                |
 | `size.logo.launch`                            | 96 px           | The mark in the launch view, two pixels per grid unit, so its edges stay sharp at every scale |
 | `opacity.disabled`                            | 0.45            | A control that cannot act now                                                                 |

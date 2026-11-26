@@ -141,10 +141,7 @@ export function ProjectSwitcher() {
             <span className={styles.trailing}>
               <Presence as="span">
                 {elsewhere ? (
-                  <StatusDot
-                    tone="attention"
-                    label={intl.formatMessage({ id: "projects.needsYou" })}
-                  />
+                  <StatusDot label={intl.formatMessage({ id: "projects.needsYou" })} />
                 ) : null}
               </Presence>
               <span className={styles.chevron} data-expanded={expanded ? "true" : undefined}>

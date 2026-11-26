@@ -67,7 +67,6 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
                     <Presence as="span">
                       {needing.has(project.projectId) ? (
                         <StatusDot
-                          tone="attention"
                           label={intl.formatMessage({ id: "workspaces.status.needsYou" })}
                         />
                       ) : null}

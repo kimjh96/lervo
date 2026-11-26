@@ -10,7 +10,7 @@ import { Mark } from "../../../ui/Mark";
 import { PopoverMenu } from "../../../ui/PopoverMenu";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
-import { StatusDot } from "../../../ui/StatusDot";
+import { StatusRing } from "../../../ui/StatusRing";
 import { useItemSpace } from "../../../ui/space";
 import { statusMessages, useWorkspaceStore } from "../../workspaces";
 import { hireAgent, showProjectAgents } from "../model/controller";
@@ -33,7 +33,12 @@ function AgentRow(props: { agent: AgentSummary }) {
       <ListRow
         current={false}
         leading={
-          <Mark id={agent.agentId} name={agent.displayName} src={null} size="sm" shape="round" />
+          <StatusRing
+            tone={activity === null ? null : activity === "working" ? "working" : "attention"}
+            label={activity === null ? null : intl.formatMessage(statusMessages[activity])}
+          >
+            <Mark id={agent.agentId} name={agent.displayName} src={null} size="sm" shape="round" />
+          </StatusRing>
         }
         label={
           <>
@@ -42,16 +47,6 @@ function AgentRow(props: { agent: AgentSummary }) {
               {intl.formatMessage({ id: "agents.role" }, { role: agent.roleName })}
             </span>
           </>
-        }
-        trailing={
-          <Presence as="span">
-            {activity === null ? null : (
-              <StatusDot
-                tone={activity === "working" ? "working" : "attention"}
-                label={intl.formatMessage(statusMessages[activity])}
-              />
-            )}
-          </Presence>
         }
       />
     </div>

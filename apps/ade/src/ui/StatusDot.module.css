@@ -1,35 +1,8 @@
 .dot {
   display: inline-block;
   flex: none;
-  border-radius: var(--radius-full);
-}
-
-.dot[data-tone="working"] {
-  width: var(--size-dot-default);
-  height: var(--size-dot-default);
-  background: var(--color-status-working);
-  animation: breathe var(--motion-duration-breathe) var(--motion-easing-breathe) infinite alternate;
-}
-
-.dot[data-tone="attention"] {
   width: var(--size-dot-attention);
   height: var(--size-dot-attention);
+  border-radius: var(--radius-full);
   background: var(--color-status-needs-you);
-}
-
-@keyframes breathe {
-  from {
-    opacity: var(--motion-breathe-min-opacity);
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-/* Reduced motion means no movement: the dot stays still. */
-@media (prefers-reduced-motion: reduce) {
-  .dot {
-    animation: none !important;
-  }
 }

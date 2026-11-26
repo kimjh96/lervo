@@ -10,9 +10,10 @@ This specification is the patterns and content chapter of the [design system](ad
 ### Status
 
 - **Words.** A workspace or session is "Working", "Needs you", or "Done". The workspace list shows them for every workspace, and the working line names the activity in the open conversation, such as "Writing a reply".
-- **Not by color alone.** `StatusDot` carries an accessible name, and needs-you is a step larger than working.
-- **Where.** Status lives in the workspace list and the working line, never in the header, so it never appears twice.
-- **Changes.** The needs-you dot fades in once and then stays still. A finished status is removed, with no celebration.
+- **Not by color alone.** Every status carries text for assistive technology, and working differs from needs-you by more than color: a working conversation's title moves, and the needs-you dot stays still.
+- **Where.** Status lives in the sidebar and the working line, never in the header, so it never appears twice.
+- **Quiet until it needs the person.** Work in progress shows on the row itself: a conversation's title rests one step quieter while the working highlight sweeps across it (`WorkingLabel`), and an agent's mark wears a thin breathing ring (`StatusRing`). Only what needs the person adds a sign: the still amber dot beside a conversation or project, or an amber ring around an agent's mark.
+- **Changes.** The needs-you dot and an agent's ring fade in once; the dot and the amber ring then stay still. A finished status is removed, with no celebration.
 - **Notifications.** A desktop notification fires only when a workspace the person is not watching starts needing them or finishes.
 
 ### Failures
