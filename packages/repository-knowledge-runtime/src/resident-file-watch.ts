@@ -1,5 +1,19 @@
-import { existsSync, watch, type FSWatcher } from "node:fs";
+import { existsSync, statSync, watch, type FSWatcher } from "node:fs";
 import { basename, dirname } from "node:path";
+
+/**
+ * The directory's identity, or null when it is gone. A directory removed and created again under
+ * the same name is a new directory, and a kernel watch that follows the inode (inotify) stays on
+ * the removed one.
+ */
+function directoryIdentity(directory: string): string | null {
+  try {
+    const stats = statSync(directory);
+    return stats.isDirectory() ? `${stats.dev}:${stats.ino}` : null;
+  } catch {
+    return null;
+  }
+}
 
 /** One look after an ancestor watch is armed, once its event stream is surely running. */
 const WATCH_START_RECHECK_MILLISECONDS = 2_000;
@@ -40,6 +54,7 @@ export function watchFiles(
     rearm?: () => void,
   ): FSWatcher | "missing" | "failed" => {
     try {
+      const identity = rearm === undefined ? null : directoryIdentity(directory);
       let ended = false;
       const end = () => {
         if (ended) return false;
@@ -50,8 +65,9 @@ export function watchFiles(
       };
       const watcher = watch(directory, { persistent: false, recursive }, (_event, name) => {
         if (closed || ended) return;
-        // ADR-0602: a removed directory ends its watch silently; re-arm toward it instead.
-        if (rearm !== undefined && !existsSync(directory)) {
+        // ADR-0602: a removed directory ends its watch silently; re-arm toward it instead. One
+        // created again before this event arrived is another directory, so it re-arms too.
+        if (rearm !== undefined && directoryIdentity(directory) !== identity) {
           if (end()) rearm();
           return;
         }
