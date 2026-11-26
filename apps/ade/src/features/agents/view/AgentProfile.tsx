@@ -166,18 +166,20 @@ export function AgentProfile(props: { agentId: string }) {
               <p className={styles.value}>{model.displayName ?? model.tier}</p>
             )}
           </div>
-          <p className={styles.note}>
-            <Presence as="span" contentKey={model.source}>
-              {model.source === "role" ? (
+          <Presence contentKey={model.source}>
+            {model.source === "role" ? (
+              <p className={styles.note}>
                 <FormattedMessage
                   id="agents.profile.model.role"
                   values={{ role: agent.roleName }}
                 />
-              ) : (
+              </p>
+            ) : (
+              <p className={styles.note}>
                 <FormattedMessage id="agents.profile.model.owner" />
-              )}
-            </Presence>
-          </p>
+              </p>
+            )}
+          </Presence>
         </section>
       )}
       <section className={styles.section}>
@@ -213,7 +215,7 @@ export function AgentProfile(props: { agentId: string }) {
                 )
               }
             >
-              <Presence as="span" contentKey={paused ? "resume" : "pause"}>
+              <Presence as="span" className={styles.label} contentKey={paused ? "resume" : "pause"}>
                 {paused ? (
                   <FormattedMessage id="agents.profile.resume" />
                 ) : (
@@ -222,15 +224,17 @@ export function AgentProfile(props: { agentId: string }) {
               </Presence>
             </Button>
           </div>
-          <p className={styles.note}>
-            <Presence as="span" contentKey={paused ? "paused" : "active"}>
-              {paused ? (
+          <Presence contentKey={paused ? "paused" : "active"}>
+            {paused ? (
+              <p className={styles.note}>
                 <FormattedMessage id="agents.profile.paused" />
-              ) : (
+              </p>
+            ) : (
+              <p className={styles.note}>
                 <FormattedMessage id="agents.profile.pauseNote" />
-              )}
-            </Presence>
-          </p>
+              </p>
+            )}
+          </Presence>
         </section>
       ) : null}
       <Presence>

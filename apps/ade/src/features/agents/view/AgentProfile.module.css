@@ -107,3 +107,9 @@
   gap: var(--space-8);
   padding-inline: var(--space-10);
 }
+
+/* A button's label crossfades on one line, so the space moves between the two widths without the
+   words breaking while it does (ADE motion, "Changing in place"). */
+.label {
+  white-space: nowrap;
+}
