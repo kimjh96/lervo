@@ -69,3 +69,17 @@ export {
   type WidenConversationLeaseInput,
   type WidenConversationLeaseResult,
 } from "./conversation-lease-widening.js";
+export {
+  conversationWorkspaceRecordId,
+  isConversationWorkspace,
+  isSupersededCheckoutGeneration,
+  newestCheckoutWorkspace,
+} from "./conversation-workspace.js";
+export {
+  listConversationWorkspaceGenerations,
+  readNewestCheckoutWorkspace,
+  readNewestConversationWorkspace,
+  recordConversationWorkspaceGeneration,
+  type ConversationWorkspaceGenerationInput,
+} from "./conversation-workspace-store.js";
+export { CLAIM_PATH_KEY_FILE, readOrCreateClaimPathKey } from "./claim-path-key-store.js";

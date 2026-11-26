@@ -157,6 +157,24 @@ describe("conversation assignments", () => {
       createAssignment({ ...base, taskType: "implementation", expectedPaths: many }),
     ).rejects.toMatchObject({ code: "assignment_invalid" });
   });
+
+  it("names no suite only for a conversation of a project that configures none", async () => {
+    const root = await repository();
+    const base = {
+      repositoryRoot: root,
+      roleId: "developer",
+      acceptanceCriteria: ["Passes."],
+      verificationSuiteIds: [],
+      expectedPaths: [],
+      now: NOW,
+    };
+    await expect(
+      createAssignment({ ...base, taskType: CONVERSATION_TASK_TYPE }),
+    ).resolves.toMatchObject({ verificationSuiteIds: [] });
+    await expect(
+      createAssignment({ ...base, taskType: "implementation", expectedPaths: ["src"] }),
+    ).rejects.toMatchObject({ code: "assignment_invalid" });
+  });
 });
 
 describe("widening a conversation lease", () => {

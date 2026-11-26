@@ -539,6 +539,27 @@
               "maximum": 100000
             }
           }
+        },
+        "coordination": {
+          "title": "WorkspaceStartCoordination",
+          "type": "object",
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "pattern": "^[a-z_]{1,64}$"
+            },
+            "code": {
+              "type": "string",
+              "pattern": "^[a-z_]{1,64}$"
+            },
+            "cause": {
+              "type": "string",
+              "pattern": "^[a-z0-9_]{1,64}$"
+            }
+          }
         }
       }
     },

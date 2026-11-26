@@ -1,4 +1,4 @@
-import { listWorkspaces } from "@lervo/agent-workforce";
+import { isSupersededCheckoutGeneration, listWorkspaces } from "@lervo/agent-workforce";
 import type { WorkspaceCleanupHostAdapter } from "@lervo/workspace-host";
 
 import { applyWorkspaceCleanup } from "./workspace-cleanup-apply.js";
@@ -25,10 +25,16 @@ export async function reconcileAutomaticWorkspaceCleanup(input: {
   if (!input.policy.enabled) return { status: "disabled", removed: [], pending: [] };
   const removed: WorkspaceCleanupReceipt[] = [];
   const pending: AutomaticWorkspaceCleanupResult["pending"] = [];
-  const candidates = (await listWorkspaces(input.repositoryRoot)).filter((workspace) =>
+  const workspaces = await listWorkspaces(input.repositoryRoot);
+  const candidates = workspaces.filter((workspace) =>
     ["integrated", "cleanup_eligible"].includes(workspace.state),
   );
   for (const workspace of candidates) {
+    // An earlier generation of a checkout that a newer generation still works in never removes it.
+    if (isSupersededCheckoutGeneration(workspace, workspaces)) {
+      pending.push({ workspaceId: workspace.workspaceId, reasons: ["newer_generation_live"] });
+      continue;
+    }
     const host = input.hostFor(workspace.host.kind, workspace.host.version);
     if (workspace.ownerWorkspacePath === undefined || host === null) {
       pending.push({
