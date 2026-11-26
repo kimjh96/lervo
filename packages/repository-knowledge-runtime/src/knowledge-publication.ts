@@ -100,8 +100,6 @@ export async function publishKnowledgeOutputs(input: {
   now?: () => Date;
   /** Receives `knowledge.publication.repaired`; without it the repair commit is the only record. */
   events?: KnowledgePublicationRepairEvents;
-  /** A host-side reason to hold the merge; see `mergeKnowledgePublication`. */
-  mergeHold?: () => Promise<string | null>;
 }): Promise<KnowledgePublicationOutcome> {
   const root = input.repositoryRoot;
   const now = input.now ?? (() => new Date());
@@ -211,7 +209,6 @@ export async function publishKnowledgeOutputs(input: {
       base,
       progress,
       now: now(),
-      ...(input.mergeHold === undefined ? {} : { mergeHold: input.mergeHold }),
     });
   } catch (error) {
     if (!(error instanceof PublicationFailure)) throw error;
@@ -266,7 +263,6 @@ async function publish(input: {
   base: KnowledgePublicationState;
   progress: Progress;
   now: Date;
-  mergeHold?: () => Promise<string | null>;
 }): Promise<KnowledgePublicationState> {
   const { root, settings, forge, base } = input;
   await step("knowledge_publication_fetch_failed", () =>
@@ -398,7 +394,6 @@ async function publish(input: {
     number: pullRequest.number,
     headSha: tip,
     method: plan.merge,
-    ...(input.mergeHold === undefined ? {} : { hold: input.mergeHold }),
   });
   if (merged.status === "waiting") return waiting(merged.kind, merged.reason);
   // ADR-0603: the record in the body says the same; a merge commit not reported yet is read again.

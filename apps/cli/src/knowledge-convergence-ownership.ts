@@ -8,6 +8,7 @@ import {
   defaultConvergenceContinuityPolicyPath,
   probeKnowledgePublicationSettings,
   createGitHubKnowledgePublicationForge,
+  type KnowledgePublicationForge,
   publishKnowledgeOutputs,
   type InstructionCandidateExchangeTransport,
   type KnowledgeHubChangeTransport,
@@ -47,12 +48,16 @@ export function createKnowledgePublisher(
 ): (context?: {
   events: KnowledgePublicationRepairEvents;
 }) => Promise<KnowledgePublicationOutcome> {
-  const forge = createGitHubKnowledgePublicationForge({ repositoryRoot });
+  const github = createGitHubKnowledgePublicationForge({ repositoryRoot });
+  // The gate the publisher reads before merging also answers whether a release train holds it.
+  const forge: KnowledgePublicationForge = {
+    ...github,
+    gate: async (number) => (await releaseTrainHold()) ?? github.gate(number),
+  };
   return (context) =>
     publishKnowledgeOutputs({
       repositoryRoot,
       forge,
-      mergeHold: releaseTrainHold,
       ...(context === undefined ? {} : { events: context.events }),
     });
 }
@@ -94,7 +99,7 @@ export function createKnowledgeConvergenceContinuity(
  */
 export async function releaseTrainHold(
   layout: HostUpgradeLayout = hostUpgradeLayout({}),
-): Promise<string | null> {
+): Promise<"release_train" | null> {
   const control = await readFollowControl(layout).catch(() => null);
   return control?.paused === true ? "release_train" : null;
 }

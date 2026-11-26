@@ -28,15 +28,7 @@ export async function mergeKnowledgePublication(input: {
   number: number;
   headSha: string;
   method: KnowledgePublicationMergeMethod | "queue";
-  /**
-   * A host-side reason to hold the merge, such as a CLI release train between its cut and its tag:
-   * a merge then would supersede the release's preparation. Null merges as usual; a failing check
-   * never holds.
-   */
-  hold?: () => Promise<string | null>;
 }): Promise<KnowledgePublicationMergeOutcome> {
-  const held = await input.hold?.().catch(() => null);
-  if (held) return { status: "waiting", kind: "gate", reason: held };
   const gate = await step("knowledge_publication_merge_failed", () =>
     input.forge.gate(input.number),
   );
