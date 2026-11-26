@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_dbf21af1ac6b24fc797ca191"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Report whether each provider CLI is signed in (provider.list signedIn) through the adapter's login inspection, and refuse to launch a hosted session with provider_login_unavailable when the provider says no one is signed in; an unknown state never blocks."

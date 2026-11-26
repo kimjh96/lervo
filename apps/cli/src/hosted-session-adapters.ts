@@ -47,25 +47,47 @@ export interface HostedProviderSummary {
   preferredMode: HostedConversationMode;
   /** Whether the provider's CLI is on `PATH`, where a launch looks for it. */
   installed: boolean;
+  /** Whether someone is signed in to it: `null` when its adapter cannot tell or it is missing. */
+  signedIn: boolean | null;
+}
+
+/** How long one sign-in answer stands, so lists and launches do not ask the CLI each time. */
+const SIGN_IN_CACHE_MS = 60_000;
+const signInAnswers = new Map<string, { value: boolean | null; at: number }>();
+
+/** The adapter's sign-in state, kept for a minute per executable (Lervo ADE projects). */
+async function signInState(
+  executable: string,
+  adapter: HostedSessionAdapter,
+  environment: NodeJS.ProcessEnv,
+): Promise<boolean | null> {
+  if (adapter.signInState === undefined) return null;
+  const cached = signInAnswers.get(executable);
+  if (cached !== undefined && Date.now() - cached.at < SIGN_IN_CACHE_MS) return cached.value;
+  const value = await adapter.signInState(environment);
+  signInAnswers.set(executable, { value, at: Date.now() });
+  return value;
 }
 
 /**
  * Every admitted hosted provider, in registry order, and the default one. Reading capabilities
- * needs no provider CLI; `installed` looks for each CLI on `PATH`.
+ * needs no provider CLI; `installed` looks for each CLI on `PATH`, and `signedIn` asks its adapter.
  */
 export async function listHostedProviders(
   environment: NodeJS.ProcessEnv = process.env,
 ): Promise<{ providers: HostedProviderSummary[]; defaultProvider: string }> {
   const providers = await Promise.all(
     [...hostedProviders.entries()].map(async ([provider, entry]) => {
-      const adapter = entry.create(entry.executable);
+      const located = await findOnPath(entry.executable, environment);
+      const adapter = entry.create(located ?? entry.executable);
       return {
         provider,
         displayName: adapter.displayName,
         capabilities: { ...adapter.capabilities },
         conversationModes: hostedConversationModes(adapter.capabilities),
         preferredMode: preferredConversationMode(adapter.capabilities),
-        installed: (await findOnPath(entry.executable, environment)) !== null,
+        installed: located !== null,
+        signedIn: located === null ? null : await signInState(located, adapter, environment),
       };
     }),
   );
@@ -120,7 +142,16 @@ export async function resolveHostedSessionAdapter(
       `The ${entry.executable} CLI was not found on PATH.`,
       { provider },
     );
-  return entry.create(executable);
+  const adapter = entry.create(executable);
+  // An unknown sign-in state never blocks a launch; only a provider that says no one is signed
+  // in does.
+  if ((await signInState(executable, adapter, environment)) === false)
+    throw new CommandFailure(
+      "provider_login_unavailable",
+      `No one is signed in to the ${entry.executable} CLI.`,
+      { provider },
+    );
+  return adapter;
 }
 
 /**

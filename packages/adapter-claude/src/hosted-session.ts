@@ -9,6 +9,7 @@ import {
   type HostedTranscriptReading,
 } from "@lervo/adapter-contract";
 
+import { claudeSignInState } from "./hosted-sign-in.js";
 import { ClaudeHostedStreamDecoder } from "./hosted-stream.js";
 import { readClaudeTranscript } from "./hosted-transcript.js";
 
@@ -112,6 +113,7 @@ export function createClaudeHostedSessionAdapter(
     provider: "claude",
     displayName: "Claude Code",
     capabilities: claudeHostedCapabilities,
+    signInState: (environment) => claudeSignInState(executable, environment),
     prepareLaunch(intent: HostedLaunchIntent): HostedLaunch {
       assertHostedLaunchIntent(intent, claudeHostedCapabilities);
       const session =
