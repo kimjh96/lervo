@@ -50,20 +50,20 @@ What the core has today:
 - An agent's image is named the same way in its agent record.
 - Accepted formats are PNG, JPEG, and WebP within a size bound that the specification sets. SVG is refused because it can carry script.
 
-### First run sets up a project in three steps
+### First run asks only for what Lervo cannot find out
 
-The ADE opens onboarding when no project is registered, and again when a check that blocks work fails, such as a provider sign-in that expired. Each step reads the real state and is skipped once it is satisfied.
+There is no onboarding screen. The first run is the start screen itself (owner review of the quiet mockup, 2026-11-26).
 
-1. **Environment.** The Lervo CLI, the session host, and each provider CLI, installed and signed in. The core reports sign-in through `provider.list` and emits `provider_login_unavailable` when the provider CLI reports that no one is signed in.
-2. **Project.** The owner chooses an existing folder or creates one, then names the project and may set its mark.
-   - The core registers the folder, whatever the host's continuity policy.
-   - It runs `lervo init` when the folder has no `.lervo/project.yaml`.
-   - It offers `git init` when the folder is not a Git repository.
-3. **Team (optional).** The owner may hire a product owner, who then staffs within headcount (ADR-0453, ADR-0454). The core ships `product-owner` as a built-in role, taken from this repository's role, so every project can hire one.
+- With no project registered, the start card offers to drop or choose a folder. A folder becomes a project in that one action:
+  - Its name is the folder's name, and its mark is its first letter. Both change later in place.
+  - The core registers the folder, whatever the host's continuity policy. It runs `lervo init` when the folder has no `.lervo/project.yaml` and `git init` when the folder is not a Git repository. It then reports what it did in one quiet line.
+- Environment checks run quietly: the Lervo CLI, the session host, and each provider CLI, installed and signed in. Only a check that blocks work shows, as one line under the card with one action. The core reports sign-in through `provider.list` and emits `provider_login_unavailable` when the provider CLI reports that no one is signed in.
+- Hiring a product owner is offered in the sidebar, never required. The product owner then staffs within headcount (ADR-0453, ADR-0454). The core ships `product-owner` as a built-in role, taken from this repository's role, so every project can hire one.
+- Projects are managed where they are listed. Adding opens the system's folder picker, a name is edited in place, a mark is chosen by clicking it, and removal sits in the context menu, which says that files stay. There is no settings page.
 
 ### Roles are managed in the core
 
-Roles are managed in the core, with their authority handled apart from their wording ([ADR-0639](../orchestration/0639-manage-roles-in-the-core-with-authority-apart.md)). S2c shows roles when hiring; editing comes after.
+Roles are managed in the core, with their authority handled apart from their wording ([ADR-0639](../orchestration/0639-manage-roles-in-the-core-with-authority-apart.md)). The ADE shows them where an agent is hired, and roles are written by asking an agent or Lervo.
 
 ### ADE work joins the workforce model
 
@@ -109,9 +109,9 @@ Everything here works on a node without a Hub. Knowledge scopes, the Hub and nod
 
 The S2 steps after the day of use run in this order. Orca retires after the day of use and does not wait for them. S2d (Lervo tools) and S2e (hosted observations) keep their place in ADR-0632 and run alongside.
 
-1. **S2f, projects and onboarding.**
+1. **S2f, projects and the first run.**
    - Core: the project profile, unregister, the sign-in check, project marks, `product-owner` as a built-in role.
-   - ADE: the switcher, onboarding, project settings.
+   - ADE: the switcher with in-place management, and the first run on the start screen.
 2. **S2c, agent identity.**
    - Sessions carry an agent, and the workspace holds an assignment and a growing lease.
    - Agents get marks, and roles show when hiring.
@@ -128,24 +128,22 @@ Each step defines its new events and states, with required fields, privacy handl
 - Registry changes stay local operational data. Absolute roots never enter events, receipts, Hub replication, or prompts (ADR-0169).
 - A project rename and a mark change are repository writes. They follow invariant 10: cross-checked, reversible, and reported after the fact.
 - Mark images are user content. They are stored by hash and refused when their format or size is invalid (`project_mark_invalid`).
-- `provider_login_unavailable` means the provider CLI reports that no one is signed in. The ADE shows it in onboarding and at the start of work.
+- `provider_login_unavailable` means the provider CLI reports that no one is signed in. The ADE shows it as one line under the start card.
 
 ## Consequences
 
-- The sidebar changes from all repositories to one project with its agents and conversations.
-- The core gains project operations, role management, and a conversation model that the terminal can use too (ADR-0632, foundation 6).
-- ADE workspaces gain an agent, an assignment, and a lease, so their work enters the coordination the workforce already defines.
-- Hired agents start to accumulate context from ADE work.
-- The cloud remains a later choice. Nothing in these steps assumes a cloud, and nothing prevents one.
+- The sidebar shows one project with its agents and conversations, and the core gains project operations and a conversation model the terminal can use too (ADR-0632, foundation 6).
+- ADE work enters the workforce's coordination, and hired agents start to accumulate context from it.
+- Nothing here assumes a cloud, and nothing prevents one.
 
 ## Verification
 
 - **S2f.**
-  - On a host with no registered project, the ADE opens onboarding.
+  - On a host with no registered project, the start card offers to drop or choose a folder.
   - Adding a folder without `.lervo/project.yaml` initializes and registers it, and the project appears in the switcher with its mark.
   - Renaming the project changes its profile and the switcher on this host, and on another host after it pulls, with both registry entries still resolving.
   - Unregistering removes it from the switcher and leaves every file in place.
-  - With the provider signed out, onboarding reports `provider_login_unavailable`.
+  - With the provider signed out, one line under the start card reports `provider_login_unavailable` with its action.
   - A new project can hire a product owner.
 - **S2c.** ADR-0632's check: two hosted sessions with different agents run in one workspace, each with its own identity and lease, and only one of them writes in a worktree generation. A path one session writes cannot be written by the other. A new conversation chooses its agents, and they show as participants.
 - **S2g.** An agent's reply that mentions another agent reaches that agent through core records. The team room shows both turns. After the turn, the mentioned agent has a memory-from-conversation entry.

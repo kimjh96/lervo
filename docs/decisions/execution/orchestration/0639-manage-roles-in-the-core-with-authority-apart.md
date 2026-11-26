@@ -13,17 +13,18 @@ A role is a versioned contract (ADR-0209). A repository role is a committed file
 
 ## Decision
 
-- The ADE lists the built-in roles and the project's roles, with the agents that use each.
-- A new role always starts from a template that it extends. It is never written from nothing, because a role's authority should not be designed from scratch in a form.
+- Roles show where an agent is hired: each with its name and a one-line description, the project's roles beside the built-in ones. There is no role editor screen.
+- A person writes or changes a role by asking an agent, such as the product owner, or Lervo, in a conversation. The core makes the change, and the conversation records it in one quiet line with the role, its version, and what it may do.
+- A new role always starts from a template that it extends. It is never written from nothing, because a role's authority should not be designed from scratch.
 - A role's name and description change freely.
-- Its request types are its authority, shown apart from the rest.
+- Its request types are its authority, recorded apart from the rest.
   - Narrowing them takes effect at once.
   - Widening them, such as adding `agent.hire`, is a consequential change: it is cross-checked and reported after the fact, never held for approval (invariant 10).
 - An edit creates a new role version. Agents keep the version they bind until they move to the new one, and moving keeps their ID and their context (ADR-0386).
 - A role retires only when no active agent binds it. Built-in roles are hidden, never deleted.
 - An agent may write a repository role when a requested role does not exist, as the repository instructions already allow. The ADE then tells the owner which role was written and by whom.
 - Roles stay project-scoped for now. A personal library of roles and a team library come with the personal scope and with accounts.
-- S2c shows the roles when hiring and in a read-only detail view. Editing and moving agents between versions come after.
+- S2c shows the roles when hiring. Writing roles through conversation and moving agents between versions come after.
 
 ## State, events, privacy, and failure meaning
 
