@@ -19,6 +19,6 @@ The context server records the event, never the launcher. The launcher leaves a 
 - The writer records the event only at schema 14 or later. Below 14, the server removes markers without recording them.
 - A marker older than 24 hours, a malformed one, or one whose reason or age falls outside the closed shape is removed without being recorded. It never fails the served prompt.
 - Markers are recorded only when the same checkout is served again. A served prompt removes markers older than 24 hours at most hourly, whatever checkout they name, so a count of these events is a lower bound.
-- A store that cannot record leaves the markers for a later prompt.
+- A store that cannot be opened or written leaves the markers for a later prompt, which tries again each time it serves that checkout.
 - The server leaves an empty marker younger than 10 seconds alone, because the launcher may still be writing it.
 - A turn answered this way records no prepared context, and its Stop records nothing. This event is the only trace that the turn happened, unless it follows an interrupted turn, whose settlement at the next prepared prompt includes its edits.

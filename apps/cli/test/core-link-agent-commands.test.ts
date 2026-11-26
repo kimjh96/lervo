@@ -89,6 +89,106 @@ describe("the core link's agent commands", () => {
     ).rejects.toMatchObject({ code: "agent_state_conflict" });
   });
 
+  it("lists a team agent's model by its role and changes it as the owner chooses", async () => {
+    const { projectId } = await project();
+    const hired = (await runCoreLinkAgentCommand("agent.hire", {
+      projectId,
+      role: "product-owner",
+    })) as { agent: { agentId: string; revision: number; model: unknown } };
+    expect(hired.agent.model).toEqual({
+      tier: "strong",
+      effort: "high",
+      source: "role",
+      displayName: "Opus",
+    });
+    const changed = (await runCoreLinkAgentCommand("agent.model", {
+      projectId,
+      agentId: hired.agent.agentId,
+      revision: hired.agent.revision,
+      tier: "frontier",
+      effort: "xhigh",
+    })) as { agent: { model: unknown } };
+    expect(changed.agent.model).toEqual({
+      tier: "frontier",
+      effort: "xhigh",
+      source: "owner",
+      displayName: "Fable",
+    });
+    await expect(
+      runCoreLinkAgentCommand("agent.model", {
+        projectId,
+        agentId: hired.agent.agentId,
+        revision: 2,
+        tier: "huge",
+        effort: "high",
+      }),
+    ).rejects.toMatchObject({ code: "agent_argument_invalid" });
+  });
+
+  it("offers the provider's models, most capable first, and renames an agent in place", async () => {
+    const { projectId } = await project();
+    const hired = (await runCoreLinkAgentCommand("agent.hire", {
+      projectId,
+      role: "developer",
+      name: "Arin",
+    })) as { agent: { agentId: string; revision: number } };
+    const listed = (await runCoreLinkAgentCommand("agents.list", { projectId })) as {
+      models: { tier: string; displayName: string }[];
+    };
+    expect(listed.models.map((model) => model.displayName)).toEqual([
+      "Fable",
+      "Opus",
+      "Sonnet",
+      "Haiku",
+    ]);
+    const renamed = (await runCoreLinkAgentCommand("agent.rename", {
+      projectId,
+      agentId: hired.agent.agentId,
+      revision: hired.agent.revision,
+      name: "Arin Park",
+    })) as { agent: { displayName: string; revision: number } };
+    expect(renamed.agent).toMatchObject({ displayName: "Arin Park", revision: 2 });
+    await expect(
+      runCoreLinkAgentCommand("agent.rename", {
+        projectId,
+        agentId: hired.agent.agentId,
+        revision: 1,
+        name: "Arin Lee",
+      }),
+    ).rejects.toMatchObject({ code: "agent_state_conflict" });
+  });
+
+  it("pauses and resumes an agent, and leaves retiring to the terminal", async () => {
+    const { projectId } = await project();
+    const hired = (await runCoreLinkAgentCommand("agent.hire", {
+      projectId,
+      role: "writer",
+      name: "Nia",
+    })) as { agent: { agentId: string; revision: number } };
+    const paused = (await runCoreLinkAgentCommand("agent.status", {
+      projectId,
+      agentId: hired.agent.agentId,
+      revision: hired.agent.revision,
+      status: "suspended",
+    })) as { agent: { status: string; revision: number } };
+    expect(paused.agent.status).toBe("suspended");
+    const resumed = (await runCoreLinkAgentCommand("agent.status", {
+      projectId,
+      agentId: hired.agent.agentId,
+      revision: paused.agent.revision,
+      status: "active",
+    })) as { agent: { status: string } };
+    expect(resumed.agent.status).toBe("active");
+    await expect(
+      runCoreLinkAgentCommand("agent.status", {
+        projectId,
+        agentId: hired.agent.agentId,
+        revision: 3,
+        status: "retired",
+      }),
+    ).rejects.toMatchObject({ code: "agent_argument_invalid" });
+  });
+
   it("records each agent's origin once through the upgrade stage, then lists the recorded one", async () => {
     const { projectId, root } = await project();
     const steward = await registerAgent({

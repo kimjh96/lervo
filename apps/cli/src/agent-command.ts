@@ -2,6 +2,11 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
+  changeAgentModel,
+  modelEfforts,
+  modelTiers,
+  type ModelEffort,
+  type ModelTier,
   changeAgentDisplayName,
   changeAgentRole,
   changeAgentStatus,
@@ -23,6 +28,7 @@ export const agentUsage = [
   "  lervo agent status --agent <agent-id> --status <active|suspended|retired> --revision <n> --write [--root <path>] [--json]",
   "  lervo agent rename --agent <agent-id> --name <display-name> --revision <n> --write [--root <path>] [--json]",
   "  lervo agent role --agent <agent-id> --role <role-id> --revision <n> --write [--root <path>] [--json]",
+  "  lervo agent model --agent <agent-id> --tier <frontier|strong|balanced|fast> --effort <low|medium|high|xhigh|max> --revision <n> --write [--root <path>] [--json]",
   agentLivenessUsage,
   agentContextUsage,
   agentMandateUsage,
@@ -64,6 +70,8 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       help: { type: "boolean", short: "h" },
       role: { type: "string" },
       name: { type: "string" },
+      tier: { type: "string" },
+      effort: { type: "string" },
       provider: { type: "string" },
       scope: { type: "string", multiple: true },
       parent: { type: "string" },
@@ -163,6 +171,36 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       }),
     );
     output(io, agent, parsed.values.json, `${agent.agentId} is now named ${agent.displayName}.`);
+    return 0;
+  }
+  if (action === "model") {
+    const tier = parsed.values.tier as ModelTier | undefined;
+    const effort = parsed.values.effort as ModelEffort | undefined;
+    if (
+      !parsed.values.write ||
+      parsed.values.agent === undefined ||
+      tier === undefined ||
+      !modelTiers.includes(tier) ||
+      effort === undefined ||
+      !modelEfforts.includes(effort)
+    )
+      throw new Error("Agent model requires exact identity, tier, effort, revision, and --write.");
+    const agent = await mutateWorkforceState(root, (recordEvent) =>
+      changeAgentModel({
+        repositoryRoot: root,
+        agentId: parsed.values.agent!,
+        tier,
+        effort,
+        expectedRevision: revision(parsed.values.revision),
+        recordEvent,
+      }),
+    );
+    output(
+      io,
+      agent,
+      parsed.values.json,
+      `${agent.displayName} now runs on the ${tier} model at ${effort} effort.`,
+    );
     return 0;
   }
   if (action === "role") {
