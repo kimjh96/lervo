@@ -53,7 +53,8 @@ Agents work together by mentioning each other directly, by role and by what each
 - **Conversations.** The conversations the agent takes part in, as the lead or a joined participant; choosing one opens it.
 - **Pausing.** "Pause agent" sets the agent suspended through `agent.status`; it takes no new work, keeps its conversations, and shows quieter in the sidebar. "Resume agent" undoes it. Retiring cannot be undone, so the profile does not offer it (invariant 10); `lervo agent status` retires an agent.
 - **Image.** Pressing the agent's large mark opens the image panel, as a project's logo does; an agent with an image first offers "Choose Image" and "Remove Image" in a menu. The image shows wherever the agent's mark does: the sidebar, the conversation's header, the speaker lines, the mention suggestions, and the participants chip.
-- **Still to come.** The agent's paths and what it has learned.
+- **What it has learned.** The agent's active context entries, newest first: each entry's words, then what kind of note it is and when it was observed. A restricted entry says that its words stay with the agent's own sessions. An agent without entries says that what it learns in its conversations appears here. Conversation notes join them once event schema 16 is active ([Lervo ADE rooms](ade-rooms.md), "Memory from conversation").
+- **Still to come.** The paths the agent holds, once claims lease them ([Lervo ADE coordination](ade-coordination.md)).
 - **Failure.** A failed rename or model change shows one line under the profile: "Lervo could not change the agent (<code>)."
 
 ## Model and effort
@@ -65,6 +66,10 @@ Agents work together by mentioning each other directly, by role and by what each
 - `agent.rename` (`projectId`, `agentId`, `revision`, `name`) renames an agent in place, as `lervo agent rename` does, and records the existing `agent.identity.changed` event.
 - `agent.status` (`projectId`, `agentId`, `revision`, `status`) pauses an agent (`suspended`) or lets it work again (`active`), as `lervo agent status` does. Retiring cannot be undone, so it stays a terminal command (invariant 10), and the core link refuses `retired` with `agent_argument_invalid`.
 - The agent's profile (slice 3) shows the model and effort and changes them.
+
+## What an agent has learned
+
+- `agent.context` (`projectId`, `agentId`) returns the agent's promoted context entries that are active and unexpired, newest first, at most 50: `entryId`, `layer`, `kind` (the memory kind), `subject`, `observedAt`, and `summary`, the entry's words read from the project's artifact store, at most 4,000 characters. A restricted entry's `summary` is null, so its words stay with the agent's own sessions, and a summary the store cannot read is null too. It reads the same projection as `lervo agent context inspect`, and an unknown agent fails with `agent_not_found`.
 
 ## The agent's image
 

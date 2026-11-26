@@ -157,6 +157,47 @@ export const agentMarkReadResultSchema = {
   },
 } as const;
 
+/** The most entries `agent.context` answers, newest first. */
+export const MAXIMUM_LEARNED_ENTRIES = 50;
+/** The most characters of one learned entry's summary that `agent.context` answers. */
+export const MAXIMUM_LEARNED_SUMMARY_CHARACTERS = 4_000;
+
+/**
+ * `agent.context`: what the agent has learned, from its promoted context entries that are still
+ * active, newest first (Lervo ADE agents, "The profile"). A restricted entry keeps its summary to
+ * the agent's own sessions, so its `summary` is null here.
+ */
+export const agentContextResultSchema = {
+  title: "AgentContextResult",
+  type: "object",
+  required: ["projectId", "agentId", "entries"],
+  properties: {
+    projectId: identifierSchema,
+    agentId: identifierSchema,
+    entries: {
+      type: "array",
+      maxItems: MAXIMUM_LEARNED_ENTRIES,
+      items: {
+        type: "object",
+        required: ["entryId", "layer", "kind", "subject", "observedAt", "summary"],
+        properties: {
+          entryId: { type: "string", maxLength: 80 },
+          layer: { enum: ["work", "relationship", "expertise"] },
+          kind: { type: "string", maxLength: 64 },
+          subject: { type: "string", maxLength: 160 },
+          observedAt: { type: "string", maxLength: 40 },
+          summary: {
+            anyOf: [
+              { type: "string", maxLength: MAXIMUM_LEARNED_SUMMARY_CHARACTERS },
+              { type: "null" },
+            ],
+          },
+        },
+      },
+    },
+  },
+} as const;
+
 /** `agent.hire`: the agent the core hired for the owner. */
 export const agentHireResultSchema = {
   title: "AgentHireResult",
@@ -176,3 +217,4 @@ export type AgentStatusResult = FromSchema<typeof agentStatusResultSchema>;
 export type AgentMarkSetResult = FromSchema<typeof agentMarkSetResultSchema>;
 export type AgentMarkClearResult = FromSchema<typeof agentMarkClearResultSchema>;
 export type AgentMarkReadResult = FromSchema<typeof agentMarkReadResultSchema>;
+export type AgentContextResult = FromSchema<typeof agentContextResultSchema>;

@@ -1335,6 +1335,74 @@
         }
       }
     },
+    "AgentContextResult": {
+      "title": "AgentContextResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agentId",
+        "entries"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agentId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "required": [
+              "entryId",
+              "layer",
+              "kind",
+              "subject",
+              "observedAt",
+              "summary"
+            ],
+            "properties": {
+              "entryId": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "layer": {
+                "enum": [
+                  "work",
+                  "relationship",
+                  "expertise"
+                ]
+              },
+              "kind": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "subject": {
+                "type": "string",
+                "maxLength": 160
+              },
+              "observedAt": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "summary": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "RoomSession": {
       "title": "RoomSession",
       "type": "object",
@@ -1452,6 +1520,7 @@
             "agent.mark.set",
             "agent.mark.clear",
             "agent.mark.read",
+            "agent.context",
             "room.join",
             "room.route"
           ]

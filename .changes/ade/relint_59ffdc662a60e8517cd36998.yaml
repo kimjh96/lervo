@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_59ffdc662a60e8517cd36998"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "An agent's profile shows what it has learned: its active context entries, newest first, with what kind of note each is and when it was observed."

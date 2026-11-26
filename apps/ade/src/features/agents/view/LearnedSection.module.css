@@ -1,0 +1,40 @@
+/* What an agent has learned: one entry per item, its words first and what kind of note it is
+   under them, on the profile's inset. */
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  padding-inline: var(--space-10);
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.text {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.kept {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}

@@ -83,6 +83,54 @@
     "defaultMessage": "Choose an image for {name}",
     "description": "The title of the image panel that chooses an agent's image."
   },
+  "agents.profile.learned": {
+    "defaultMessage": "What it has learned",
+    "description": "The heading over the agent's learned context in its profile."
+  },
+  "agents.profile.learned.failed": {
+    "defaultMessage": "Lervo could not read what it has learned ({code}).",
+    "description": "Under What it has learned, when the core could not read the agent's context; {code} is the protocol code."
+  },
+  "agents.profile.learned.kind.conversation_note": {
+    "defaultMessage": "Conversation note",
+    "description": "The agent's own note after a turn it published in a conversation."
+  },
+  "agents.profile.learned.kind.decision_rationale": {
+    "defaultMessage": "Decision",
+    "description": "A learned entry about why a decision was made."
+  },
+  "agents.profile.learned.kind.expertise": {
+    "defaultMessage": "Expertise",
+    "description": "A learned entry about something the agent knows well."
+  },
+  "agents.profile.learned.kind.other": {
+    "defaultMessage": "Note",
+    "description": "A learned entry of a kind this interface does not name."
+  },
+  "agents.profile.learned.kind.relationship": {
+    "defaultMessage": "Relationship",
+    "description": "A learned entry about another agent or person the agent works with."
+  },
+  "agents.profile.learned.kind.work_outcome": {
+    "defaultMessage": "Work outcome",
+    "description": "A learned entry about how a piece of work ended."
+  },
+  "agents.profile.learned.kind.working_preference": {
+    "defaultMessage": "Working preference",
+    "description": "A learned entry about how the owner or the team prefers to work."
+  },
+  "agents.profile.learned.meta": {
+    "defaultMessage": "{kind} · {date}",
+    "description": "Under a learned entry: what kind of note it is, and when it was observed."
+  },
+  "agents.profile.learned.none": {
+    "defaultMessage": "Nothing yet. What the agent learns in its conversations appears here.",
+    "description": "Under What it has learned, for an agent without active context entries."
+  },
+  "agents.profile.learned.restricted": {
+    "defaultMessage": "Kept to the agent's own sessions.",
+    "description": "An entry of the agent's restricted context, whose words its profile does not show."
+  },
   "agents.profile.model": {
     "defaultMessage": "Model",
     "description": "The heading and the menu of the model an agent's sessions run on."

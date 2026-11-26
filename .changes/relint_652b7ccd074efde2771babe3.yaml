@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_652b7ccd074efde2771babe3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "The core link answers agent.context: an agent's active learned context entries, newest first, with their words, for the ADE's agent profile."
