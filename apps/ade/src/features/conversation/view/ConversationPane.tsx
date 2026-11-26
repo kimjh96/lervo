@@ -16,6 +16,7 @@ import { ConversationImagesProvider } from "./ConversationImages";
 import styles from "./ConversationPane.module.css";
 import { ToolLinesProvider } from "./ToolLinesProvider";
 import { TurnSummariesProvider, type TurnWindow } from "./TurnSummariesProvider";
+import type { Mentionable } from "./mentions";
 
 /**
  * The conversation with its dock: the working line while the agent works, and the reply card.
@@ -40,6 +41,8 @@ export function ConversationPane(props: {
   onSend?: ((text: string, images: readonly PreparedImage[]) => Promise<void>) | undefined;
   /** Whether the session host and the core carry images in a reply. */
   acceptsImages?: boolean | undefined;
+  /** The agents the reply card's `@` offers (Lervo ADE rooms). */
+  mentionables?: readonly Mentionable[] | undefined;
   /** When a reply was sent while the agent worked, so it waits for the agent's next step. */
   queuedSince?: number | null | undefined;
   /** Asks the core what it recorded about a turn; without it, no turn summary shows. */
@@ -95,6 +98,7 @@ export function ConversationPane(props: {
                       props.onSend ?? ((text, images) => source.send(text, sentImages(images)))
                     }
                     acceptsImages={props.acceptsImages}
+                    mentionables={props.mentionables}
                     onStop={props.onStop}
                     waiting={props.waiting}
                   />

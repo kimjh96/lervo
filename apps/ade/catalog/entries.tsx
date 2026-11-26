@@ -23,6 +23,7 @@ import {
   FileChipDemo,
   ImageViewerDemo,
   PopoverMenuDemo,
+  SuggestionListDemo,
   SegmentedDemo,
   SelectDemo,
 } from "./demos";
@@ -247,6 +248,20 @@ export const entries: readonly Entry[] = [
     use: ["A control whose actions open the interface's own windows, such as Add Project"],
     avoid: ["A project's context menu, which is the system's", "More than about seven items"],
     variants: [{ name: "Add Project", render: () => <PopoverMenuDemo /> }],
+  },
+  {
+    module: "SuggestionList",
+    name: "Suggestions",
+    purpose:
+      "What the person is typing can become, such as the agents an @ mentions, hung above the caret while the field keeps the focus.",
+    use: ["Completing a token typed in a field, where typing narrows the list"],
+    avoid: ["Actions, which a menu names", "Choices that do not depend on what is typed"],
+    variants: [
+      {
+        name: "Mention",
+        render: () => <SuggestionListDemo />,
+      },
+    ],
   },
   {
     module: "Mark",

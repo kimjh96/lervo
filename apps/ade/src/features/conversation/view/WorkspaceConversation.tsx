@@ -1,62 +1,24 @@
 import type { ImageMark } from "@lervo/session-host-contract";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useShallow } from "zustand/react/shallow";
 
-import {
-  type ApplicationCommands,
-  type PreparedImage,
-  type SessionHost,
-  useApplicationCommands,
-  useSessionHost,
-} from "../../../ports";
+import { type PreparedImage, useApplicationCommands, useSessionHost } from "../../../ports";
 import { useHostIsCurrent } from "../../connection";
-import { reloadWorkspaces, useWorkspaceStore, visibleStatus } from "../../workspaces";
+import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
 import { ConversationController } from "../model/controller";
 import { remember, sentImages } from "../model/images";
-import { RoomMembers } from "../model/room-members";
 import type { ConversationSource } from "../model/source";
 import { StandInConversation } from "../model/stand-in-conversation";
 import { useConversationStore } from "../model/store";
 import { BaseNotice } from "./BaseNotice";
 import { ConversationPane } from "./ConversationPane";
 import { activityMessages } from "./messages";
+import { useRoom } from "./room";
 
 /** How far before the send a reply's item may be stamped, by the core's clock. */
 const QUEUED_SKEW_MS = 1_000;
-
-/**
- * Gives the owner's turn to the agents it mentions beyond the lead (Lervo ADE rooms, "Routing"):
- * a joined agent's session, or a new one that joins with the turn. True when the lead is not among
- * them, so the turn does not go to the lead too.
- */
-async function routeToMembers(input: {
-  host: SessionHost;
-  commands: ApplicationCommands;
-  room: RoomMembers | null;
-  workspaceId: string;
-  leadAgentId: string;
-  text: string;
-}): Promise<boolean> {
-  const { host, commands, room, workspaceId, leadAgentId, text } = input;
-  const routed = await commands.run("room.route", { workspaceId, text }).catch(() => null);
-  const agents = routed?.agents ?? [];
-  const others = agents.filter((agentId) => agentId !== leadAgentId);
-  for (const agentId of others) {
-    const member = room?.sessionOf(agentId);
-    const delivered =
-      member !== undefined &&
-      (await host
-        .request({ kind: "session.send", sessionId: member, text })
-        .then(() => true)
-        .catch(() => false));
-    if (delivered) continue;
-    const joined = await commands.run("room.join", { workspaceId, agentId, instruction: text });
-    room?.follow({ agentId, sessionId: joined.sessionId });
-  }
-  return others.length > 0 && !agents.includes(leadAgentId);
-}
 
 /**
  * One workspace's native conversation: the controller's lifetime follows the session. While the
@@ -94,49 +56,8 @@ export function WorkspaceConversation(props: {
           }),
     [host, workspaceId, sessionId, firstMessage, firstImages, reopenNatively],
   );
-  // A conversation's agents beyond its lead each have a session of their own (Lervo ADE rooms).
   const commands = useApplicationCommands();
-  const coreRooms = useWorkspaceStore(
-    (store) => store.advertisedCommands?.includes("room.route") === true,
-  );
-  const workspace = useWorkspaceStore((store) =>
-    store.workspaces.find((candidate) => candidate.workspaceId === workspaceId),
-  );
-  const leadAgentId = workspace?.agentId ?? null;
-  const memberKey = (workspace?.sessions ?? [])
-    .filter((session) => session.access === "read")
-    .map((session) => `${session.agentId}=${session.sessionId}`)
-    .join(",");
-  const room = useRef<RoomMembers | null>(null);
-  useEffect(() => {
-    if (workspaceId === null || sessionId === null || !coreRooms) return;
-    const created = new RoomMembers(host, commands, workspaceId, leadAgentId);
-    room.current = created;
-    return () => {
-      created.close();
-      if (room.current === created) room.current = null;
-    };
-  }, [host, commands, workspaceId, sessionId, coreRooms, leadAgentId]);
-  useEffect(() => {
-    for (const pair of memberKey === "" ? [] : memberKey.split(",")) {
-      const [agentId = "", memberSession = ""] = pair.split("=");
-      room.current?.follow({ agentId, sessionId: memberSession });
-    }
-  }, [memberKey, room]);
-  // A session the list does not know, such as an agent's that just joined, refreshes the list,
-  // which then names it among the conversation's sessions.
-  const unknownSession = useWorkspaceStore((store) =>
-    Object.keys(store.statuses).some(
-      (id) =>
-        !store.workspaces.some(
-          (known) =>
-            known.sessionId === id || known.sessions?.some((member) => member.sessionId === id),
-        ),
-    ),
-  );
-  useEffect(() => {
-    if (unknownSession && coreRooms) void reloadWorkspaces(commands).catch(() => undefined);
-  }, [unknownSession, coreRooms, commands]);
+  const room = useRoom({ host, commands, workspaceId, sessionId });
   const working = useWorkspaceStore(
     (store) => sessionId !== null && visibleStatus(store.statuses[sessionId]) === "working",
   );
@@ -165,18 +86,7 @@ export function WorkspaceConversation(props: {
     setQueuedFor(source);
     // The bubble draws the images it carries from the cache, without asking the session host.
     await remember(images);
-    const routed =
-      workspaceId !== null && sessionId !== null && coreRooms && leadAgentId !== null
-        ? await routeToMembers({
-            host,
-            commands,
-            room: room.current,
-            workspaceId,
-            leadAgentId,
-            text,
-          })
-        : false;
-    if (routed) return;
+    if (await room.route(text)) return;
     return source.send(text, sentImages(images));
   };
   // Only a core that advertises `decoder.images` carries images, through a current session host.
@@ -215,10 +125,11 @@ export function WorkspaceConversation(props: {
         : activityMessages[activity.kind],
     !stopping && activity.kind === "tool" ? { name: activity.name } : {},
   );
+  const workingLine = room.workingLine(starting || working ? label : null);
   return (
     <ConversationPane
       source={source}
-      working={starting || working ? label : null}
+      working={workingLine}
       draftKey={workspaceId === null ? undefined : `reply:${workspaceId}`}
       waiting={starting ? intl.formatMessage({ id: "conversation.reply.starting" }) : undefined}
       onStop={working && !starting && !stopping && hostIsCurrent && coreStops ? stop : undefined}
@@ -226,6 +137,7 @@ export function WorkspaceConversation(props: {
       summarize={summarize}
       onSend={send}
       acceptsImages={hostIsCurrent && coreTakesImages}
+      mentionables={room.mentionables}
       queuedSince={queuedSince}
       notice={
         /* motion: Lervo notices in the conversation */

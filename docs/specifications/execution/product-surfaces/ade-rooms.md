@@ -75,8 +75,8 @@ The resident core decodes every hosted session's output, so it sees each turn en
 - **Speakers.** When the speaking agent changes, a line with its mark, name, and role precedes its turn. A conversation with one agent looks as it does today. Marks appear only where an agent is named, speaks, or works (ADE craft rules, 20).
 - **Mentions.** A mention of a team agent, in the owner's turn or an agent's, shows as a quiet pill: the name in the link color on a faint accent fill, a step heavier than the text, exactly where the core would deliver it. Other `@` text stays text. Room lines read as quiet lines without a mark: "Arin joined · mentioned by Ciel", "Agents paused after 12 turns in 10 minutes", and "Lervo could not deliver Ciel's mention to Tarin (agent_suspended)".
 - **The header** shows the participants' marks, the lead first, and gains a mark when an agent joins.
-- **The working line** names each working agent with its mark, such as "Ciel · Editing retry.ts" beside "Arin · Reading".
-- **The owner's mentions.** Typing `@` in the reply card opens the interface's own menu above the caret: the conversation's participants first, then the other team agents, "joins when mentioned". Arrow keys and Return choose, and typing narrows the list.
+- **The working line** keeps one row. In a conversation of several agents at work, it names each working agent and what it does, such as "Ciel · Editing retry.ts, Arin · Reading"; with the lead alone at work, it reads as before.
+- **The owner's mentions.** Typing `@` in the reply card offers suggestions above the card, at the caret's left, while the field keeps the focus: the conversation's participants first, then the other team agents, "joins when mentioned". Typing narrows the list, Up and Down move, Return or Tab chooses, and Escape closes it. Choosing writes `@Name `, and every mention in the field shows as the same pill as in the conversation, drawn behind the field's own text so the caret and the selection stay the field's.
 
 ## Across conversations and agent-started conversations (slice 2)
 

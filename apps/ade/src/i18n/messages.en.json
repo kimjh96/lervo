@@ -219,6 +219,22 @@
     "defaultMessage": "Checked Lervo's version",
     "description": "The agent ran lervo --version."
   },
+  "conversation.mention.joins": {
+    "defaultMessage": "{role} · joins when mentioned",
+    "description": "Under a team agent outside the conversation in the @ suggestions; {role} is its role's name."
+  },
+  "conversation.mention.label": {
+    "defaultMessage": "Agents to mention",
+    "description": "The accessible name of the suggestions the reply card's @ offers."
+  },
+  "conversation.mention.participants": {
+    "defaultMessage": "In this conversation",
+    "description": "Above the agents of the conversation in the reply card's @ suggestions."
+  },
+  "conversation.mention.team": {
+    "defaultMessage": "Team",
+    "description": "Above the project's other agents in the reply card's @ suggestions."
+  },
   "conversation.opening": {
     "defaultMessage": "Opening the conversation",
     "description": "Where the conversation will appear, while the session host attaches and loads its newest page, or starts the session again."
@@ -410,6 +426,10 @@
   "conversation.unavailable": {
     "defaultMessage": "The conversation could not open ({code}).",
     "description": "The session could not attach or start; the code names why."
+  },
+  "conversation.working.agent": {
+    "defaultMessage": "{name} · {activity}",
+    "description": "One working agent on the working line of a conversation with several agents, such as Arin · Thinking."
   },
   "images.viewer.close": {
     "defaultMessage": "Close",
