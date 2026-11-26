@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_25069e4284793415cbe2c9ed"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Sync cached-base files before replacing them, back off after a base that cannot be written, keep delivery markers small, and sweep temporary files a writer left behind."

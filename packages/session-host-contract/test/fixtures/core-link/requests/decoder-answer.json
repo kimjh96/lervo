@@ -1,0 +1,7 @@
+{
+  "kind": "decoder.answer",
+  "id": 7,
+  "decoderId": "dec_1",
+  "requestId": "toolu_req_1",
+  "answers": { "Which color do you prefer?": "Blue" }
+}

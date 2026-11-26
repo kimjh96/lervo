@@ -9,6 +9,10 @@ pub const MAX_TOOL_DETAIL_BYTES: usize = 6 * 1024;
 /// Bytes of one user message's serialized image marks: a format and a size for each of at most
 /// three images. A larger value is dropped, and the message stays.
 pub const MAX_IMAGE_MARKS_BYTES: usize = 512;
+/// Bytes of one question's serialized choices. Adapters bound each question's text, so choices
+/// stay far smaller; larger ones are dropped, and the question shows as text the person answers
+/// in a message.
+pub const MAX_CHOICES_BYTES: usize = 64 * 1024;
 
 /// A tool call's status.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -36,7 +40,12 @@ pub enum Content {
         images: Option<String>,
     },
     AgentMessage(String),
-    Question(String),
+    /// The agent's question, with its choices as the protocol's JSON when the person can answer
+    /// it in the interface.
+    Question {
+        text: String,
+        choices: Option<String>,
+    },
     /// A message another agent session sent: the sender's name and the text.
     PeerMessage {
         from: String,
@@ -57,9 +66,9 @@ pub enum Content {
 impl Content {
     pub(crate) fn text_mut(&mut self) -> Option<&mut String> {
         match self {
-            Self::UserMessage { text, .. } | Self::AgentMessage(text) | Self::Question(text) => {
-                Some(text)
-            }
+            Self::UserMessage { text, .. }
+            | Self::AgentMessage(text)
+            | Self::Question { text, .. } => Some(text),
             Self::ToolActivity { .. } | Self::LervoNotice { .. } | Self::PeerMessage { .. } => None,
         }
     }
@@ -70,7 +79,10 @@ impl Content {
                 text,
                 images: images.clone(),
             },
-            Self::Question(_) => Self::Question(text),
+            Self::Question { choices, .. } => Self::Question {
+                text,
+                choices: choices.clone(),
+            },
             _ => Self::AgentMessage(text),
         }
     }

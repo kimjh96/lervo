@@ -14,6 +14,7 @@ import { Composer } from "./Composer";
 import { Conversation } from "./Conversation";
 import { ConversationImagesProvider } from "./ConversationImages";
 import styles from "./ConversationPane.module.css";
+import { type AnswerQuestion, QuestionAnswers } from "./questions-context";
 import { ToolLinesProvider } from "./ToolLinesProvider";
 import { TurnSummariesProvider, type TurnWindow } from "./TurnSummariesProvider";
 import type { Mentionable } from "./mentions";
@@ -47,6 +48,8 @@ export function ConversationPane(props: {
   queuedSince?: number | null | undefined;
   /** Asks the core what it recorded about a turn; without it, no turn summary shows. */
   summarize?: ((window: TurnWindow) => Promise<TurnSummary | null>) | undefined;
+  /** Answers an agent's question with choices; without it, the choices show as text. */
+  onAnswer?: AnswerQuestion | undefined;
 }) {
   const intl = useIntl();
   const { source } = props;
@@ -72,42 +75,44 @@ export function ConversationPane(props: {
           </InlineAlert>
         )}
       </Presence>
-      <TurnSummariesProvider conversation={source} summarize={props.summarize}>
-        <ToolLinesProvider conversation={source}>
-          <ConversationImagesProvider read={readImage}>
-            <Conversation
-              onLoadEarlier={() => void source.loadEarlier()}
-              onLoadLater={() => void source.loadLater()}
-              onJumpToLatest={() => void source.showLatest()}
-              continues={props.continues}
-              lead={props.notice}
-              turnOpen={props.working !== null}
-              queuedSince={props.queuedSince ?? null}
-              dock={
-                <>
-                  {/* The working line keeps its row, so the conversation never moves as work starts
+      <QuestionAnswers answer={props.onAnswer}>
+        <TurnSummariesProvider conversation={source} summarize={props.summarize}>
+          <ToolLinesProvider conversation={source}>
+            <ConversationImagesProvider read={readImage}>
+              <Conversation
+                onLoadEarlier={() => void source.loadEarlier()}
+                onLoadLater={() => void source.loadLater()}
+                onJumpToLatest={() => void source.showLatest()}
+                continues={props.continues}
+                lead={props.notice}
+                turnOpen={props.working !== null}
+                queuedSince={props.queuedSince ?? null}
+                dock={
+                  <>
+                    {/* The working line keeps its row, so the conversation never moves as work starts
                 or ends. */}
-                  <div className={styles.working}>
-                    <Presence>
-                      {props.working === null ? null : <WorkingLine label={props.working} />}
-                    </Presence>
-                  </div>
-                  <Composer
-                    draftKey={props.draftKey}
-                    onSend={
-                      props.onSend ?? ((text, images) => source.send(text, sentImages(images)))
-                    }
-                    acceptsImages={props.acceptsImages}
-                    mentionables={props.mentionables}
-                    onStop={props.onStop}
-                    waiting={props.waiting}
-                  />
-                </>
-              }
-            />
-          </ConversationImagesProvider>
-        </ToolLinesProvider>
-      </TurnSummariesProvider>
+                    <div className={styles.working}>
+                      <Presence>
+                        {props.working === null ? null : <WorkingLine label={props.working} />}
+                      </Presence>
+                    </div>
+                    <Composer
+                      draftKey={props.draftKey}
+                      onSend={
+                        props.onSend ?? ((text, images) => source.send(text, sentImages(images)))
+                      }
+                      acceptsImages={props.acceptsImages}
+                      mentionables={props.mentionables}
+                      onStop={props.onStop}
+                      waiting={props.waiting}
+                    />
+                  </>
+                }
+              />
+            </ConversationImagesProvider>
+          </ToolLinesProvider>
+        </TurnSummariesProvider>
+      </QuestionAnswers>
     </div>
   );
 }

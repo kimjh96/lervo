@@ -2,7 +2,7 @@
 // it for a prompt the server could not take. The launcher leaves a marker for each such prompt,
 // which the server records as `terminal.context.base_delivered` on its next served prompt there.
 import { randomUUID } from "node:crypto";
-import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readdir, readFile, rename, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { listWorkspaces } from "@lervo/agent-workforce";
@@ -64,10 +64,20 @@ export function formatTerminalCachedBase(lines: readonly string[], preparedAt: D
   return `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext } })}\n`;
 }
 
+/**
+ * Replaces `path` with `content`, synced before the rename, so a marker's identity survives a
+ * power loss whenever the store's commit that follows it does.
+ */
 async function writeAtomically(path: string, content: string): Promise<void> {
   const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temporary, content, { mode: 0o600, flag: "wx" });
+    const handle = await open(temporary, "wx", 0o600);
+    try {
+      await handle.writeFile(content);
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
     await rename(temporary, path);
   } finally {
     await rm(temporary, { force: true });
@@ -87,7 +97,6 @@ interface Marker {
   payload: TerminalContextBaseDeliveredEventPayload | null;
   /** The random identity the server gave the delivery, once it tried to record it. */
   id: string | null;
-  content: Record<string, unknown> | null;
 }
 
 /** A marker the launcher may still be writing, which is left for the next prompt. */
@@ -97,7 +106,7 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
   const match = MARKER_NAME.exec(name)!;
   const deliveredAt = Number(match[2]);
   if (content === "" && now - deliveredAt < MARKER_SETTLE_MS) return null;
-  const dropped = { name, payload: null, id: null, content: null };
+  const dropped = { name, payload: null, id: null };
   if (now - deliveredAt > MARKER_RETENTION_MS) return dropped;
   try {
     const value = JSON.parse(content) as { reason?: unknown; age?: unknown; id?: unknown };
@@ -117,7 +126,6 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
         deliveredAt: new Date(deliveredAt).toISOString(),
       },
       id: typeof value.id === "string" && /^[a-f0-9]{32}$/u.test(value.id) ? value.id : null,
-      content: value as Record<string, unknown>,
     };
   } catch {
     return dropped;
@@ -130,7 +138,9 @@ function parseMarker(name: string, content: string, now: number): Marker | null 
  */
 async function sweepOldFiles(directory: string, now: number): Promise<void> {
   for (const name of await readdir(directory)) {
-    if (!/^[a-f0-9]{16}\.(?:turn|json|retry|\d{13}\.\d{1,10}\.unserved)$/u.test(name)) continue;
+    // A writer that exited mid-write leaves its `.tmp` beside the file it was replacing.
+    if (!/^[a-f0-9]{16}\.(?:turn|json|retry|\d{13}\.\d{1,10}\.unserved|.+\.tmp)$/u.test(name))
+      continue;
     const age = await ageMilliseconds(resolve(directory, name), now);
     if (age !== null && age > MARKER_RETENTION_MS)
       await rm(resolve(directory, name), { force: true });
@@ -210,7 +220,11 @@ async function recordDeliveries(
       marker.id = randomUUID().replaceAll("-", "");
       await writeAtomically(
         resolve(directory, marker.name),
-        JSON.stringify({ ...marker.content, id: marker.id }),
+        JSON.stringify({
+          reason: marker.payload!.reason,
+          age: marker.payload!.cacheAgeMilliseconds,
+          id: marker.id,
+        }),
       );
     }
   let recorded = 0;
@@ -316,8 +330,8 @@ export async function keepTerminalCachedBase(input: {
     await writeAtomically(retry, "").catch(() => undefined);
     return { recorded, refreshed: false, settled };
   }
-  await rm(retry, { force: true });
-  // A base that cannot be written leaves the old one to expire; `settled` still reports reads.
+  // A base that cannot be written leaves the old one to expire and waits like a failed
+  // preparation; `settled` still reports reads either way.
   const written = await writeAtomically(
     file,
     formatTerminalCachedBase(lines, new Date(now())),
@@ -325,6 +339,10 @@ export async function keepTerminalCachedBase(input: {
     () => true,
     () => false,
   );
-  if (!written) return { recorded, refreshed: false, settled };
+  if (!written) {
+    await writeAtomically(retry, "").catch(() => undefined);
+    return { recorded, refreshed: false, settled };
+  }
+  await rm(retry, { force: true }).catch(() => undefined);
   return { recorded, refreshed: true, settled };
 }

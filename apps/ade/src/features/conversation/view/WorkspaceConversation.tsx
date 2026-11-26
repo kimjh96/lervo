@@ -9,6 +9,7 @@ import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
 import { ConversationController } from "../model/controller";
 import { remember, sentImages } from "../model/images";
+import { laneOf } from "../model/questions";
 import type { ConversationSource } from "../model/source";
 import { StandInConversation } from "../model/stand-in-conversation";
 import { useConversationStore } from "../model/store";
@@ -126,6 +127,25 @@ export function WorkspaceConversation(props: {
     !stopping && activity.kind === "tool" ? { name: activity.name } : {},
   );
   const workingLine = room.workingLine(starting || working ? label : null);
+  // Only a core that advertises `decoder.questions` shows choices and answers them, through a
+  // session host that knows `session.answer`. A joined agent's question goes to its own session.
+  const coreAnswers = useWorkspaceStore(
+    (store) => store.advertisedCommands?.includes("decoder.questions") === true,
+  );
+  const answer = useMemo(
+    () =>
+      sessionId === null || !hostIsCurrent || !coreAnswers
+        ? undefined
+        : async (itemId: string, questionId: string, answers: Readonly<Record<string, string>>) => {
+            await host.request({
+              kind: "session.answer",
+              sessionId: laneOf(itemId) === "" ? sessionId : laneOf(itemId),
+              questionId,
+              answers: { ...answers },
+            });
+          },
+    [host, sessionId, hostIsCurrent, coreAnswers],
+  );
   return (
     <ConversationPane
       source={source}
@@ -138,6 +158,7 @@ export function WorkspaceConversation(props: {
       onSend={send}
       acceptsImages={hostIsCurrent && coreTakesImages}
       mentionables={room.mentionables}
+      onAnswer={answer}
       queuedSince={queuedSince}
       notice={
         /* motion: Lervo notices in the conversation */

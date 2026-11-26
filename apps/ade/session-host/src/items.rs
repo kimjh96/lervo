@@ -65,7 +65,11 @@ fn convert(item: &Item, id: &str) -> Option<ConversationItem> {
             },
             text: AgentMessageItemText::try_from(text.as_str()).ok()?,
         }),
-        Content::Question(text) => ConversationItem::from(QuestionItem {
+        Content::Question { text, choices } => ConversationItem::from(QuestionItem {
+            // Choices outside the protocol are dropped; the question still shows.
+            choices: choices
+                .as_deref()
+                .and_then(|json| serde_json::from_str(json).ok()),
             created_at_ms,
             item_id,
             kind: QuestionItemKind::Question,

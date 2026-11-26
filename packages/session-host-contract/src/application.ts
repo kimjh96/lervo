@@ -57,6 +57,7 @@ export const requestFailedMessageSchema = {
         "images_unsupported",
         "message_empty",
         "image_not_found",
+        "question_not_open",
       ],
     },
     parameters: parametersSchema,

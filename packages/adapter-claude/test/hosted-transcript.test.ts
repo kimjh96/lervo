@@ -279,3 +279,65 @@ describe("Claude Code transcripts", () => {
     }
   });
 });
+
+describe("Claude Code transcripts with questions", () => {
+  it("reads an AskUserQuestion call as the question and its answers as the person's message", async () => {
+    const configuration = await mkdtemp(join(tmpdir(), "lervo-claude-questions-"));
+    try {
+      const path = claudeTranscriptPath(session, { CLAUDE_CONFIG_DIR: configuration });
+      await mkdir(join(path, ".."), { recursive: true });
+      const asked = {
+        questions: [
+          {
+            question: "Which layout?",
+            header: "Layout",
+            multiSelect: false,
+            options: [
+              { label: "Grid", description: "" },
+              { label: "List", description: "" },
+            ],
+          },
+        ],
+      };
+      await writeFile(
+        path,
+        [
+          {
+            type: "assistant",
+            timestamp: "2026-11-27T00:00:01.000Z",
+            message: {
+              content: [
+                { type: "tool_use", id: "toolu_ask", name: "AskUserQuestion", input: asked },
+              ],
+            },
+          },
+          {
+            type: "user",
+            timestamp: "2026-11-27T00:00:02.000Z",
+            message: {
+              content: [
+                {
+                  type: "tool_result",
+                  tool_use_id: "toolu_ask",
+                  content: 'Your questions have been answered: "Which layout?"="Grid".',
+                },
+              ],
+            },
+            toolUseResult: { ...asked, answers: { "Which layout?": "Grid" } },
+          },
+        ]
+          .map((line) => JSON.stringify(line))
+          .join("\n"),
+      );
+      const items = [];
+      for await (const item of readClaudeTranscript(session, { CLAUDE_CONFIG_DIR: configuration }))
+        items.push(item.content);
+      expect(items).toEqual([
+        { kind: "question", text: "Which layout?" },
+        { kind: "user_message", text: "Grid" },
+      ]);
+    } finally {
+      await rm(configuration, { recursive: true, force: true });
+    }
+  });
+});

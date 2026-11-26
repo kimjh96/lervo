@@ -52,6 +52,9 @@ const DECODER_INTERRUPT: &str = "decoder.interrupt";
 /// `decoder.send`'s `images`, which carry pictures in the user's message. An older resident
 /// process rejects the request, so only one that advertised it hears it.
 const DECODER_IMAGES: &str = "decoder.images";
+/// A core that advertises it shows the agents' questions with choices and answers them through
+/// `decoder.answer`, so this session host asks it to launch native sessions that ask that way.
+const DECODER_QUESTIONS: &str = "decoder.questions";
 
 /// The commands a resident process named in its last workspace list.
 struct Advertised {
@@ -253,6 +256,12 @@ impl Core for CoreLink {
                     .ok_or_else(failures::unsupported)?,
             )
         };
+        let mut arguments = arguments;
+        if command == "workspace.start" && self.advertiser_of(DECODER_QUESTIONS).is_some() {
+            // This session host shows the agents' questions with choices (Lervo ADE sessions,
+            // "Questions"); the core decides whether the provider can ask that way.
+            arguments.insert("questions".to_owned(), Value::Bool(true));
+        }
         let request = json!({"kind": "core.command", "command": command, "arguments": arguments});
         let (outcome, answered_by) = self
             .launch_on(request, generation, generation.is_none())

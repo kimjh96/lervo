@@ -231,7 +231,7 @@ fn text_bytes(input: &Input) -> usize {
             content:
                 Content::UserMessage { text, .. }
                 | Content::AgentMessage(text)
-                | Content::Question(text),
+                | Content::Question { text, .. },
             ..
         } => text.len(),
         _ => 0,

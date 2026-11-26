@@ -11,7 +11,8 @@ import {
   imageMark,
 } from "@lervo/adapter-contract";
 
-import { compacted, peerMessage } from "./hosted-stream.js";
+import { askedAndAnswered } from "./hosted-questions.js";
+import { compacted, peerMessage } from "./hosted-stream-items.js";
 import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
 
 /** A line longer than this is skipped, so one bad line cannot grow memory. */
@@ -50,6 +51,9 @@ function transcriptImage(block: Line): HostedImageMark | undefined {
 }
 
 type Line = Record<string, unknown>;
+
+/** The tool Claude Code asks the person's choices with. */
+const ASK_USER_QUESTION = "AskUserQuestion";
 
 function record(value: unknown): Line | undefined {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -156,6 +160,12 @@ export class ClaudeTranscriptDecoder {
       const call = id === undefined ? undefined : this.tools.get(id);
       if (id === undefined || call === undefined) continue;
       this.tools.delete(id);
+      if (call.name === ASK_USER_QUESTION) {
+        // The person's choices read as their message; a reply in their own words is its own line.
+        const { said } = askedAndAnswered(call.input, results === 1 ? context.structured : null);
+        if (said !== null) items.push(item({ kind: "user_message", text: said }, createdAtMs));
+        continue;
+      }
       const failed = block.is_error === true;
       // The structured result belongs to the line's only result.
       const result = {
@@ -205,6 +215,10 @@ export class ClaudeTranscriptDecoder {
         const name = text(block.name);
         if (id !== undefined && name !== undefined)
           this.tools.set(id, { name, input: block.input });
+        // A question the agent asked with choices reads as its question, as it did live.
+        const { asked } =
+          name === ASK_USER_QUESTION ? askedAndAnswered(block.input, null) : { asked: null };
+        if (asked !== null) items.push(item({ kind: "question", text: asked }, createdAtMs));
       }
       const value = text(block.text);
       if (block.type === "text" && value !== undefined && value.trim().length > 0)
