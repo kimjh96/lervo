@@ -80,6 +80,7 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
       sessionId === elioSession
         ? {
             workspaceId: started.workspaceId,
+            projectId: started.projectId,
             agentId: "agt_elio",
             team: [
               { agentId: "agt_elio", displayName: "Elio", roleName: "Product Owner" },
