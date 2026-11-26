@@ -18,7 +18,6 @@ const MARKERS = [
   "MERGE_HEAD",
   "CHERRY_PICK_HEAD",
   "REVERT_HEAD",
-  "REBASE_HEAD",
   "rebase-merge",
   "rebase-apply",
   "BISECT_LOG",
@@ -54,7 +53,11 @@ it("refuses every in-progress Git operation marker in a repository and a linked 
       expect(await knowledgeOutputCommitSafe(checkout)).toBe(false);
       await rm(path, { recursive: true });
     }
+    // A `REBASE_HEAD` left behind without a rebase directory names no running rebase.
+    const stale = resolve(checkout, git(checkout, "rev-parse", "--git-path", "REBASE_HEAD").trim());
+    await writeFile(stale, `${git(checkout, "rev-parse", "HEAD").trim()}\n`);
     expect(await knowledgeOutputCommitSafe(checkout)).toBe(true);
+    await rm(stale);
   }
   // A detached HEAD is not a normal branch.
   git(linked, "checkout", "-q", "--detach");

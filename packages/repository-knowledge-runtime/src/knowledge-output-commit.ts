@@ -80,11 +80,15 @@ export async function knowledgeOutputCommitSafe(root: string): Promise<boolean> 
   return true;
 }
 
+/**
+ * Git's in-progress operations. A rebase runs exactly while `rebase-merge` or `rebase-apply`
+ * exists, which is how Git itself tells. A `REBASE_HEAD` left behind without them names no running
+ * operation, so it does not hold a commit.
+ */
 const OPERATION_MARKERS = [
   "MERGE_HEAD",
   "CHERRY_PICK_HEAD",
   "REVERT_HEAD",
-  "REBASE_HEAD",
   "rebase-merge",
   "rebase-apply",
   "BISECT_LOG",
