@@ -1261,8 +1261,9 @@ export class RedactionError extends Error {
     readonly code: RedactionErrorCode,
     readonly path: string,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "RedactionError";
   }
 }
@@ -1392,8 +1393,10 @@ export function sanitizeEventPayload(
     validateKnowledgeJobAssignmentPayload(type, sanitized);
     validateAssignmentAccessModePayload(type, sanitized);
     validateConvergenceAssignmentPayload(type, sanitized);
-  } catch {
-    throw new RedactionError("invalid_payload", "$", "The event payload coordinates are invalid.");
+  } catch (error) {
+    throw new RedactionError("invalid_payload", "$", "The event payload coordinates are invalid.", {
+      cause: error,
+    });
   }
   const schemaName = eventPayloadSchemas[type];
   const invalidSchema = schemaName !== undefined && !validateSchema(schemaName, sanitized).valid;

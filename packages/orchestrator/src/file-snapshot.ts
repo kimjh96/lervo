@@ -18,6 +18,7 @@ export async function readManagedFileHash(
     throw new ManagedContextError(
       "file_snapshot_invalid",
       "Could not safely inspect the current state of the target file.",
+      { cause: error },
     );
   }
 }

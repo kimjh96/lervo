@@ -94,8 +94,10 @@ function parseSpecification(value: string): WorkforceHireSpecification {
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);
-  } catch {
-    throw new Error("The conversation workforce hiring specification is invalid.");
+  } catch (error) {
+    throw new Error("The conversation workforce hiring specification is invalid.", {
+      cause: error,
+    });
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error("The conversation workforce hiring specification is invalid.");

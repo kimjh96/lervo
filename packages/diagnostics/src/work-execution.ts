@@ -105,6 +105,7 @@ export function createWorkExecutionReport(input: {
       throw new DiagnosticsError(
         "trace_work_not_found",
         `There are no events for the requested work ID: ${input.workId}`,
+        { cause: error },
       );
     }
     throw error;

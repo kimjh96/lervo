@@ -127,7 +127,9 @@ export class FileSystemCas implements ArtifactStore {
       stats = await lstat(path);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new CasError("not_found", `CAS object not found: ${uriForDigest(hash)}`);
+        throw new CasError("not_found", `CAS object not found: ${uriForDigest(hash)}`, {
+          cause: error,
+        });
       }
       throw error;
     }

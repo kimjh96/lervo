@@ -32,10 +32,11 @@ export function resolveWritingPolicyDocumentId(input: BuildContextEnvelopeInput)
   let contract: unknown;
   try {
     contract = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(document.bytes));
-  } catch {
+  } catch (error) {
     throw new ContextDeliveryError(
       "writing_policy_document_invalid",
       "The writing policy document must satisfy the UTF-8 JSON contract.",
+      { cause: error },
     );
   }
   const validation = validateSchema("writingContract", contract);

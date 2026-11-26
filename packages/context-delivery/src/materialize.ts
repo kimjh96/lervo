@@ -99,6 +99,7 @@ export async function materializeContextDocuments(input: {
         throw new ContextDeliveryError(
           "invalid_delivery_request",
           `Delivery policy execution failed: ${snapshot.documentId}`,
+          { cause: error },
         );
       }
       let delivery: { kind: "inline"; content: string } | { kind: "cas"; uri: string };

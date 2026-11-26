@@ -374,7 +374,7 @@ export async function applyRepositoryReplicaBundle(input: {
           ]);
         }
         await applyTrees(input.repositoryRoot, { ...observed, head: current.head }, current);
-      } catch {
+      } catch (_rollbackError) {
         // The apply failure stays the cause; the stage records that rollback was not proven.
         throw new RepositoryReplicaGitError(
           "repository_replica_apply_failed",

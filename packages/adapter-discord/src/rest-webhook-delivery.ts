@@ -123,8 +123,8 @@ export class DiscordRestWebhookDelivery implements DiscordDeliveryPort {
     const redactingFetch: typeof globalThis.fetch = async (...arguments_) => {
       try {
         return await nativeFetch(...arguments_);
-      } catch {
-        throw new Error("Discord webhook transport failed.");
+      } catch (error) {
+        throw new Error("Discord webhook transport failed.", { cause: error });
       }
     };
     const result = await deliverPlatformMessageWithReplay({

@@ -88,7 +88,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:ff2203306137665997fdb3ed3a39ed7692102469133c702f2e951a142c9e691a",
+      "contentHash": "sha256:7353f814ff2fa59bc8ab0f5038fee245b28a8f259df58b7409c540b334d56163",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, hosted-session, terminal base-delivery, and room payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
@@ -158,35 +158,35 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-merge.ts",
-      "contentHash": "sha256:2d52b391e0e3163f1c8ba3ea71911826493c9df9c31a66baa8b5e75a349a1d1b",
+      "contentHash": "sha256:e57aa43b9e7d60927fd5268f08aa2e0b0ed0880a231b1a713db1cb33038ac567",
       "responsibility": "Exact-approved document merge operation",
       "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-move.ts",
-      "contentHash": "sha256:78faf1b1a51aae45d350f943bca9ef311afa40fc6f8b3dfe191b8f9004a7e091",
+      "contentHash": "sha256:c0ceb11d01f2046b52566102ff6aab35bdac5a05c72f1ec2a86bbef97d52249f",
       "responsibility": "Exact-approved document move operation",
       "rationale": "One exact-approved move binds destination safety, serialization, lineage, normalization record relocation and atomic apply. Shared modules retain record mechanics and layout policy. Complete scan admission delegates to the configured scanner before planning; no new independent responsibility is introduced.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-split.ts",
-      "contentHash": "sha256:e9c98212c0ea68cf7812566eaa997e3be64b5f865f534a5ae8deea780b878049",
+      "contentHash": "sha256:c56867427227383374a48eae18676a6ca7f86fd8ee684a59946f5b61416267dc",
       "responsibility": "Exact-approved document split operation",
       "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:aca81b5b20485b5b0efac94852430ab7174b0638304dbe10c56a6a57fe9ae4d1",
+      "contentHash": "sha256:9205e529c0bb8c1d2f74c9c211acc1c7c5252f1885aa15d0a79b4d7695413064",
       "responsibility": "Durable knowledge filesystem transaction",
       "rationale": "One durable filesystem transaction owns staging, exact before/after bindings, publication, rollback and crash settlement. Apply snapshots operations, byte payloads and the document permit before acquiring its source gate; recovery captures the same root used for its gate. Terminal asset policy and validation remain in the runtime owner. Receipt interpretation stays with the caller; no provider or artifact policy enters the transaction.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/instruction-bridge.ts",
-      "contentHash": "sha256:a461c05523ec8b806a22889facae8b03b6257fbae482c77baa26505615348b3d",
+      "contentHash": "sha256:246cc3a094915eef071207f78a851e6197efbadb0230893daf3feb8370b8d50e",
       "responsibility": "Provider instruction bridge lifecycle",
       "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
@@ -200,14 +200,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:c95a7d3ab77f99e22cec8f116ab721c5582797522eaf873258ade2df190fe650",
+      "contentHash": "sha256:7374197488cbec6e45876b73b5e64c896b03d4f7cc4147a1a0a50833e9c087f6",
       "responsibility": "Repository document-layout migration",
       "rationale": "One exact layout transaction with virtual scanning, exact item content binding, and apply-time revalidation. Accounting lives in repository-layout-accounting.ts and the ADR-0583 capacity hold in repository-layout-capacity.ts. Classification, route evidence, durable apply, providers, lifecycle authority, ADR-0561 reverted-move holds, and health keep separate owners; record decoding memory lives in normalization-record-version.ts.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/source-lineage.ts",
-      "contentHash": "sha256:f9a33c1ace361107ddf3a22cd529e1cf53138a52497ae47465237e31200b288b",
+      "contentHash": "sha256:7198dc8008cc56fb4ca7376ddafceba575b886c3d703b1d89fcc2c2e7c320164",
       "responsibility": "Document-structure lineage registry",
       "rationale": "Move, split, and merge lineage creation and validation operate on one lineage schema and safe registry-loading boundary; loading also returns split and merge records for the relation web.",
       "disposition": "cohesive"
@@ -221,7 +221,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:323e3a9ab70dd7db419e06ff23cfbc050d17c68e224b7dfbf4ced734016ee266",
+      "contentHash": "sha256:1b3fec38dc485878e073c36d31d2044ba9bf784c7f8c841168acb6c5c4c9799b",
       "responsibility": "Revisioned workstream snapshot lifecycle",
       "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, origin and predecessor invariants, CAS binding, plan identity, plan admission such as the ADR-0561 refusal of new approvals, and the durable apply protocol. Snapshot construction, bookkeeping, revisions, freshness, branch bindings, and context rendering live in sibling modules.",
       "disposition": "cohesive"
