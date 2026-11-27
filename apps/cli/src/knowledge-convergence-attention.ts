@@ -1,4 +1,5 @@
 import type {
+  KnowledgeConvergenceContinuityAttentionItemV1,
   KnowledgeConvergenceOwnerAttentionItemV1,
   KnowledgePublicationAttentionItemV1,
   OperatingAttentionItemV1,
@@ -18,6 +19,7 @@ import {
   convergenceOwnerRemediation,
   type ConvergenceOwnerHubScope,
 } from "./knowledge-convergence-owner-remediation.js";
+import { readConvergenceStageHoldDebt } from "./convergence-stage-hold-debt.js";
 import { continuityAttentionItems } from "./knowledge-continuity-attention.js";
 
 /** ADR-0466 private state the attention projection reads; absent files mean nothing to report. */
@@ -32,6 +34,8 @@ export interface KnowledgeConvergenceAttentionInput {
   hubScope?: ConvergenceOwnerHubScope | null;
   /** ADR-0469 continuity findings of this checkout; absent means none were inspected. */
   continuity?: Awaited<ReturnType<typeof inspectConvergenceContinuity>> | null;
+  /** Convergence stages a conversation has held for more than a day; absent means none. */
+  stageHolds?: readonly KnowledgeConvergenceContinuityAttentionItemV1[];
 }
 
 /** Reads the Hub destination of a Hub-mode host; any other host has no Hub scope. */
@@ -49,19 +53,35 @@ export async function readKnowledgeConvergenceAttention(
   root: string,
   projectId: string,
 ): Promise<KnowledgeConvergenceAttentionInput> {
-  const [owner, publication, publicationAcknowledged, hubScope, supersession, continuity] =
-    await Promise.all([
-      readConvergenceOwnerFence(root),
-      readKnowledgePublicationState(root),
-      readKnowledgePublicationAcknowledged(root),
-      readConvergenceOwnerHubScope(root, projectId),
-      readKnowledgeSupersessionLedger(root),
-      inspectConvergenceContinuity({
-        repositoryRoot: root,
-        policyPath: defaultConvergenceContinuityPolicyPath(),
-      }).catch(() => null),
-    ]);
-  return { owner, publication, publicationAcknowledged, hubScope, supersession, continuity };
+  const [
+    owner,
+    publication,
+    publicationAcknowledged,
+    hubScope,
+    supersession,
+    continuity,
+    stageHolds,
+  ] = await Promise.all([
+    readConvergenceOwnerFence(root),
+    readKnowledgePublicationState(root),
+    readKnowledgePublicationAcknowledged(root),
+    readConvergenceOwnerHubScope(root, projectId),
+    readKnowledgeSupersessionLedger(root),
+    inspectConvergenceContinuity({
+      repositoryRoot: root,
+      policyPath: defaultConvergenceContinuityPolicyPath(),
+    }).catch(() => null),
+    readConvergenceStageHoldDebt(root).catch(() => []),
+  ]);
+  return {
+    owner,
+    publication,
+    publicationAcknowledged,
+    hubScope,
+    supersession,
+    continuity,
+    stageHolds,
+  };
 }
 
 const PUBLICATION_INSTRUCTIONS: Record<string, string> = {
@@ -219,6 +239,7 @@ export function knowledgeConvergenceAttentionItems(
       input.continuity?.findings ?? [],
       input.continuity?.state?.observedAt ?? null,
     ),
+    ...(input.stageHolds ?? []),
   );
   return items;
 }
