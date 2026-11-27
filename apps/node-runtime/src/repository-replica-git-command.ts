@@ -66,11 +66,13 @@ export async function git(
       }
       resolve(result);
     });
+    // Absent or empty input is never written, so only written input can be cut short.
+    const input = options.input?.length ? options.input : undefined;
     child.stdin.on("error", (error) => {
-      inputError = error;
+      if (input !== undefined) inputError = error;
     });
-    if (options.input === undefined) child.stdin.end();
-    else child.stdin.end(options.input);
+    if (input === undefined) child.stdin.end();
+    else child.stdin.end(input);
   });
 }
 

@@ -20,14 +20,22 @@ export async function readRevisionFiles(
   const requested = paths.filter((path) => !path.includes("\n"));
   if (requested.length === 0) return files;
   const output = await new Promise<Buffer>((resolveRead, reject) => {
+    // Git that exits before reading every lookup leaves the batch output short, so a failed write
+    // fails the read. Git's own failure, such as a timeout, still reports as itself.
+    let inputError: Error | null = null;
     const child = execFile(
       "git",
       ["-C", root, "cat-file", "--batch"],
       { encoding: "buffer", maxBuffer: MAXIMUM_BUFFER, timeout: 120_000 },
-      (error, stdout) => (error === null ? resolveRead(stdout) : reject(error)),
+      (error, stdout) => {
+        if (error !== null) reject(error);
+        else if (inputError !== null) reject(inputError);
+        else resolveRead(stdout);
+      },
     );
-    // Git that exits before reading every lookup leaves the batch output short; fail the read.
-    child.stdin?.on("error", reject);
+    child.stdin?.on("error", (error) => {
+      inputError = error;
+    });
     child.stdin?.end(requested.map((path) => `${revision}:${path}\n`).join(""));
   });
   let offset = 0;

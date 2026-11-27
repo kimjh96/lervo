@@ -42,14 +42,22 @@ async function previousMarkdown(
   const contents = new Map<string, string>();
   if (markdown.length === 0) return contents;
   const output = await new Promise<Buffer>((resolveOutput, reject) => {
+    // Git that exits before reading every lookup leaves the batch output short, so a failed write
+    // fails the read. Git's own failure, such as a timeout, still reports as itself.
+    let inputError: Error | null = null;
     const child = execFile(
       "git",
       ["-C", root, "cat-file", "--batch"],
       { encoding: "buffer", timeout: 30_000, maxBuffer: 256 * 1024 * 1024 },
-      (error, stdout) => (error === null ? resolveOutput(stdout) : reject(error)),
+      (error, stdout) => {
+        if (error !== null) reject(error);
+        else if (inputError !== null) reject(inputError);
+        else resolveOutput(stdout);
+      },
     );
-    // Git that exits before reading every lookup leaves the batch output short; fail the read.
-    child.stdin?.on("error", reject);
+    child.stdin?.on("error", (error) => {
+      inputError = error;
+    });
     child.stdin?.end(markdown.map((path) => `${revision}:${path}\n`).join(""));
   });
   let offset = 0;

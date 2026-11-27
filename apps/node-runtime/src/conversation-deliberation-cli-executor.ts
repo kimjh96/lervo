@@ -88,10 +88,13 @@ export const systemConversationDeliberationCliProcess: ConversationDeliberationC
           stderr: Buffer.concat(stderr).toString("utf8"),
         });
       });
+      // A command that reads no request, such as `status`, may exit before even an empty write; an
+      // empty request is therefore never written, and only a written one can be cut short.
       child.stdin.on("error", () => {
-        requestCutShort = true;
+        requestCutShort = request.stdin.length > 0;
       });
-      child.stdin.end(request.stdin);
+      if (request.stdin.length === 0) child.stdin.end();
+      else child.stdin.end(request.stdin);
     });
   },
 };

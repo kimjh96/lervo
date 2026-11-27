@@ -102,9 +102,12 @@ export async function runProcess(input: {
         stderr: Buffer.concat(stderr).toString("utf8"),
       });
     });
+    // Empty input is never written, so only written input can be cut short.
+    const written = input.stdin !== undefined && input.stdin.length > 0;
     child.stdin?.on("error", () => {
-      inputCutShort = true;
+      inputCutShort = written;
     });
-    if (input.stdin !== undefined) child.stdin?.end(input.stdin);
+    if (written) child.stdin?.end(input.stdin);
+    else child.stdin?.end();
   });
 }

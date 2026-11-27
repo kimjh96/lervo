@@ -184,10 +184,12 @@ function runClaudeProcess(input: {
         });
       }),
     );
+    // An empty prompt is never written, so only a written prompt can be cut short.
     child.stdin.on("error", () => {
-      promptCutShort = true;
+      promptCutShort = input.stdin.length > 0;
     });
-    child.stdin.end(input.stdin);
+    if (input.stdin.length === 0) child.stdin.end();
+    else child.stdin.end(input.stdin);
   });
 }
 

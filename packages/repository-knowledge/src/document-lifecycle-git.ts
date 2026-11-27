@@ -119,10 +119,13 @@ function readBatch(root: string, lookups: readonly string[]): Promise<Map<string
       }
       resolvePromise(result);
     });
+    const request = lookups.map((lookup) => `${lookup}\n`).join("");
+    // An empty request is never written, so only a written one can be cut short.
     child.stdin.on("error", () => {
-      lookupsCutShort = true;
+      lookupsCutShort = request.length > 0;
     });
-    child.stdin.end(lookups.map((lookup) => `${lookup}\n`).join(""));
+    if (request.length === 0) child.stdin.end();
+    else child.stdin.end(request);
   });
 }
 
