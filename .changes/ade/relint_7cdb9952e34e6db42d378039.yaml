@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7cdb9952e34e6db42d378039"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Opening a conversation no longer moves it to the top of the sidebar."

@@ -213,6 +213,18 @@ async function conversation(): Promise<Report> {
     const found = document.querySelector<HTMLElement>(LOG);
     return found !== null && found.querySelectorAll("[data-index]").length > 0 ? found : null;
   });
+  // The list stays hidden until its measured height settles at its end, so the conversation
+  // first shows in the frame after its list is placed. An observer sees the placing as it
+  // happens, where polling each frame would read up to a frame late.
+  await new Promise<void>((resolve) => {
+    if (log.querySelector("[data-placed]") !== null) return resolve();
+    const observer = new MutationObserver(() => {
+      if (log.querySelector("[data-placed]") === null) return;
+      observer.disconnect();
+      resolve();
+    });
+    observer.observe(log, { attributes: true, attributeFilter: ["data-placed"], subtree: true });
+  });
   const firstPaint = (await nextPaint()) - opened;
   // Each step of the open, from the click: the `lervo:conversation-` marks the controller sets.
   const steps = Object.fromEntries(

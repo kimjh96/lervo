@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5ae1e3bdac4cc513674494fa"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Overlapping agent marks part with a transparent cut-out instead of a painted ring, so the header's marks show no white border on any surface."

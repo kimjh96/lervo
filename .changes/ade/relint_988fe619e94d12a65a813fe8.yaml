@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_988fe619e94d12a65a813fe8"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Agents in the sidebar: the selected project's team under the switcher, Lervo's own agents folded into one row, a plus that hires by role, and Hire a Product Owner in a project without agents."

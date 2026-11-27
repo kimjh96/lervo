@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f61fdd7b61d47e90f5976964"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Choose a new conversation's agents from a chip on the start card; the conversation's header shows their marks, and each agent in the sidebar shows whether its conversations are working or need you."

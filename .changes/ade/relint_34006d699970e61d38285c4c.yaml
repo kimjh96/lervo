@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_34006d699970e61d38285c4c"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "When Lervo cannot route a reply's mentions, read a turn's summary, or hire the proposed Product Owner, the conversation now says so, and a failing turn summary is no longer asked again on every render."

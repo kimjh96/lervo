@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f6ae9f74706266df3b4472b5"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A conversation an agent started opens on its own and shows who started it and from where; the conversation it came from shows a line that opens it."
