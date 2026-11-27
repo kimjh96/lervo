@@ -1,7 +1,8 @@
-// Where a terminal session runs and where its evidence belongs. A linked git worktree of a
-// registered repository, such as an ADE workspace or a developer's extra checkout, runs in its own
-// files but records into the registered repository, as managed runs already do: the worktree's
-// own store has no writer contract, no resident, and is deleted with the worktree.
+// Where a terminal session runs and where its evidence belongs. A linked git worktree of a Lervo
+// repository, such as an ADE workspace or a developer's extra checkout, runs in its own files but
+// records into the repository, as managed runs already do: the worktree's own store has no writer
+// contract, no resident, and is deleted with the worktree. The repository is the main checkout Git
+// names, when this host's registry lists it or it keeps its event store.
 import { execFile } from "node:child_process";
 import { lstat, realpath } from "node:fs/promises";
 import { basename, dirname, relative, resolve, sep } from "node:path";
@@ -22,10 +23,13 @@ const GIT_TIMEOUT_MS = 2_000;
 /**
  * Why the evidence root is what it is:
  * - `checkout`: a main checkout, which keeps its own evidence;
- * - `linked_worktree`: a linked worktree of a registered repository, which records there;
+ * - `linked_worktree`: a linked worktree whose main checkout is a Lervo repository, which records
+ *   there: registered on this host, or keeping its event store, such as a repository registered
+ *   under another user state directory;
  * - `worker_workspace`: a live worker workspace, whose attachment keeps its evidence local; a
  *   conversation's workspace generation is a `linked_worktree`;
- * - `linked_worktree_unregistered`: no registered repository owns the main checkout;
+ * - `linked_worktree_unregistered`: the main checkout is neither registered nor keeps an event
+ *   store, so the worktree's own store, deleted with it, holds the evidence;
  * - `linked_worktree_unresolved`: Git could not name the main checkout, such as a bare
  *   repository's worktree or a Git failure.
  */
@@ -55,6 +59,8 @@ export interface TerminalRootsPorts {
   gitCoordinates(root: string): Promise<TerminalGitCoordinates | null>;
   /** The real paths of the host's registered repositories. */
   registeredRoots(): Promise<readonly string[]>;
+  /** Whether the Lervo project at `root` keeps its event store, which only a run there creates. */
+  keepsEvents(root: string): Promise<boolean>;
   /**
    * Whether a live worker workspace claims the checkout at `root`: the checkout's newest record
    * that is not removed. A conversation's generation keeps ADR-0633's two roots, since its
@@ -66,6 +72,13 @@ export interface TerminalRootsPorts {
 async function isDirectory(path: string): Promise<boolean> {
   return lstat(path).then(
     (found) => found.isDirectory(),
+    () => false,
+  );
+}
+
+async function isFile(path: string): Promise<boolean> {
+  return lstat(path).then(
+    (found) => found.isFile(),
     () => false,
   );
 }
@@ -115,6 +128,13 @@ export const defaultTerminalRootsPorts: TerminalRootsPorts = {
     );
     return roots.filter((root): root is string => root !== null);
   },
+  async keepsEvents(root) {
+    const [project, events] = await Promise.all([
+      isFile(resolve(root, ".lervo/project.yaml")),
+      isFile(resolve(root, ".lervo/data/events.sqlite")),
+    ]);
+    return project && events;
+  },
   async workerCheckout(root) {
     const newest = await readNewestCheckoutWorkspace(root, await checkoutPathDigests(root)).catch(
       () => null,
@@ -147,24 +167,47 @@ export async function resolveTerminalRoots(
   if (inside.startsWith(`..${sep}`) || inside === "..") return local("linked_worktree_unresolved");
   // The Lervo project may sit below the Git top level; the same place in the main checkout.
   const candidate = resolve(dirname(git.commonDirectory), inside);
-  if (!(await ports.registeredRoots()).includes(candidate))
+  // A process without the registry's environment, such as a command run by hand beside an ADE
+  // that keeps its own user state, still finds the repository by its store.
+  const registered = (await ports.registeredRoots()).includes(candidate);
+  if (!registered && !(await ports.keepsEvents(candidate)))
     return local("linked_worktree_unregistered");
   if (await ports.workerCheckout(executionRoot)) return local("worker_workspace");
   return { executionRoot, evidenceRoot: candidate, reason: "linked_worktree" };
 }
 
+const warnedWorktrees = new Set<string>();
+
+/** Says once per process that a linked worktree keeps evidence that is deleted with it. */
+function warnLocalWorktree(roots: TerminalRoots, warn: (line: string) => void): void {
+  if (roots.reason !== "linked_worktree_unregistered") return;
+  if (warnedWorktrees.has(roots.executionRoot)) return;
+  warnedWorktrees.add(roots.executionRoot);
+  warn(
+    `Lervo records this linked worktree's evidence in its own store, which is deleted with the ` +
+      `worktree: its main checkout is not registered on this host and keeps no Lervo store. ` +
+      `Register the main checkout with \`lervo repository register --root <path> --write\` to ` +
+      `record there.\n`,
+  );
+}
+
 /**
  * The roots of a CLI command aimed at `root`, its `--root` or working directory. A command run
- * in a linked worktree records into the registered repository like the worktree's hooks do. A
- * path in no initialized project keeps the single root the command always had.
+ * in a linked worktree records into the repository like the worktree's hooks do, and warns on
+ * standard error when the worktree must keep its own evidence; hooks stay silent. A path in no
+ * initialized project keeps the single root the command always had.
  */
 export async function resolveCommandRoots(
   root: string,
   ports: TerminalRootsPorts = defaultTerminalRootsPorts,
+  warn: (line: string) => void = (line) => process.stderr.write(line),
 ): Promise<TerminalRoots> {
+  let roots: TerminalRoots;
   try {
-    return await resolveTerminalRoots(root, ports);
+    roots = await resolveTerminalRoots(root, ports);
   } catch {
     return { executionRoot: root, evidenceRoot: root, reason: "checkout" };
   }
+  warnLocalWorktree(roots, warn);
+  return roots;
 }

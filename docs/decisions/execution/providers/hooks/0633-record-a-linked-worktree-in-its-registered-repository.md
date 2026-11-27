@@ -22,8 +22,8 @@ A session in a linked worktree of a registered repository runs in its own files 
 
 - `resolveTerminalRoots` names two roots.
   - The **execution root** is the checkout's Lervo project.
-  - The **evidence root** is the same place in the main checkout, which Git names through the common directory. It applies when that place is a registered repository.
-  - A main checkout, an unregistered main checkout, a bare repository's worktree, and a live workforce workspace keep a single root, each with a recorded reason.
+  - The **evidence root** is the same place in the main checkout, which Git names through the common directory. It applies when that place is a registered repository, or, since the amendment of 2026-11-27, one that keeps its event store.
+  - A main checkout, a main checkout that is neither registered nor keeps a store, a bare repository's worktree, and a live workforce workspace keep a single root, each with a recorded reason.
 - The evidence root holds what belongs to the repository:
   - events, stage observations, and open-turn markers;
   - owner-instruction capture, skill, and practice queues, and resident requests;
@@ -67,6 +67,22 @@ The same canary ran Claude in a plain `git worktree` of Lervo's own repository (
 
 Candidate selection already belongs to the repository, so a worktree now takes the repository's cached knowledge snapshot and never scans its own. The confirming snapshot also ignores the hook's deadline, so a main checkout whose scan overran still caches it.
 
+## Amendment, 2026-11-27: a main checkout outside this process's registry
+
+The ADE keeps its own user state directory, so the sessions it starts see their repositories as registered. A command run by hand in an ADE workspace without that directory read another registry, which lacked the repository.
+
+- The worktree resolved as its own single root.
+- The command opened an empty `.lervo/data/events.sqlite` in the worktree.
+- It answered as if the repository had no records. During a coordination canary on 2026-11-27, this hid a failing query.
+
+A linked worktree now also records into its main checkout when that checkout keeps its event store: `.lervo/data/events.sqlite` beside its `.lervo/project.yaml`.
+
+- Only a run in that checkout creates the store, and Git ignores it. So the store marks a repository that Lervo already records on this filesystem, whichever registry listed it.
+- The worktree resolves as `linked_worktree`, so its claims find the conversation in the main checkout. They open the gate and take the claim path key in that checkout's coordination home. The home lives in the Git common directory every checkout shares, so it is the same home a hosted session's claims use.
+- A live workforce workspace still keeps its evidence local.
+
+When the main checkout is neither registered nor keeps a store, the worktree still records into its own store. A CLI command then says once, on standard error, that this evidence is deleted with the worktree, and names `lervo repository register`. Hooks stay silent.
+
 ## Verification
 
 A test runs `lervo workstream start`, `lervo plan add`, a prompt, a workstream checkpoint, and Stop in a linked worktree of a registered repository. It shows:
@@ -78,4 +94,4 @@ A test runs `lervo workstream start`, `lervo plan add`, a prompt, a workstream c
 
 A second test runs the status commands in the worktree. It shows that the capture status counts the repository's queue, `lervo terminal status` reports no workstream issue, the checkout keeps its projection, and only the repository holds bindings. A third shows that a single-root read binds the checkout's own branch and leaves the projection in place.
 
-Resolver tests cover a subdirectory working directory, symbolic links, a project below the Git top level, an unregistered main checkout, a live worker, and a bare repository's worktree.
+Resolver tests cover a subdirectory working directory, symbolic links, a project below the Git top level, an unregistered main checkout with and without its store, a store without a project manifest, a live worker, and a bare repository's worktree. Another test checks that a command warns once and a resolved worktree never warns. A third checks that claim lookup resolves the main checkout when its process's registry lacks it. An end-to-end test runs a worktree command in a process whose registry lacks the repository. The command reads the repository's workstream and records a plan item there, and the worktree gets no store.
