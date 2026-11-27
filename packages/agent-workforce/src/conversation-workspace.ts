@@ -24,6 +24,16 @@ export function isConversationWorkspace(workspace: AgentWorkspace): boolean {
   return workspace.kind === "conversation";
 }
 
+/**
+ * Whether the record is a worker's: it names no kind, or `worker`. A reader that attaches worker
+ * sessions asks this rather than excluding the kinds it knows, so a record of a kind a later
+ * release adds is never taken for a worker's.
+ */
+export function isWorkerWorkspace(workspace: AgentWorkspace): boolean {
+  const kind: unknown = workspace.kind;
+  return kind === undefined || kind === "worker";
+}
+
 /** Whether a record's kind fields agree: a conversation record names its conversation exactly. */
 export function validWorkspaceRecordKind(workspace: AgentWorkspace): boolean {
   if (workspace.kind === undefined || workspace.kind === "worker")

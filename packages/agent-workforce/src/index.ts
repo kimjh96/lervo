@@ -94,6 +94,7 @@ export {
 export {
   conversationWorkspaceRecordId,
   isConversationWorkspace,
+  isWorkerWorkspace,
   isSupersededCheckoutGeneration,
   newestCheckoutWorkspace,
   newestConversationWorkspace,

@@ -24,6 +24,7 @@ function ports(
     established: 0,
     stageEnabled: async () => true,
     writerSchemaVersion: async () => 16,
+    hookRuntimeCurrent: async () => true,
     hubCoordinated: async () => false,
     async establish() {
       value.established += 1;
@@ -58,6 +59,33 @@ describe("the coordination stage", () => {
     expect(coordinationStageEnabled({})).toBe(false);
     expect(coordinationStageEnabled({ LERVO_COORDINATION: "1" })).toBe(true);
     expect(coordinationStageEnabled({ LERVO_COORDINATION: "true" })).toBe(false);
+
+    // A host whose installed hook runtime predates conversation workspaces records nothing: its
+    // hooks would read the record as a worker's and block the first prompt.
+    let runtimeRead = 0;
+    const stale = ports({
+      hookRuntimeCurrent: async () => {
+        runtimeRead += 1;
+        return false;
+      },
+    });
+    expect(await coordinateConversationWorkspace(request, stale)).toEqual({
+      status: "inactive",
+      code: "hook_runtime_stale",
+    });
+    expect(stale.established).toBe(0);
+    // A closed gate never reads the runtime, so an ordinary checkout pays nothing for it.
+    await coordinateConversationWorkspace(
+      request,
+      ports({
+        stageEnabled: async () => false,
+        hookRuntimeCurrent: async () => {
+          runtimeRead += 1;
+          return false;
+        },
+      }),
+    );
+    expect(runtimeRead).toBe(1);
 
     const hub = ports({ hubCoordinated: async () => true });
     expect(await coordinateConversationWorkspace(request, hub)).toEqual({
@@ -104,6 +132,7 @@ describe("the coordination stage", () => {
       { status: "active" },
       { status: "inactive", code: "coordination_inactive" },
       { status: "inactive", code: "hub_coordinated_unsupported" },
+      { status: "inactive", code: "hook_runtime_stale" },
       { status: "unavailable", code: "coordination_unavailable", cause: "enoent" },
     ] as Array<{ status: string; code?: string; cause?: string }>) {
       expect(new RegExp(status.pattern, "u").test(result.status)).toBe(true);

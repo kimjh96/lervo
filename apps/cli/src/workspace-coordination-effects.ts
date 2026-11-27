@@ -27,6 +27,10 @@ import {
 } from "./event-reader-inventory-source.js";
 import { providerSessionDigest } from "./hosted-session-events.js";
 import {
+  CONVERSATION_WORKSPACE_RUNTIME_CAPABILITY,
+  hostTerminalHookRuntimeDeclares,
+} from "./terminal-runtime.js";
+import {
   terminalWorkspaceDigest,
   terminalWriterSessionIdForDigest,
 } from "./terminal-workspace-boundary.js";
@@ -248,6 +252,8 @@ export function conversationCoordinationPorts(
   return {
     stageEnabled: (repositoryRoot) => coordinationGateOpen(repositoryRoot, process.env),
     writerSchemaVersion,
+    hookRuntimeCurrent: () =>
+      hostTerminalHookRuntimeDeclares(CONVERSATION_WORKSPACE_RUNTIME_CAPABILITY),
     hubCoordinated: repositoryHubCoordinated,
     establish: (request) => establish(request, provisionedMarker()),
   };

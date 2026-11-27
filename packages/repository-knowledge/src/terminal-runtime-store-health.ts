@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { safeOptionalText } from "./terminal-integration-files.js";
 import {
   readTerminalRuntimePointer,
+  sameTerminalRuntimeCapabilities,
   type TerminalRuntimePointer,
 } from "./terminal-runtime-store-paths.js";
 import {
@@ -49,12 +50,17 @@ export async function inspectHostTerminalRuntime(
 
 export type TerminalRuntimePublicationAuthority = "publish" | "repair";
 
-/** Markers force verification even on the default, cheap startup path. */
+/**
+ * Markers force verification even on the default, cheap startup path. A pointer to the same
+ * runtime that declares other `capabilities` than its publisher does, as after an older
+ * publisher's repair, is republished so the pointer declares them again.
+ */
 export async function hostTerminalRuntimeNeedsMaterialization(
   store: string,
   contentHash: string,
   verification: "pointer" | "artifact" | "unavailable_marker" = "pointer",
   authority: TerminalRuntimePublicationAuthority = "publish",
+  capabilities?: readonly string[],
 ): Promise<boolean> {
   try {
     await assertHostTerminalRuntimeParents(store);
@@ -72,6 +78,12 @@ export async function hostTerminalRuntimeNeedsMaterialization(
       },
     );
     if (authority === "publish" && pointer.contentHash !== contentHash) return true;
+    if (
+      capabilities !== undefined &&
+      pointer.contentHash === contentHash &&
+      !sameTerminalRuntimeCapabilities(pointer.capabilities, capabilities)
+    )
+      return true;
     if (!publisherExists) return true;
     if (marked) {
       // Verify before repair; even a valid artifact must clear the durable marker.

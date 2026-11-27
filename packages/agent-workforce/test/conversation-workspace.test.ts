@@ -15,6 +15,7 @@ import {
   createWorkspace,
   isAgentWorkspace,
   isSupersededCheckoutGeneration,
+  isWorkerWorkspace,
   listConversationWorkspaceGenerations,
   listWorkspaces,
   newestCheckoutWorkspace,
@@ -136,6 +137,17 @@ describe("conversation workspace records", () => {
     expect(isAgentWorkspace(unnamed)).toBe(false);
     expect(isAgentWorkspace({ ...conversation, executionKind: "integrator" })).toBe(false);
     expect(isAgentWorkspace(worker({ conversationId }))).toBe(false);
+  });
+
+  it("count as a worker's only without a kind or with kind worker", () => {
+    const workspaceId = conversationWorkspaceRecordId(conversationId, 1);
+    expect(isWorkerWorkspace(worker())).toBe(true);
+    expect(isWorkerWorkspace(worker({ kind: "worker" }))).toBe(true);
+    expect(isWorkerWorkspace(worker({ workspaceId, kind: "conversation", conversationId }))).toBe(
+      false,
+    );
+    // A kind a later release adds is never taken for a worker's, so it never attaches a session.
+    expect(isWorkerWorkspace(worker({ kind: "integration" as never }))).toBe(false);
   });
 
   it("let the newest live generation speak for the checkout", () => {
