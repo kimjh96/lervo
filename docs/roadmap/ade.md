@@ -329,6 +329,20 @@ The page now bundles both modules with the main script and checks the permission
 | Trail, p95 and maximum                                                                | 112 ms and 123 ms                                                          | 137 ms                     |
 | Keystroke to echo, p95                                                                | 19 ms                                                                      | 25 ms                      |
 
+**Sixth run (2026-11-27, afternoon).** Five runs of cold start and first paint, with the release shell and scripted core built from main at `03da62edc` and the changed-paths profile change. The Mac never went idle: a Python process of another project held one core, and `fseventsd` held most of another. Load averages ran from 9.5 to 13.2.
+
+| Scenario                                         | Result                                                                    | Target |
+| ------------------------------------------------ | ------------------------------------------------------------------------- | ------ |
+| Cold start to the start screen, four warm starts | 447, 453, 492, and 556 ms; the first launch after the build took 2,556 ms | 500 ms |
+| Launch to the shell's `main`                     | 5–6 ms                                                                    |        |
+| `main` to navigation                             | 300–354 ms                                                                |        |
+| Navigation to the start screen                   | 88–209 ms                                                                 |        |
+| First paint of the 100,000-item conversation     | 104, 111, 130, 147, and 184 ms                                            | 100 ms |
+
+- **Cold start.** Three of four warm starts met the target. The shell's part before navigation is now about two thirds of a warm start. The shell resolves the login `PATH` on its own thread, so that part is the application, window, and WebKit setup.
+- **First paint.** The stored page arrived 24–83 ms after the click, and placing took 6–30 ms after the rows committed, as in the previous runs. The slowest open, 184 ms, was the first after the build; the other four took 104–147 ms.
+- **An idle run is still needed.** These figures cannot tell how much of the time is load, so neither budget is revised.
+
 **Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. Under load, first paint now has a median near 100 ms, one of two warm cold starts measured 539 ms against 500, and every other interface budget meets its target. What is left is a run of first paint and cold start on an idle Mac. There the open no longer waits for the session.
 
 ### S1.6c measurements
