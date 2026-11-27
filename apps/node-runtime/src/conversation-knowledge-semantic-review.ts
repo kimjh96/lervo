@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { noCapabilityJsonInvocationStrategy } from "@lervo/repository-knowledge-runtime";
 
 import {
   createNoCapabilityProviderJsonRunner,
@@ -231,7 +232,7 @@ export async function runConversationKnowledgeSemanticReview(input: {
     throw new ConversationKnowledgeSemanticReviewError("review_source_limit_exceeded");
   const openRunner = input.openRunner ?? createNoCapabilityProviderJsonRunner;
   const runner: NoCapabilityProviderJsonRunner = await openRunner({
-    provider: input.provider,
+    strategy: noCapabilityJsonInvocationStrategy(input.provider),
     systemPrompt,
     ...(input.model === undefined ? {} : { model: input.model }),
     ...(input.executable === undefined ? {} : { executable: input.executable }),

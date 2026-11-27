@@ -14,6 +14,6 @@ export async function runNoCapabilityProcess(
     ...providerCliDispatchContext(options.environment),
   });
   if (result.status !== "spawn_failed") await options.onCall?.();
-  assertKnowledgeProviderAvailable({ provider: options.provider, ...result });
+  assertKnowledgeProviderAvailable({ strategy: options.strategy, ...result });
   return result;
 }

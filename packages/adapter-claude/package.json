@@ -13,6 +13,10 @@
     "./claims": {
       "types": "./dist/hosted-claims.d.ts",
       "default": "./dist/hosted-claims.js"
+    },
+    "./no-capability-json": {
+      "types": "./dist/no-capability-json-invocation.d.ts",
+      "default": "./dist/no-capability-json-invocation.js"
     }
   },
   "scripts": {

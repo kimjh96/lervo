@@ -17,6 +17,7 @@ import {
   scanConfiguredRepositoryKnowledge,
 } from "../../packages/repository-knowledge/dist/index.js";
 import { createNoCapabilityProviderJsonRunner } from "../../packages/repository-knowledge-compiler/dist/index.js";
+import { noCapabilityJsonInvocationStrategy } from "../../packages/repository-knowledge-runtime/dist/no-capability-json-strategy.js";
 import { validateInstructionCaptureSuite } from "../natural-language-evaluation/instruction-capture-contract.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -34,7 +35,7 @@ const catalog = inspectDurableInstructionCatalog(
   await scanConfiguredRepositoryKnowledge(repositoryRoot),
 );
 const runner = await createNoCapabilityProviderJsonRunner({
-  provider,
+  strategy: noCapabilityJsonInvocationStrategy(provider),
   systemPrompt: instructionCaptureAssessmentInstruction,
   timeoutMs: 180_000,
 });

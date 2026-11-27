@@ -30,7 +30,7 @@ it("runs the fidelity check on the review route for its provider (ADR-0612)", as
     }),
   });
   expect(opened[0]).toMatchObject({
-    provider: "claude",
+    strategy: expect.objectContaining({ provider: "claude" }),
     model: "claude-opus-5-5",
     reasoningEffort: "high",
   });

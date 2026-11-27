@@ -2,11 +2,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { CodexStdioAppServerClient } from "@lervo/adapter-codex";
+import {
+  CodexStdioAppServerClient,
+  codexNoCapabilityFeatureArguments,
+  codexNoCapabilityJsonInvocationStrategy,
+} from "@lervo/adapter-codex";
 import { canonicalJson } from "@lervo/repository-knowledge";
 import {
-  assertCodexHasNoModelTools,
-  codexNoCapabilityFeatureArguments,
+  assertProviderModelInputHasNoTools,
   parseProviderResultText,
   providerNativeResponseSchema,
   providerResponseContractSchema,
@@ -39,7 +42,11 @@ export interface CodexPersistentQueryRunnerDependencies {
 const defaultDependencies: CodexPersistentQueryRunnerDependencies = {
   createDirectory: () => mkdtemp(resolve(tmpdir(), "lervo-codex-query-runner-")),
   removeDirectory: (path) => rm(path, { recursive: true, force: true }),
-  assertNoModelTools: assertCodexHasNoModelTools,
+  assertNoModelTools: (input) =>
+    assertProviderModelInputHasNoTools({
+      strategy: codexNoCapabilityJsonInvocationStrategy,
+      ...input,
+    }),
   connect: (input) => CodexStdioAppServerClient.connect(input),
 };
 

@@ -5,6 +5,10 @@ export * from "./normalize.js";
 export * from "./runtime-inspection.js";
 export * from "./repository-work.js";
 export * from "./responses-no-tool-client.js";
+export {
+  codexNoCapabilityFeatureArguments,
+  codexNoCapabilityJsonInvocationStrategy,
+} from "./no-capability-json-invocation.js";
 export * from "./types.js";
 export * from "./turn-result.js";
 

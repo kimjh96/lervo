@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { noCapabilityJsonInvocationStrategy } from "./no-capability-json-strategy.js";
 import { listAssignments } from "@lervo/agent-workforce";
 import { hasCurrentForegroundLease } from "./foreground-admission.js";
 import type { ProjectStorage } from "@lervo/project-storage";
@@ -61,7 +62,7 @@ export async function probeKnowledgeProviderAvailability(input: {
   try {
     const nonce = randomUUID();
     const runner = await createNoCapabilityProviderJsonRunner({
-      provider: input.provider,
+      strategy: noCapabilityJsonInvocationStrategy(input.provider),
       ...(input.executable === undefined ? {} : { executable: input.executable }),
       timeoutMs: 60_000,
       systemPrompt:

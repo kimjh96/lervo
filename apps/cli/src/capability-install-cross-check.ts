@@ -1,4 +1,5 @@
 import type { VerifiedCapabilityPackage } from "@lervo/capabilities";
+import { noCapabilityJsonInvocationStrategy } from "@lervo/repository-knowledge-runtime";
 import {
   createNoCapabilityProviderJsonRunner,
   type ProviderJsonRequest,
@@ -109,9 +110,10 @@ export const crossCheckCapability: CrossCheckCapability = async (input) => {
     provider: input.provider,
     ...modelCallOptions(selection, "review", input.provider),
   };
-  const runner = await startRoute(route, (started) =>
+  const runner = await startRoute(route, ({ provider, ...started }) =>
     createNoCapabilityProviderJsonRunner({
       ...started,
+      strategy: noCapabilityJsonInvocationStrategy(provider),
       ...(input.executable === undefined ? {} : { executable: input.executable }),
       systemPrompt: CAPABILITY_REVIEW_PROMPT,
       timeoutMs: CROSS_CHECK_TIMEOUT_MS,

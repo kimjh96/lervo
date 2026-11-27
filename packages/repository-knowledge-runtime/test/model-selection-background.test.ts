@@ -84,7 +84,7 @@ it("orders admission by the background routes and falls through only to listed o
   });
   expect(admitted.modelRoute).toEqual({ model: "claude-test", reasoningEffort: "high" });
   expect(backgroundProviderOptions(admitted)).toMatchObject({
-    provider: "claude",
+    strategy: expect.objectContaining({ provider: "claude" }),
     model: "claude-test",
     reasoningEffort: "high",
   });

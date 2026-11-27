@@ -1,4 +1,5 @@
 import { pauseKnowledgeProviderFailure } from "./provider-failure-pause.js";
+import { noCapabilityJsonInvocationStrategy } from "./no-capability-json-strategy.js";
 import { recordProviderCliProbeUsage } from "./provider-cli-probe-usage.js";
 import {
   probeProviderCli,
@@ -25,6 +26,7 @@ export async function probeBackgroundProviderCli(input: {
   admissionDirectory?: string;
 }) {
   const { identity } = input;
+  const strategy = noCapabilityJsonInvocationStrategy(identity.provider);
   const directory =
     input.admissionDirectory === undefined ? {} : { directory: input.admissionDirectory };
   const prior = await knowledgeProviderAdmissionState({
@@ -44,7 +46,7 @@ export async function probeBackgroundProviderCli(input: {
     throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
   try {
     if (identity.provider === "codex") {
-      const contract = await probeProviderCli(identity);
+      const contract = await probeProviderCli({ ...identity, strategy });
       if (!contract.admitted || !recovery) return contract;
     }
     await reserveConvergenceProviderCall({
@@ -64,7 +66,7 @@ export async function probeBackgroundProviderCli(input: {
     const result =
       identity.provider === "codex"
         ? await probeProviderPauseAvailability(identity, observeUsage)
-        : await probeProviderCli({ ...identity, observeUsage });
+        : await probeProviderCli({ ...identity, strategy, observeUsage });
     if (result.admitted && !observed)
       return { admitted: false as const, reason: "probe_failed" as const, exposedTools: [] };
     if (

@@ -1,4 +1,5 @@
 import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
+import { noCapabilityJsonInvocationStrategy } from "@lervo/repository-knowledge-runtime";
 import {
   createNoCapabilityProviderJsonRunner,
   type NoCapabilityProviderJsonRunner,
@@ -116,7 +117,7 @@ async function openProviderQueryRunner(
   }
   return {
     runner: await dependencies.createSerializedRunner({
-      provider,
+      strategy: noCapabilityJsonInvocationStrategy(provider),
       ...(options.model === undefined ? {} : { model: options.model }),
       systemPrompt: options.systemPrompt,
       timeoutMs: options.timeoutMs,

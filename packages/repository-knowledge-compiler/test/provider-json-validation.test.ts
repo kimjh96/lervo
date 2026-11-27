@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
+import { strategyFor } from "./provider-strategies.js";
 import { createNoCapabilityProviderJsonRunner } from "../src/index.js";
 import * as processHost from "../src/process-host.js";
 import { providerOutputSchema } from "@lervo/schemas";
@@ -19,7 +20,7 @@ it.each(["codex", "claude"] as const)(
             ? '[{"type":"message"}]'
             : "null",
     }));
-    const runner = await createNoCapabilityProviderJsonRunner({ provider });
+    const runner = await createNoCapabilityProviderJsonRunner({ strategy: strategyFor(provider) });
     await expect(
       runner.resolveObserved?.({
         responseContract: { schema: providerOutputSchema({ type: "object" }) },
@@ -40,7 +41,7 @@ it("treats invalid native Codex usage as unavailable rather than throwing a type
           ? '[{"type":"message"}]'
           : '{"type":"item.completed","item":{"type":"agent_message","text":"{}"}}\n{"type":"turn.completed","usage":null}',
   }));
-  const runner = await createNoCapabilityProviderJsonRunner({ provider: "codex" });
+  const runner = await createNoCapabilityProviderJsonRunner({ strategy: strategyFor("codex") });
   await expect(
     runner.resolveObserved?.({
       responseContract: { schema: providerOutputSchema({ type: "object" }) },

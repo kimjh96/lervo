@@ -16,7 +16,10 @@ import {
 } from "@lervo/repository-knowledge";
 import { createProcessDocumentNormalizationCompiler } from "@lervo/repository-knowledge-compiler";
 import { openProjectStorage } from "@lervo/project-storage";
-import { lifecycleChangedPaths } from "@lervo/repository-knowledge-runtime";
+import {
+  lifecycleChangedPaths,
+  noCapabilityJsonInvocationStrategy,
+} from "@lervo/repository-knowledge-runtime";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import {
@@ -105,7 +108,7 @@ export async function runDocumentNormalizationCommand(
     let resourceObservation: DocumentNormalizationResourceObservation | undefined;
     if (options.provider !== undefined) {
       const compiler = await createProcessDocumentNormalizationCompiler({
-        provider: options.provider,
+        strategy: noCapabilityJsonInvocationStrategy(options.provider),
         ...(options.model === undefined ? {} : { model: options.model }),
         ...(options.executable === undefined ? {} : { executable: options.executable }),
         ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),

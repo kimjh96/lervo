@@ -1,6 +1,8 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { providerAdapterDependencyViolations } from "./lib/provider-adapter-dependents.mjs";
+
 const root = resolve(import.meta.dirname, "../..");
 const packageFiles = [];
 for (const parent of ["apps", "packages"]) {
@@ -54,6 +56,8 @@ for (const [name, manifest] of manifests) {
       failures.push(`${name} contract must not depend on ${dependency} implementation`);
   }
 }
+
+failures.push(...providerAdapterDependencyViolations(manifests));
 
 function dependsOn(name, target, seen = new Set()) {
   if (name === target) return true;

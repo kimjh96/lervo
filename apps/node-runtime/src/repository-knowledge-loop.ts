@@ -3,6 +3,7 @@ import {
   startAutonomousKnowledgeWorker,
   createChangeReviewHost,
   admittedBackgroundContext,
+  noCapabilityJsonInvocationStrategy,
 } from "@lervo/repository-knowledge-runtime";
 import { type ProjectStorage } from "@lervo/project-storage";
 import type { SQLiteEventStore } from "@lervo/event-store-sqlite";
@@ -104,7 +105,7 @@ export function startRepositoryKnowledgeLoop(input: {
         events: input.store,
         artifacts: input.artifacts,
         workerId: `node-${process.pid}`,
-        provider: input.provider,
+        strategy: noCapabilityJsonInvocationStrategy(input.provider),
         host:
           input.host ??
           createChangeReviewHost({

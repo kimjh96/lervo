@@ -55,9 +55,12 @@ it("resolves each turn on the routine route current at that turn (ADR-0612)", as
   await resolver.resolve(turn);
   // The configured runner opens at startup; the routed one once, then it is reused.
   expect(opened).toEqual([
-    expect.objectContaining({ provider: "codex", model: "configured-model" }),
     expect.objectContaining({
-      provider: "claude",
+      strategy: expect.objectContaining({ provider: "codex" }),
+      model: "configured-model",
+    }),
+    expect.objectContaining({
+      strategy: expect.objectContaining({ provider: "claude" }),
       executable: "/opt/claude",
       model: "claude-haiku-5-5",
       reasoningEffort: "low",
@@ -78,7 +81,9 @@ it("starts a Node whose configured intent provider the routine role removed", as
     startable: (provider) => provider === "claude",
   });
   // Only the route the role chooses opens; the removed provider is never started.
-  expect(opened).toEqual([expect.objectContaining({ provider: "claude" })]);
+  expect(opened).toEqual([
+    expect.objectContaining({ strategy: expect.objectContaining({ provider: "claude" }) }),
+  ]);
   await expect(resolver.resolve(turn)).resolves.toMatchObject({
     provider: { providerId: "claude", model: null },
   });

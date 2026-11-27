@@ -1,4 +1,5 @@
 import { loadDecisionTaxonomy } from "@lervo/project";
+import { noCapabilityJsonInvocationStrategy } from "./no-capability-json-strategy.js";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   canonicalJson,
@@ -77,7 +78,7 @@ export async function classifyForegroundDocumentRoutes(input: {
     let observed;
     try {
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider: input.provider,
+        strategy: noCapabilityJsonInvocationStrategy(input.provider),
         ...(input.model === undefined ? {} : { model: input.model }),
         ...(input.executable === undefined ? {} : { executable: input.executable }),
         timeoutMs: input.timeoutMs ?? 300_000,

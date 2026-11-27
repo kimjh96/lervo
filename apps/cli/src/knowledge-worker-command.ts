@@ -5,6 +5,7 @@ import {
   admittedBackgroundContext,
   startAutonomousKnowledgeWorker,
   type ConvergenceOwnerVerdict,
+  noCapabilityJsonInvocationStrategy,
 } from "@lervo/repository-knowledge-runtime";
 
 import {
@@ -70,7 +71,7 @@ export async function runKnowledgeWorker(input: {
       events: storage.events,
       artifacts: storage.artifacts,
       workerId: `cli-${process.pid}`,
-      provider: input.provider,
+      strategy: noCapabilityJsonInvocationStrategy(input.provider),
       host:
         input.host ??
         createChangeReviewHost({

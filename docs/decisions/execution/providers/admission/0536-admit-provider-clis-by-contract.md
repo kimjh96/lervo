@@ -12,7 +12,7 @@ Background knowledge work runs provider CLIs without capabilities: canonical ass
 - For Codex, a probe (`codex debug prompt-input` with every tool feature disabled) must show a model input with no tool definitions before each run.
 - For Claude, the runner passes `--tools ""`, an empty MCP configuration, and no setting sources, and rejects any reported tool use.
 
-The contract is in `packages/repository-knowledge-compiler/src/process-compiler.ts`.
+Each provider adapter implements the contract as its no-capability JSON invocation strategy (`packages/adapter-codex/src/no-capability-json-invocation.ts`, `packages/adapter-claude/src/no-capability-json-invocation.ts`). `packages/repository-knowledge-compiler` runs a strategy it receives from composition and never names a provider.
 
 On 2026-10-31, the core health signal (ADR-0535 (core health projection, open in PR #166)) exposed a stop that no surface had reported:
 

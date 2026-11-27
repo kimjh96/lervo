@@ -15,6 +15,9 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@lervo/adapter-claude": "workspace:*",
+    "@lervo/adapter-codex": "workspace:*",
+    "@lervo/adapter-contract": "workspace:*",
     "@lervo/agent-workforce": "workspace:*",
     "@lervo/context": "workspace:*",
     "@lervo/event-contract": "workspace:*",

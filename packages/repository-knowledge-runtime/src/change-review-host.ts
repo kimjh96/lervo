@@ -1,4 +1,5 @@
 import { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
+import { noCapabilityJsonInvocationStrategy } from "./no-capability-json-strategy.js";
 import {
   RepositoryKnowledgeReviewError,
   type RepositoryKnowledgeWorkerHost,
@@ -64,7 +65,9 @@ export async function knowledgeReviewCallCeiling(
  */
 export function governChangeReviewCalls(input: ChangeReviewHostInput): KnowledgeReviewCallGovernor {
   const root = input.storage.paths.repositoryRoot;
-  const descriptor = noCapabilityReviewAccountingDescriptor(input.provider);
+  const descriptor = noCapabilityReviewAccountingDescriptor(
+    noCapabilityJsonInvocationStrategy(input.provider),
+  );
   const occurredAt = () => (input.now ?? (() => new Date()))().toISOString();
   return async (job, call) => {
     const maximumCalls = await knowledgeReviewCallCeiling(input);
@@ -160,7 +163,7 @@ export function createChangeReviewHost(
 ): RepositoryKnowledgeWorkerHost {
   let active = createNoCapabilityKnowledgeReviewHost(
     input.storage.paths.repositoryRoot,
-    input.provider,
+    noCapabilityJsonInvocationStrategy(input.provider),
   );
   return {
     inspectKnowledge: () => active.inspectKnowledge(),
@@ -179,7 +182,7 @@ export function createChangeReviewHost(
       });
       active = createNoCapabilityKnowledgeReviewHost(
         input.storage.paths.repositoryRoot,
-        selected.provider,
+        noCapabilityJsonInvocationStrategy(selected.provider),
         selected.executable,
         governChangeReviewCalls(selected),
         backgroundProviderOptions(selected),

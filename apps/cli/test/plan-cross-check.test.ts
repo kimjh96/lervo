@@ -9,7 +9,8 @@ const missing = vi.hoisted(() => new Set<string>());
 vi.mock("@lervo/repository-knowledge-compiler", async (load) => ({
   ...(await load<typeof import("@lervo/repository-knowledge-compiler")>()),
   createNoCapabilityProviderJsonRunner: async (options: Record<string, unknown>) => {
-    if (missing.has(options.provider as string)) throw new Error("not installed");
+    if (missing.has((options.strategy as { provider: string }).provider))
+      throw new Error("not installed");
     opened.push(options);
     return { resolve: async () => answers.shift() };
   },
@@ -69,7 +70,7 @@ it("asks the review role's first startable route, with its model and effort (ADR
   expect(verdict).toMatchObject({ verdict: "agree", reviewer: "no-capability claude session" });
   expect(opened).toHaveLength(1);
   expect(opened[0]).toMatchObject({
-    provider: "claude",
+    strategy: expect.objectContaining({ provider: "claude" }),
     model: "claude-opus-5-5",
     reasoningEffort: "high",
   });
