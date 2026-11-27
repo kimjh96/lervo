@@ -1,4 +1,4 @@
-import { access, mkdir, symlink, writeFile } from "node:fs/promises";
+import { access, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   calculateVerificationId,
   loadVerificationSuite,
+  loadVerificationSuiteIfPresent,
   runVerificationSuite,
   validateVerificationResult,
   verificationResultJson,
@@ -51,6 +52,30 @@ describe("project verification", () => {
     await expect(loadVerificationSuite(root, "linked.check")).rejects.toMatchObject({
       code: "verification_layout_invalid",
     });
+  });
+
+  it("reads an absent suite as null and still rejects an unsafe one", async () => {
+    const { root } = await temporaryRepository();
+    const definition = suite([command("unit-tests", "process.exit(0)")]);
+    await writeFile(
+      resolve(root, ".lervo/verifications/project.check.yaml"),
+      stringify(definition),
+      "utf8",
+    );
+    await expect(loadVerificationSuiteIfPresent(root, "project.check")).resolves.toEqual(
+      definition,
+    );
+    // ADR-0649: a suite defined only on another checkout's branch, or renamed since.
+    await expect(loadVerificationSuiteIfPresent(root, "branch.check")).resolves.toBeNull();
+    await symlink(
+      resolve(root, ".lervo/verifications/project.check.yaml"),
+      resolve(root, ".lervo/verifications/linked.check.yaml"),
+    );
+    await expect(loadVerificationSuiteIfPresent(root, "linked.check")).rejects.toMatchObject({
+      code: "verification_layout_invalid",
+    });
+    await rm(resolve(root, ".lervo/verifications"), { recursive: true });
+    await expect(loadVerificationSuiteIfPresent(root, "project.check")).resolves.toBeNull();
   });
 
   it("executes shell-free commands and stores stdout, stderr, and result bytes in CAS", async () => {

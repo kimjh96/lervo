@@ -6,7 +6,7 @@ import {
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
-import { loadVerificationSuite } from "@lervo/verification";
+import { loadVerificationSuiteIfPresent } from "@lervo/verification";
 
 export const LOCAL_KNOWLEDGE_EXECUTION_EVENT_LIMIT = 4_096;
 
@@ -19,7 +19,7 @@ export async function collectLocalKnowledgeSources(
     const verificationSources = await collectVerificationResultSources({
       events: storage.events,
       artifacts: storage.artifacts,
-      loadSuite: (suiteId) => loadVerificationSuite(repositoryRoot, suiteId),
+      loadSuite: (suiteId) => loadVerificationSuiteIfPresent(repositoryRoot, suiteId),
     });
     const recent = collectRecentExecutionEventSources({
       events: storage.events,
@@ -61,7 +61,7 @@ function unverifiableEvidence(error: unknown): boolean {
  * The supplemental sources of an interactive query, such as `lervo knowledge query`, which must
  * return the repository's rules even when recorded evidence cannot be verified: failing closed
  * there would silently drop rule loading before a write (ADR-0649). Each evidence source degrades
- * on its own and says so; storage that cannot open still fails.
+ * on its own and says so. Storage that cannot open, a busy store, or a bug still fails as itself.
  */
 export async function collectInteractiveKnowledgeSources(
   repositoryRoot: string,
@@ -74,7 +74,7 @@ export async function collectInteractiveKnowledgeSources(
       const collected = await collectVerificationResultSourcesTolerantly({
         events: storage.events,
         artifacts: storage.artifacts,
-        loadSuite: (suiteId) => loadVerificationSuite(repositoryRoot, suiteId),
+        loadSuite: (suiteId) => loadVerificationSuiteIfPresent(repositoryRoot, suiteId),
       });
       verificationSources = collected.sources;
       verificationResults =
@@ -91,6 +91,7 @@ export async function collectInteractiveKnowledgeSources(
       recent = collectRecentExecutionEventSources({
         events: storage.events,
         maximumEvents: LOCAL_KNOWLEDGE_EXECUTION_EVENT_LIMIT,
+        operationalFailures: "rethrow",
       });
     } catch (error) {
       if (!unverifiableEvidence(error)) throw error;

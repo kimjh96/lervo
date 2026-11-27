@@ -1,14 +1,17 @@
-// ADR-0649: `lervo knowledge query` returns the repository's rules when recorded evidence cannot be
-// verified. The field case: a verification recorded into the registered repository for a suite
-// its main checkout lacks made every query fail closed, in a conversation worktree during an open
-// turn and in the main checkout alike, so the agent wrote without loading any rule.
+// ADR-0649: recorded verification evidence never blocks the repository's rules. The field case: a
+// verification recorded into the registered repository for a suite its main checkout lacks made
+// every query fail closed, in a conversation worktree during an open turn and in the main checkout
+// alike, so the agent wrote without loading any rule. Such a result is now bound to the suite hash
+// it recorded on every path, and `lervo knowledge query` leaves out what still cannot be verified.
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { openProjectStorage } from "@lervo/project-storage";
+import { collectLocalKnowledgeSources as collectManagedSearchSources } from "@lervo/repository-context";
 import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { collectLocalKnowledgeSources } from "../src/knowledge-sources.js";
 import { runCli } from "../src/main.js";
 import { claimFixture, git, type ClaimFixture } from "./conversation-claim-fixture.js";
 
@@ -52,7 +55,10 @@ async function repositoryWithRule(): Promise<ClaimFixture> {
  * Runs a suite that exists only in the worktree and records its completion into the registered
  * repository, where a linked checkout's evidence belongs: the main checkout has no such suite.
  */
-async function recordWorktreeOnlyVerification(repository: string, worktree: string) {
+async function recordWorktreeOnlyVerification(
+  repository: string,
+  worktree: string,
+): Promise<string> {
   await mkdir(resolve(worktree, ".lervo/verifications"), { recursive: true });
   await writeFile(
     resolve(worktree, ".lervo/verifications/branch.check.yaml"),
@@ -103,6 +109,41 @@ async function recordWorktreeOnlyVerification(repository: string, worktree: stri
         nonPassedCommandIds: [],
       },
     });
+    return result.verificationId;
+  } finally {
+    await storage.close();
+  }
+}
+
+/**
+ * The field's other event: a completion for suite `agent.context`, which no checkout defines,
+ * whose stored original is not a verification result, so no path can verify it.
+ */
+async function recordUnverifiableVerification(repository: string): Promise<void> {
+  const storage = await openProjectStorage(repository);
+  try {
+    const summary = await storage.artifacts.put("Prefer exact source-bound evidence.");
+    storage.events.append({
+      eventId: "evt_unverifiableverification",
+      projectId: storage.manifest.projectId,
+      runId: "run_unverifiableverification",
+      sessionId: "ses_unverifiableverification",
+      type: "verification.completed",
+      occurredAt: "2026-11-27T00:00:00.000Z",
+      actor: { kind: "system" },
+      schemaVersion: 1,
+      policyVersion: POLICY,
+      payload: {
+        verificationId: `ver_${"b".repeat(16)}`,
+        suiteId: "agent.context",
+        suiteHash: `sha256:${"c".repeat(64)}`,
+        repositoryRevision: `sha256:${"d".repeat(64)}`,
+        status: "passed",
+        resultArtifactId: `art_${summary.contentHash.slice("sha256:".length)}`,
+        resultContentHash: summary.contentHash,
+        nonPassedCommandIds: [],
+      },
+    });
   } finally {
     await storage.close();
   }
@@ -118,9 +159,28 @@ async function eventCount(repository: string, type: string): Promise<number> {
 }
 
 describe("knowledge query with recorded evidence it cannot verify", () => {
+  it("binds a worktree-only suite's result on the strict paths the turn and Stop use", async () => {
+    const { repository, first } = await repositoryWithRule();
+    const verificationId = await recordWorktreeOnlyVerification(repository, first.worktree);
+    // Owner-rule intake, turn declaration, and Stop's lifecycle inspection use the first
+    // collector; managed search the second. Both stay fail-closed and now accept the result.
+    for (const sources of [
+      await collectLocalKnowledgeSources(repository),
+      await collectManagedSearchSources(repository),
+    ])
+      expect(sources.map((source) => source.path)).toContain(`@verification/${verificationId}`);
+    const json = await cli(first.worktree, [...QUERY.slice(0, 2), "--json", ...QUERY.slice(2)]);
+    expect(json.code, json.stderr).toBe(0);
+    expect((JSON.parse(json.stdout) as { evidence: unknown }).evidence).toEqual({
+      verificationResults: { status: "complete" },
+      executionEvents: { status: "complete" },
+    });
+  }, 120_000);
+
   it("returns the rules during an open turn in a conversation worktree and in the main checkout", async () => {
     const { repository, first } = await repositoryWithRule();
     await recordWorktreeOnlyVerification(repository, first.worktree);
+    await recordUnverifiableVerification(repository);
 
     // The lead's turn opens as its UserPromptSubmit hook leaves it, before the agent queries.
     const prompt = await cli(

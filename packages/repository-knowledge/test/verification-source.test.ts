@@ -259,30 +259,48 @@ describe("verification result knowledge source", () => {
       ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
   });
 
+  it("binds a result whose suite the evidence root lacks to the suite hash it recorded", async () => {
+    const { result, bytes, event } = fixture();
+    // ADR-0649: the suite exists only on another checkout's branch, or was renamed since.
+    const input = { ...ports(event, bytes), loadSuite: async () => null };
+    for (const collected of [
+      await collectVerificationResultSources(input),
+      (await collectVerificationResultSourcesTolerantly(input)).sources,
+    ])
+      expect(collected.map((source) => source.path)).toEqual([
+        `@verification/${result.verificationId}`,
+      ]);
+    // The event and CAS bindings still hold without the suite.
+    const tampered = verificationResultBytes({ ...result, status: "failed" });
+    await expect(
+      collectVerificationResultSources({ ...ports(event, tampered), loadSuite: async () => null }),
+    ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+  });
+
   it("leaves out and counts only the results it cannot bind when reading tolerantly", async () => {
     const bound = fixture(0);
-    const missingSuite = fixture(1);
+    const missingOriginal = fixture(1);
     const changedOriginal = fixture(2);
-    // ADR-0649: this suite exists only on another checkout's branch.
-    missingSuite.event.payload.suiteId = "branch.check";
-    const artifacts = new Map(
-      [bound, missingSuite].map(({ bytes }) => [
-        `lervo-cas://sha256/${verificationSha256(bytes).slice("sha256:".length)}`,
-        bytes,
-      ]),
-    );
-    // The stored original of this result no longer matches its recorded hash.
-    artifacts.set(
-      `lervo-cas://sha256/${verificationSha256(changedOriginal.bytes).slice("sha256:".length)}`,
-      Buffer.from("private-verification-fixture"),
-    );
+    const uri = (bytes: Uint8Array) =>
+      `lervo-cas://sha256/${verificationSha256(bytes).slice("sha256:".length)}`;
+    const artifacts = new Map([
+      [uri(bound.bytes), bound.bytes],
+      // The stored original of this result no longer matches its recorded hash.
+      [uri(changedOriginal.bytes), Buffer.from("private-verification-fixture")],
+    ]);
     const input = {
-      events: completionStore([bound.event, missingSuite.event, changedOriginal.event]),
-      artifacts: { get: async (uri: string) => artifacts.get(uri)! },
-      loadSuite: async (suiteId: string) => {
-        if (suiteId === "project.check") return bound.suite;
-        throw new Error(`Verification suite ${suiteId} was not found.`);
+      events: completionStore([bound.event, missingOriginal.event, changedOriginal.event]),
+      artifacts: {
+        get: async (address: string) => {
+          const found = artifacts.get(address);
+          if (found !== undefined) return found;
+          throw Object.assign(new Error("The artifact was not found."), {
+            name: "CasError",
+            code: "not_found",
+          });
+        },
       },
+      loadSuite: async () => bound.suite,
     };
     const tolerant = await collectVerificationResultSourcesTolerantly(input);
     expect(tolerant.sources.map((source) => source.path)).toEqual([
@@ -306,6 +324,31 @@ describe("verification result knowledge source", () => {
         events: completionStore([bound.event, conflicting]),
       }),
     ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+  });
+
+  it("lets a busy store or a bug throw as itself when reading tolerantly", async () => {
+    const { suite, bytes, event } = fixture();
+    const locked = Object.assign(new Error("database is locked"), { code: "ERR_SQLITE_ERROR" });
+    const base = { ...ports(event, bytes), loadSuite: async () => suite };
+    const throwing = (error: Error) => () => {
+      throw error;
+    };
+    for (const input of [
+      { ...base, artifacts: { get: async () => Promise.reject(locked) } },
+      { ...base, events: { ...base.events, latest: throwing(locked) } },
+      { ...base, events: { ...base.events, list: throwing(locked) } },
+      { ...base, loadSuite: async () => Promise.reject(new TypeError("a bug")) },
+    ]) {
+      const error = await collectVerificationResultSourcesTolerantly(input).catch(
+        (caught: unknown) => caught,
+      );
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+      // The corpus collectors still fail closed on the same input.
+      await expect(collectVerificationResultSources(input)).rejects.toMatchObject({
+        code: "knowledge_evidence_source_invalid",
+      });
+    }
   });
 });
 

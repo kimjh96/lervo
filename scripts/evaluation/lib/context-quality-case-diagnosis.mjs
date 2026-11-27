@@ -6,11 +6,13 @@ export async function diagnoseReviewedCases(root, suite) {
   const { RepositoryKnowledgeQueryIndex } =
     await import("../../../packages/repository-knowledge/dist/index.js");
   const { projectTaskQuery } = await import("../../../packages/context/dist/index.js");
-  const { prepareRepositoryQualityContext, productDefaultRepositoryKnowledgeRanker } =
-    await import("../../../packages/repository-context/dist/index.js");
-  const { collectInteractiveLocalKnowledgeSources } =
-    await import("../../../apps/cli/dist/knowledge-sources.js");
-  const supplementalSources = await collectInteractiveLocalKnowledgeSources(root);
+  const {
+    collectInteractiveKnowledgeSources,
+    prepareRepositoryQualityContext,
+    productDefaultRepositoryKnowledgeRanker,
+  } = await import("../../../packages/repository-context/dist/index.js");
+  // The same evidence `lervo knowledge query` reads (ADR-0649).
+  const { sources: supplementalSources } = await collectInteractiveKnowledgeSources(root);
   const index = await RepositoryKnowledgeQueryIndex.prepare({
     repositoryRoot: root,
     supplementalSources,

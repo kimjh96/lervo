@@ -5,7 +5,7 @@ import {
   loadRepositoryKnowledgePolicy,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
-import { loadVerificationSuite } from "@lervo/verification";
+import { loadVerificationSuiteIfPresent } from "@lervo/verification";
 
 /** Verification results and execution event pages the repository knowledge scan reads beside files. */
 export async function collectLocalKnowledgeSources(
@@ -17,7 +17,7 @@ export async function collectLocalKnowledgeSources(
     const verificationSources = await collectVerificationResultSources({
       events: storage.events,
       artifacts: storage.artifacts,
-      loadSuite: (suiteId) => loadVerificationSuite(repositoryRoot, suiteId),
+      loadSuite: (suiteId) => loadVerificationSuiteIfPresent(repositoryRoot, suiteId),
     });
     return [
       ...verificationSources,

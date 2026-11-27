@@ -174,6 +174,36 @@ describe("streaming recent execution evidence", () => {
     ).toThrowError(expect.objectContaining({ code: "knowledge_evidence_source_invalid" }));
   });
 
+  it("lets a busy store throw as itself only when the reader asks, and still rejects evidence", () => {
+    const value = event();
+    const locked = Object.assign(new Error("database is locked"), { code: "ERR_SQLITE_ERROR" });
+    const busy = {
+      ...store(value),
+      list: () => {
+        throw locked;
+      },
+    };
+    expect(() => collectRecentExecutionEventSources({ events: busy, maximumEvents: 2 })).toThrow(
+      expect.objectContaining({ code: "knowledge_evidence_source_invalid" }),
+    );
+    // ADR-0649: a reader that leaves unverifiable evidence out must not hide a lock as evidence.
+    expect(() =>
+      collectRecentExecutionEventSources({
+        events: busy,
+        maximumEvents: 2,
+        operationalFailures: "rethrow",
+      }),
+    ).toThrow(locked);
+    const invalid = store({ ...value, previousHash: `sha256:${"e".repeat(64)}` });
+    expect(() =>
+      collectRecentExecutionEventSources({
+        events: invalid,
+        maximumEvents: 2,
+        operationalFailures: "rethrow",
+      }),
+    ).toThrowError(expect.objectContaining({ code: "knowledge_evidence_source_invalid" }));
+  });
+
   it("checks window admission bounds and an empty history", () => {
     const events = historyStore([]);
     expect(collectRecentExecutionEventSources({ events, maximumEvents: 1 })).toEqual([]);
