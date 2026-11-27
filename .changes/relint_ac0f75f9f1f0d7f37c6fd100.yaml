@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ac0f75f9f1f0d7f37c6fd100"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Child processes that exit before reading their input no longer crash Lervo with an uncaught EPIPE, and calls whose input was cut short now fail."

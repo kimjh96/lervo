@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0fd71b7eeb4b90d77e85490d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Split the repository layout migration planner into per-phase modules without changing plan output."

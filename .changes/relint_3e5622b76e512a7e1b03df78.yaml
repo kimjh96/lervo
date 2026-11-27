@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3e5622b76e512a7e1b03df78"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Move no-capability provider CLI invocation behind adapter strategies; the knowledge compiler no longer names providers."
