@@ -121,16 +121,16 @@ describe("the Lervo turn summary", () => {
     expect(summarize).toHaveBeenCalledTimes(2);
   });
 
-  it("counts the owner rules Lervo prepared, and says of how many when some did not fit", () => {
+  it("counts the rules Lervo gave, and says of how many when some did not fit", () => {
     const withRules = (prepared: number, omitted: number) =>
       render({ ...summary, given: { ...summary.given, ownerRules: { prepared, omitted } } }, [
         "t1",
       ]);
-    expect(withRules(2, 0)).toContain("Owner rules");
-    expect(withRules(2, 0)).toContain("2 prepared");
-    expect(withRules(2, 12)).toContain("2 of 14 prepared");
-    expect(withRules(0, 0)).not.toContain("Owner rules");
-    expect(render(summary, ["t1"])).not.toContain("Owner rules");
+    expect(withRules(2, 0)).toContain(">Rules<");
+    expect(withRules(2, 0)).toMatch(/>Rules<\/dt><dd[^>]*>2<\/dd>/u);
+    expect(withRules(2, 12)).toContain("2 of 14");
+    expect(withRules(0, 0)).not.toContain(">Rules<");
+    expect(render(summary, ["t1"])).not.toContain(">Rules<");
     // Prepared, never applied: Lervo cannot observe the agent's use of a rule.
     expect(withRules(2, 12)).not.toMatch(/applied/iu);
   });

@@ -1381,7 +1381,7 @@
   "conversation.turn.card.rules": [
     {
       "type": 0,
-      "value": "Owner rules"
+      "value": "Rules"
     }
   ],
   "conversation.turn.card.rulesCut": [
@@ -1396,20 +1396,12 @@
     {
       "type": 1,
       "value": "total"
-    },
-    {
-      "type": 0,
-      "value": " prepared"
     }
   ],
   "conversation.turn.card.rulesPrepared": [
     {
       "type": 1,
       "value": "prepared"
-    },
-    {
-      "type": 0,
-      "value": " prepared"
     }
   ],
   "conversation.turn.card.tokens": [
@@ -2138,25 +2130,25 @@
   "lervo.command.knowledge.instruction.capture": [
     {
       "type": 0,
-      "value": "Captured owner rules from the conversation"
+      "value": "Captured rules from the conversation"
     }
   ],
   "lervo.command.knowledge.instruction.intake": [
     {
       "type": 0,
-      "value": "Recorded an owner rule"
+      "value": "Recorded a rule"
     }
   ],
   "lervo.command.knowledge.instruction.retire": [
     {
       "type": 0,
-      "value": "Retired an owner rule"
+      "value": "Retired a rule"
     }
   ],
   "lervo.command.knowledge.instruction.status": [
     {
       "type": 0,
-      "value": "Checked the owner rules"
+      "value": "Checked the rules"
     }
   ],
   "lervo.command.knowledge.lint": [
