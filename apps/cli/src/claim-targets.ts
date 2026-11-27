@@ -60,6 +60,10 @@ function git(worktree: string, args: readonly string[], input?: string): Promise
         resolve(error === null || code === 1 ? stdout : null);
       },
     );
+    // Git that exits before reading its input, as `worktree list` can before this line runs, fails
+    // the write with EPIPE. Its exit status already answers through the callback above, so the
+    // stream error must not escape as an uncaught exception.
+    child.stdin?.on("error", () => undefined);
     child.stdin?.end(input ?? "");
   });
 }
