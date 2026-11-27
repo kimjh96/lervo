@@ -39,9 +39,13 @@ ADR-0470's hook reader check accepts any valid runtime that another live install
    - `schema-16/backup.json` exists;
    - a prompt and a Stop in that checkout still record `terminal.context.prepared` and `terminal.turn.observed`.
 4. **Fleet.** Run `lervo host upgrade --follow --resume` on both hosts. Each follower runs `lervo upgrade` in every registered repository. A repository whose Node and Hub are readers activates only with Node health younger than two minutes and the Hub's identity-bound capability report.
-5. **Rollback.** Use the backup `lervo upgrade` writes before activation: a `VACUUM INTO` copy of `events.sqlite`, the previous `event-contract.json` (which selects 14), and `backup.json`.
-   - To stop writing 15 and 16, restore that coordinate, or run `lervo event-contract rollback` to return to version 1. Both keep the history, which every 0.62.0 or later reader reads.
-   - Replace `events.sqlite` from the copy only when the store itself is damaged, because the copy lacks every event recorded after activation.
+5. **Rollback.** Before activating, `lervo upgrade` writes `.lervo/data/event-writer-backups/schema-16/`. It holds a `VACUUM INTO` copy of `events.sqlite`, the previous `event-contract.json` (which selects 14), and `backup.json`. To stop writing 15 and 16, restore that `event-contract.json`; this is the only supported way. In order:
+   1. Copy `schema-16/` outside `.lervo/data` before anything else touches the store. The next activation would replace it: the backup step removes the old directory and renames a new one into its place.
+   2. Run `lervo host upgrade --follow --pause` on the host. Run no `lervo upgrade` until the cause is fixed, because the next pass activates 16 again.
+   3. Copy the saved `event-contract.json` back to `.lervo/data/event-contract.json`, then restart the host resident and any Node or other long-running Lervo process. A process keeps writing at the version it opened the store with until it reopens it.
+   4. Check that `lervo event-contract status --json` selects 14. History written at 15 and 16 stays, and every 0.62.0 or later reader reads it.
+
+   Do not use `lervo event-contract rollback` for this. It always returns the writer to version 1, which is below the knowledge resident's admission at 4. On a local-only checkout the resident's next scan then activates 16 again and takes a fresh backup, replacing the copy that selects 14. On a checkout with a Node and the Hub, the resident holds with `event_writer_distributed_activation_required`, and background knowledge stops. Replace `events.sqlite` from the copy only when the store itself is damaged, because the copy lacks every event recorded after activation.
 
 ## Consequences
 
@@ -49,3 +53,4 @@ ADR-0470's hook reader check accepts any valid runtime that another live install
 - At 15, no writer is on `main` yet. The room writer of the peer change (pull request 598) records as soon as it lands, because its gate is the writer version.
 - No `conversation_note` writer exists yet. ADR-0648's attestation is in place for it.
 - A host whose runtime an older install published holds activation until this release's CLI publishes its runtime. Any ordinary `lervo` invocation does so.
+- Every activation keeps a full `VACUUM INTO` copy of the event store per target version. The Mac lervo checkout already holds about 650 MB in `schema-5` through `schema-14`, and `schema-16` adds about 125 MB. Pruning old backups is a follow-up.
