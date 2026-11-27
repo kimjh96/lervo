@@ -15,7 +15,7 @@
     "apps/cli/src/init-onboarding.ts:bootstrapOnboarding": 151,
     "apps/cli/src/knowledge-host-residents.ts:startHostKnowledgeResidents": 308,
     "apps/cli/src/knowledge-migration-command.ts:runKnowledgeMigration": 341,
-    "apps/cli/src/knowledge-query-command.ts:runKnowledgeQuery": 158,
+    "apps/cli/src/knowledge-query-command.ts:runKnowledgeQuery": 156,
     "apps/cli/src/managed-deliberation-resume.ts:resumeManagedDeliberationWithStorage": 224,
     "apps/cli/src/managed-deliberation-resume.ts:resumeManagedDeliberationWithStorage.work": 206,
     "apps/cli/src/managed-deliberation-runner.ts:ManagedDeliberationRunner.execute": 164,

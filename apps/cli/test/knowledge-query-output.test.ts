@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  knowledgeQueryCoverageNotes,
   knowledgeQueryHeadline,
   knowledgeQueryHitLine,
   readKnowledgeQueryOutput,
@@ -37,6 +38,28 @@ describe("the knowledge query's text output", () => {
   it("reads nothing from output that does not start with the headline", () => {
     expect(readKnowledgeQueryOutput("Usage: lervo knowledge query <text>")).toBeUndefined();
     expect(readKnowledgeQueryOutput(`${knowledgeQueryHeadline(0)}\n`)).toEqual({
+      found: 0,
+      hits: [],
+    });
+  });
+
+  it("names each evidence source it left out and stays silent when all were verified", () => {
+    expect(
+      knowledgeQueryCoverageNotes("built", {
+        verificationResults: { status: "complete" },
+        executionEvents: { status: "complete" },
+      }),
+    ).toEqual([]);
+    const notes = knowledgeQueryCoverageNotes("built", {
+      verificationResults: { status: "partial", omittedCount: 2 },
+      executionEvents: { status: "omitted" },
+    });
+    expect(notes).toEqual([
+      "Evidence degraded: 2 recorded verification results could not be verified against their suite or stored original and were left out of the search; repository files and owner rules are unaffected.",
+      "Evidence degraded: the recorded execution events could not be verified, so they were left out of the search; repository files and owner rules are unaffected.",
+    ]);
+    // The notes never read as hits, so the ADE's reading of the output is unchanged.
+    expect(readKnowledgeQueryOutput([knowledgeQueryHeadline(0), ...notes].join("\n"))).toEqual({
       found: 0,
       hits: [],
     });

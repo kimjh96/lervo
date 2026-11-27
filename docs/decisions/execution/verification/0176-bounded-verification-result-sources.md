@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-23
+- Amended by: [ADR-0649](0649-answer-knowledge-queries-past-unverifiable-evidence.md) (`lervo knowledge query` leaves out and reports unverifiable evidence)
 
 ## Context
 

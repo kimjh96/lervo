@@ -15,7 +15,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { defaultRepositoryKnowledgePolicy } from "../src/policy.js";
 import { scanRepositoryKnowledge } from "../src/scanner.js";
-import { collectVerificationResultSources } from "../src/verification-source.js";
+import {
+  collectVerificationResultSources,
+  collectVerificationResultSourcesTolerantly,
+} from "../src/verification-source.js";
 
 const roots: string[] = [];
 
@@ -254,6 +257,55 @@ describe("verification result knowledge source", () => {
       await expect(
         collectVerificationResultSources({ ...input, events: completionStore(history) }),
       ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+  });
+
+  it("leaves out and counts only the results it cannot bind when reading tolerantly", async () => {
+    const bound = fixture(0);
+    const missingSuite = fixture(1);
+    const changedOriginal = fixture(2);
+    // ADR-0649: this suite exists only on another checkout's branch.
+    missingSuite.event.payload.suiteId = "branch.check";
+    const artifacts = new Map(
+      [bound, missingSuite].map(({ bytes }) => [
+        `lervo-cas://sha256/${verificationSha256(bytes).slice("sha256:".length)}`,
+        bytes,
+      ]),
+    );
+    // The stored original of this result no longer matches its recorded hash.
+    artifacts.set(
+      `lervo-cas://sha256/${verificationSha256(changedOriginal.bytes).slice("sha256:".length)}`,
+      Buffer.from("private-verification-fixture"),
+    );
+    const input = {
+      events: completionStore([bound.event, missingSuite.event, changedOriginal.event]),
+      artifacts: { get: async (uri: string) => artifacts.get(uri)! },
+      loadSuite: async (suiteId: string) => {
+        if (suiteId === "project.check") return bound.suite;
+        throw new Error(`Verification suite ${suiteId} was not found.`);
+      },
+    };
+    const tolerant = await collectVerificationResultSourcesTolerantly(input);
+    expect(tolerant.sources.map((source) => source.path)).toEqual([
+      `@verification/${bound.result.verificationId}`,
+    ]);
+    expect(tolerant.omittedCount).toBe(2);
+    expect(JSON.stringify(tolerant)).not.toContain("private-verification-fixture");
+    // The corpus collectors keep ADR-0176: any unbindable result fails the whole corpus.
+    await expect(collectVerificationResultSources(input)).rejects.toMatchObject({
+      code: "knowledge_evidence_source_invalid",
+    });
+    // An unreadable history is not a per-result omission.
+    const conflicting = {
+      ...bound.event,
+      seq: 4,
+      payload: { ...bound.event.payload, status: "failed" },
+    } as EventEnvelope;
+    await expect(
+      collectVerificationResultSourcesTolerantly({
+        ...input,
+        events: completionStore([bound.event, conflicting]),
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
   });
 });
 

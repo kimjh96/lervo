@@ -26,20 +26,50 @@ function fail(): never {
   );
 }
 
-/**
- * Returns the recorded results of the most recent verifications through the observed head, newest
- * first within 16 MiB, in verification-ID order. Older results are left out rather than failing
- * (ADR-0554); every returned result is bound to its CAS original and suite.
- */
-export async function collectVerificationResultSources(input: {
+interface VerificationSourceInput {
   events: Pick<EventStore, "latest" | "list">;
   artifacts: Pick<ArtifactStore, "get">;
   loadSuite: LoadVerificationSuite;
-}): Promise<RepositorySupplementalSource[]> {
+}
+
+/** The verification results an interactive reader keeps, and how many it left out (ADR-0649). */
+export interface TolerantVerificationResultSources {
+  readonly sources: RepositorySupplementalSource[];
+  /** Recorded results whose suite, CAS original, or event binding could not be verified. */
+  readonly omittedCount: number;
+}
+
+/**
+ * Returns the recorded results of the most recent verifications through the observed head,
+ * newest first within 16 MiB, in verification-ID order. Older results are left out rather than
+ * failing (ADR-0554); every returned result is bound to its CAS original and suite.
+ */
+export async function collectVerificationResultSources(
+  input: VerificationSourceInput,
+): Promise<RepositorySupplementalSource[]> {
+  return (await collectVerifiedResults(input, "fail")).sources;
+}
+
+/**
+ * ADR-0649: the same verified results for an interactive reader, such as `lervo knowledge query`,
+ * that must still return rules. A result that cannot be bound, such as one whose suite exists only
+ * on another checkout's branch or whose CAS original is gone, is left out and counted instead of
+ * failing the corpus. An unreadable event history still fails as `knowledge_evidence_source_invalid`.
+ */
+export async function collectVerificationResultSourcesTolerantly(
+  input: VerificationSourceInput,
+): Promise<TolerantVerificationResultSources> {
+  return collectVerifiedResults(input, "omit");
+}
+
+async function collectVerifiedResults(
+  input: VerificationSourceInput,
+  unbindable: "fail" | "omit",
+): Promise<TolerantVerificationResultSources> {
   let completions: EventEnvelope[];
   try {
     const latest = input.events.latest();
-    if (latest === null) return [];
+    if (latest === null) return { sources: [], omittedCount: 0 };
     if (!Number.isSafeInteger(latest.seq) || latest.seq < 1) return fail();
     completions = recentVerificationCompletions(input.events, latest.seq);
   } catch {
@@ -47,35 +77,63 @@ export async function collectVerificationResultSources(input: {
   }
 
   const sources: RepositorySupplementalSource[] = [];
+  let omittedCount = 0;
   let totalBytes = 0;
   for (const event of completions) {
-    const payload = event.payload;
-    const suiteId = payload.suiteId;
-    const resultArtifactId = payload.resultArtifactId;
-    const resultContentHash = payload.resultContentHash;
-    if (
-      typeof suiteId !== "string" ||
-      typeof resultArtifactId !== "string" ||
-      typeof resultContentHash !== "string" ||
-      !/^sha256:[a-f0-9]{64}$/u.test(resultContentHash) ||
-      resultArtifactId !== `art_${resultContentHash.slice("sha256:".length)}`
-    )
-      return fail();
-    const uri = `lervo-cas://sha256/${resultContentHash.slice("sha256:".length)}`;
     let bytes: Uint8Array;
     let suite: VerificationSuite;
     try {
-      [bytes, suite] = await Promise.all([input.artifacts.get(uri), input.loadSuite(suiteId)]);
-    } catch {
-      return fail();
+      [bytes, suite] = await boundResultInputs(event, input);
+    } catch (error) {
+      if (unbindable === "fail") throw error;
+      omittedCount += 1;
+      continue;
     }
-    if (bytes.byteLength > MAX_RESULT_BYTES) return fail();
     // The byte window keeps the newest results; this and every older result are left out.
     if (totalBytes + bytes.byteLength > MAX_TOTAL_RESULT_BYTES) break;
+    let source: RepositorySupplementalSource;
+    try {
+      source = verifiedResultSource(event, bytes, suite);
+    } catch (error) {
+      if (unbindable === "fail") throw error;
+      omittedCount += 1;
+      continue;
+    }
     totalBytes += bytes.byteLength;
-    sources.push(verifiedResultSource(event, bytes, suite));
+    sources.push(source);
   }
-  return sources.sort((left, right) => left.path.localeCompare(right.path));
+  return {
+    sources: sources.sort((left, right) => left.path.localeCompare(right.path)),
+    omittedCount,
+  };
+}
+
+/** The completion's CAS original and suite, or the evidence failure when either cannot be read. */
+async function boundResultInputs(
+  event: EventEnvelope,
+  input: VerificationSourceInput,
+): Promise<[Uint8Array, VerificationSuite]> {
+  const payload = event.payload;
+  const suiteId = payload.suiteId;
+  const resultArtifactId = payload.resultArtifactId;
+  const resultContentHash = payload.resultContentHash;
+  if (
+    typeof suiteId !== "string" ||
+    typeof resultArtifactId !== "string" ||
+    typeof resultContentHash !== "string" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(resultContentHash) ||
+    resultArtifactId !== `art_${resultContentHash.slice("sha256:".length)}`
+  )
+    return fail();
+  const uri = `lervo-cas://sha256/${resultContentHash.slice("sha256:".length)}`;
+  let found: [Uint8Array, VerificationSuite];
+  try {
+    found = await Promise.all([input.artifacts.get(uri), input.loadSuite(suiteId)]);
+  } catch {
+    return fail();
+  }
+  if (found[0].byteLength > MAX_RESULT_BYTES) return fail();
+  return found;
 }
 
 function verifiedResultSource(
