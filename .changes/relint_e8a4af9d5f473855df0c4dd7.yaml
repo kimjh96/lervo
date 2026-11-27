@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e8a4af9d5f473855df0c4dd7"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "The core answers room.answers: the mentions a conversation's lead answered in other conversations, from the rooms' schema-15 records."

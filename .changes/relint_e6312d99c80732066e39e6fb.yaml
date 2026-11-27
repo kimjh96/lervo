@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e6312d99c80732066e39e6fb"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Gate conversation coordination on the host hook runtime, retire conversation leases and records, narrow convergence holds, and report held stages as Lervo debt"

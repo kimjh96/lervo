@@ -1,14 +1,14 @@
-<!-- lervo-release package="@lervo/cli" version="0.64.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.65.0" schema="1" -->
 
 ## What's changed
 
-- A conversation whose coordination is active writes Lervo's claim handler into its worktree's local Claude Code settings, and a reopened claiming conversation adds the handler when its worktree lost it. The coordination gate stays closed in this release.
-- A shell command's redirection that duplicates or closes a descriptor, such as 2>&1 or >&2, no longer counts as writing a file named after it, and >|, 1>, and &>> redirections now count as writing their file.
-- A turn's end adds a quiet line for each path its claims reconciliation left unresolved, naming who holds it, and counts the rest past three.
-- agent.context also answers the repository paths the agent holds under a live write lease, sorted, at most 100 with their total.
-- Bind an ADE conversation's lead lease and first workspace generation at start under event schema 16
-- Claim a conversation's paths before the first write and refuse conflicts with the holder named, behind the coordination gate
-- Hold knowledge publication merges while this host's CLI release follower is paused, so a release train's preparation is not superseded mid-train.
-- Opening an agent's profile only reads: agent.context no longer creates the repository's workforce home or its assignments folder.
-- Reconcile conversation claims at Stop and session exit, hold changed paths, and regenerate leases
-- The claim log can list a conversation's claims that reconciliation left unresolved, so a later reconciliation retries them and they can become resolved.
+- A prompt's recorded context counts the owner rules Lervo prepared for the turn once the repository's writer selects event schema 15, and turn.summary reports them.
+- After a turn another agent's mention delivered, the agent keeps a conversation note of what it said, attested by the delivery's receipt, once the writer selects event schema 16.
+- An agent's context accepts a conversation note that its own delivery receipt attests (ADR-0648), instead of refusing the agent's whole context.
+- An agent's session starts with its own three newest conversation notes, labeled as notes it wrote itself.
+- Gate conversation coordination on the host hook runtime, retire conversation leases and records, narrow convergence holds, and report held stages as Lervo debt
+- lervo upgrade activates event schema 16 once every reader reads it, and holds a host whose hook runtime an older Lervo install published
+- Return knowledge query rules when recorded verification evidence cannot be verified, and report what was left out.
+- Rooms record who mentioned whom, each delivery, an agent's joining, and a paused exchange as schema-15 events in the conversation's repository, once its writer selects schema 15.
+- Terminal skill telemetry now reads Claude Code transcripts from the directory CLAUDE_CONFIG_DIR names, instead of refusing them as outside the provider's directory.
+- The core answers room.answers: the mentions a conversation's lead answered in other conversations, from the rooms' schema-15 records.
