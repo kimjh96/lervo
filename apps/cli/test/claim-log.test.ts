@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import type { HostedDecodedEvent } from "@lervo/adapter-contract";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ClaimLines } from "../src/claim-lines.js";
 import {
@@ -17,6 +17,28 @@ import { parseTerminalHookIngress } from "../src/terminal-hook-input.js";
 import type { ClaimDecision } from "../src/claim-contract.js";
 import { answerPreToolUse, claimReading } from "../src/write-claims.js";
 
+/** Runs once just before the log adds its `held_paths` column, as another writer might. */
+const columnRace = vi.hoisted(() => ({ before: null as (() => void) | null }));
+vi.mock("@lervo/sqlite-connection", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@lervo/sqlite-connection")>();
+  return {
+    ...actual,
+    openSqliteDatabase: (...args: Parameters<typeof actual.openSqliteDatabase>) => {
+      const database = actual.openSqliteDatabase(...args);
+      const exec = database.exec.bind(database);
+      database.exec = (sql: string) => {
+        const before = columnRace.before;
+        if (before !== null && sql.includes("ADD COLUMN held_paths")) {
+          columnRace.before = null;
+          before();
+        }
+        return exec(sql);
+      };
+      return database;
+    },
+  };
+});
+
 const folders: string[] = [];
 afterEach(async () => {
   for (const folder of folders.splice(0)) await rm(folder, { recursive: true, force: true });
@@ -25,6 +47,32 @@ async function folder(): Promise<string> {
   const made = await mkdtemp(join(tmpdir(), "lervo-claim-log-"));
   folders.push(made);
   return made;
+}
+
+/** A claim log as releases before held paths made it, with one refusal. */
+function oldSchemaLog(path: string): void {
+  const earlier = new DatabaseSync(path);
+  earlier.exec(`CREATE TABLE claims (claim_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL,
+    session_id TEXT NOT NULL, tool_use_id TEXT, decision TEXT NOT NULL, code TEXT NOT NULL,
+    paths TEXT NOT NULL, holder_agent_id TEXT, holder_workspace_id TEXT, state TEXT NOT NULL,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`);
+  earlier
+    .prepare("INSERT INTO claims VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(
+      "clm_old",
+      "wsp_b",
+      "s1",
+      "toolu_0",
+      "deny",
+      "path_leased",
+      '["src"]',
+      null,
+      null,
+      "refused",
+      "2026-11-27T00:00:00.000Z",
+      "2026-11-27T00:00:00.000Z",
+    );
+  earlier.close();
 }
 
 const refusal: NewClaimLogEntry = {
@@ -120,28 +168,7 @@ describe("the claim log", () => {
 
   it("keeps at most three held paths, and adds their column to a log made without it", async () => {
     const path = join(await folder(), "claim-log.sqlite");
-    const earlier = new DatabaseSync(path);
-    earlier.exec(`CREATE TABLE claims (claim_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL,
-      session_id TEXT NOT NULL, tool_use_id TEXT, decision TEXT NOT NULL, code TEXT NOT NULL,
-      paths TEXT NOT NULL, holder_agent_id TEXT, holder_workspace_id TEXT, state TEXT NOT NULL,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`);
-    earlier
-      .prepare("INSERT INTO claims VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .run(
-        "clm_old",
-        "wsp_b",
-        "s1",
-        "toolu_0",
-        "deny",
-        "path_leased",
-        '["src"]',
-        null,
-        null,
-        "refused",
-        "2026-11-27T00:00:00.000Z",
-        "2026-11-27T00:00:00.000Z",
-      );
-    earlier.close();
+    oldSchemaLog(path);
     const log = await ClaimLog.open(path);
     try {
       expect(log.ofToolUse("s1", "toolu_0")).not.toHaveProperty("heldPaths");
@@ -151,6 +178,24 @@ describe("the claim log", () => {
         paths: ["docs"],
         heldPaths: held.slice(0, 3),
       });
+    } finally {
+      log.close();
+    }
+  });
+
+  it("opens a log whose held_paths column another writer added after it looked", async () => {
+    const path = join(await folder(), "claim-log.sqlite");
+    oldSchemaLog(path);
+    columnRace.before = () => {
+      const other = new DatabaseSync(path);
+      other.exec("ALTER TABLE claims ADD COLUMN held_paths TEXT");
+      other.close();
+    };
+    const log = await ClaimLog.open(path);
+    try {
+      expect(columnRace.before).toBeNull();
+      log.record({ ...refusal, paths: ["docs"], heldPaths: ["docs/a.md"] });
+      expect(log.ofToolUse("s1", "toolu_1")).toMatchObject({ heldPaths: ["docs/a.md"] });
     } finally {
       log.close();
     }

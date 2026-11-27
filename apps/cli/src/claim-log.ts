@@ -87,11 +87,23 @@ const entryOf = (row: Row): ClaimLogEntry => ({
   updatedAt: row.updated_at,
 });
 
-/** Adds `held_paths` to a log created before it; a reader of such a log sees no held paths. */
-function addHeldPathsColumn(database: DatabaseSync): void {
+function hasHeldPathsColumn(database: DatabaseSync): boolean {
   const columns = database.prepare("PRAGMA table_info(claims)").all() as { name: string }[];
-  if (!columns.some((column) => column.name === "held_paths"))
+  return columns.some((column) => column.name === "held_paths");
+}
+
+/**
+ * Adds `held_paths` to a log created before it; a reader of such a log sees no held paths. Two
+ * hooks may open such a log at once and both try the addition: the one that loses finds the column
+ * the other added and goes on, since a failed open would let a refused write go ahead as deferred.
+ */
+function addHeldPathsColumn(database: DatabaseSync): void {
+  if (hasHeldPathsColumn(database)) return;
+  try {
     database.exec("ALTER TABLE claims ADD COLUMN held_paths TEXT");
+  } catch (error) {
+    if (!hasHeldPathsColumn(database)) throw error;
+  }
 }
 
 /** An open claim log. Each call is one statement or one transaction. */
