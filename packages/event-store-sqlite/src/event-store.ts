@@ -57,6 +57,11 @@ export interface OpenEventStoreOptions extends CheckpointOptions {
   writableEventSchemaVersion?: EventSchemaVersion;
   /** sqlite_v1 permits a transition; existing_sqlite_v1 selects only an already migrated store. */
   reportStorage?: "sqlite_v1" | "existing_sqlite_v1";
+  /**
+   * How long a statement waits for another writer, at most the default. A caller that holds a
+   * lock of its own, such as a claim, waits briefly and gives up instead.
+   */
+  busyTimeoutMs?: number;
 }
 
 function isThenable(value: unknown): value is PromiseLike<unknown> {
@@ -146,9 +151,16 @@ export class SQLiteEventStore implements OutboxStore {
         "Report storage requires an explicit version-6 format selection.",
       );
     validateCheckpointOptions(options);
+    if (
+      options.busyTimeoutMs !== undefined &&
+      (!Number.isSafeInteger(options.busyTimeoutMs) ||
+        options.busyTimeoutMs < 0 ||
+        options.busyTimeoutMs > SQLITE_BUSY_TIMEOUT_MS)
+    )
+      throw new EventStoreError("invalid_outbox_request", "The busy timeout is out of range.");
     const path = await ensureDatabasePath(options.path);
     const database = openSqliteDatabase(path, {
-      busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS,
+      busyTimeoutMs: options.busyTimeoutMs ?? SQLITE_BUSY_TIMEOUT_MS,
       enableForeignKeyConstraints: true,
       allowExtension: false,
     });

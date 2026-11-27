@@ -35,6 +35,7 @@ export interface ProjectStorageBackends {
     projectId: string;
     writableEventSchemaVersion: EventSchemaVersion;
     reportStorage?: "sqlite_v1";
+    busyTimeoutMs?: number;
   }): Promise<OutboxStore>;
   openArtifactStore(root: string): Promise<CloseableArtifactStore>;
 }
@@ -70,4 +71,13 @@ export type RepositoryCoordinationCollection =
 export interface RepositoryCoordinationRecord<T> {
   value: T;
   contentHash: string;
+}
+
+/** How a caller opens project storage. */
+export interface ProjectStorageOpenOptions {
+  /**
+   * How long an event write waits for another writer, at most SQLite's default. A caller that holds
+   * a lock of its own waits briefly and gives up instead of holding the lock.
+   */
+  readonly busyTimeoutMs?: number;
 }

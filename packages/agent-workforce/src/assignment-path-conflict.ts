@@ -2,12 +2,17 @@ import { assignmentAccessMode } from "./assignment-access-mode.js";
 import { PathScopeIndex } from "./path-scope-index.js";
 import type { WorkforceAssignment } from "./types.js";
 
-/** Why a claim of a path was refused (Lervo ADE coordination, "Conflicts"). */
+/**
+ * Why a claim of a path was refused (Lervo ADE coordination, "Conflicts"). The judgment never
+ * returns `path_outside_workspace`: the claim handler refuses a target in another checkout before
+ * it asks.
+ */
 export type AssignmentPathRefusalCode =
   | "path_leased"
   | "path_changed_unsealed"
   | "path_awaiting_integration"
   | "outside_responsibility"
+  | "path_outside_workspace"
   | "lease_path_limit";
 
 export interface AssignmentPathRefusal {

@@ -5,22 +5,23 @@ import {
   normalizeClaimPaths,
   validChangedPathHolder,
   validClaimantWorkspaceId,
+  validLeaseHolderWorkspaceIds,
+  validRecordedRefusals,
 } from "./conversation-claim-input.js";
+import {
+  recordConversationClaimRefusals,
+  withLeaseHolderWorkspaces,
+  type RecordedClaimRefusal,
+} from "./conversation-claim-refusals.js";
 import {
   claimConversationChunk,
   type ConversationClaimOutcome,
 } from "./conversation-lease-claim-transition.js";
-import {
-  claimRefusedEvent,
-  type ConversationLeaseEventRecorder,
-} from "./conversation-lease-events.js";
+import type { ConversationLeaseEventRecorder } from "./conversation-lease-events.js";
 import type { ConversationClaimMode } from "./conversation-lease-widening-plan.js";
 import type { WorkforceAssignment } from "./types.js";
 import { retryConcurrent } from "./workforce-state-io.js";
 import { AGENT_ID, fail, SESSION_ID } from "./workforce-state-validation.js";
-
-/** The most `assignment.claim.refused` events one call records; the rest are counted. */
-export const MAXIMUM_REFUSAL_EVENTS_PER_CALL = 32;
 
 export interface WidenConversationLeaseInput {
   repositoryRoot: string;
@@ -36,6 +37,23 @@ export interface WidenConversationLeaseInput {
   claimantWorkspaceId?: string | null;
   /** Other conversations' changed and sealed paths, judged as holders. */
   changedPathHolders?: readonly ChangedPathHolder[];
+  /**
+   * Each other conversation assignment's workspace, keyed by assignment ID, so a `path_leased`
+   * refusal and its event name where the holder works. A lease alone names no workspace.
+   */
+  leaseHolderWorkspaceIds?: ReadonlyMap<string, string>;
+  /** Refusals this session's turn already recorded; none of them records an event again. */
+  recordedRefusals?: readonly RecordedClaimRefusal[];
+  /**
+   * Aborted when the hook answered without this claim, so the write went ahead. A chunk that has
+   * not taken the scheduler lock stops, and no refusal records its event.
+   */
+  signal?: AbortSignal;
+  /**
+   * Runs immediately before each chunk takes the scheduler lock. Throwing stops the widening
+   * there, so a caller can check its remaining time at the last moment.
+   */
+  beforeLock?: () => void;
   /** The repository instance's local secret for `assignment.claim.refused`'s `pathDigest`. */
   claimPathKey: Uint8Array;
   now?: Date;
@@ -57,7 +75,7 @@ export interface WidenConversationLeaseResult {
   leaseRenewed: boolean;
   /** False when an `assignment.claim.refused` event failed; the refusals stand regardless. */
   refusalsRecorded: boolean;
-  /** Refusals past the first 32, which recorded no event. */
+  /** New refusals past the first 32, which recorded no event. */
   omittedRefusalEvents: number;
 }
 
@@ -89,18 +107,33 @@ export async function widenConversationLease(
       ...(input.changedPathHolders === undefined
         ? {}
         : { changedPathHolders: input.changedPathHolders }),
+      ...(input.signal === undefined ? {} : { signal: input.signal }),
+      ...(input.beforeLock === undefined ? {} : { beforeLock: input.beforeLock }),
     };
     // Every input is reread under the lock, so only a busy lock is worth another attempt.
     const outcome = await retryConcurrent(() => claimConversationChunk(chunk), ["workforce_busy"]);
     outcomes.push(outcome);
     if (outcome.status === "deferred") break;
   }
-  const result = combinedOutcome(outcomes);
-  const recorded = result.refusals.slice(0, MAXIMUM_REFUSAL_EVENTS_PER_CALL);
+  const combined = combinedOutcome(outcomes);
+  const result = {
+    ...combined,
+    refusals: withLeaseHolderWorkspaces(combined.refusals, input.leaseHolderWorkspaceIds),
+  };
+  const recording = await recordConversationClaimRefusals({
+    assignment: result.assignment,
+    refusals: result.refusals,
+    detection: input.mode === "reconcile" ? "reconcile" : input.detection!,
+    claimPathKey: input.claimPathKey,
+    recordEvent: input.recordEvent,
+    now,
+    ...(input.recordedRefusals === undefined ? {} : { recordedRefusals: input.recordedRefusals }),
+    ...(input.signal === undefined ? {} : { signal: input.signal }),
+  });
   return {
     ...result,
-    refusalsRecorded: await recordRefusals(input, result.assignment, recorded, now),
-    omittedRefusalEvents: result.refusals.length - recorded.length,
+    refusalsRecorded: recording.recorded,
+    omittedRefusalEvents: recording.omitted,
   };
 }
 
@@ -114,6 +147,10 @@ function validatedPaths(input: WidenConversationLeaseInput): string[] {
     ) ||
     !validClaimantWorkspaceId(input.claimantWorkspaceId) ||
     !(input.changedPathHolders ?? []).every(validChangedPathHolder) ||
+    !validLeaseHolderWorkspaceIds(input.leaseHolderWorkspaceIds) ||
+    !validRecordedRefusals(input.recordedRefusals) ||
+    !(input.signal === undefined || input.signal instanceof AbortSignal) ||
+    !(input.beforeLock === undefined || typeof input.beforeLock === "function") ||
     !(input.claimPathKey instanceof Uint8Array) ||
     input.claimPathKey.byteLength < MINIMUM_CLAIM_PATH_KEY_BYTES ||
     typeof input.recordEvent !== "function"
@@ -146,34 +183,4 @@ function combinedOutcome(
     refusals,
     leaseRenewed: outcomes.some((outcome) => outcome.leaseRenewed),
   };
-}
-
-/**
- * Records one `assignment.claim.refused` per refusal. A refusal already stopped its write, so a
- * failed event never turns it into an allowance; it reports `false` instead.
- */
-async function recordRefusals(
-  input: WidenConversationLeaseInput,
-  assignment: WorkforceAssignment,
-  refusals: readonly AssignmentPathRefusal[],
-  now: Date,
-): Promise<boolean> {
-  const detection = input.mode === "reconcile" ? "reconcile" : input.detection!;
-  let recorded = true;
-  for (const refusal of refusals) {
-    try {
-      await input.recordEvent(
-        claimRefusedEvent({
-          assignment,
-          refusal,
-          detection,
-          claimPathKey: input.claimPathKey,
-          occurredAt: now.toISOString(),
-        }),
-      );
-    } catch {
-      recorded = false;
-    }
-  }
-  return recorded;
 }

@@ -1,18 +1,16 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-import { type HostedLaunchRecord, recordHostedLaunch } from "../src/hosted-launch-records.js";
-import { parseTerminalHookIngress, parseTerminalHookInput } from "../src/terminal-hook-input.js";
+import type { AgentWorkspace } from "@lervo/agent-workforce";
+
 import {
-  answerPreToolUse,
-  claimReading,
-  type WriteClaimRequest,
-  type WritingSession,
-  writingSessionOf,
-} from "../src/write-claims.js";
+  findClaimingConversation,
+  type ClaimingConversationPorts,
+} from "../src/claim-conversation.js";
+import type { WriteClaimRequest, WritingSession } from "../src/claim-contract.js";
+import type { HostedLaunchRecord } from "../src/hosted-launch-records.js";
+import { parseTerminalHookIngress, parseTerminalHookInput } from "../src/terminal-hook-input.js";
+import { terminalWriterSessionId } from "../src/terminal-workspace-boundary.js";
+import { answerClaimHook, answerPreToolUse, claimReading } from "../src/write-claims.js";
 
 const answering = claimReading("claude");
 const lead: WritingSession = { workspaceId: "wsp_1", agentId: "agt_1" };
@@ -82,6 +80,10 @@ describe("claims at first write", () => {
           targets: [{ path: "/work/repo/src/a.ts", kind: "file" }],
           detection: "exact",
         },
+        session: lead,
+        deadline: expect.any(Number),
+        signal: expect.any(AbortSignal),
+        lockTaken: expect.any(Function),
       },
     ]);
     expect(JSON.parse(answer).hookSpecificOutput).toEqual({
@@ -159,34 +161,124 @@ describe("claims at first write", () => {
     expect(performance.now() - started).toBeLessThan(400);
   });
 
-  it("finds the writing session from the launch record: the lead's, never a joined reader's", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "lervo-claims-"));
-    try {
-      const path = join(directory, "hosted-launches.json");
-      const record = (sessionId: string, extra: object) =>
-        ({
-          schemaVersion: 1,
-          workspaceId: "wsp_1",
-          sessionId,
-          provider: "claude",
-          projectId: "prj_1",
-          branch: "lervo/x",
-          conversationMode: "native",
-          argumentDigest: `sha256:${"0".repeat(64)}`,
-          settingsDigest: null,
-          mcpConfigDigest: null,
-          preparedAt: "2026-11-27T00:00:00.000Z",
-          ...extra,
-        }) as HostedLaunchRecord;
-      await recordHostedLaunch(path, record("lead", { agentId: "agt_1" }));
-      await recordHostedLaunch(path, record("reader", { agentId: "agt_2", access: "read" }));
-      await recordHostedLaunch(path, record("plain", {}));
-      expect(await writingSessionOf("lead", path)).toEqual(lead);
-      expect(await writingSessionOf("reader", path)).toBeNull();
-      expect(await writingSessionOf("plain", path)).toBeNull();
-      expect(await writingSessionOf("unknown", path)).toBeNull();
-    } finally {
-      await rm(directory, { recursive: true, force: true });
-    }
+  it("finds the conversation from the lead's launch record, never a joined reader's", async () => {
+    const conversation = `wsp_${"c".repeat(24)}`;
+    const generation = (extra: Partial<AgentWorkspace>) =>
+      ({
+        workspaceId: `wsp_${"d".repeat(24)}`,
+        kind: "conversation",
+        conversationId: conversation,
+        generation: 1,
+        state: "ready",
+        assignmentId: `asn_${"a".repeat(24)}`,
+        agentId: "agt_1",
+        pathDigest: `sha256:${"e".repeat(64)}`,
+        ownerWorkspacePath: "/work/worktree",
+        createdAt: "2026-11-27T00:00:00.000Z",
+        ...extra,
+      }) as AgentWorkspace;
+    const launches = new Map<string, Partial<HostedLaunchRecord>>([
+      ["lead", { workspaceId: conversation, projectId: "prj_1", agentId: "agt_1" }],
+      [
+        "reader",
+        { workspaceId: conversation, projectId: "prj_1", agentId: "agt_2", access: "read" },
+      ],
+      ["agentless", { workspaceId: conversation, projectId: "prj_1" }],
+    ]);
+    const gated: string[] = [];
+    const ports: ClaimingConversationPorts = {
+      coordinationEnabled: (root) => {
+        gated.push(root);
+        return Promise.resolve(true);
+      },
+      launchOfSession: (session) =>
+        Promise.resolve((launches.get(session) as HostedLaunchRecord | undefined) ?? null),
+      registeredRoot: () => Promise.resolve("/work/repo"),
+      terminalRoots: (cwd) =>
+        Promise.resolve({ executionRoot: cwd, evidenceRoot: cwd, reason: "checkout" }),
+      workspaces: () => Promise.resolve([generation({})]),
+    };
+    const find = (providerSessionId: string) =>
+      findClaimingConversation(
+        { provider: "claude", providerSessionId, workingDirectory: "/work/worktree" },
+        ports,
+      );
+    expect(await find("lead")).toEqual({
+      workspaceId: conversation,
+      agentId: "agt_1",
+      provider: "claude",
+      repositoryRoot: "/work/repo",
+      worktree: "/work/worktree",
+      assignmentId: `asn_${"a".repeat(24)}`,
+      writerSessionId: terminalWriterSessionId("claude", "lead"),
+    });
+    expect(gated).toEqual(["/work/repo"]);
+    expect(await find("reader")).toBeNull();
+    // A hosted launch without an agent claims nothing, as before; it never looks at the checkout.
+    expect(await find("agentless")).toBeNull();
+    // Without a launch record, a main checkout has no conversation, and no gate is read.
+    expect(await find("owner")).toBeNull();
+    expect(gated).toEqual(["/work/repo"]);
+  });
+
+  it("reads no workspace record while the repository's gate is closed", async () => {
+    const read = () => {
+      throw new Error("read state");
+    };
+    const answer = await answerClaimHook(hook("Write", { file_path: "src/a.ts" }), "claude", "/", {
+      ports: {
+        coordinationEnabled: () => Promise.resolve(false),
+        launchOfSession: () =>
+          Promise.resolve({
+            workspaceId: "wsp_1",
+            projectId: "prj_1",
+            agentId: "agt_1",
+          } as HostedLaunchRecord),
+        registeredRoot: () => Promise.resolve("/work/repo"),
+        terminalRoots: read,
+        workspaces: read,
+      },
+    });
+    expect(answer).toBe("{}\n");
+  });
+
+  it("lets a claim that took the lock finish, and stops one that had not when the hook answered", async () => {
+    const base = {
+      hook: hook("Edit", { file_path: "a.ts" }),
+      answering,
+      fallbackDirectory: "/",
+      writing: () => Promise.resolve(lead),
+      decisionMs: 20,
+    };
+    const tracked: Promise<unknown>[] = [];
+    let finished = false;
+    const locked = await answerPreToolUse({
+      ...base,
+      trackWork: (work) => tracked.push(work),
+      claim: async (request) => {
+        request.lockTaken();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        finished = true;
+        return { decision: "allow" };
+      },
+    });
+    // The hook answered at its deadline, and the work it holds settles once the claim finished.
+    expect([locked, finished, tracked.length]).toEqual(["{}\n", false, 1]);
+    await Promise.all(tracked);
+    expect(finished).toBe(true);
+
+    let aborted: unknown = null;
+    const untracked: Promise<unknown>[] = [];
+    await answerPreToolUse({
+      ...base,
+      trackWork: (work) => untracked.push(work),
+      claim: async (request) => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+        aborted = request.signal.aborted;
+        return { decision: "allow" };
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect([aborted, untracked.length]).toEqual([true, 0]);
   });
 });

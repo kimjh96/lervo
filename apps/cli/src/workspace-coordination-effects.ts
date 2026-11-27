@@ -20,6 +20,7 @@ import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 
 import { resolveAutomaticVerificationSuite } from "./automatic-verification-suite.js";
 import { CommandFailure, errorCode } from "./command-error-output.js";
+import { coordinationGateOpen } from "./coordination-gate.js";
 import {
   observeAbsentRepositoryNode,
   resolveDistributedReaderInventorySource,
@@ -32,10 +33,9 @@ import {
 import { recordWorkforceEvent } from "./workforce-events.js";
 import { defaultBranchOf } from "./workspace-base.js";
 import { runGit } from "./workspace-base-git.js";
-import {
-  coordinationStageEnabled,
-  type WorkspaceCoordinationPorts,
-  type WorkspaceCoordinationRequest,
+import type {
+  WorkspaceCoordinationPorts,
+  WorkspaceCoordinationRequest,
 } from "./workspace-coordination.js";
 
 const ACCEPTANCE_CRITERION = "The conversation's sealed change passes its verification.";
@@ -246,7 +246,7 @@ export function conversationCoordinationPorts(
   provisionedMarker: () => WorkspaceOwnershipMarker | null,
 ): WorkspaceCoordinationPorts {
   return {
-    stageEnabled: () => coordinationStageEnabled(process.env),
+    stageEnabled: (repositoryRoot) => coordinationGateOpen(repositoryRoot, process.env),
     writerSchemaVersion,
     hubCoordinated: repositoryHubCoordinated,
     establish: (request) => establish(request, provisionedMarker()),

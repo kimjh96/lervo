@@ -95,7 +95,7 @@
     },
     {
       "path": "packages/event-store-sqlite/src/event-store.ts",
-      "contentHash": "sha256:da536356163e1cf129bc65878a7a2ee2aff9572135a61167178e75a3fbcab2c3",
+      "contentHash": "sha256:f315a47935bfebe1d487abc7e1c2725336e80ac2e389556efe812afe10a71ed3",
       "responsibility": "SQLite event store facade implementing the EventStore and outbox contracts",
       "rationale": "One class owns opening, binding verification, transactions, appends, and the closed-state guard; every read delegates in a few lines to the event and outbox repositories, which hold the queries. Splitting the delegation out would duplicate the open-and-transaction guard each method shares.",
       "disposition": "cohesive"

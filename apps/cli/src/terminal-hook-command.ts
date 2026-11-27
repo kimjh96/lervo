@@ -14,7 +14,10 @@ import {
   terminalProviderSessionDigest,
   unmanagedTerminalCoordinates,
 } from "./terminal-event-coordinates.js";
-import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
+import type {
+  ParsedPreToolUseInput,
+  UnmanagedTerminalCoordinates,
+} from "./terminal-hook-contract.js";
 import { parseTerminalHookIngress } from "./terminal-hook-input.js";
 import { prepareAndRecordTerminalPrompt } from "./terminal-prompt-hook.js";
 import { completeTerminalHookTurn } from "./terminal-stop-hook.js";
@@ -26,6 +29,7 @@ import {
 } from "./terminal-hook-budget.js";
 import { prepareTerminalBaseContext } from "./terminal-degraded-context.js";
 import { prepareTerminalSessionStart } from "./terminal-session-start.js";
+import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
 import { preparedTerminalTurnExpectation } from "./terminal-turn-observation.js";
 import {
@@ -39,6 +43,29 @@ import { requestOpenTerminalTurnSettlement } from "./terminal-turn-settlement.js
 import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
 import { roomBlock } from "./room-context.js";
 import { answerClaimHook } from "./write-claims.js";
+
+/**
+ * Claims at first write (Lervo ADE coordination). A claim that took the scheduler lock finishes
+ * before the hook returns, so its process never exits holding the lock, and a context server
+ * answers first and drains it before the next request.
+ */
+async function answerClaimAndSettle(
+  input: ParsedPreToolUseInput,
+  provider: TerminalIntegrationProvider,
+  io: CliIo,
+  observation: TerminalStageObservationPort,
+): Promise<void> {
+  const locked: Promise<unknown>[] = [];
+  const answer = await answerClaimHook(input, provider, io.cwd, {
+    trackWork: (work) => {
+      locked.push(work);
+      observation.trackWork?.(work);
+    },
+  });
+  if (io.answer === undefined) io.stdout(answer);
+  else io.answer(answer);
+  await Promise.all(locked);
+}
 
 export function runTerminalHookCommand(
   args: string[],
@@ -61,10 +88,8 @@ async function executeTerminalHookCommand(
   services: Pick<CliServices, "createTerminalStageObservation">,
   startedAt: number,
 ): Promise<number> {
-  const timing = budgetTerminalStages(
-    services.createTerminalStageObservation(TERMINAL_HOOK_BUILD_DIGEST),
-    startedAt,
-  );
+  const observation = services.createTerminalStageObservation(TERMINAL_HOOK_BUILD_DIGEST);
+  const timing = budgetTerminalStages(observation, startedAt);
   try {
     const { provider, contractId, input } = await timing.measure("ingress_integrity", async () => {
       const parsed = parseArgs({
@@ -97,9 +122,7 @@ async function executeTerminalHookCommand(
       };
     });
     if (input.event === "PreToolUse") {
-      // Claims at first write (Lervo ADE coordination). The claim is the core's coordination
-      // stage; until it runs, every write goes ahead.
-      io.stdout(await answerClaimHook(input, provider, io.cwd));
+      await answerClaimAndSettle(input, provider, io, observation);
       return 0;
     }
     if (input.event === "SessionStart") {

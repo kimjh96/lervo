@@ -42,6 +42,10 @@ export interface ConversationClaimChunk {
   changedPathHolders?: readonly ChangedPathHolder[];
   now: Date;
   recordEvent: ConversationLeaseEventRecorder;
+  /** Aborted when the claim's answer went out without it; a chunk not yet locked stops. */
+  signal?: AbortSignal;
+  /** Runs immediately before the scheduler lock is taken; throwing takes no lock. */
+  beforeLock?: () => void;
 }
 
 export interface ConversationClaimOutcome {
@@ -58,6 +62,8 @@ export async function claimConversationChunk(
   input: ConversationClaimChunk,
 ): Promise<ConversationClaimOutcome> {
   const target = await assignmentPath(input.repositoryRoot, input.assignmentId);
+  input.signal?.throwIfAborted();
+  input.beforeLock?.();
   const release = await acquireLock(target.lockPath, input.now);
   try {
     const { value: assignment, source: before } = await readAssignmentState(
