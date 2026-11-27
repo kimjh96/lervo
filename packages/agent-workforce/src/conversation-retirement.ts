@@ -12,6 +12,12 @@ import type { AgentWorkspace, WorkspaceState } from "./workspace-types.js";
 
 /** The reason a retired conversation's records carry (Lervo ADE coordination, "State"). */
 export const CONVERSATION_RETIRED = "conversation_retired";
+/** The reason the records of a conversation whose worktree vanished without a retire carry. */
+export const CONVERSATION_WORKTREE_GONE = "conversation_worktree_gone";
+
+/** Why a conversation's coordination ended: an explicit retire, or a sweep that found it gone. */
+export type ConversationRetirementReason =
+  typeof CONVERSATION_RETIRED | typeof CONVERSATION_WORKTREE_GONE;
 
 /** States of a generation whose sealed change has not integrated yet, or is being sealed. */
 const AWAITING_INTEGRATION: ReadonlySet<WorkspaceState> = new Set([
@@ -69,16 +75,18 @@ export async function assertConversationRetirable(
 
 /**
  * Retires a conversation whose checkout the host already removed (Lervo ADE coordination,
- * "Lease lifetime"): it cancels each conversation assignment that is not finished, ending a live
- * lease through a holder-bound cancellation that names the lease's exact agent and lease, then
- * moves each generation record to `recovery_required` and `removed` with the reason
- * `conversation_retired`, and finally deletes the changes files of removed records. Each step is
- * idempotent, so a retire that stopped part way finishes when it runs again.
+ * "Lease lifetime"): it cancels each conversation assignment that is not finished, ending the
+ * lead's live lease through a holder-bound cancellation that names the lease's exact agent and
+ * lease, then moves each generation record to `recovery_required` and `removed` with the reason
+ * (`conversation_retired` unless given), and finally deletes the changes files of removed records.
+ * A lease another agent holds is left to expire. Each step is idempotent, so a retire that stopped
+ * part way finishes when it runs again.
  */
 export async function retireConversation(input: {
   repositoryRoot: string;
   conversationId: string;
   checkout: ConversationCheckoutRemoval;
+  reason?: ConversationRetirementReason;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<ConversationRetirement> {
@@ -89,7 +97,7 @@ export async function retireConversation(input: {
   const cancelledAssignmentIds = await cancelConversationAssignments(input, live);
   const removedWorkspaceIds: string[] = [];
   for (const workspace of live) {
-    await removeGeneration(input.repositoryRoot, workspace, input.checkout, input.now);
+    await removeGeneration(input, workspace);
     removedWorkspaceIds.push(workspace.workspaceId);
   }
   const { workspaces } = await liveGenerations(input.repositoryRoot, input.conversationId);
@@ -97,18 +105,23 @@ export async function retireConversation(input: {
   return { cancelledAssignmentIds, removedWorkspaceIds };
 }
 
-/** Cancels the live generations' assignments that are not finished, each once. */
+/**
+ * Cancels the live generations' assignments that are not finished, each once, binding each live
+ * lease to the conversation's lead.
+ */
 async function cancelConversationAssignments(
   input: { repositoryRoot: string; now?: Date; recordEvent?: WorkforceEventRecorder },
   live: readonly AgentWorkspace[],
 ): Promise<string[]> {
   const cancelled: string[] = [];
-  for (const assignmentId of new Set(live.map((workspace) => workspace.assignmentId))) {
+  const leads = new Map(live.map((workspace) => [workspace.assignmentId, workspace.agentId]));
+  for (const [assignmentId, leadAgentId] of leads) {
     const assignments = await listAssignments(input.repositoryRoot);
     const assignment = assignments.find((item) => item.assignmentId === assignmentId);
     if (
       assignment === undefined ||
-      ["completed", "failed", "cancelled"].includes(assignment.status)
+      ["completed", "failed", "cancelled"].includes(assignment.status) ||
+      (assignment.lease !== null && assignment.lease.agentId !== leadAgentId)
     )
       continue;
     const holder =
@@ -139,11 +152,16 @@ async function cancelConversationAssignments(
 
 /** Moves one generation record to `recovery_required`, unless it is there, and then `removed`. */
 async function removeGeneration(
-  repositoryRoot: string,
+  input: {
+    repositoryRoot: string;
+    checkout: ConversationCheckoutRemoval;
+    reason?: ConversationRetirementReason;
+    now?: Date;
+  },
   workspace: AgentWorkspace,
-  checkout: ConversationCheckoutRemoval,
-  now: Date | undefined,
 ): Promise<void> {
+  const { repositoryRoot, checkout, now } = input;
+  const reason = input.reason ?? CONVERSATION_RETIRED;
   let stored = await readWorkspace(repositoryRoot, workspace.workspaceId);
   if (stored === null || stored.workspace.state === "removed") return;
   const occurredAt = () => {
@@ -159,8 +177,8 @@ async function removeGeneration(
       expectedGeneration: stored.workspace.generation,
       nextState: "recovery_required",
       occurredAt: occurredAt(),
-      recoveryReason: CONVERSATION_RETIRED,
-      reasonCode: CONVERSATION_RETIRED,
+      recoveryReason: reason,
+      reasonCode: reason,
       eventId: eventId(),
     });
   await updateWorkspace({
@@ -172,7 +190,7 @@ async function removeGeneration(
     nextState: "removed",
     occurredAt: occurredAt(),
     evidence: { hostAbsent: checkout.hostAbsent, gitMetadataAbsent: checkout.gitMetadataAbsent },
-    reasonCode: CONVERSATION_RETIRED,
+    reasonCode: reason,
     eventId: eventId(),
   });
 }

@@ -2,23 +2,24 @@
 // "Lease lifetime"): the refusal while a sealed change waits for integration, finding the
 // worktree by the path its generation record names, and, once the worktree is gone, the
 // holder-bound cancellation of its lease and the removal of its generation records and changed
-// paths. Behind the coordination gate: a closed gate reads nothing.
-import { lstat, realpath } from "node:fs/promises";
+// paths. It runs whenever the conversation has generation records, whatever the coordination gate
+// says: the gate decides what starts, never the cleanup of what exists. A conversation without
+// records reads nothing past one read-only look for its first record.
+import { realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
   AgentWorkforceError,
   assertConversationRetirable,
+  hasConversationWorkspaceRecords,
   listConversationWorkspaceGenerations,
   retireConversation,
   type AgentWorkspace,
-  type ConversationCheckoutRemoval,
 } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { CommandFailure } from "./command-error-output.js";
-import { coordinationGateOpen } from "./coordination-gate.js";
-import { terminalWorkspaceHost, terminalWorkspaceMarker } from "./terminal-workspace-boundary.js";
+import { conversationCheckoutRemoval } from "./conversation-checkout-removal.js";
 import { runGit } from "./workspace-base-git.js";
 import { recordWorkforceEvent } from "./workforce-events.js";
 
@@ -50,16 +51,6 @@ function asCommandFailure(error: unknown, conversationId: string): never {
   throw error;
 }
 
-async function pathAbsent(path: string): Promise<boolean> {
-  return lstat(path).then(
-    () => false,
-    (error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT") return true;
-      throw error;
-    },
-  );
-}
-
 /** The conversation's newest generation that is not `removed`, or null. */
 async function newestLiveGeneration(
   root: string,
@@ -81,47 +72,26 @@ async function registeredWorktrees(root: string): Promise<Set<string>> {
   return new Set(await Promise.all(paths.map((path) => realpath(path).catch(() => path))));
 }
 
-/**
- * What the host proves of the checkout the newest generation names: its directory is gone, and
- * Git no longer registers it as a worktree.
- */
-async function checkoutRemoval(
-  root: string,
-  workspace: AgentWorkspace,
-): Promise<ConversationCheckoutRemoval> {
-  const path = workspace.ownerWorkspacePath;
-  if (path === undefined) return { hostAbsent: false, gitMetadataAbsent: false };
-  const inspected = await terminalWorkspaceHost(workspace).inspect({
-    repositoryRoot: root,
-    workspacePath: path,
-    baseCommit: workspace.baseCommit,
-    marker: terminalWorkspaceMarker(workspace),
-  });
-  return { hostAbsent: await pathAbsent(path), gitMetadataAbsent: inspected.status === "absent" };
-}
-
-export function conversationRetirementEffects(
-  environment: NodeJS.ProcessEnv = process.env,
-): ConversationRetirementEffects {
+export function conversationRetirementEffects(): ConversationRetirementEffects {
   return {
     async assertRetirable(root, conversationId) {
-      if (!(await coordinationGateOpen(root, environment))) return;
+      if (!(await hasConversationWorkspaceRecords(root, conversationId))) return;
       await assertConversationRetirable(root, conversationId).catch((error: unknown) =>
         asCommandFailure(error, conversationId),
       );
     },
     async worktreeOf(root, conversationId) {
-      if (!(await coordinationGateOpen(root, environment))) return null;
+      if (!(await hasConversationWorkspaceRecords(root, conversationId))) return null;
       const path = (await newestLiveGeneration(root, conversationId))?.ownerWorkspacePath;
       if (path === undefined) return null;
       const real = await realpath(path).catch(() => null);
       return real !== null && (await registeredWorktrees(root)).has(real) ? real : null;
     },
     async retire(root, conversationId) {
-      if (!(await coordinationGateOpen(root, environment))) return;
+      if (!(await hasConversationWorkspaceRecords(root, conversationId))) return;
       const newest = await newestLiveGeneration(root, conversationId);
       if (newest === null) return;
-      const checkout = await checkoutRemoval(root, newest);
+      const checkout = await conversationCheckoutRemoval(root, newest);
       if (!checkout.hostAbsent || !checkout.gitMetadataAbsent)
         throw new CommandFailure(
           "workspace_worktree_unresolved",

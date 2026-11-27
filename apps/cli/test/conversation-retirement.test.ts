@@ -173,17 +173,52 @@ describe("retiring a conversation's workspace", () => {
     expect(await assignmentOf(first.leadAgentId)).toMatchObject({ status: "leased" });
   }, 60_000);
 
-  it("leaves a conversation's coordination alone while the gate is closed", async () => {
-    const { first, repository } = app;
+  it("releases a conversation's coordination after the gate closed", async () => {
+    const { first, second, repository } = app;
+    // The conversation recorded a change while the gate was open; then the gate closed.
+    expect(await write(first.sessionId, first.worktree, "src/a.ts")).toBe("{}\n");
+    await writeFile(resolve(first.worktree, "src/a.ts"), "export const a = 2;\n");
+    await stop(first.sessionId, first.worktree);
+    const [generation] = await listConversationWorkspaceGenerations(repository, first.workspaceId);
+    expect((await listConversationChangedPaths(repository)).has(generation!.workspaceId)).toBe(
+      true,
+    );
+    await git(first.worktree, "restore", "--", "src/a.ts");
     vi.stubEnv("LERVO_COORDINATION", "0");
+
     await expect(
       retireHostedWorkspace(first.workspaceId, hostedWorkspaceRetireEffects()),
     ).resolves.toMatchObject({ worktree: "removed" });
-    expect(await assignmentOf(first.leadAgentId)).toMatchObject({ status: "leased" });
+    expect(await assignmentOf(first.leadAgentId)).toMatchObject({
+      status: "cancelled",
+      lease: null,
+    });
+    expect(
+      (await listConversationWorkspaceGenerations(repository, first.workspaceId)).map(
+        (workspace) => [workspace.state, workspace.recoveryReason],
+      ),
+    ).toEqual([["removed", "conversation_retired"]]);
+    expect((await listConversationChangedPaths(repository)).has(generation!.workspaceId)).toBe(
+      false,
+    );
+    // The other conversation's coordination stays.
+    expect(await assignmentOf(second.leadAgentId)).toMatchObject({ status: "leased" });
+  }, 60_000);
+
+  it("releases after the worktree was force-removed with its changes", async () => {
+    const { first, repository } = app;
+    // As a retire that kept a copy of the changes and then removed the worktree with --force.
+    await writeFile(resolve(first.worktree, "draft.md"), "kept elsewhere\n");
+    await git(repository, "worktree", "remove", "--force", first.worktree);
+    vi.stubEnv("LERVO_COORDINATION", "0");
+    await expect(
+      retireHostedWorkspace(first.workspaceId, hostedWorkspaceRetireEffects()),
+    ).resolves.toMatchObject({ worktree: "absent" });
+    expect(await assignmentOf(first.leadAgentId)).toMatchObject({ status: "cancelled" });
     expect(
       (await listConversationWorkspaceGenerations(repository, first.workspaceId)).map(
         (workspace) => workspace.state,
       ),
-    ).toEqual(["ready"]);
+    ).toEqual(["removed"]);
   }, 60_000);
 });
