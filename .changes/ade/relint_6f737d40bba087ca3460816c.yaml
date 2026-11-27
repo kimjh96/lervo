@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6f737d40bba087ca3460816c"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "The header's removal steps and every wait stay on one line, instead of wrapping for a moment as their place resizes."

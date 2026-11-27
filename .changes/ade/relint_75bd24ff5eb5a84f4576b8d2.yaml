@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_75bd24ff5eb5a84f4576b8d2"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "A workspace with uncommitted changes can be removed from its header with Remove with changes, which asks again and keeps a copy of the changes for 14 days."

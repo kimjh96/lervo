@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_02725326ff3b5c2fff70f431"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Opening a conversation whose lead answered in other conversations no longer shows those lines first and then the history settling to the end; the conversation appears once, already at its end."

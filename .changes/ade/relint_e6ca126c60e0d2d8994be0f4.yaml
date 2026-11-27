@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e6ca126c60e0d2d8994be0f4"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Show in Finder on a project opens the project's own folder, instead of its parent folder with the project selected."

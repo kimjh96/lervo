@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6a57f386da53224174b1cecb"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Opening the conversation shows in the middle of the view on one line, instead of against its top edge and wrapping while it appears."
