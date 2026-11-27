@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e3a52cf02d3a868c5376b24d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A Bash command that makes a directory with mkdir no longer claims that directory, so a file another conversation holds below it no longer refuses every new file there; the files written into the new directory are claimed one by one."

@@ -147,7 +147,8 @@ The handler reads only those fields, never `content`, `old_string`, `new_string`
 | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | Redirection `>`, `>>`, `>\|`, `>&`, `&>`, or `&>>`, with or without a descriptor such as `1>` or `2>`, to a path outside `/dev` | The file; `2>&1`, `>&2`, and `>&-` name descriptors and claim nothing |
 | `tee [-a] <files>`                                                                                                              | Each file                                                             |
-| `touch`, `mkdir`, `rm`, `rmdir`                                                                                                 | Each operand; a directory claims the directory                        |
+| `touch`, `rm`, `rmdir`                                                                                                          | Each operand; a directory claims the directory                        |
+| `mkdir`                                                                                                                         | Nothing; a write into the new directory claims its own file           |
 | `mv <sources> <target>`                                                                                                         | Each source and the target                                            |
 | `cp <sources> <target>`                                                                                                         | The target                                                            |
 | `sed -i`, `perl -i`                                                                                                             | Each file operand                                                     |
