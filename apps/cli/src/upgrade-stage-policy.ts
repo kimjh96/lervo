@@ -14,6 +14,7 @@ export type UpgradeStageName =
   | "event_writer"
   | "host_service"
   | "replica_service"
+  | "event_writer_backup_retention"
   | "runtime_retention";
 
 /**
@@ -58,6 +59,8 @@ export const upgradeStageDependencies: Readonly<
   // ADR-0483: an activated Node runtime moves `current` itself; this stage repairs the pointer
   // and refreshes the replica service after every other stage.
   replica_service: [{ stage: "node", requires: "applied_first" }],
+  // ADR-0651: an activation in this run writes the next backup first; the apply plans again.
+  event_writer_backup_retention: [{ stage: "event_writer", requires: "ordered_after" }],
 };
 
 export const upgradeStageApplyOrder: readonly UpgradeStageName[] = [
@@ -69,6 +72,7 @@ export const upgradeStageApplyOrder: readonly UpgradeStageName[] = [
   "event_writer",
   "host_service",
   "replica_service",
+  "event_writer_backup_retention",
   "runtime_retention",
 ];
 

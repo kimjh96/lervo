@@ -33,7 +33,7 @@
     "apps/cli/src/terminal-lifecycle-inspection.ts:inspectTerminalLifecycle": 179,
     "apps/cli/src/terminal-stop-hook.ts:completeTerminalHookTurn": 176,
     "apps/cli/src/terminal-stop-observation.ts:recordObservedTerminalTurn": 203,
-    "apps/cli/src/upgrade-apply.ts:applyRepositoryUpgrade": 254,
+    "apps/cli/src/upgrade-apply.ts:applyRepositoryUpgrade": 243,
     "apps/cli/src/upgrade-node.ts:inspectRegisteredNodeUpgrade": 286,
     "apps/cli/src/workforce-command.ts:runWorkforceCommand": 210,
     "apps/conversation/src/application.ts:openConversationApplication": 319,

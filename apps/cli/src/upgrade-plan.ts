@@ -9,6 +9,10 @@ import { loadProjectManifest } from "@lervo/project";
 import { readRepositoryHold } from "@lervo/repository-registry";
 
 import {
+  planEventWriterBackupRetention,
+  type EventWriterBackupRetentionPlan,
+} from "./event-writer-backup-retention.js";
+import {
   inspectEventWriterStage,
   TARGET_EVENT_SCHEMA_VERSION,
   type EventWriterStage,
@@ -88,6 +92,7 @@ export interface RepositoryUpgradePlan {
     knowledge: KnowledgeStage;
     node: Omit<NodeUpgradeStage, "disposition"> & { disposition: StageDisposition };
     eventWriter: EventWriterStage;
+    eventWriterBackupRetention: EventWriterBackupRetentionPlan;
     hostService: HostResidentServiceStage;
     replicaService: RepositoryReplicaServiceStage;
   };
@@ -223,6 +228,7 @@ export async function createRepositoryUpgradePlan(
     host,
   );
   const runtimeRetention = await planNodeRuntimeRetention(host.runtimeRetention);
+  const backupRetention = await planEventWriterBackupRetention(repositoryRoot);
   // ADR-0561: a held repository plans every stage but applies none that changes it.
   const held = <T extends { disposition: StageDisposition }>(stage: T): T =>
     hold === null || (stage.disposition !== "safe_apply" && stage.disposition !== "deferred")
@@ -244,6 +250,7 @@ export async function createRepositoryUpgradePlan(
         : { ...knowledge, disposition: "lervo_debt" as const, reason: knowledgeWait },
     node: held(nodeStage),
     eventWriter: held(eventWriter),
+    eventWriterBackupRetention: held(backupRetention),
   };
   const dispositions: Record<UpgradeStageName, StageDisposition> = {
     runtime_retention: runtimeRetention.disposition,
@@ -253,6 +260,7 @@ export async function createRepositoryUpgradePlan(
     knowledge: heldStages.knowledge.disposition,
     node: heldStages.node.disposition,
     event_writer: heldStages.eventWriter.disposition,
+    event_writer_backup_retention: heldStages.eventWriterBackupRetention.disposition,
     host_service: hostService.disposition,
     replica_service: replicaService.disposition,
   };
@@ -289,6 +297,7 @@ export async function createRepositoryUpgradePlan(
       knowledge: heldStages.knowledge,
       node: heldStages.node,
       eventWriter: heldStages.eventWriter,
+      eventWriterBackupRetention: heldStages.eventWriterBackupRetention,
       hostService,
       replicaService,
     },

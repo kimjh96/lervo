@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-11-27
 Amends: [ADR-0470](../operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) (the event writer stage's target, and which published hook runtime counts as a reader)
 Related: [ADR-0332](../operations/trace/0332-authoritative-distributed-event-reader-inventory.md), [ADR-0575](0575-follow-published-releases-on-every-host.md), [ADR-0645](../execution/providers/hooks/0645-answer-an-unserved-prompt-from-the-cached-base.md), [ADR-0641](../coordination/conversations/agent-organization/0641-let-agents-mention-each-other-in-core-rooms-and-keep-their-own-context.md), [ADR-0648](../coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md), [event envelope compatibility](../../specifications/execution/events-and-privacy/event-envelope-compatibility.md)
+Amended by: [ADR-0651](../operations/storage/0651-prune-superseded-event-writer-backups.md) (the backup pruning follow-up)
 
 ## Context
 
