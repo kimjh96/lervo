@@ -8,15 +8,18 @@ import { type Arrival, nextShown, paceDeadline, recordArrival } from "../model/p
  * the item mounts shows at once, so history and a reopened conversation never animate; text that
  * arrives later flows in over a few frames. Each growth's arrival is kept, so text shows within
  * `PACE_MS` of its own arrival even while more keeps coming. Nothing runs once the text is caught
- * up, and reduced motion shows everything at once.
+ * up, and reduced motion shows everything at once. `arrivedAt` is when the text's latest growth
+ * reached the page, when the conversation knows it; the pace then counts from that moment rather
+ * than from the frame that rendered it.
  */
-export function usePacedText(text: string): string {
+export function usePacedText(text: string, arrivedAt?: number): string {
   const [shown, setShown] = useState(text.length);
   const arrivals = useRef<Arrival[]>([]);
   const behind = shown < text.length && !prefersReducedMotion();
 
   useEffect(() => {
-    arrivals.current = recordArrival(arrivals.current, shown, text.length, performance.now());
+    const at = arrivedAt ?? performance.now();
+    arrivals.current = recordArrival(arrivals.current, shown, text.length, at);
     // `shown` only prunes the arrivals here; a frame's own update must not record one.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);

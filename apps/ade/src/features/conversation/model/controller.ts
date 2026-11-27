@@ -57,10 +57,10 @@ export class ConversationController implements ConversationSource {
     private readonly recent: RecentWindows = recentWindows,
   ) {
     this.sessionId = target.sessionId;
-    this.deltas = new DeltaBuffer((deltas) => {
+    this.deltas = new DeltaBuffer((deltas, arrived) => {
       let window = useConversationStore.getState().window;
       for (const [itemId, text] of deltas) window = applyDelta(window, itemId, text);
-      useConversationStore.setState({ window });
+      useConversationStore.setState({ window, grownAt: Object.fromEntries(arrived) });
     }, nextFrame);
   }
 
@@ -80,6 +80,7 @@ export class ConversationController implements ConversationSource {
       loadingEarlier: false,
       loadingLater: false,
       arrived: new Set(),
+      grownAt: {},
       error: null,
     });
     this.unsubscribe.push(this.client.onMessage((message) => this.receive(message)));
