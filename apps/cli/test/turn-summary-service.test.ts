@@ -136,4 +136,38 @@ describe("turn summaries from a session's records", () => {
     // The turn ends 5 s before the next message, for the clock skew the context may have.
     expect(turn?.usage?.costUsd).toBeCloseTo(0.1);
   });
+
+  it("counts the owner rules a schema-15 context prepared, and none it could not count", () => {
+    const context = (applied: unknown, id: string, atMs: number) =>
+      event(
+        "terminal.context.prepared",
+        atMs,
+        { providerSessionDigest: digest, appliedInstructions: applied },
+        id,
+      );
+    const result = summarizeSessionTurns(
+      {
+        session: [
+          context({ status: "incomplete", preparedCount: 2, omittedCount: 12 }, "evt_r1", 60_000),
+          context({ status: "complete", preparedCount: 3, omittedCount: 0 }, "evt_r2", 70_000),
+          context(
+            { status: "unavailable", preparedCount: 0, omittedCount: null },
+            "evt_r3",
+            80_000,
+          ),
+          context(undefined, "evt_r4", 90_000),
+        ],
+        usage: [],
+        changes: [],
+      },
+      digest,
+      [60_000, 70_000, 80_000, 90_000].map((startedAtMs) => ({ startedAtMs })),
+    );
+    expect(result.turns.map((turn) => turn?.given.ownerRules)).toEqual([
+      { prepared: 2, omitted: 12 },
+      { prepared: 3, omitted: 0 },
+      undefined,
+      undefined,
+    ]);
+  });
 });

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1ba8a977d566fe30149c3e4f"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "The turn summary card shows how many owner rules Lervo prepared for the turn, such as 2 prepared or 2 of 14 prepared."

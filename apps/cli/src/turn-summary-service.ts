@@ -90,6 +90,20 @@ function runEvents(
   }
 }
 
+/**
+ * The owner rules a schema-15 context counted: how many Lervo prepared and left out. A context
+ * without the counts, or whose rule catalog could not be read, has none.
+ */
+function preparedOwnerRules(value: unknown): { prepared: number; omitted: number } | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const counts = value as Payload;
+  const prepared = count(counts.preparedCount);
+  const omitted = count(counts.omittedCount);
+  if (counts.status === "unavailable" || prepared === undefined || omitted === undefined)
+    return undefined;
+  return { prepared, omitted };
+}
+
 function summary(
   context: EventEnvelope,
   observed: EventEnvelope | undefined,
@@ -114,6 +128,7 @@ function summary(
     { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, costUsd: 0 as number | null },
   );
   const workstreamRevision = count(payload(context).workstreamRevision);
+  const ownerRules = preparedOwnerRules(payload(context).appliedInstructions);
   const finalRevision = count(outcome.finalWorkstreamRevision);
   const changedPaths = change === undefined ? undefined : count(payload(change).changedPathCount);
   const ending = text(outcome.ending);
@@ -122,6 +137,7 @@ function summary(
     given: {
       documents: given,
       ...(workstreamRevision === undefined ? {} : { workstreamRevision }),
+      ...(ownerRules === undefined ? {} : { ownerRules }),
     },
     searched: {
       documents: searched.length,

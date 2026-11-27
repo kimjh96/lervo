@@ -2,7 +2,10 @@ import {
   findLatestPreparedContext,
   preparedContextHint,
 } from "./terminal-prepared-context-query.js";
-import { turnEndingEventSchemaVersion } from "@lervo/event-contract";
+import {
+  appliedInstructionsEventSchemaVersion,
+  turnEndingEventSchemaVersion,
+} from "@lervo/event-contract";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
   validateSchema,
@@ -68,6 +71,33 @@ export function terminalDeliberationDeclarationMatches(
     (declaration.deliberationDisposition === "no_consensus" && status === "no_consensus") ||
     (declaration.deliberationDisposition === "failed" && status === "failed")
   );
+}
+
+/**
+ * The turn's owner-rule counts as schema 15 records them: the three fields of its instruction
+ * preparation report, or nothing below schema 15 or without a report. They say how many rules
+ * Lervo prepared, never that the provider applied them.
+ */
+export function appliedInstructionsOf(
+  report: PreparedTerminalPromptContext["preparationQuality"]["instructions"],
+  writableSchemaVersion: number,
+): { status: string; preparedCount: number; omittedCount: number | null } | undefined {
+  if (report === undefined || writableSchemaVersion < appliedInstructionsEventSchemaVersion)
+    return undefined;
+  return {
+    status: report.status,
+    preparedCount: report.preparedCount,
+    omittedCount: report.omittedCount,
+  };
+}
+
+function invalidPayload(payload: Record<string, unknown>): string | null {
+  const validation = validateSchema("terminalContextPreparedEventPayload", payload);
+  return validation.valid
+    ? null
+    : validation.errors
+        .map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`)
+        .join("; ");
 }
 
 export async function recordPreparedTerminalContext(input: {
@@ -144,26 +174,30 @@ export async function recordPreparedTerminalContext(input: {
     leaseGeneration: input.workspaceBinding?.leaseGeneration ?? null,
     writerSessionId: input.workspaceBinding?.writerSessionId ?? null,
   };
-  const validation = validateSchema("terminalContextPreparedEventPayload", payload);
-  if (!validation.valid) {
-    throw new Error(
-      validation.errors
-        .map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`)
-        .join("; "),
-    );
-  }
+  const invalid = invalidPayload(payload);
+  if (invalid !== null) throw new Error(invalid);
   const storage = input.storage ?? (await openProjectStorage(input.root));
   try {
+    // Schema 15: the turn's owner-rule counts. Counts the screen refuses leave the field out
+    // rather than lose the turn's record.
+    const applied = appliedInstructionsOf(
+      input.context.preparationQuality.instructions,
+      storage.writableEventSchemaVersion ?? 1,
+    );
+    const counted =
+      applied !== undefined &&
+      invalidPayload({ ...payload, appliedInstructions: applied }) === null;
+    const draft = terminalEventDraft({
+      ...(input.eventId === undefined ? {} : { eventId: input.eventId }),
+      projectId: storage.manifest.projectId,
+      coordinates: input.coordinates,
+      provider: input.provider,
+      type: "terminal.context.prepared",
+      occurredAt: input.occurredAt,
+      payload: counted ? { ...payload, appliedInstructions: applied } : payload,
+    });
     const result = storage.events.append(
-      terminalEventDraft({
-        ...(input.eventId === undefined ? {} : { eventId: input.eventId }),
-        projectId: storage.manifest.projectId,
-        coordinates: input.coordinates,
-        provider: input.provider,
-        type: "terminal.context.prepared",
-        occurredAt: input.occurredAt,
-        payload,
-      }),
+      counted ? { ...draft, schemaVersion: appliedInstructionsEventSchemaVersion } : draft,
     );
     // Schema 12: the session's previous turn is still open when no Stop hook ran for it, as
     // when the owner interrupted it. This prompt's snapshot settles it, before its marker goes.

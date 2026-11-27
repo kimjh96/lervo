@@ -575,6 +575,18 @@
     "defaultMessage": "Used by the agent",
     "description": "The turn summary card's section of what the agent's searches found and its answer cited."
   },
+  "conversation.turn.card.rules": {
+    "defaultMessage": "Owner rules",
+    "description": "The turn summary card's row of the owner rules Lervo prepared for the agent; it never says they were applied."
+  },
+  "conversation.turn.card.rulesCut": {
+    "defaultMessage": "{prepared} of {total} prepared",
+    "description": "Owner rules Lervo prepared for the turn when some did not fit its context, such as 2 of 14 prepared."
+  },
+  "conversation.turn.card.rulesPrepared": {
+    "defaultMessage": "{prepared} prepared",
+    "description": "Owner rules Lervo prepared for the turn, all that applied, such as 2 prepared."
+  },
   "conversation.turn.card.workstream": {
     "defaultMessage": "Workstream",
     "description": "The turn summary card's workstream row."

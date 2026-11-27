@@ -1372,6 +1372,40 @@
       "value": "revision"
     }
   ],
+  "conversation.turn.card.rules": [
+    {
+      "type": 0,
+      "value": "Owner rules"
+    }
+  ],
+  "conversation.turn.card.rulesCut": [
+    {
+      "type": 1,
+      "value": "prepared"
+    },
+    {
+      "type": 0,
+      "value": " of "
+    },
+    {
+      "type": 1,
+      "value": "total"
+    },
+    {
+      "type": 0,
+      "value": " prepared"
+    }
+  ],
+  "conversation.turn.card.rulesPrepared": [
+    {
+      "type": 1,
+      "value": "prepared"
+    },
+    {
+      "type": 0,
+      "value": " prepared"
+    }
+  ],
   "conversation.turn.card.tokens": [
     {
       "type": 1,
