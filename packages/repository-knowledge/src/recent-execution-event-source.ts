@@ -1,6 +1,7 @@
 import type { EventStore } from "@lervo/storage-contract";
 import { visitEventSnapshot } from "@lervo/storage-contract";
 
+import { isUnverifiableEvidence } from "./evidence-read-errors.js";
 import { executionEvidenceFailure } from "./execution-event-evidence.js";
 import { ExecutionEventWindow } from "./execution-event-window.js";
 import type { RepositorySupplementalSource } from "./types.js";
@@ -33,6 +34,11 @@ export class RecentExecutionEventProjection extends ExecutionEventWindow {
 export function collectRecentExecutionEventSources(input: {
   events: Pick<EventStore, "latest" | "list">;
   maximumEvents: number;
+  /**
+   * `rethrow` lets a failure that is not about the evidence, such as a busy store or a bug, throw
+   * as itself, for a reader that leaves unverifiable evidence out (ADR-0649).
+   */
+  operationalFailures?: "evidence" | "rethrow";
 }): RepositorySupplementalSource[] {
   const projection = new RecentExecutionEventProjection(input.maximumEvents);
   try {
@@ -46,7 +52,8 @@ export function collectRecentExecutionEventSources(input: {
       visit: (event) => projection.observe(event),
     });
     return projection.sources();
-  } catch {
+  } catch (error) {
+    if (input.operationalFailures === "rethrow" && !isUnverifiableEvidence(error)) throw error;
     return executionEvidenceFailure();
   }
 }

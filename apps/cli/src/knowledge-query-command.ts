@@ -4,16 +4,20 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { queryRepositoryKnowledge, repositoryKnowledgeBuilt } from "@lervo/repository-knowledge";
 import {
+  collectInteractiveKnowledgeSources,
   withRetrievalPreparationBudget,
   type RepositoryQualityInput,
   prepareAppliedInstructionContext,
   productDefaultRepositoryKnowledgeRanker,
 } from "@lervo/repository-context";
-import { collectInteractiveLocalKnowledgeSources } from "./knowledge-sources.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import type { CliIo } from "./types.js";
 import { queryOpenTerminalTurn } from "./terminal-open-turns.js";
-import { knowledgeQueryHeadline, knowledgeQueryHitLine } from "./knowledge-query-output.js";
+import {
+  knowledgeQueryCoverageNotes,
+  knowledgeQueryHeadline,
+  knowledgeQueryHitLine,
+} from "./knowledge-query-output.js";
 import { recordKnowledgeQueryTurnSelection } from "./knowledge-query-turn-selection.js";
 import { governingPreference, repositoryPathsNamedIn } from "./governing-preference.js";
 import { resolveCommandRoots } from "./terminal-roots.js";
@@ -57,7 +61,9 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
     const roots = await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? "."));
     const repositoryRoot = roots.evidenceRoot;
     const turn = await queryOpenTerminalTurn(repositoryRoot);
-    const supplementalSources = await collectInteractiveLocalKnowledgeSources(repositoryRoot);
+    // ADR-0649: evidence that cannot be verified is left out and named, never the query's rules.
+    const { sources: supplementalSources, evidence } =
+      await collectInteractiveKnowledgeSources(repositoryRoot);
     const projection = projectTaskQuery({
       intent: query,
       continuation: parsed.values.continuation ?? "",
@@ -135,14 +141,10 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
     });
     io.stdout(
       parsed.values.json
-        ? `${JSON.stringify({ ...result, knowledgeBuild, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`
+        ? `${JSON.stringify({ ...result, knowledgeBuild, evidence, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`
         : [
             knowledgeQueryHeadline(result.hits.length),
-            ...(knowledgeBuild === "built"
-              ? []
-              : [
-                  "Repository knowledge is not built in this checkout, so zero recommendations does not mean no source matches. Run `lervo migrate knowledge`; Git ignores the generated output.",
-                ]),
+            ...knowledgeQueryCoverageNotes(knowledgeBuild, evidence),
             `Scan coverage: ${result.coverage}; skipped for budget: ${result.skippedForBudget.count} sources, ${result.skippedForBudget.bytes} bytes${result.skippedForBudget.classes.length ? `; classes: ${result.skippedForBudget.classes.join(", ")}` : ""}.`,
             ...(result.retention.observedOnly.count === 0
               ? []

@@ -4,9 +4,16 @@ import { visitEventsOfTypes, type EventStore } from "@lervo/storage-contract";
 const MAX_RESULTS = 256;
 const COMPLETED_TYPES = ["verification.completed"] as const;
 
-/** Callers translate this into their own fail-closed evidence error. */
+/** An unverifiable completion history; callers translate it into their own evidence error. */
+export class VerificationHistoryError extends Error {
+  constructor() {
+    super("The verification completion history is invalid.");
+    this.name = "VerificationHistoryError";
+  }
+}
+
 function fail(): never {
-  throw new Error("The verification completion history is invalid.");
+  throw new VerificationHistoryError();
 }
 
 function completedId(event: EventEnvelope): string {

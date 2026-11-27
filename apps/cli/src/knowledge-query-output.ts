@@ -1,6 +1,7 @@
 // The text lines `lervo knowledge query` prints for its hits, and their reading back. The ADE
 // shows what an agent's search found from these lines (ADE session-host protocol, "Tool detail"),
 // so the format and its reader live together and a test holds them to each other.
+import type { InteractiveKnowledgeEvidence } from "@lervo/repository-context";
 import type { KnowledgeFreshness, KnowledgeQueryHit } from "@lervo/repository-knowledge";
 
 const HEADLINE =
@@ -17,6 +18,37 @@ export function knowledgeQueryHitLine(
   hit: Pick<KnowledgeQueryHit, "score" | "title" | "path" | "freshness">,
 ): string {
   return `  ${hit.score.toString().padStart(2)}  ${hit.title} · ${hit.path} · ${hit.freshness}`;
+}
+
+const UNAFFECTED = "repository files and owner rules are unaffected";
+
+/**
+ * What the recommendations could not cover: an unbuilt knowledge output, and (ADR-0649) one line
+ * for each evidence source the query left out. None when the knowledge is built and all verified.
+ */
+export function knowledgeQueryCoverageNotes(
+  knowledgeBuild: "built" | "not_built",
+  evidence: InteractiveKnowledgeEvidence,
+): string[] {
+  const notes: string[] = [];
+  if (knowledgeBuild === "not_built")
+    notes.push(
+      "Repository knowledge is not built in this checkout, so zero recommendations does not mean no source matches. Run `lervo migrate knowledge`; Git ignores the generated output.",
+    );
+  const verification = evidence.verificationResults;
+  if (verification.status === "partial")
+    notes.push(
+      `Evidence degraded: ${verification.omittedCount} recorded verification ${verification.omittedCount === 1 ? "result" : "results"} could not be verified against ${verification.omittedCount === 1 ? "its" : "their"} suite or stored original and ${verification.omittedCount === 1 ? "was" : "were"} left out of the search; ${UNAFFECTED}.`,
+    );
+  if (verification.status === "omitted")
+    notes.push(
+      `Evidence degraded: the recorded verification history could not be verified, so verification results were left out of the search; ${UNAFFECTED}.`,
+    );
+  if (evidence.executionEvents.status === "omitted")
+    notes.push(
+      `Evidence degraded: the recorded execution events could not be verified, so they were left out of the search; ${UNAFFECTED}.`,
+    );
+  return notes;
 }
 
 export interface PrintedKnowledgeQueryHit {

@@ -2,7 +2,11 @@
 
 The `verification-result-v1+event-cas` adapter accepts only integrity-checked `verification.completed` events with matching result CAS bytes, canonical serialization, verification ID, suite ID and recorded suite hash, repository revision, status, completion time, and nonpassing command IDs.
 
-Before publishing an ordinary `@verification/<id>` source, the adapter bounds the event prefix, result count, individual result size, and aggregate result size. Any invalid binding rejects the whole supplemental corpus.
+Before publishing an ordinary `@verification/<id>` source, the adapter bounds the event prefix, result count, individual result size, and aggregate result size. Any invalid binding rejects the whole supplemental corpus for every corpus collector.
+
+A result whose suite the evidence root lacks, because the suite exists only on another checkout's branch or was renamed or deleted since, is validated historically like a result of a changed suite ([ADR-0649](../../../../decisions/execution/verification/0649-answer-knowledge-queries-past-unverifiable-evidence.md)). An unsafe directory or an invalid suite file still fails.
+
+`lervo knowledge query` is the interactive exception under [ADR-0649](../../../../decisions/execution/verification/0649-answer-knowledge-queries-past-unverifiable-evidence.md). It omits and counts each result that cannot be bound to its CAS original, completion event, or a safe and valid suite file. It omits all results when the completion history cannot be verified. A busy store or a programming error still throws as itself. It reports the omission in `evidence` and as an `Evidence degraded` line, then still returns repository sources and owner rules.
 
 When the current suite definition matches the result's recorded suite hash, validation also checks the exact suite commands, their order, and their digests.
 

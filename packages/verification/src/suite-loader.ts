@@ -78,3 +78,27 @@ export async function loadVerificationSuite(
     );
   }
 }
+
+/**
+ * The suite as `loadVerificationSuite` reads it, or null when this checkout has no such suite: no
+ * `.lervo/verifications` directory or no file for the ID, as for a result recorded from another
+ * checkout's branch or a suite renamed or deleted since (ADR-0649). An unsafe or invalid suite
+ * still throws.
+ */
+export async function loadVerificationSuiteIfPresent(
+  repositoryRoot: string,
+  suiteId: string,
+): Promise<VerificationSuite | null> {
+  try {
+    await lstat(resolve(repositoryRoot, ".lervo/verifications"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+  }
+  try {
+    return await loadVerificationSuite(repositoryRoot, suiteId);
+  } catch (error) {
+    if (error instanceof VerificationError && error.code === "verification_suite_not_found")
+      return null;
+    throw error;
+  }
+}
