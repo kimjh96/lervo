@@ -5,12 +5,21 @@ import { roomMentionRecordedEventId } from "@lervo/schemas";
 
 import type { AgentContextEventEnvelope } from "./agent-context-types.js";
 
-/** A conversation note's subject: its conversation, then a topic digest. */
-const NOTE_SUBJECT = /^conversation\/([a-f0-9]{24})\/[a-z0-9]{1,64}$/u;
+/**
+ * A conversation note's subject: its conversation's hex, then its mention's hex. Both are
+ * identifiers, so a subject that syncs never carries a fragment of the conversation.
+ */
+const NOTE_SUBJECT = /^conversation\/([a-f0-9]{24})\/([a-f0-9]{24})$/u;
 
-/** The subject key of a note on `topic` in conversation `workspaceId` (`wsp_` and 24 hex). */
-export function conversationNoteSubject(workspaceId: string, topic: string): string {
-  return `conversation/${workspaceId.slice("wsp_".length)}/${topic}`;
+/** The longest a note may last after its observation. */
+export const CONVERSATION_NOTE_LIFETIME_MS = 30 * 86_400_000;
+
+/**
+ * The subject key of the note on mention `mentionId` (`mnt_` and 24 hex) in conversation
+ * `workspaceId` (`wsp_` and 24 hex).
+ */
+export function conversationNoteSubject(workspaceId: string, mentionId: string): string {
+  return `conversation/${workspaceId.slice("wsp_".length)}/${mentionId.slice("mnt_".length)}`;
 }
 
 /** The parts of a promotion a conversation note's provenance binds. */
@@ -21,6 +30,7 @@ interface NotePayload {
   readonly sensitivity?: string | undefined;
   readonly confidence?: string | undefined;
   readonly expiresAt?: string | null | undefined;
+  readonly observedAt?: string | undefined;
   readonly source: {
     readonly kind: string;
     readonly sourceId: string;
@@ -34,14 +44,29 @@ interface NotePayload {
 const record = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === "object" ? (value as Record<string, unknown>) : {};
 
+/** Whether the note is self-reported work memory: medium, internal, and expiring within 30 days. */
+function selfReported(payload: NotePayload): boolean {
+  const observed = Date.parse(payload.observedAt ?? "");
+  const expires = Date.parse(payload.expiresAt ?? "");
+  return (
+    payload.layer === "work" &&
+    payload.confidence === "medium" &&
+    payload.sensitivity === "internal" &&
+    expires > observed &&
+    expires <= observed + CONVERSATION_NOTE_LIFETIME_MS
+  );
+}
+
 /**
- * Whether a conversation note's receipt attests it. It holds only for a self-reported work note
- * at medium confidence, internal, and expiring. The receipt is its source and its review: a
- * `room.mention.delivered` before the promotion, whose mention was recorded to this agent in the
- * conversation the subject names. Any lookup that fails refuses the note.
+ * Whether a conversation note's receipt attests it (ADR-0648). It holds only for self-reported
+ * work memory. The receipt is its source and its review: a `room.mention.delivered` recorded
+ * after its mention and before the promotion, and observed no later than the note. The mention
+ * was recorded from another agent to this one, in the conversation and for the mention the
+ * subject names. Any lookup that fails refuses the note.
  */
 export function conversationNoteAttested(
   payload: NotePayload,
+  promotion: AgentContextEventEnvelope,
   review: AgentContextEventEnvelope,
   eventById: (eventId: string) => AgentContextEventEnvelope | undefined,
 ): boolean {
@@ -49,16 +74,15 @@ export function conversationNoteAttested(
   const delivered = record(review.payload);
   if (
     subject === null ||
-    payload.layer !== "work" ||
-    payload.confidence !== "medium" ||
-    payload.sensitivity !== "internal" ||
-    typeof payload.expiresAt !== "string" ||
+    !selfReported(payload) ||
     review.type !== "room.mention.delivered" ||
+    !(review.seq < promotion.seq) ||
     payload.source.kind !== "event" ||
     payload.source.sourceId !== payload.reviewEventId ||
     payload.source.contentHash !== payload.reviewEventHash ||
-    typeof delivered.mentionId !== "string" ||
+    delivered.mentionId !== `mnt_${subject[2]}` ||
     typeof delivered.occurredAt !== "string" ||
+    !(Date.parse(delivered.occurredAt) <= Date.parse(payload.observedAt ?? "")) ||
     !(Date.parse(delivered.occurredAt) <= Date.parse(payload.promotedAt))
   )
     return false;
@@ -66,8 +90,11 @@ export function conversationNoteAttested(
   const recorded = record(mention?.payload);
   return (
     mention?.type === "room.mention.recorded" &&
+    mention.seq < review.seq &&
     recorded.mentionId === delivered.mentionId &&
     recorded.toAgentId === payload.agentId &&
+    typeof recorded.fromAgentId === "string" &&
+    recorded.fromAgentId !== recorded.toAgentId &&
     recorded.workspaceId === `wsp_${subject[1]}`
   );
 }

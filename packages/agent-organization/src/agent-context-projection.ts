@@ -58,7 +58,7 @@ function assertSourceAndReview(
       !governed ||
       review === undefined ||
       review.eventHash !== payload.reviewEventHash ||
-      !conversationNoteAttested(payload, review, eventById)
+      !conversationNoteAttested(payload, envelope, review, eventById)
     )
       conflict("A conversation note requires its own delivery's receipt.");
     return;
@@ -126,6 +126,10 @@ function applyPromotion(
       prior.status !== "active"
     ) {
       conflict("A context promotion can supersede only one active entry in the same namespace.");
+    }
+    // Self-reported words never replace reviewed memory.
+    if (payload.memoryKind === "conversation_note" && prior.memoryKind !== "conversation_note") {
+      conflict("A conversation note can supersede only another conversation note.");
     }
     prior.status = "superseded";
   }

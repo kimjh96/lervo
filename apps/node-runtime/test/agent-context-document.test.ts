@@ -164,4 +164,24 @@ describe("agent context document", () => {
       }).map((item) => item.contextEntryId),
     ).toEqual([relevant.contextEntryId]);
   });
+
+  it("leaves self-reported conversation notes out of the document", () => {
+    const reviewed = entry("1", agentId, "2026-09-09T00:00:00.000Z", "active");
+    const noted = {
+      ...entry("4", agentId, "2026-09-10T00:00:00.000Z", "active"),
+      layer: "work" as const,
+      memoryKind: "conversation_note" as const,
+      confidence: "medium" as const,
+      expiresAt: "2026-10-10T00:00:00.000Z",
+    };
+    const selected = selectAgentContextEntries(
+      {
+        entries: [reviewed, noted],
+        inheritedEntries: [],
+      } as never,
+      10,
+      { query: "testing", at: new Date("2026-09-11T00:00:00.000Z") },
+    );
+    expect(selected.map((item) => item.contextEntryId)).toEqual([reviewed.contextEntryId]);
+  });
 });

@@ -52,6 +52,9 @@ export function selectAgentContextEntries(
     )
     .filter(
       (entry) =>
+        // A conversation note is self-reported (ADR-0648). It reaches a session only through the
+        // room block, which labels it as the agent's own; this document reads as reviewed.
+        entry.memoryKind !== "conversation_note" &&
         entry.audience === "agent" &&
         entry.sensitivity === "internal" &&
         (entry.expiresAt === null || Date.parse(entry.expiresAt) > input.at.getTime()),
