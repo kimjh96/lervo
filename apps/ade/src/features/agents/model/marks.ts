@@ -3,7 +3,7 @@
 // keeps by the image's hash, as it does for project marks.
 import type { ApplicationCommands, Choosers, Files, Images, ProjectMemory } from "../../../ports";
 import { bytesOf, keepMark } from "../../projects/model";
-import { showProjectAgents } from "./controller";
+import { changeAgent, showProjectAgents } from "./controller";
 import { useAgentStore } from "./store";
 
 export interface AgentMarkDependencies {
@@ -74,13 +74,21 @@ export async function chooseAgentMark(
     revision: agent.revision,
     data,
   });
-  // The thumbnail comes from the prepared bytes, so the image shows without reading it back.
+  // The thumbnail comes from the prepared bytes, so the image shows without reading it back, and
+  // the agent takes it at once rather than after its list arrives again.
   if (changed.mark !== null && changed.mark !== undefined)
     await keepMark(
       dependencies,
       changed.mark.sha256,
       new Blob([bytesOf(data)], { type: changed.mark.mediaType }),
     );
+  const shown = useAgentStore.getState();
+  if (shown.projectId === projectId)
+    useAgentStore.setState({
+      agents: shown.agents.map((item) =>
+        item.agentId === agent.agentId ? { ...item, mark: changed.mark ?? null } : item,
+      ),
+    });
   await showProjectAgents(dependencies.commands, projectId);
 }
 
@@ -90,10 +98,11 @@ export async function clearAgentMark(
   projectId: string,
   agent: { agentId: string; revision: number },
 ): Promise<void> {
-  await commands.run("agent.mark.clear", {
-    projectId,
-    agentId: agent.agentId,
-    revision: agent.revision,
-  });
-  await showProjectAgents(commands, projectId);
+  await changeAgent(commands, projectId, agent.agentId, { mark: null }, () =>
+    commands.run("agent.mark.clear", {
+      projectId,
+      agentId: agent.agentId,
+      revision: agent.revision,
+    }),
+  );
 }

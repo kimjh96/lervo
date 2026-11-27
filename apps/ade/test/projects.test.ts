@@ -270,7 +270,7 @@ describe("project actions", () => {
     expect(deps.ran).toEqual([]);
   });
 
-  it("records a failed change's code and keeps the lists", async () => {
+  it("records a failed change's code and lists the projects again, as they were", async () => {
     const deps = dependencies({
       "project.unregister": () => {
         throw new RequestFailure("repository_not_registered", "gone");
@@ -278,7 +278,37 @@ describe("project actions", () => {
     });
     await removeProject(deps.value, "prj_a");
     expect(useProjectStore.getState().failure).toBe("repository_not_registered");
-    expect(deps.ran.map((item) => item.command)).toEqual(["project.unregister"]);
+    expect(deps.ran.map((item) => item.command)).toEqual([
+      "project.unregister",
+      "workspace.list",
+      "repository.list",
+    ]);
+  });
+
+  it("shows a new name, or a removal, at once, before the core answers", async () => {
+    let answer: () => void = () => undefined;
+    const answered = new Promise<void>((resolve) => (answer = resolve));
+    const deps = dependencies({
+      "project.rename": async ({ projectId, name }) => {
+        await answered;
+        return { projectId, displayName: name };
+      },
+      "project.unregister": async ({ projectId }) => {
+        await answered;
+        return { projectId };
+      },
+    });
+    useWorkspaceStore.setState({
+      repositories: [project("prj_a", "argo"), project("prj_b", "web")],
+    });
+    const renaming = renameProject(deps.value, "prj_a", "Argo");
+    expect(useWorkspaceStore.getState().repositories[0]?.displayName).toBe("Argo");
+    const removing = removeProject(deps.value, "prj_b");
+    expect(useWorkspaceStore.getState().repositories.map((item) => item.projectId)).toEqual([
+      "prj_a",
+    ]);
+    answer();
+    await Promise.all([renaming, removing]);
   });
 });
 
