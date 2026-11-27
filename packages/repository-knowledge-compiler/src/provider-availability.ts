@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import type { NoCapabilityJsonInvocationStrategy } from "@lervo/adapter-contract";
+
 export class KnowledgeProviderAvailabilityError extends Error {
   readonly code = "knowledge_provider_paused";
   constructor(
@@ -14,7 +16,7 @@ export class KnowledgeProviderAvailabilityError extends Error {
 
 /** Native failure envelopes are inspected here; model-authored text never controls admission. */
 export function assertKnowledgeProviderAvailable(input: {
-  provider: "claude" | "codex";
+  strategy: Pick<NoCapabilityJsonInvocationStrategy, "isNativeFailureEvent">;
   status: string;
   stdout: string;
   stderr: string;
@@ -30,11 +32,7 @@ export function assertKnowledgeProviderAvailable(input: {
     }
     if (value === null || typeof value !== "object" || Array.isArray(value)) continue;
     const event = value as Record<string, unknown>;
-    const nativeFailure =
-      input.provider === "claude"
-        ? event.type === "result" && event.is_error === true
-        : event.type === "error" || event.type === "turn.failed";
-    if (!nativeFailure) continue;
+    if (!input.strategy.isNativeFailureEvent(event)) continue;
     failures.push(JSON.stringify(event));
     const error =
       event.error !== null && typeof event.error === "object"

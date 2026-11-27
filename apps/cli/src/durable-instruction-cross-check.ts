@@ -5,6 +5,7 @@ import {
   type DurableInstructionCrossCheckVerdict,
   type GroundedDurableInstruction,
 } from "@lervo/repository-knowledge";
+import { noCapabilityJsonInvocationStrategy } from "@lervo/repository-knowledge-runtime";
 import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledge-compiler";
 
 import {
@@ -31,7 +32,7 @@ export async function crossCheckDurableInstruction(input: {
 }): Promise<DurableInstructionCrossCheckVerdict> {
   const selection = await (input.readSelection ?? readHostSelection)();
   const runner = await createNoCapabilityProviderJsonRunner({
-    provider: input.provider,
+    strategy: noCapabilityJsonInvocationStrategy(input.provider),
     ...modelCallOptions(selection, "review", input.provider),
     systemPrompt: durableInstructionCrossCheckInstruction,
     timeoutMs: CROSS_CHECK_TIMEOUT_MS,

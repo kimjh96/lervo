@@ -1,4 +1,5 @@
 import * as processHost from "../src/process-host.js";
+import { strategyFor } from "./provider-strategies.js";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -7,7 +8,6 @@ import {
   probeProviderCli,
   createNoCapabilityProviderJsonRunner,
   createProcessDocumentNormalizationCompiler,
-  CODEX_NO_CAPABILITY_DISABLED_FEATURES,
   providerCliDispatchContext,
 } from "../src/index.js";
 import { providerOutputSchema } from "@lervo/schemas";
@@ -34,7 +34,7 @@ else { const structured=args.includes('--json-schema'); console.log(JSON.stringi
 `,
     { mode: 0o700 },
   );
-  return { root, executable, log, provider };
+  return { root, executable, log, provider, strategy: strategyFor(provider) };
 }
 it("rejects Codex additional_tools with bounded closed names using every existing feature disable", async () => {
   const f = await provider("codex", true);
@@ -46,7 +46,7 @@ it("rejects Codex additional_tools with bounded closed names using every existin
   });
   const args = JSON.parse(await readFile(f.log, "utf8"));
   expect(args.slice(0, 2)).toEqual(["debug", "prompt-input"]);
-  for (const feature of CODEX_NO_CAPABILITY_DISABLED_FEATURES) expect(args).toContain(feature);
+  for (const feature of f.strategy.disabledCapabilities) expect(args).toContain(feature);
   expect(JSON.stringify(result)).not.toContain("private/path-token");
 });
 it.each(["codex", "claude"] as const)(
@@ -99,7 +99,9 @@ it.each(["codex", "claude"] as const)(
     const process = vi
       .spyOn(processHost, "runProcess")
       .mockResolvedValue({ status: "timed_out", stdout: "", stderr: "", exitCode: null });
-    expect(await probeProviderCli({ provider, executable: "/not-invoked" })).toEqual({
+    expect(
+      await probeProviderCli({ strategy: strategyFor(provider), executable: "/not-invoked" }),
+    ).toEqual({
       admitted: false,
       reason: "probe_timed_out",
       exposedTools: [],
@@ -133,7 +135,9 @@ it.each([
       ...override,
     }),
   });
-  expect(await probeProviderCli({ provider: "claude", executable: "/not-invoked" })).toMatchObject({
+  expect(
+    await probeProviderCli({ strategy: strategyFor("claude"), executable: "/not-invoked" }),
+  ).toMatchObject({
     admitted: false,
     reason: "capabilities_exposed",
   });
@@ -150,7 +154,11 @@ it.each(["quota_exceeded", "authentication_failed"])(
     });
     const observeUsage = vi.fn(async () => {});
     await expect(
-      probeProviderCli({ provider: "claude", executable: "/not-invoked", observeUsage }),
+      probeProviderCli({
+        strategy: strategyFor("claude"),
+        executable: "/not-invoked",
+        observeUsage,
+      }),
     ).rejects.toMatchObject({
       code: "knowledge_provider_paused",
       reason: code === "quota_exceeded" ? "quota" : "authentication",
@@ -169,7 +177,7 @@ it.each(["json", "normalization"] as const)(
     const beforeCall = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(failure);
     const onCall = vi.fn(async () => {});
     const options = {
-      provider: "claude" as const,
+      strategy: strategyFor("claude"),
       executable: "/installed/claude",
       beforeCall,
       onCall,

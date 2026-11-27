@@ -1,6 +1,6 @@
 # Runtime ownership
 
-`@lervo/repository-knowledge` owns provider-neutral baseline replay, stage handoff, receipts, and settlement. The bundled private `@lervo/repository-knowledge-runtime` composes repository sources, workforce, managed workspaces, integration, normalization, and lifecycle verification. CLI and Node share this runtime; provider process behavior remains in `@lervo/repository-knowledge-compiler`.
+`@lervo/repository-knowledge` owns provider-neutral baseline replay, stage handoff, receipts, and settlement. The bundled private `@lervo/repository-knowledge-runtime` composes repository sources, workforce, managed workspaces, integration, normalization, and lifecycle verification. CLI and Node share this runtime. `@lervo/repository-knowledge-compiler` runs no-capability provider processes through the JSON invocation strategy contract in `@lervo/adapter-contract`; the Claude and Codex adapters implement it, and the runtime passes the strategy for the selected provider.
 
 Under [ADR-0441](../../../../decisions/knowledge/repository/canonicalization/0441-isolate-resident-knowledge-from-node-conversations.md), the standalone Node hosts the version-four resident owner in one owned child of the same immutable runtime artifact. Under [ADR-0442](../../../../decisions/knowledge/repository/canonicalization/0442-isolate-conversation-repository-snapshots.md), managed conversation repository snapshots use a separate one-shot child of that artifact, retaining the existing snapshot policy and deadline.
 

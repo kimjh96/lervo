@@ -22,6 +22,9 @@ export default defineConfig({
       "@lervo/session-host-contract": fromRoot("./packages/session-host-contract/src/index.ts"),
       // A subpath alias comes before its package's, which would otherwise match it as a prefix.
       "@lervo/adapter-claude/claims": fromRoot("./packages/adapter-claude/src/hosted-claims.ts"),
+      "@lervo/adapter-claude/no-capability-json": fromRoot(
+        "./packages/adapter-claude/src/no-capability-json-invocation.ts",
+      ),
       "@lervo/adapter-claude": fromRoot("./packages/adapter-claude/src/index.ts"),
       "@lervo/adapter-codex": fromRoot("./packages/adapter-codex/src/index.ts"),
       "@lervo/adapter-discord": fromRoot("./packages/adapter-discord/src/index.ts"),

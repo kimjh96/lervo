@@ -2,6 +2,7 @@ import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledg
 import {
   lifecyclePlanReviewVerdict,
   prepareLifecyclePlanCrossCheck,
+  noCapabilityJsonInvocationStrategy,
 } from "@lervo/repository-knowledge-runtime";
 
 import { CommandFailure } from "./command-error-output.js";
@@ -57,9 +58,10 @@ export async function crossCheckPlan(input: PlanCrossCheckInput): Promise<PlanCr
   const {
     route: { provider },
     opened: runner,
-  } = await openFirstRoute(routes, (route) =>
+  } = await openFirstRoute(routes, ({ provider: routeProvider, ...route }) =>
     createNoCapabilityProviderJsonRunner({
       ...route,
+      strategy: noCapabilityJsonInvocationStrategy(routeProvider),
       systemPrompt: prepared.systemPrompt,
       timeoutMs: CROSS_CHECK_TIMEOUT_MS,
     }),

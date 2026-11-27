@@ -96,7 +96,7 @@ describe("conversation knowledge semantic review", () => {
     });
     expect(review.openRunner).toHaveBeenCalledWith(
       expect.objectContaining({
-        provider: "codex",
+        strategy: expect.objectContaining({ provider: "codex" }),
         systemPrompt: expect.stringContaining("no-tool"),
       }),
     );

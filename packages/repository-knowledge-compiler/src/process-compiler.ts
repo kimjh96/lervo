@@ -1,6 +1,5 @@
 import { compileFailure } from "./compiler-failure.js";
-import { parseClaudeOutput, parseCodexOutput } from "./provider-response.js";
-export { parseClaudeOutput, parseProviderResultText } from "./provider-response.js";
+export { parseProviderResultText } from "./invocation-failure.js";
 import {
   providerResponseContractSchema,
   providerNativeResponseSchema,
@@ -9,28 +8,14 @@ export {
   providerResponseContractSchema,
   providerNativeResponseSchema,
 } from "./provider-response-schema.js";
-import { codexNoCapabilityFeatureArguments } from "./codex-capability-probe.js";
-export {
-  CODEX_NO_CAPABILITY_DISABLED_FEATURES,
-  codexNoCapabilityFeatureArguments,
-  assertCodexHasNoModelTools,
-} from "./codex-capability-probe.js";
-import {
-  claudeJsonUsage,
-  codexJsonUsage,
-  documentNormalizationTokenUsage,
-} from "./provider-json-usage.js";
+import { documentNormalizationTokenUsage } from "./provider-json-usage.js";
 import {
   documentNormalizationResponseSchema,
   documentNormalizationInstruction,
   documentNormalizationFeedbackInstruction,
   documentNormalizationPromptInstruction,
 } from "./process-compiler-contract.js";
-import {
-  claudeNoCapabilityArguments,
-  codexNoCapabilityArguments,
-} from "./no-capability-arguments.js";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -60,6 +45,7 @@ import {
   prepareNoCapabilityInvocation,
   providerInvocationContract,
 } from "./provider-invocation-preflight.js";
+import { parseNoCapabilityRun, writeInvocationFiles } from "./no-capability-run.js";
 
 const NORMALIZATION_ADAPTER_VERSION = "3";
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
@@ -81,7 +67,7 @@ export async function createNoCapabilityProviderJsonRunner(
   }
   const { executable, timeoutMs } = await prepareNoCapabilityInvocation(options);
   const resolveObserved = async (input: unknown, signal?: AbortSignal) => {
-    const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-json-`));
+    const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.strategy.provider}-json-`));
     try {
       const prompt = canonicalJson(providerWireRequest(input));
       const responseContractSchema = providerResponseContractSchema(input);
@@ -100,47 +86,21 @@ export async function createNoCapabilityProviderJsonRunner(
       }
       // Checked above as built; the provider receives it without reference-kind marks.
       const wireSchema = providerWireSchema(responseContractSchema);
-      const responseSchema =
-        options.provider === "codex" ? providerNativeResponseSchema(wireSchema) : wireSchema;
-      const responseSchemaJson = canonicalJson(responseSchema);
-      const codexResponseSchemaPath = resolve(directory, "response-schema.json");
-      if (options.provider === "codex") {
-        await writeFile(codexResponseSchemaPath, `${responseSchemaJson}\n`, {
-          encoding: "utf8",
-          mode: 0o600,
-          flag: "wx",
-        });
-      }
-      const arguments_ =
-        options.provider === "claude"
-          ? [
-              ...claudeNoCapabilityArguments(),
-              "--effort",
-              options.reasoningEffort ?? "low",
-              ...(options.systemPrompt === undefined
-                ? []
-                : ["--system-prompt", options.systemPrompt]),
-              "--json-schema",
-              responseSchemaJson,
-              ...(options.model === undefined ? [] : ["--model", options.model]),
-            ]
-          : [
-              ...codexNoCapabilityArguments(),
-              "-c",
-              `model_reasoning_effort="${options.reasoningEffort ?? "low"}"`,
-              ...(options.systemPrompt === undefined
-                ? []
-                : ["-c", `developer_instructions=${JSON.stringify(options.systemPrompt)}`]),
-              "--output-schema",
-              codexResponseSchemaPath,
-              ...codexNoCapabilityFeatureArguments(),
-              ...(options.model === undefined ? [] : ["--model", options.model]),
-              "-",
-            ];
+      const invocation = options.strategy.instructedRun({
+        workingDirectory: directory,
+        responseSchema: {
+          requested: canonicalJson(wireSchema),
+          nativeSubset: canonicalJson(providerNativeResponseSchema(wireSchema)),
+        },
+        reasoningEffort: options.reasoningEffort ?? "low",
+        ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
+        ...(options.model === undefined ? {} : { model: options.model }),
+      });
+      await writeInvocationFiles(invocation);
 
       const result = await runNoCapabilityProcess(options, {
         executable,
-        arguments: arguments_,
+        arguments: invocation.arguments,
         cwd: directory,
         stdin: prompt,
         ...(signal === undefined ? {} : { signal }),
@@ -153,29 +113,17 @@ export async function createNoCapabilityProviderJsonRunner(
           { processStatus: result.status },
         );
       }
-      const observed =
-        options.provider === "claude"
-          ? parseClaudeOutput<Record<string, unknown> & { telemetry: NoCapabilityTelemetry }>(
-              result.stdout,
-              { structuredOutputRequired: true },
-            )
-          : parseCodexOutput<Record<string, unknown> & { telemetry: NoCapabilityTelemetry }>(
-              result.stdout,
-            );
+      const { observed, usage } = parseNoCapabilityRun<
+        Record<string, unknown> & { telemetry: NoCapabilityTelemetry }
+      >(options.strategy, result.stdout);
       const { telemetry: _telemetry, ...value } = observed;
-      return {
-        value,
-        usage:
-          options.provider === "claude"
-            ? claudeJsonUsage(result.stdout)
-            : codexJsonUsage(result.stdout),
-      };
+      return { value, usage };
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
   };
   return {
-    provider: options.provider,
+    provider: options.strategy.provider,
     resolve: async (input, signal) => (await resolveObserved(input, signal)).value,
     resolveObserved,
   };
@@ -193,16 +141,18 @@ export async function createProcessDocumentNormalizationCompiler(
     responseSchemaHash: sha256(canonicalJson(documentNormalizationResponseSchema)),
   };
   const descriptor = {
-    compilerId: `lervo.${options.provider}.document-normalizer`,
+    compilerId: `lervo.${options.strategy.provider}.document-normalizer`,
     compilerVersion: `${NORMALIZATION_ADAPTER_VERSION}+${version}`,
     compilerBuildId: sha256(canonicalJson(invocationContract)),
-    provider: options.provider,
+    provider: options.strategy.provider,
     isolation: "external_no_capabilities" as const,
   };
   const normalizeObserved: NonNullable<
     RepositoryDocumentNormalizationCompiler["normalizeObserved"]
   > = async (envelope, signal) => {
-    const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-normalization-`));
+    const directory = await mkdtemp(
+      resolve(tmpdir(), `lervo-${options.strategy.provider}-normalization-`),
+    );
     try {
       const instruction = documentNormalizationPromptInstruction(envelope);
       // ADR-0608: the normalization call is checked like every other, against its own envelope.
@@ -219,38 +169,21 @@ export async function createProcessDocumentNormalizationCompiler(
         responseSchema: providerWireSchema(documentNormalizationResponseSchema),
         envelope,
       });
+      // Every provider receives the native subset, which is also what it would enforce.
       const responseSchemaJson = canonicalJson(
         providerNativeResponseSchema(providerWireSchema(documentNormalizationResponseSchema)),
       );
-      const codexResponseSchemaPath = resolve(directory, "response-schema.json");
-      if (options.provider === "codex")
-        await writeFile(codexResponseSchemaPath, `${responseSchemaJson}\n`, {
-          encoding: "utf8",
-          mode: 0o600,
-          flag: "wx",
-        });
-      const arguments_ =
-        options.provider === "claude"
-          ? [
-              ...claudeNoCapabilityArguments(),
-              "--json-schema",
-              responseSchemaJson,
-              "--system-prompt",
-              documentNormalizationInstruction,
-              ...(options.model === undefined ? [] : ["--model", options.model]),
-            ]
-          : [
-              ...codexNoCapabilityArguments(),
-              "--output-schema",
-              codexResponseSchemaPath,
-              ...codexNoCapabilityFeatureArguments(),
-              ...(options.model === undefined ? [] : ["--model", options.model]),
-              "-",
-            ];
+      const invocation = options.strategy.documentNormalizationRun({
+        workingDirectory: directory,
+        responseSchema: { requested: responseSchemaJson, nativeSubset: responseSchemaJson },
+        instruction: documentNormalizationInstruction,
+        ...(options.model === undefined ? {} : { model: options.model }),
+      });
+      await writeInvocationFiles(invocation);
 
       const result = await runNoCapabilityProcess(options, {
         executable,
-        arguments: arguments_,
+        arguments: invocation.arguments,
         cwd: directory,
         stdin: prompt,
         signal,
@@ -264,16 +197,10 @@ export async function createProcessDocumentNormalizationCompiler(
           compileFailure(`The document normalizer process did not complete (${result.status}).`),
           { processStatus: result.status },
         );
-      const response =
-        options.provider === "claude"
-          ? parseClaudeOutput<DocumentNormalizationResponse>(result.stdout, {
-              structuredOutputRequired: true,
-            })
-          : parseCodexOutput<DocumentNormalizationResponse>(result.stdout);
-      const usage =
-        options.provider === "claude"
-          ? claudeJsonUsage(result.stdout)
-          : codexJsonUsage(result.stdout);
+      const { observed: response, usage } = parseNoCapabilityRun<DocumentNormalizationResponse>(
+        options.strategy,
+        result.stdout,
+      );
       return { response, tokenUsage: documentNormalizationTokenUsage(usage) };
     } finally {
       await rm(directory, { recursive: true, force: true });

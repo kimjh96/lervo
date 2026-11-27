@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, writeFile, readFile, realpath, rm, symlink } from "node:fs/promises";
+import { noCapabilityJsonInvocationStrategy } from "../src/no-capability-json-strategy.js";
 import { tmpdir, userInfo } from "node:os";
 import { dirname, resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -70,8 +71,18 @@ console.log(JSON.stringify({is_error:false,result:'{"ok":true}',...(structured ?
       detected.environment,
     ))!;
     expect(identity.environment).toMatchObject({ HOME: home, SHELL: shell });
-    expect((await probeProviderCli(identity)).admitted).toBe(true);
-    const runner = await createNoCapabilityProviderJsonRunner(identity);
+    expect(
+      (
+        await probeProviderCli({
+          ...identity,
+          strategy: noCapabilityJsonInvocationStrategy(identity.provider),
+        })
+      ).admitted,
+    ).toBe(true);
+    const runner = await createNoCapabilityProviderJsonRunner({
+      ...identity,
+      strategy: noCapabilityJsonInvocationStrategy(identity.provider),
+    });
     expect(
       await runner.resolve({
         task: "background",
@@ -134,8 +145,18 @@ console.log(JSON.stringify({ is_error: false, result: '{"ok":true}', ...(structu
   expect(identity?.executable).toBe(executable);
   expect(identity?.realPath).toBe(await realpath(target));
   expect(identity?.environment.PATH).toBe(`${dirname(executable)}:${bin}:/usr/bin:/bin`);
-  expect((await probeProviderCli(identity!)).admitted).toBe(true);
-  const runner = await createNoCapabilityProviderJsonRunner(identity!);
+  expect(
+    (
+      await probeProviderCli({
+        ...identity!,
+        strategy: noCapabilityJsonInvocationStrategy(identity!.provider),
+      })
+    ).admitted,
+  ).toBe(true);
+  const runner = await createNoCapabilityProviderJsonRunner({
+    ...identity!,
+    strategy: noCapabilityJsonInvocationStrategy(identity!.provider),
+  });
   expect(
     await runner.resolve({
       task: "background",

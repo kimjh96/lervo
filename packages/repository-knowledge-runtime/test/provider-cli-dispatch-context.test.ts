@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { noCapabilityJsonInvocationStrategy } from "../src/no-capability-json-strategy.js";
 import { tmpdir } from "node:os";
 import { dirname, parse, resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -53,11 +54,22 @@ else {
     ))!;
     expect(identity.version).toBe("1.2.3");
     expect(await providerCliIdentityCurrent(identity)).toBe(true);
-    expect((await probeProviderCli(identity)).admitted).toBe(true);
+    expect(
+      (
+        await probeProviderCli({
+          ...identity,
+          strategy: noCapabilityJsonInvocationStrategy(identity.provider),
+        })
+      ).admitted,
+    ).toBe(true);
     const beforeCall = vi.fn(async () => {
       expect(await providerCliIdentityCurrent(identity)).toBe(true);
     });
-    const runner = await createNoCapabilityProviderJsonRunner({ ...identity, beforeCall });
+    const runner = await createNoCapabilityProviderJsonRunner({
+      ...identity,
+      strategy: noCapabilityJsonInvocationStrategy(identity.provider),
+      beforeCall,
+    });
     expect(
       await runner.resolve({
         responseContract: { schema: providerOutputSchema({ type: "object" }) },

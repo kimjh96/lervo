@@ -1,10 +1,7 @@
 import { providerCliDispatchContext } from "./provider-dispatch-context.js";
 import { compileFailure } from "./compiler-failure.js";
 import { runProcess } from "./process-host.js";
-import {
-  CODEX_NO_CAPABILITY_DISABLED_FEATURES,
-  assertCodexHasNoModelTools,
-} from "./codex-capability-probe.js";
+import { assertProviderModelInputHasNoTools } from "./model-input-probe.js";
 import type { CreateProcessProviderOptions } from "./process-provider-contract.js";
 
 async function compilerVersion(input: {
@@ -43,7 +40,7 @@ export async function prepareNoCapabilityInvocation(
   options: CreateProcessProviderOptions,
 ): Promise<{ executable: string; timeoutMs: number; version: string }> {
   await options.beforeCall?.();
-  const executable = options.executable ?? options.provider;
+  const executable = options.executable ?? options.strategy.provider;
   const timeoutMs = options.timeoutMs ?? 180_000;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 600_000)
     throw compileFailure("The provider compiler timeout must be between 1 second and 10 minutes.");
@@ -53,19 +50,16 @@ export async function prepareNoCapabilityInvocation(
     timeoutMs,
   };
   const version = await compilerVersion(invocation);
-  if (options.provider === "codex") await assertCodexHasNoModelTools(invocation);
+  await assertProviderModelInputHasNoTools({ strategy: options.strategy, ...invocation });
   return { executable, timeoutMs, version };
 }
 
 export function providerInvocationContract(options: CreateProcessProviderOptions, version: string) {
   return {
-    provider: options.provider,
+    provider: options.strategy.provider,
     providerCliVersion: version,
     providerCliIdentityHash: options.identityHash ?? null,
     model: options.model ?? "provider-default",
-    disabledCapabilities:
-      options.provider === "codex"
-        ? CODEX_NO_CAPABILITY_DISABLED_FEATURES
-        : ["all-built-in-tools", "all-mcp", "all-customizations"],
+    disabledCapabilities: options.strategy.disabledCapabilities,
   };
 }

@@ -1,16 +1,18 @@
-import { claudeJsonUsage } from "./provider-json-usage.js";
-import { assertClaudeAdmissionResponse } from "./claude-admission-response.js";
+import {
+  NO_CAPABILITY_PROBE_TOOL_NAMES,
+  type NoCapabilityJsonInvocationStrategy,
+} from "@lervo/adapter-contract";
+import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
+
+import { withKnowledgeInvocationFailures } from "./invocation-failure.js";
+import { assertProviderModelInputHasNoTools } from "./model-input-probe.js";
 import {
   assertKnowledgeProviderAvailable,
   KnowledgeProviderAvailabilityError,
 } from "./provider-availability.js";
 import { providerCliDispatchContext } from "./provider-dispatch-context.js";
-import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
-import { assertCodexHasNoModelTools } from "./codex-capability-probe.js";
 import type { ProviderJsonUsage } from "./process-provider-contract.js";
 import { runProcess } from "./process-host.js";
-import { claudeNoCapabilityArguments } from "./no-capability-arguments.js";
-import { probeToolNames } from "./probe-tool-names.js";
 
 export type ProviderCliProbeResult =
   | { admitted: true; probeResultHash: string }
@@ -22,15 +24,17 @@ export type ProviderCliProbeResult =
 
 /** The existing run boundary also owns admission. No provider output leaves this adapter. */
 export async function probeProviderCli(input: {
-  provider: "codex" | "claude";
+  strategy: NoCapabilityJsonInvocationStrategy;
   executable: string;
   environment?: NodeJS.ProcessEnv;
   observeUsage?: (usage: ProviderJsonUsage | null) => Promise<void>;
 }): Promise<ProviderCliProbeResult> {
   const { cwd, environment } = providerCliDispatchContext(input.environment);
+  const admission = input.strategy.admission;
   try {
-    if (input.provider === "codex") {
-      await assertCodexHasNoModelTools({
+    if (admission.kind === "model_input") {
+      await assertProviderModelInputHasNoTools({
+        strategy: input.strategy,
         executable: input.executable,
         cwd,
         timeoutMs: 30_000,
@@ -40,36 +44,36 @@ export async function probeProviderCli(input: {
       const result = await runProcess({
         executable: input.executable,
         environment,
-        arguments: claudeNoCapabilityArguments(),
+        arguments: admission.arguments,
         cwd,
-        stdin: canonicalJson({
-          task: "provider_cli_admission_probe",
-          instruction:
-            'Return exactly {"ok":true}. You have no tools. Do not request or use tools.',
-        }),
+        stdin: admission.stdin,
         timeoutMs: 30_000,
         maxOutputBytes: 64 * 1024,
       });
       let usage: ProviderJsonUsage | null = null;
       try {
-        usage = claudeJsonUsage(result.stdout);
+        usage = admission.usage(result.stdout);
       } catch {
         /* Failed native calls may report no usage. */
       }
       await input.observeUsage?.(usage);
-      assertKnowledgeProviderAvailable({ provider: input.provider, ...result });
+      assertKnowledgeProviderAvailable({ strategy: input.strategy, ...result });
       if (result.status !== "completed")
         return {
           admitted: false,
           reason: result.status === "timed_out" ? "probe_timed_out" : "probe_failed",
           exposedTools: [],
         };
-      assertClaudeAdmissionResponse(result.stdout);
+      withKnowledgeInvocationFailures(() => admission.assertAdmitted(result.stdout));
     }
     return {
       admitted: true,
       probeResultHash: sha256(
-        canonicalJson({ contract: "adr-0536.v2", provider: input.provider, noCapabilities: true }),
+        canonicalJson({
+          contract: "adr-0536.v2",
+          provider: input.strategy.provider,
+          noCapabilities: true,
+        }),
       ),
     };
   } catch (error) {
@@ -87,7 +91,11 @@ export async function probeProviderCli(input: {
           ? "capabilities_exposed"
           : "probe_failed"),
       exposedTools: (failure.exposedTools ?? [])
-        .filter((name) => probeToolNames.includes(name as (typeof probeToolNames)[number]))
+        .filter((name) =>
+          NO_CAPABILITY_PROBE_TOOL_NAMES.includes(
+            name as (typeof NO_CAPABILITY_PROBE_TOOL_NAMES)[number],
+          ),
+        )
         .slice(0, 16),
     };
   }

@@ -1,4 +1,5 @@
 import type { CreateProcessProviderOptions } from "@lervo/repository-knowledge-compiler";
+import { noCapabilityJsonInvocationStrategy } from "./no-capability-json-strategy.js";
 import { providerCliIdentityCurrent } from "./provider-cli-identity.js";
 import { recordWorkerProviderSelection } from "./provider-cli-selection.js";
 import {
@@ -12,7 +13,7 @@ export function backgroundProviderOptions(
   context: BackgroundProviderContext,
 ): Pick<
   CreateProcessProviderOptions,
-  | "provider"
+  | "strategy"
   | "executable"
   | "environment"
   | "identityHash"
@@ -28,7 +29,7 @@ export function backgroundProviderOptions(
   return {
     ...(route?.model == null ? {} : { model: route.model }),
     ...(route?.reasoningEffort == null ? {} : { reasoningEffort: route.reasoningEffort }),
-    provider: identity.provider,
+    strategy: noCapabilityJsonInvocationStrategy(identity.provider),
     executable: identity.executable,
     environment: identity.environment,
     identityHash: identity.identityHash,

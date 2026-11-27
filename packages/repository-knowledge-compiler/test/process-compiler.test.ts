@@ -1,4 +1,5 @@
 import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { strategyFor } from "./provider-strategies.js";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -93,7 +94,7 @@ describe("generate-only process semantic compilers", () => {
       // The fake hangs: a check that did not run would surface as a timeout, not a refusal.
       const item = await fixture(provider, "hang");
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider,
+        strategy: strategyFor(provider),
         executable: item.executable,
         timeoutMs: 1_000,
       });
@@ -122,7 +123,7 @@ describe("generate-only process semantic compilers", () => {
     it(`${provider} checks the document normalization call against its own envelope (ADR-0608)`, async () => {
       const item = await fixture(provider, "hang");
       const compiler = await createProcessDocumentNormalizationCompiler({
-        provider,
+        strategy: strategyFor(provider),
         executable: item.executable,
       });
       // A schema that offered an identifier the envelope holds would be refused before the call.
@@ -144,7 +145,7 @@ describe("generate-only process semantic compilers", () => {
       // The fake records what it received, then hangs: a refusal fails fast, a call times out.
       const item = await fixture(provider, "hang");
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider,
+        strategy: strategyFor(provider),
         executable: item.executable,
         timeoutMs: 1_000,
       });
@@ -199,7 +200,7 @@ describe("generate-only process semantic compilers", () => {
     it(`${provider} preserves a JSON runner timeout for bounded convergence recovery`, async () => {
       const item = await fixture(provider, "hang");
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider,
+        strategy: strategyFor(provider),
         executable: item.executable,
         timeoutMs: 1_000,
       });
@@ -222,7 +223,7 @@ describe("generate-only process semantic compilers", () => {
   it("accepts the final structured Codex message after an earlier agent message", async () => {
     const item = await fixture("codex", "multi_message");
     const runner = await createNoCapabilityProviderJsonRunner({
-      provider: "codex",
+      strategy: strategyFor("codex"),
       executable: item.executable,
       timeoutMs: 5_000,
     });
@@ -251,7 +252,7 @@ describe("generate-only process semantic compilers", () => {
     it(`${provider} passes a role's model and effort to the provider CLI (ADR-0612)`, async () => {
       const item = await fixture(provider);
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider,
+        strategy: strategyFor(provider),
         executable: item.executable,
         timeoutMs: 5_000,
         model: "role-model",
@@ -289,7 +290,7 @@ describe("generate-only process semantic compilers", () => {
     it(`${provider} runs provider-neutral JSON through the common no-capability contract`, async () => {
       const item = await fixture(provider);
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider,
+        strategy: strategyFor(provider),
         executable: item.executable,
         timeoutMs: 5_000,
       });
@@ -376,7 +377,7 @@ describe("generate-only process semantic compilers", () => {
     it(`${provider} runs in the neutral dispatch cwd with every model tool disabled`, async () => {
       const item = await fixture(provider);
       const runner = await createNoCapabilityProviderJsonRunner({
-        provider,
+        strategy: strategyFor(provider),
         executable: item.executable,
         timeoutMs: 5_000,
       });
@@ -403,7 +404,7 @@ describe("generate-only process semantic compilers", () => {
   it("rejects a Codex tool event even after the no-tool preflight", async () => {
     const item = await fixture("codex", "tool");
     const runner = await createNoCapabilityProviderJsonRunner({
-      provider: "codex",
+      strategy: strategyFor("codex"),
       executable: item.executable,
       timeoutMs: 5_000,
     });
@@ -415,7 +416,7 @@ describe("generate-only process semantic compilers", () => {
   it("rejects a Claude response that reports server tool use", async () => {
     const item = await fixture("claude", "web_search");
     const runner = await createNoCapabilityProviderJsonRunner({
-      provider: "claude",
+      strategy: strategyFor("claude"),
       executable: item.executable,
       timeoutMs: 5_000,
     });
@@ -427,7 +428,7 @@ describe("generate-only process semantic compilers", () => {
   it("terminates a provider process when the caller cancels", async () => {
     const item = await fixture("claude", "hang");
     const runner = await createNoCapabilityProviderJsonRunner({
-      provider: "claude",
+      strategy: strategyFor("claude"),
       executable: item.executable,
       timeoutMs: 5_000,
     });
@@ -471,7 +472,7 @@ if (${JSON.stringify(provider)} === "claude") {
       );
       await chmod(executable, 0o700);
       const normalizer = await createProcessDocumentNormalizationCompiler({
-        provider,
+        strategy: strategyFor(provider),
         executable,
         timeoutMs: 5_000,
       });
@@ -548,7 +549,7 @@ setInterval(() => {}, 1000);
       );
       await chmod(hangingExecutable, 0o700);
       const cancelled = await createProcessDocumentNormalizationCompiler({
-        provider,
+        strategy: strategyFor(provider),
         executable: hangingExecutable,
         timeoutMs: 5_000,
       });
@@ -564,7 +565,7 @@ setInterval(() => {}, 1000);
       await expect(cancelledCompilation).rejects.toThrow("normalization cancelled by test");
 
       const timedOut = await createProcessDocumentNormalizationCompiler({
-        provider,
+        strategy: strategyFor(provider),
         executable: hangingExecutable,
         timeoutMs: 1_000,
       });
@@ -605,7 +606,7 @@ console.log(JSON.stringify({ type: "turn.failed", error: { message: "PRIVATE_PRO
     );
     await chmod(executable, 0o700);
     const runner = await createNoCapabilityProviderJsonRunner({
-      provider: "codex",
+      strategy: strategyFor("codex"),
       executable,
       timeoutMs: 5_000,
     });

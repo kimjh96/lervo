@@ -1,4 +1,5 @@
 export { PRACTICE_EVENT_SCHEMA_VERSION } from "./practice-events.js";
+export { noCapabilityJsonInvocationStrategy } from "./no-capability-json-strategy.js";
 export {
   capturePlanItem,
   closePlanItem,

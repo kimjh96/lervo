@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { noCapabilityJsonInvocationStrategy } from "./no-capability-json-strategy.js";
 import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 import {
   createNoCapabilityProviderJsonRunner,
@@ -19,7 +20,7 @@ export async function probeProviderPauseAvailability(
   let observed: Awaited<ReturnType<NonNullable<NoCapabilityProviderJsonRunner["resolveObserved"]>>>;
   try {
     const runner = await createNoCapabilityProviderJsonRunner({
-      provider: identity.provider,
+      strategy: noCapabilityJsonInvocationStrategy(identity.provider),
       executable: identity.executable,
       environment: identity.environment,
       timeoutMs: 60_000,

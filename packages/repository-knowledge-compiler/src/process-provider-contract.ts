@@ -1,7 +1,12 @@
+import type {
+  NoCapabilityJsonInvocationStrategy,
+  NoCapabilityJsonProvider,
+  NoCapabilityJsonReasoningEffort,
+  NoCapabilityJsonUsage,
+} from "@lervo/adapter-contract";
 import type { ProviderJsonRequest } from "@lervo/repository-knowledge";
 
 export type { ProviderJsonRequest };
-type Provider = "codex" | "claude";
 
 /** Capability counters a no-capability provider run must report as zero. */
 export interface NoCapabilityTelemetry {
@@ -15,7 +20,8 @@ export interface NoCapabilityTelemetry {
 }
 
 export interface CreateProcessProviderOptions {
-  provider: Provider;
+  /** The provider adapter's translation of a run; composition chooses it, never this package. */
+  strategy: NoCapabilityJsonInvocationStrategy;
   executable?: string;
   environment?: NodeJS.ProcessEnv;
   identityHash?: string;
@@ -23,13 +29,13 @@ export interface CreateProcessProviderOptions {
   onCall?: () => Promise<void>;
   model?: string;
   /** ADR-0612: the role's effort; the JSON runner otherwise uses `low`, as before. */
-  reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
+  reasoningEffort?: NoCapabilityJsonReasoningEffort;
   systemPrompt?: string;
   timeoutMs?: number;
 }
 
 export interface NoCapabilityProviderJsonRunner {
-  provider: Provider;
+  provider: NoCapabilityJsonProvider;
   resolve(input: ProviderJsonRequest, signal?: AbortSignal): Promise<unknown>;
   resolveObserved?(
     input: ProviderJsonRequest,
@@ -40,11 +46,4 @@ export interface NoCapabilityProviderJsonRunner {
   }>;
 }
 
-export interface ProviderJsonUsage {
-  inputTokens: number;
-  cachedInputTokens: number;
-  outputTokens: number;
-  reasoningOutputTokens: number;
-  totalTokens: number;
-  contextWindow: number | null;
-}
+export type ProviderJsonUsage = NoCapabilityJsonUsage;

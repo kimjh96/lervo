@@ -199,7 +199,7 @@ console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10,output_
       return { observationHash: `sha256:${"a".repeat(64)}`, release: f.release };
     });
     vi.mocked(probeProviderCli).mockImplementation(async (request) => {
-      if (request.provider === "claude") {
+      if (request.strategy.provider === "claude") {
         await request.observeUsage?.(null);
         throw new KnowledgeProviderAvailabilityError(
           reason === "authentication" ? reason : "quota",
@@ -251,7 +251,9 @@ console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10,output_
       version: "0.156.1",
     });
     expect(
-      vi.mocked(probeProviderCli).mock.calls.filter(([request]) => request.provider === "claude"),
+      vi
+        .mocked(probeProviderCli)
+        .mock.calls.filter(([request]) => request.strategy.provider === "claude"),
     ).toHaveLength(reason === "already_paused" ? 0 : 1);
   },
 );

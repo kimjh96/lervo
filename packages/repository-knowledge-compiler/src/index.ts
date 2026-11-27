@@ -3,12 +3,9 @@ export {
   type NoCapabilityProviderJsonRunner,
   type ProviderJsonRequest,
   type ProviderJsonUsage,
-  CODEX_NO_CAPABILITY_DISABLED_FEATURES,
   parseProviderResultText,
   providerResponseContractSchema,
   providerNativeResponseSchema,
-  codexNoCapabilityFeatureArguments,
-  assertCodexHasNoModelTools,
   createNoCapabilityProviderJsonRunner,
   createProcessDocumentNormalizationCompiler,
   documentNormalizationProviderResponseSchema,
@@ -17,6 +14,7 @@ export * from "./repository-knowledge-worker-host.js";
 export * from "./knowledge-review-governance.js";
 export { KnowledgeProviderAvailabilityError } from "./provider-availability.js";
 export { probeProviderCli, type ProviderCliProbeResult } from "./no-capability-probe.js";
+export { assertProviderModelInputHasNoTools } from "./model-input-probe.js";
 export {
   providerCliDispatchContext,
   PROVIDER_CLI_DISPATCH_POLICY,

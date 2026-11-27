@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { strategyFor } from "./provider-strategies.js";
 import { assertKnowledgeProviderAvailable } from "../src/provider-availability.js";
 it.each(["claude", "codex"] as const)(
   "%s pauses on native quota and authentication failures without publishing raw output",
@@ -15,7 +16,7 @@ it.each(["claude", "codex"] as const)(
     ] as const) {
       try {
         assertKnowledgeProviderAvailable({
-          provider,
+          strategy: strategyFor(provider),
           status: "completed",
           stdout: envelope(message),
           stderr: "",
@@ -33,7 +34,7 @@ it.each(["claude", "codex"] as const)(
     }
     expect(() =>
       assertKnowledgeProviderAvailable({
-        provider,
+        strategy: strategyFor(provider),
         status: "completed",
         stdout: envelope("quota exceeded", "2030-01-01T00:00:00Z"),
         stderr: "",
@@ -46,7 +47,7 @@ it.each(["claude", "codex"] as const)(
   (provider) => {
     expect(() =>
       assertKnowledgeProviderAvailable({
-        provider,
+        strategy: strategyFor(provider),
         status: "completed",
         stdout: JSON.stringify({
           type: provider === "claude" ? "result" : "item.completed",

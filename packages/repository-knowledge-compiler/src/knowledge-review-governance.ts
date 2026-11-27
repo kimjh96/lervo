@@ -1,8 +1,7 @@
+import type { NoCapabilityJsonInvocationStrategy } from "@lervo/adapter-contract";
 import type { RepositoryKnowledgeReviewJob } from "@lervo/repository-knowledge";
 
 import type { ProviderJsonUsage } from "./process-compiler.js";
-
-export type KnowledgeReviewProvider = "claude" | "codex";
 
 /** One adapter-performed review call; its result carries normalized usage, never native output. */
 export type KnowledgeReviewCall = (
@@ -22,7 +21,10 @@ export type KnowledgeReviewCallGovernor = (
  * How the no-capability JSON adapter reports usage: one provider-reported total per call. A
  * provider-neutral owner records `resource.usage.recorded` against this descriptor (ADR-0459).
  */
-export function noCapabilityReviewAccountingDescriptor(provider: KnowledgeReviewProvider) {
+export function noCapabilityReviewAccountingDescriptor(
+  strategy: Pick<NoCapabilityJsonInvocationStrategy, "provider" | "usageSemanticsId">,
+) {
+  const provider = strategy.provider;
   return {
     kind: "resource_accounting_descriptor" as const,
     schemaVersion: 2 as const,
@@ -33,8 +35,7 @@ export function noCapabilityReviewAccountingDescriptor(provider: KnowledgeReview
     observationSupport: "supported" as const,
     unavailableReason: null,
     normalizationId: `${provider}.no-capability-json.usage.v1`,
-    nativeCounterSemanticsId:
-      provider === "claude" ? "claude.print-json.model-usage.v1" : "codex.exec-json.turn-usage.v1",
+    nativeCounterSemanticsId: strategy.usageSemanticsId,
     requestedModel: null,
     serviceTier: null,
   };

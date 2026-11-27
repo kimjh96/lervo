@@ -1590,6 +1590,9 @@ importers:
 
   packages/repository-knowledge-compiler:
     dependencies:
+      '@lervo/adapter-contract':
+        specifier: workspace:*
+        version: link:../adapter-contract
       '@lervo/repository-context':
         specifier: workspace:*
         version: link:../repository-context
@@ -1599,9 +1602,25 @@ importers:
       '@lervo/sqlite-connection':
         specifier: workspace:*
         version: link:../sqlite-connection
+    devDependencies:
+      '@lervo/adapter-claude':
+        specifier: workspace:*
+        version: link:../adapter-claude
+      '@lervo/adapter-codex':
+        specifier: workspace:*
+        version: link:../adapter-codex
 
   packages/repository-knowledge-runtime:
     dependencies:
+      '@lervo/adapter-claude':
+        specifier: workspace:*
+        version: link:../adapter-claude
+      '@lervo/adapter-codex':
+        specifier: workspace:*
+        version: link:../adapter-codex
+      '@lervo/adapter-contract':
+        specifier: workspace:*
+        version: link:../adapter-contract
       '@lervo/agent-workforce':
         specifier: workspace:*
         version: link:../agent-workforce

@@ -1,3 +1,4 @@
+import type { NoCapabilityJsonInvocationStrategy } from "@lervo/adapter-contract";
 import {
   loadCanonicalReviewContext,
   assertCanonicalReviewContextCurrent,
@@ -53,7 +54,7 @@ const responseSchema = providerOutputSchema({
  */
 export function createNoCapabilityKnowledgeReviewHost(
   root: string,
-  provider: RepositoryKnowledgeWorkerProvider,
+  strategy: NoCapabilityJsonInvocationStrategy,
   executable?: string,
   governor?: KnowledgeReviewCallGovernor,
   invocation?: Pick<
@@ -75,7 +76,7 @@ export function createNoCapabilityKnowledgeReviewHost(
       });
       const runner = await createNoCapabilityProviderJsonRunner({
         ...invocation,
-        provider,
+        strategy,
         ...(executable === undefined ? {} : { executable }),
         systemPrompt,
         timeoutMs: REVIEW_TIMEOUT_MS,
@@ -117,7 +118,7 @@ export async function runRepositoryKnowledgeWorker(input: {
   events: Parameters<typeof processRepositoryKnowledgeJobs>[0]["events"];
   artifacts: Parameters<typeof processRepositoryKnowledgeJobs>[0]["artifacts"];
   workerId: string;
-  provider: RepositoryKnowledgeWorkerProvider;
+  strategy: NoCapabilityJsonInvocationStrategy;
   /** An absolute provider executable; a service PATH may not contain the provider CLI. */
   executable?: string;
   host?: RepositoryKnowledgeWorkerHost;
@@ -141,7 +142,7 @@ export async function runRepositoryKnowledgeWorker(input: {
         input.host ??
         createNoCapabilityKnowledgeReviewHost(
           input.repositoryRoot,
-          input.provider,
+          input.strategy,
           input.executable,
         ),
       ...(input.maximumJobs === undefined ? {} : { maximumJobs: input.maximumJobs }),

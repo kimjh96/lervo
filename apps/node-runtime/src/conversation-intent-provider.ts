@@ -1,4 +1,5 @@
 import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledge-compiler";
+import { noCapabilityJsonInvocationStrategy } from "@lervo/repository-knowledge-runtime";
 import type { ProviderJsonRequest } from "@lervo/schemas";
 
 import {
@@ -47,7 +48,7 @@ export async function createProviderConversationIntentResolver(input: {
         input.executables?.[route.provider] ??
         (route.provider === input.provider ? input.executable : undefined);
       opened = createNoCapabilityProviderJsonRunner({
-        provider: route.provider,
+        strategy: noCapabilityJsonInvocationStrategy(route.provider),
         ...(executable === undefined ? {} : { executable }),
         ...optionalRouteFields(route),
         ...(input.timeoutMs === undefined ? {} : { timeoutMs: input.timeoutMs }),

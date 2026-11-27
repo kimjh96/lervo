@@ -3,6 +3,7 @@ import {
   groundedDurableInstructionSchema,
   sha256,
 } from "@lervo/repository-knowledge";
+import { noCapabilityJsonInvocationStrategy } from "@lervo/repository-knowledge-runtime";
 import {
   createNoCapabilityProviderJsonRunner,
   type NoCapabilityProviderJsonRunner,
@@ -201,7 +202,13 @@ export async function createProcessGroundingResolver(
     }) => Promise<NoCapabilityProviderJsonRunner>;
   } = {},
 ): Promise<SemanticGroundingResolverPort> {
-  const createRunner = options.createRunner ?? createNoCapabilityProviderJsonRunner;
+  const createRunner =
+    options.createRunner ??
+    (({ provider: runProvider, ...rest }: { provider: RunProvider; timeoutMs?: number }) =>
+      createNoCapabilityProviderJsonRunner({
+        ...rest,
+        strategy: noCapabilityJsonInvocationStrategy(runProvider),
+      }));
   const runner = await createRunner({
     provider,
     ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
