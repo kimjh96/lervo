@@ -47,7 +47,10 @@ export async function retireHostedWorkspace(
       { workspaceId },
     );
   await effects.conversation.assertRetirable(root, workspaceId);
-  const worktree = await effects.worktreeOf(root, launch.branch);
+  // A conversation's worktree is found by its record's path when its branch moved.
+  const worktree =
+    (await effects.worktreeOf(root, launch.branch)) ??
+    (await effects.conversation.worktreeOf(root, workspaceId));
   if (worktree !== null) {
     if (await effects.inUse(worktree))
       throw new CommandFailure(

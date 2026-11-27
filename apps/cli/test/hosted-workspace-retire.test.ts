@@ -30,6 +30,8 @@ function effects(state: {
   merged?: boolean;
   /** The conversation's refusal before anything is removed, such as a pending integration. */
   pending?: boolean;
+  /** The worktree the conversation's record names, when no worktree has the branch. */
+  conversationWorktree?: string;
 }) {
   const changes: string[] = [];
   const port: WorkspaceRetireEffects = {
@@ -49,6 +51,7 @@ function effects(state: {
         if (state.pending === true)
           throw Object.assign(new Error("pending"), { code: "workspace_integration_pending" });
       },
+      worktreeOf: async () => state.conversationWorktree ?? null,
       retire: async (_root, conversationId) => void changes.push(`conversation ${conversationId}`),
     },
   };
@@ -104,6 +107,14 @@ describe("retiring a hosted workspace", () => {
       branch: "absent",
     });
     expect(changes).toEqual(["conversation wsp_a", "settings session-a,session-b"]);
+  });
+
+  it("finds a conversation's worktree by its record when its branch moved", async () => {
+    const { port, changes } = effects({ worktree: null, conversationWorktree: "/repo-wt/moved" });
+    await expect(retireHostedWorkspace("wsp_a", port)).resolves.toMatchObject({
+      worktree: "removed",
+    });
+    expect(changes.slice(0, 2)).toEqual(["worktree /repo-wt/moved", "conversation wsp_a"]);
   });
 
   it("knows no workspace without a launch record or a registered repository", async () => {

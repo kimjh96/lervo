@@ -1,4 +1,4 @@
-import { lstat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -109,6 +109,49 @@ describe("retiring a conversation's workspace", () => {
         (workspace) => workspace.state,
       ),
     ).toEqual(["ready"]);
+  }, 60_000);
+
+  it("finds the worktree by its record after a branch switch or a detached HEAD", async () => {
+    const { first, second, repository } = app;
+    await git(first.worktree, "switch", "-q", "-c", "elsewhere");
+    await git(second.worktree, "checkout", "-q", "--detach");
+    for (const conversation of [first, second]) {
+      await expect(
+        retireHostedWorkspace(conversation.workspaceId, hostedWorkspaceRetireEffects()),
+      ).resolves.toMatchObject({ worktree: "removed" });
+      await expect(lstat(conversation.worktree)).rejects.toMatchObject({ code: "ENOENT" });
+      expect(await assignmentOf(conversation.leadAgentId)).toMatchObject({
+        status: "cancelled",
+        lease: null,
+      });
+      expect(
+        (await listConversationWorkspaceGenerations(repository, conversation.workspaceId)).map(
+          (workspace) => workspace.state,
+        ),
+      ).toEqual(["removed"]);
+    }
+  }, 60_000);
+
+  it("names a checkout it cannot resolve, and releases once the directory is gone", async () => {
+    const { first, repository } = app;
+    // Git forgot the worktree, but a directory still sits at the record's path.
+    await git(repository, "worktree", "remove", "--force", first.worktree);
+    await mkdir(first.worktree);
+    await expect(
+      retireHostedWorkspace(first.workspaceId, hostedWorkspaceRetireEffects()),
+    ).rejects.toMatchObject({ code: "workspace_worktree_unresolved" });
+    expect(await assignmentOf(first.leadAgentId)).toMatchObject({ status: "leased" });
+
+    await rm(first.worktree, { recursive: true });
+    await expect(
+      retireHostedWorkspace(first.workspaceId, hostedWorkspaceRetireEffects()),
+    ).resolves.toMatchObject({ worktree: "absent" });
+    expect(await assignmentOf(first.leadAgentId)).toMatchObject({ status: "cancelled" });
+    expect(
+      (await listConversationWorkspaceGenerations(repository, first.workspaceId)).map(
+        (workspace) => workspace.state,
+      ),
+    ).toEqual(["removed"]);
   }, 60_000);
 
   it("refuses, changing nothing, while a sealed change waits for integration", async () => {
