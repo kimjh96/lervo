@@ -12,8 +12,8 @@ const FINISHED = new Set(["completed", "failed", "cancelled"]);
  * Whether a convergence stage that a claim refused with `assignment_path_conflict` still waits
  * (Lervo ADE coordination, "Conflicts"). It waits only while a holder overlaps the stage's own
  * paths, judged as the claim judges them: another assignment's live write lease, or a
- * conversation's unsealed or unintegrated change. A stage whose unfinished assignment overlaps
- * nothing retries now. A failure record that names no such assignment keeps the earlier, broader
+ * conversation's unsealed change. A stage whose unfinished assignment overlaps nothing retries
+ * now. A failure record that names no such assignment keeps the earlier, broader
  * hold: any live write lease.
  */
 export async function convergencePathConflictHolds(
