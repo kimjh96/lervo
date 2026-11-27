@@ -46,6 +46,21 @@ describe("what a Claude Code tool call writes", () => {
     expect(bash("git mv old.ts new.ts && git rm gone.ts").targets).toHaveLength(3);
   });
 
+  it("claims a redirection's file, never a descriptor it duplicates or closes", () => {
+    const claimed = (command: string) => bash(command).targets.map((target) => target.path);
+    expect(claimed("pnpm test 2>&1 | tail")).toEqual([]);
+    expect(claimed("echo hi >&2")).toEqual([]);
+    expect(claimed("exec 3>&-; echo hi 1>&2")).toEqual([]);
+    expect(claimed("git log 2>/dev/null")).toEqual([]);
+    expect(claimed("pnpm build &>build.log")).toEqual(["/work/repo/build.log"]);
+    expect(claimed("pnpm build &>> build.log")).toEqual(["/work/repo/build.log"]);
+    expect(claimed("echo a 1>out.txt")).toEqual(["/work/repo/out.txt"]);
+    expect(claimed("echo a 2>> err.log")).toEqual(["/work/repo/err.log"]);
+    expect(claimed("echo a >|forced.txt")).toEqual(["/work/repo/forced.txt"]);
+    expect(claimed("echo a >&both.txt")).toEqual(["/work/repo/both.txt"]);
+    expect(bash("pnpm test 2>&1 | tail").detection).toBe("parsed");
+  });
+
   it("follows a leading cd, claims a glob's directory, and skips /dev", () => {
     expect(bash("cd packages/a && rm src/*.ts 2>/dev/null").targets).toEqual([
       { path: "/work/repo/packages/a/src", kind: "directory" },
