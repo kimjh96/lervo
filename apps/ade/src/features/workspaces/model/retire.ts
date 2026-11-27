@@ -33,7 +33,7 @@ function ended(host: SessionHost, sessionId: string): { done: Promise<void>; can
   return { done, cancel };
 }
 
-/** Stops the workspace's session and waits until it ends; a session that does not run is done. */
+/** Stops one of the workspace's sessions and waits until it ends; one that does not run is done. */
 async function stopSession(host: SessionHost, sessionId: string): Promise<void> {
   const status = useWorkspaceStore.getState().statuses[sessionId];
   if (status === undefined || status === "ended") return;
@@ -52,7 +52,7 @@ async function stopSession(host: SessionHost, sessionId: string): Promise<void> 
 export type RetireStep = "stopping" | "removing";
 
 /**
- * Retires a workspace (Lervo ADE sessions, "Retiring a workspace"): it stops the session, asks
+ * Retires a workspace (Lervo ADE sessions, "Retiring a workspace"): it stops its sessions, asks
  * the core to remove the workspace, which refuses one with changes, and returns to the start
  * screen. `onStep` hears each step as it begins. A failure rejects with the `RequestFailure`,
  * whose `coreCode` parameter names the core's refusal.
@@ -68,9 +68,15 @@ export async function retireWorkspace(input: {
     .getState()
     .workspaces.find((item) => item.workspaceId === input.workspaceId);
   if (workspace === undefined) return;
-  const status = useWorkspaceStore.getState().statuses[workspace.sessionId];
-  if (status !== undefined && status !== "ended") input.onStep?.("stopping");
-  await stopSession(input.host, workspace.sessionId);
+  // The lead's session and every agent's that joined: any of them still running in the worktree
+  // makes the core refuse with `workspace_in_use`.
+  const sessionIds = [
+    ...new Set([workspace.sessionId, ...(workspace.sessions ?? []).map((item) => item.sessionId)]),
+  ];
+  const statuses = useWorkspaceStore.getState().statuses;
+  if (sessionIds.some((id) => statuses[id] !== undefined && statuses[id] !== "ended"))
+    input.onStep?.("stopping");
+  await Promise.all(sessionIds.map((sessionId) => stopSession(input.host, sessionId)));
   input.onStep?.("removing");
   await input.commands.run("workspace.retire", { workspaceId: input.workspaceId });
   const store = useWorkspaceStore.getState();

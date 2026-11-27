@@ -17,6 +17,12 @@ export function Waiting(props: {
   label: string;
   /** Only the first connection's status waits longer, while the kept lists show. */
   launch?: boolean;
+  /**
+   * Where the words stay while their space opens: `end` suits a header's controls, whose place
+   * keeps its right edge, and `center` a wait in the middle of a view, so the words stand still
+   * instead of spilling out past the space as it grows.
+   */
+  justify?: "start" | "end" | "center";
   className?: string | undefined;
 }) {
   const [shown, setShown] = useState(false);
@@ -27,7 +33,7 @@ export function Waiting(props: {
   }, [delay]);
   return (
     <span className={[styles.waiting, props.className].filter(Boolean).join(" ")} role="status">
-      <Presence as="span" contentKey={props.label}>
+      <Presence as="span" contentKey={props.label} justify={props.justify}>
         {shown ? <span className={styles.label}>{props.label}</span> : null}
       </Presence>
     </span>

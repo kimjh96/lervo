@@ -60,6 +60,10 @@ describe("what the lead answered elsewhere", () => {
     expect(
       withAnswers(roomView(started, "agt_ciel", []).window, lines).items.map((item) => item.itemId),
     ).toEqual(["peer", "before", `answer-${answers[0]!.mentionId}`, "after"]);
+    // Before the conversation's own items load, no line joins: a line alone would place the list,
+    // and the history would then settle in view.
+    const empty = { items: [], hasEarlier: false, hasLater: false };
+    expect(withAnswers(empty, lines)).toBe(empty);
     // An answer older than a page that has earlier pages waits for them.
     expect(
       withAnswers(

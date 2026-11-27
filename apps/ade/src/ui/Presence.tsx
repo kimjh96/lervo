@@ -39,8 +39,11 @@ export function Presence(props: {
    * bottom, such as the sidebar footer, so the new content never moves when the old leaves.
    */
   align?: "start" | "end";
-  /** Which side content keeps while the space changes width; `end` suits a header's controls. */
-  justify?: "start" | "end";
+  /**
+   * Which side content keeps while the space changes width: `end` suits a header's controls, and
+   * `center` a wait in the middle of a view.
+   */
+  justify?: "start" | "end" | "center" | undefined;
   className?: string | undefined;
   /**
    * Whether content present when the place first mounts fades in. A place inside loaded content,
