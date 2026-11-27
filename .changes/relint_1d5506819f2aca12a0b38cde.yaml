@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1d5506819f2aca12a0b38cde"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A shell command's redirection that duplicates or closes a descriptor, such as 2>&1 or >&2, no longer counts as writing a file named after it, and >|, 1>, and &>> redirections now count as writing their file."

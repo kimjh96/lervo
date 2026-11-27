@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1c0905844eec7571e32cc5e5"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Reconcile conversation claims at Stop and session exit, hold changed paths, and regenerate leases"
