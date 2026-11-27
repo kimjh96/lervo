@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_caf9d29d560db1c2248c18d2"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Streamed text keeps up with its arrival more closely: the reveal counts its 120 ms from when the text reached the window, so it never trails by two extra frames."
