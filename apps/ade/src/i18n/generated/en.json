@@ -3648,6 +3648,30 @@
       "value": "Describe the work, as you would to a colleague"
     }
   ],
+  "start.keptChanges": [
+    {
+      "type": 0,
+      "value": "The workspace was removed with its changes. Lervo keeps them for up to 14 days, and this command brings them back:"
+    }
+  ],
+  "start.keptChanges.copied": [
+    {
+      "type": 0,
+      "value": "Copied"
+    }
+  ],
+  "start.keptChanges.copy": [
+    {
+      "type": 0,
+      "value": "Copy command"
+    }
+  ],
+  "start.keptChanges.dismiss": [
+    {
+      "type": 0,
+      "value": "Dismiss"
+    }
+  ],
   "start.provider.label": [
     {
       "type": 0,
@@ -3746,10 +3770,16 @@
       "value": "The session did not stop in time. Try again."
     }
   ],
+  "workspace.retire.failed.workspace_changes_not_kept": [
+    {
+      "type": 0,
+      "value": "Lervo could not keep a copy of the changes, so it removed nothing."
+    }
+  ],
   "workspace.retire.failed.workspace_has_changes": [
     {
       "type": 0,
-      "value": "This workspace has changes. Commit or remove them first."
+      "value": "This workspace has uncommitted changes."
     }
   ],
   "workspace.retire.failed.workspace_in_use": [
@@ -3764,6 +3794,12 @@
       "value": "A change from this workspace is waiting to be integrated. Remove it after it integrates."
     }
   ],
+  "workspace.retire.failed.workspace_nested_repository": [
+    {
+      "type": 0,
+      "value": "A nested repository or submodule here has work Lervo cannot keep. Commit and push it, or remove it, first."
+    }
+  ],
   "workspace.retire.failed.workspace_worktree_unresolved": [
     {
       "type": 0,
@@ -3776,6 +3812,12 @@
       "value": "Remove this workspace?"
     }
   ],
+  "workspace.retire.questionWithChanges": [
+    {
+      "type": 0,
+      "value": "Remove it with its changes? Lervo keeps them, not ignored files, for up to 14 days."
+    }
+  ],
   "workspace.retire.removing": [
     {
       "type": 0,
@@ -3786,6 +3828,12 @@
     {
       "type": 0,
       "value": "Stopping the session"
+    }
+  ],
+  "workspace.retire.withChanges": [
+    {
+      "type": 0,
+      "value": "Remove with changes"
     }
   ],
   "workspaces.conversations": [

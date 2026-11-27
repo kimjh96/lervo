@@ -18,7 +18,8 @@ import styles from "./WorkspaceControls.module.css";
 
 type Step =
   | { kind: "idle" }
-  | { kind: "asking" }
+  /** `discard` asks to remove the workspace with the changes the core refused it for. */
+  | { kind: "asking"; discard: boolean }
   | { kind: "waiting"; step: RetireStep }
   | { kind: "failed"; code: string };
 
@@ -32,6 +33,8 @@ const stepMessages: Readonly<Record<RetireStep, MessageDescriptor>> = {
 const failureMessages: Readonly<Record<string, MessageDescriptor>> = {
   workspace_in_use: { id: "workspace.retire.failed.workspace_in_use" },
   workspace_has_changes: { id: "workspace.retire.failed.workspace_has_changes" },
+  workspace_changes_not_kept: { id: "workspace.retire.failed.workspace_changes_not_kept" },
+  workspace_nested_repository: { id: "workspace.retire.failed.workspace_nested_repository" },
   session_stop_timeout: { id: "workspace.retire.failed.session_stop_timeout" },
   workspace_integration_pending: { id: "workspace.retire.failed.workspace_integration_pending" },
   workspace_worktree_unresolved: { id: "workspace.retire.failed.workspace_worktree_unresolved" },
@@ -50,7 +53,8 @@ function refusal(failure: unknown): string {
  * whole group into the question in place, with Cancel focused and Escape cancelling, and once
  * answered into what Lervo is doing, step by step. The group keeps its right edge while it changes,
  * so nothing beside it moves (ADE motion, "Changing in place"). The core refuses a workspace with
- * changes, so removing never discards work.
+ * changes; the refusal offers to remove it with them, after asking again, and the core keeps a copy
+ * of them first.
  */
 export function WorkspaceControls(props: {
   workspaceId: string;
@@ -63,13 +67,14 @@ export function WorkspaceControls(props: {
   const lists = useListCache();
   const [step, setStep] = useState<Step>({ kind: "idle" });
 
-  const retire = () => {
+  const retire = (discardChanges: boolean) => {
     setStep({ kind: "waiting", step: "removing" });
     retireWorkspace({
       host,
       commands,
       lists,
       workspaceId: props.workspaceId,
+      discardChanges,
       onStep: (step) => setStep({ kind: "waiting", step }),
     }).catch((failure: unknown) => setStep({ kind: "failed", code: refusal(failure) }));
   };
@@ -87,9 +92,11 @@ export function WorkspaceControls(props: {
         // eslint-disable-next-line jsx-a11y/no-static-element-interactions
         <span className={styles.group} onKeyDown={cancelOnEscape}>
           <span className={styles.text}>
-            <FormattedMessage id="workspace.retire.question" />
+            {step.discard
+              ? intl.formatMessage({ id: "workspace.retire.questionWithChanges" })
+              : intl.formatMessage({ id: "workspace.retire.question" })}
           </span>
-          <Button variant="outlined" onClick={retire}>
+          <Button variant="outlined" onClick={() => retire(step.discard)}>
             <FormattedMessage id="workspace.retire.confirm" />
           </Button>
           <Button
@@ -105,12 +112,24 @@ export function WorkspaceControls(props: {
         <span className={styles.group}>
           <Presence as="span">
             {step.kind === "failed" ? (
-              <InlineAlert size="meta">
-                <FormattedMessage
-                  {...(failureMessages[step.code] ?? { id: "workspace.retire.failed.other" })}
-                  values={{ code: step.code }}
-                />
-              </InlineAlert>
+              <span className={styles.group}>
+                <InlineAlert size="meta">
+                  <FormattedMessage
+                    {...(failureMessages[step.code] ?? { id: "workspace.retire.failed.other" })}
+                    values={{ code: step.code }}
+                  />
+                </InlineAlert>
+                {/* The owner may remove it anyway; the core keeps a copy of the changes first. */}
+                {/* motion: Inline errors */}
+                {step.code === "workspace_has_changes" ? (
+                  <Button
+                    variant="quiet"
+                    onClick={() => setStep({ kind: "asking", discard: true })}
+                  >
+                    <FormattedMessage id="workspace.retire.withChanges" />
+                  </Button>
+                ) : null}
+              </span>
             ) : null}
           </Presence>
           <BranchControl branch={props.branch} />
@@ -119,7 +138,7 @@ export function WorkspaceControls(props: {
               <Button
                 variant="quiet"
                 label={intl.formatMessage({ id: "workspace.retire.action" })}
-                onClick={() => setStep({ kind: "asking" })}
+                onClick={() => setStep({ kind: "asking", discard: false })}
               >
                 <TrashIcon size="md" />
               </Button>

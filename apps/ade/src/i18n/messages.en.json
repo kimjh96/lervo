@@ -1583,6 +1583,22 @@
     "defaultMessage": "The installed Lervo starts its default agent. Update Lervo to choose the agent here.",
     "description": "Under the start screen, when the installed Lervo is older than the app and offers no agent list."
   },
+  "start.keptChanges": {
+    "defaultMessage": "The workspace was removed with its changes. Lervo keeps them for up to 14 days, and this command brings them back:",
+    "description": "Under the start card after a workspace was removed with its uncommitted changes, above the Git command that restores them."
+  },
+  "start.keptChanges.copied": {
+    "defaultMessage": "Copied",
+    "description": "The copy button's words once the restore command is on the clipboard."
+  },
+  "start.keptChanges.copy": {
+    "defaultMessage": "Copy command",
+    "description": "Copies the Git command that brings removed changes back."
+  },
+  "start.keptChanges.dismiss": {
+    "defaultMessage": "Dismiss",
+    "description": "Hides the notice about removed changes; the copy stays in the repository."
+  },
   "start.question": {
     "defaultMessage": "What should Lervo do?",
     "description": "The start screen heading."
@@ -1623,8 +1639,16 @@
     "defaultMessage": "The session did not stop in time. Try again.",
     "description": "Removing stopped the session, but it did not end within 15 seconds."
   },
+  "workspace.retire.failed.workspace_changes_not_kept": {
+    "defaultMessage": "Lervo could not keep a copy of the changes, so it removed nothing.",
+    "description": "Removing with changes refused because the copy of the changes could not be made."
+  },
+  "workspace.retire.failed.workspace_nested_repository": {
+    "defaultMessage": "A nested repository or submodule here has work Lervo cannot keep. Commit and push it, or remove it, first.",
+    "description": "Removing with changes refused because a nested repository or submodule holds commits or changes a copy cannot hold."
+  },
   "workspace.retire.failed.workspace_has_changes": {
-    "defaultMessage": "This workspace has changes. Commit or remove them first.",
+    "defaultMessage": "This workspace has uncommitted changes.",
     "description": "Removing refused because the workspace holds uncommitted changes or new files."
   },
   "workspace.retire.failed.workspace_integration_pending": {
@@ -1642,6 +1666,14 @@
   "workspace.retire.question": {
     "defaultMessage": "Remove this workspace?",
     "description": "The question in the header after the trash button; the worktree and, when merged, its branch leave."
+  },
+  "workspace.retire.questionWithChanges": {
+    "defaultMessage": "Remove it with its changes? Lervo keeps them, not ignored files, for up to 14 days.",
+    "description": "The question after Remove with changes: the core keeps a copy of the uncommitted changes, without ignored files, for up to 14 days and among the newest 10 copies, before it removes the worktree."
+  },
+  "workspace.retire.withChanges": {
+    "defaultMessage": "Remove with changes",
+    "description": "Beside the refusal for uncommitted changes: asks to remove the workspace with them."
   },
   "workspace.retire.removing": {
     "defaultMessage": "Removing the workspace",

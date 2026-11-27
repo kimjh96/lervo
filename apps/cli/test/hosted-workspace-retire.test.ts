@@ -5,6 +5,7 @@ import {
   retireHostedWorkspace,
   type WorkspaceRetireEffects,
 } from "../src/hosted-workspace-retire.js";
+import { NestedRepositoryChanges } from "../src/retired-workspace-changes.js";
 
 const launch: HostedLaunchRecord = {
   schemaVersion: 1,
@@ -32,16 +33,29 @@ function effects(state: {
   pending?: boolean;
   /** The worktree the conversation's record names, when no worktree has the branch. */
   conversationWorktree?: string;
+  /** Whether keeping a copy of the changes fails, or finds a nested repository's work. */
+  keepFails?: boolean | "nested";
+  /** Whether a process starts in the worktree while the copy is made. */
+  usedAfterKeep?: boolean;
 }) {
+  let kept = false;
   const changes: string[] = [];
   const port: WorkspaceRetireEffects = {
     latestLaunch: async () => (state.launch === undefined ? launch : state.launch),
     sessionsOf: async () => ["session-a", "session-b"],
     repositoryRoot: async (projectId) => (projectId === "prj_1" ? "/repo" : null),
     worktreeOf: async () => (state.worktree === undefined ? "/repo-wt/fix" : state.worktree),
-    inUse: async () => state.inUse ?? false,
+    inUse: async () => (state.inUse ?? false) || (kept && state.usedAfterKeep === true),
     hasChanges: async () => state.changes ?? false,
-    removeWorktree: async (_root, worktree) => void changes.push(`worktree ${worktree}`),
+    keepChanges: async (_root, _worktree, workspaceId) => {
+      if (state.keepFails === "nested") throw new NestedRepositoryChanges(["vendor/lib"]);
+      if (state.keepFails === true) throw new Error("git failed");
+      kept = true;
+      changes.push(`kept ${workspaceId}`);
+      return { ref: `refs/lervo/retired-changes/${workspaceId}`, restore: "git worktree add" };
+    },
+    removeWorktree: async (_root, worktree, force) =>
+      void changes.push(`worktree ${worktree}${force ? " --force" : ""}`),
     branchExists: async () => state.branch ?? true,
     branchMerged: async () => state.merged ?? true,
     deleteBranch: async (_root, branch) => void changes.push(`branch ${branch}`),
@@ -97,6 +111,52 @@ describe("retiring a hosted workspace", () => {
       await expect(retireHostedWorkspace("wsp_a", port)).rejects.toMatchObject({ code });
       expect(changes).toEqual([]);
     }
+  });
+
+  it("removes a worktree with its changes only when asked, after keeping a copy of them", async () => {
+    const { port, changes } = effects({ changes: true });
+    await expect(retireHostedWorkspace("wsp_a", port, { discardChanges: true })).resolves.toEqual({
+      workspaceId: "wsp_a",
+      worktree: "removed",
+      branch: "deleted",
+      keptChanges: { ref: "refs/lervo/retired-changes/wsp_a", restore: "git worktree add" },
+    });
+    expect(changes.slice(0, 2)).toEqual(["kept wsp_a", "worktree /repo-wt/fix --force"]);
+
+    // A clean worktree keeps nothing and is never forced, even when asked.
+    const clean = effects({});
+    await expect(
+      retireHostedWorkspace("wsp_a", clean.port, { discardChanges: true }),
+    ).resolves.not.toHaveProperty("keptChanges");
+    expect(clean.changes[0]).toBe("worktree /repo-wt/fix");
+
+    // Without a copy, nothing is removed.
+    const failing = effects({ changes: true, keepFails: true });
+    await expect(
+      retireHostedWorkspace("wsp_a", failing.port, { discardChanges: true }),
+    ).rejects.toMatchObject({ code: "workspace_changes_not_kept" });
+    expect(failing.changes).toEqual([]);
+
+    // A nested repository's work refuses with its own code, and removes nothing.
+    const nested = effects({ changes: true, keepFails: "nested" });
+    await expect(
+      retireHostedWorkspace("wsp_a", nested.port, { discardChanges: true }),
+    ).rejects.toMatchObject({ code: "workspace_nested_repository" });
+    expect(nested.changes).toEqual([]);
+
+    // A process that started while the copy was made refuses before the forced remove.
+    const late = effects({ changes: true, usedAfterKeep: true });
+    await expect(
+      retireHostedWorkspace("wsp_a", late.port, { discardChanges: true }),
+    ).rejects.toMatchObject({ code: "workspace_in_use" });
+    expect(late.changes).toEqual(["kept wsp_a"]);
+
+    // A process in the worktree still refuses first.
+    const used = effects({ changes: true, inUse: true });
+    await expect(
+      retireHostedWorkspace("wsp_a", used.port, { discardChanges: true }),
+    ).rejects.toMatchObject({ code: "workspace_in_use" });
+    expect(used.changes).toEqual([]);
   });
 
   it("finishes an earlier retirement when the worktree is already gone", async () => {

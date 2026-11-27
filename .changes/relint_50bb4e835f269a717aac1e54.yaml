@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_50bb4e835f269a717aac1e54"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "lervo workspace retire --discard-changes, and workspace.retire with discardChanges, remove a workspace with its uncommitted changes after keeping a copy of them under refs/lervo/retired-changes, at most 10 copies for 14 days."

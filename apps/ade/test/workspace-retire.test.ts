@@ -1,7 +1,7 @@
 import type { HostMessage } from "@lervo/session-host-contract";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { retireWorkspace } from "../src/features/workspaces/model/retire";
+import { retireWorkspace, useKeptChanges } from "../src/features/workspaces/model/retire";
 import { useWorkspaceStore } from "../src/features/workspaces/model/store";
 import type { Workspace } from "../src/features/workspaces/model/types";
 import {
@@ -158,6 +158,47 @@ describe("retiring a workspace from the interface", () => {
       retireWorkspace({ host: host("hangs").fake, commands: core, lists, workspaceId: "wsp_a" }),
     ).rejects.toBe(refusal);
     expect(useWorkspaceStore.getState().selected).toBe("wsp_a");
+  });
+
+  it("asks the core to remove it with its changes only when the owner chose that", async () => {
+    useWorkspaceStore.setState({ statuses: {} });
+    const sent: Record<string, unknown>[] = [];
+    const core: ApplicationCommands = {
+      async run(command, arguments_) {
+        if (command === "workspace.retire") sent.push(arguments_ as Record<string, unknown>);
+        if (command === "workspace.list") return { workspaces: [], commands: [] } as never;
+        return { repositories: [] } as never;
+      },
+    };
+    const input = { host: host("hangs").fake, commands: core, lists, workspaceId: "wsp_a" };
+    await retireWorkspace(input);
+    useWorkspaceStore.setState({ workspaces: [workspace], selected: "wsp_a" });
+    await retireWorkspace({ ...input, discardChanges: true });
+    expect(sent).toEqual([
+      { workspaceId: "wsp_a" },
+      { workspaceId: "wsp_a", discardChanges: true },
+    ]);
+  });
+
+  it("keeps the restore command of changes the core kept, until the next removal", async () => {
+    useWorkspaceStore.setState({ statuses: {} });
+    const restore = "git -C '/repo' worktree add --detach '/wt' refs/lervo/retired-changes/wsp_a";
+    const answer = (keptChanges?: object) =>
+      commands(async () => ({
+        workspaceId: "wsp_a",
+        worktree: "removed",
+        branch: "kept",
+        ...(keptChanges === undefined ? {} : { keptChanges }),
+      }));
+    const input = { host: host("hangs").fake, lists, workspaceId: "wsp_a", discardChanges: true };
+    await retireWorkspace({
+      ...input,
+      commands: answer({ ref: "refs/lervo/retired-changes/wsp_a", restore }),
+    });
+    expect(useKeptChanges.getState().restore).toBe(restore);
+    useWorkspaceStore.setState({ workspaces: [workspace], selected: "wsp_a" });
+    await retireWorkspace({ ...input, commands: answer() });
+    expect(useKeptChanges.getState().restore).toBeNull();
   });
 
   it("gives up with session_stop_timeout when the session never ends", async () => {
