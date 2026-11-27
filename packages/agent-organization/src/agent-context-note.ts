@@ -13,6 +13,8 @@ const NOTE_SUBJECT = /^conversation\/([a-f0-9]{24})\/([a-f0-9]{24})$/u;
 
 /** The longest a note may last after its observation. */
 export const CONVERSATION_NOTE_LIFETIME_MS = 30 * 86_400_000;
+/** The most bytes a note's summary holds: 512 characters in any script. */
+export const CONVERSATION_NOTE_SUMMARY_BYTES = 2_048;
 
 /**
  * The subject key of the note on mention `mentionId` (`mnt_` and 24 hex) in conversation
@@ -31,6 +33,7 @@ interface NotePayload {
   readonly confidence?: string | undefined;
   readonly expiresAt?: string | null | undefined;
   readonly observedAt?: string | undefined;
+  readonly summaryByteCount?: number | undefined;
   readonly source: {
     readonly kind: string;
     readonly sourceId: string;
@@ -44,7 +47,10 @@ interface NotePayload {
 const record = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === "object" ? (value as Record<string, unknown>) : {};
 
-/** Whether the note is self-reported work memory: medium, internal, and expiring within 30 days. */
+/**
+ * Whether the note is self-reported work memory: medium, internal, short, and expiring within 30
+ * days.
+ */
 function selfReported(payload: NotePayload): boolean {
   const observed = Date.parse(payload.observedAt ?? "");
   const expires = Date.parse(payload.expiresAt ?? "");
@@ -52,6 +58,8 @@ function selfReported(payload: NotePayload): boolean {
     payload.layer === "work" &&
     payload.confidence === "medium" &&
     payload.sensitivity === "internal" &&
+    typeof payload.summaryByteCount === "number" &&
+    payload.summaryByteCount <= CONVERSATION_NOTE_SUMMARY_BYTES &&
     expires > observed &&
     expires <= observed + CONVERSATION_NOTE_LIFETIME_MS
   );

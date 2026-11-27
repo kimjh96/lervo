@@ -27,7 +27,8 @@ A `conversation_note` is attested by provenance, not by a review of its content.
   - A note is in the `work` layer, at medium confidence, and internal. It expires within 30 days of its observation.
   - A note may supersede only another note, never reviewed memory such as a verified work outcome.
   - It stays with its own agent: a context handoff that includes one is refused.
-  - It reaches a session only through the room block, which recalls the agent's own newest notes labeled as written by the agent and unreviewed. The node runtime's materialized agent context, which reads as reviewed governance context, leaves notes out.
+  - Its summary is at most 2,048 bytes, which holds a 512-character note in any script.
+  - It may reach a session only through the slice-3 room block, which must recall only the agent's own newest notes and label them as written by the agent and unreviewed. Until that block ships, notes reach no session. The node runtime's materialized agent context, which reads as reviewed governance context, leaves notes out.
 - **Branch scope.** Only `memoryKind: conversation_note` takes this path. Every other kind still needs a review that binds its exact summary, even when its review is a receipt.
 - **v1 records notes for agent-to-agent turns only.** A turn an agent took because another agent mentioned it has a receipt. An owner's direct turn to a conversation's lead has none and writes no note.
 - **Schema.** Notes and receipts need event schema 16 and 15. Writers record nothing until the repository's writer selects them.
@@ -48,11 +49,11 @@ A `conversation_note` is attested by provenance, not by a review of its content.
   - a receipt without a recorded mention;
   - an owner's mention, and an agent's mention of itself;
   - a note recorded before its mention or receipt, and a receipt recorded before its mention;
-  - high confidence, another layer, restricted sensitivity, no expiry, or an expiry past 30 days;
+  - high confidence, another layer, restricted sensitivity, no expiry, an expiry past 30 days, or a summary over 2,048 bytes;
   - a subject whose topic is a word rather than the mention;
   - another kind with a receipt as its review;
   - a note whose review is no receipt;
   - a note that supersedes a verified work outcome, while the same records without the pointer stand;
-  - a second note on the same receipt;
+  - a second note on the same receipt, even when it supersedes the first;
   - a handoff of a note.
 - `apps/node-runtime/test/agent-context-document.test.ts`: the materialized agent context leaves a note out.

@@ -159,6 +159,10 @@ describe("a conversation note's provenance", () => {
     refused([recorded(), delivered(), note(3, { expiresAt: null })]);
     refused([recorded(), delivered(), note(3, { expiresAt: "9999-12-31T00:00:00.000Z" })]);
     refused([recorded(), delivered(), note(3, { expiresAt: "2026-12-27T03:00:31.000Z" })]);
+    refused([recorded(), delivered(), note(3, { summaryByteCount: 2_049 })]);
+    expect(
+      project([recorded(), delivered(), note(3, { summaryByteCount: 2_048 })]).entries,
+    ).toHaveLength(1);
     refused([recorded(), delivered(), note(3, { sensitivity: "restricted" })]);
     // A plain-word subject could carry conversation text; only identifiers are taken.
     refused([
@@ -236,6 +240,15 @@ describe("a conversation note's provenance", () => {
 
   it("lets one receipt attest one note, and never hands a note to another agent", () => {
     refused([recorded(), delivered(), note(3), note(4, {}, "6")]);
+    // Superseding the first note does not let the same receipt attest a second one.
+    expect(() =>
+      project([
+        recorded(),
+        delivered(),
+        note(3),
+        note(4, { supersedesContextEntryId: `actx_${"5".repeat(24)}` }, "6"),
+      ]),
+    ).toThrow("A delivery's receipt attests one conversation note.");
     const handoff = {
       projectId,
       seq: 4,
