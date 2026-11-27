@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2953e007c0d1591c488b717e"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Renaming an agent or a project, choosing an agent's model or effort, pausing an agent, and clearing or choosing a mark show at once, instead of showing the old value again until the core answers."

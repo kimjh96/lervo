@@ -43,3 +43,7 @@ This chapter of the [design system](ade-design-system.md) turns the finish the o
 
 20. **A mark means its owner is named, speaks, or works.** A project's or agent's mark stands where the project or agent is named (the switcher, the agents list, a participants chip, the conversation's header) and where an agent speaks (the line that names a new speaker) or works (the working line). A row that is not the agent's own, such as a conversation or a record line, carries no mark, so a mark never needs explaining.
 21. **Status stays quiet until it needs the person.** Work in progress shows on the thing itself, never as an extra sign: a conversation's title rests one step quieter while the working highlight sweeps across it, and an agent's mark wears a thin breathing ring. Only what needs the person adds a sign, the still amber dot beside a conversation or project or an amber ring around an agent's mark. Finished work shows nothing.
+
+## Changes
+
+22. **A change shows at once.** A rename, a choice, a pause, or a removal the person makes shows in the interface before the core answers, and never shows the old value again while the core works. The interface lists again once the core answers; a refusal lists again too, which shows the thing as it was, and says why. A change that waits on a real effect the person must watch, such as stopping a session before removing a workspace, names its wait in place instead ([ADE design patterns](ade-design-patterns.md), "Waiting").
