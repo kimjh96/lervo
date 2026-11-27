@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ff71e6693790d1e9a0e34a14"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "A conversation shows about 40 ms sooner when it opens: its list is placed at the end in the frame its rows are measured rather than three frames later."

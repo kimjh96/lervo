@@ -68,6 +68,8 @@ export function useFollowLatest(input: {
   loaders.current = input;
   const [following, setFollowing] = useState(true);
   const [placed, setPlaced] = useState<"now" | "arrive" | null>(null);
+  const placedNow = useRef(placed);
+  placedNow.current = placed;
   const hasItems = input.items.length > 0;
   const live = following && !input.hasLater;
   const liveNow = useRef(live);
@@ -101,6 +103,9 @@ export function useFollowLatest(input: {
     }
     element.scrollTop = element.scrollHeight;
     selfScrolled.current = element.scrollTop;
+    // Until the list is placed, the virtualizer reads the end now rather than from the next
+    // frame's scroll event, so the end's rows mount and are measured before the first paint.
+    if (placedNow.current === null) element.dispatchEvent(new Event("scroll"));
   }, [scroller, live, input.items.length, lastLength, totalSize, input.dockHeight]);
 
   // The list shows once its items are measured and it rests at its end, so the estimated first
@@ -108,13 +113,16 @@ export function useFollowLatest(input: {
   // continues one already on screen, such as new work's first message, shows at once.
   useLayoutEffect(() => {
     if (placed !== null || !hasItems) return;
+    // `lervo:` marks time each step of opening a conversation for the interface harness.
+    performance.mark("lervo:conversation-rows");
     if (input.continues) {
       setPlaced("now");
       return;
     }
-    // Each frame follows the end until the measured height stops changing.
+    // Each frame follows the end until the measured height stops changing. The height at layout
+    // counts as the first, so a list measured in its first commit is placed after one frame.
     let frames = 0;
-    let previous = -1;
+    let previous = scroller.current?.scrollHeight ?? -1;
     let frame = 0;
     const settle = () => {
       const element = scroller.current;
@@ -124,8 +132,10 @@ export function useFollowLatest(input: {
         selfScrolled.current = element.scrollTop;
       }
       frames += 1;
-      if (element.scrollHeight === previous || frames >= PLACE_FRAMES) setPlaced("arrive");
-      else frame = requestAnimationFrame(settle);
+      if (element.scrollHeight === previous || frames >= PLACE_FRAMES) {
+        performance.mark("lervo:conversation-placed");
+        setPlaced("arrive");
+      } else frame = requestAnimationFrame(settle);
       previous = element.scrollHeight;
     };
     frame = requestAnimationFrame(settle);
