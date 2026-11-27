@@ -104,6 +104,7 @@ The worst backgrounds are the black backdrop in light mode and the white backdro
 | `size.ring.width` / `gap`                     | 1.5 / 3 px      | The status ring around an agent's mark, and how far it sits outside the mark                  |
 | `size.icon.sm` / `md` / `lg`                  | 12 / 14 / 16 px | Icons beside captions, in rows, and in buttons                                                |
 | `size.logo.launch`                            | 96 px           | The mark in the launch view, two pixels per grid unit, so its edges stay sharp at every scale |
+| `size.logo.welcome`                           | 72 px           | The mark above the first run's welcome, one and a half pixels per grid unit                   |
 | `opacity.disabled`                            | 0.45            | A control that cannot act now                                                                 |
 | `focus.ring.width` / `offset` / `inset`       | 2 / 2 / −2 px   | Focus rings outside a control, or inside a row or segment                                     |
 | `border.width.strong`                         | 2 px            | The question bar                                                                              |
@@ -148,6 +149,7 @@ When the platform asks for more contrast, these tokens change, and every other t
 - **App icon.** The mark fills 55% of a rounded-square tile with a `#2C3754` to `#151A27` gradient.
 - **Clear space and size.** Keep at least one bar height (9 units) clear on every side. The minimum size is 16 px.
 - **Launch view.** From the window's first frame until the first screen is ready, the full-color mark shows at `size.logo.launch` in the center of the window's surface. It has no text and no progress indicator. The motion principles' "Launch" pattern times its exit.
+- **Welcome.** The first run shows the full-color mark at `size.logo.welcome` (72 px) above its welcome, where the launch view's mark gives way to it.
 - **Misuse.** Do not recolor the first two bars, reorder the opacity steps, rotate the mark, or add glass, blur, or shadow to it.
 
 ## Interface copy

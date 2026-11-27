@@ -3580,12 +3580,6 @@
       "value": "Drop the folder to add it as a project"
     }
   ],
-  "start.firstRun.dropHint": [
-    {
-      "type": 0,
-      "value": "or drop a folder here"
-    }
-  ],
   "start.firstRun.failed": [
     {
       "type": 0,
@@ -3627,13 +3621,13 @@
   "start.firstRun.subtitle": [
     {
       "type": 0,
-      "value": "Lervo works in a project: a folder with Git."
+      "value": "Add a project to start, or drop its folder on this window."
     }
   ],
   "start.firstRun.title": [
     {
       "type": 0,
-      "value": "Add your first project"
+      "value": "Welcome to Lervo"
     }
   ],
   "start.instruction.label": [

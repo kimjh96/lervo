@@ -3,17 +3,21 @@
    "Launch"). */
 .frame {
   display: grid;
-  grid-template-columns: var(--layout-sidebar-width) 1fr;
+  grid-template-columns: auto 1fr;
   height: 100vh;
   animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade) backwards;
   animation-delay: calc(var(--motion-duration-exit) / 2);
 }
 
 /* The sidebar keeps its place when the main area changes views; its changes show at once. */
+/* The sidebar's width is its space; `Frame` moves it when the sidebar folds or opens. */
 .sidebar {
   display: flex;
   flex-direction: column;
+  width: var(--layout-sidebar-width);
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
   border-inline-end: 1px solid var(--color-border-subtle);
   background: var(--color-surface-sidebar);
 }
@@ -59,7 +63,13 @@
 /* A narrow or zoomed window narrows the workspace list instead of hiding it, so navigation never
    disappears and the window controls keep the list's strip. */
 @media (width < 760px) {
-  .frame {
-    grid-template-columns: var(--layout-sidebar-min-width) 1fr;
+  .sidebar {
+    width: var(--layout-sidebar-min-width);
   }
+}
+
+/* With no project yet, the sidebar folds away and the first run takes the whole window. */
+.frame[data-sidebar="folded"] > .sidebar {
+  width: 0;
+  border-inline-end-color: transparent;
 }

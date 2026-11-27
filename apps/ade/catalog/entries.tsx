@@ -10,6 +10,7 @@ import { FloatingButton } from "../src/ui/FloatingButton";
 import { IconButton } from "../src/ui/IconButton";
 import { ArrowUpIcon, ChevronDownIcon, PlusIcon, StopIcon, TrashIcon } from "../src/ui/icons";
 import { InlineAlert } from "../src/ui/InlineAlert";
+import { LervoMark } from "../src/ui/LervoMark";
 import { Kbd } from "../src/ui/Kbd";
 import { Mark } from "../src/ui/Mark";
 import { ListRow } from "../src/ui/ListRow";
@@ -372,6 +373,18 @@ export const entries: readonly Entry[] = [
           </span>
         ),
       },
+    ],
+  },
+  {
+    module: "LervoMark",
+    name: "Lervo mark",
+    purpose:
+      "The stepped-bar mark in full color, as the launch view draws it, at the logo size tokens.",
+    use: ["Welcome at size.logo.welcome above the first run", "Launch at size.logo.launch"],
+    avoid: ["Recoloring the first two bars", "Glass, blur, or a shadow on the mark"],
+    variants: [
+      { name: "Welcome", render: () => <LervoMark size="welcome" /> },
+      { name: "Launch", render: () => <LervoMark size="launch" /> },
     ],
   },
 ];

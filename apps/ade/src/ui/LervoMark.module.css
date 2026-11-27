@@ -1,0 +1,20 @@
+/* The Lervo mark in the interface, drawn as the launch view draws it (ADE visual language,
+   "Logo"): no glass, blur, or shadow on it. */
+.mark {
+  flex: none;
+  fill: var(--color-text-primary);
+}
+
+.mark[data-size="launch"] {
+  width: var(--size-logo-launch);
+  height: var(--size-logo-launch);
+}
+
+.mark[data-size="welcome"] {
+  width: var(--size-logo-welcome);
+  height: var(--size-logo-welcome);
+}
+
+.accent {
+  fill: var(--color-accent);
+}
