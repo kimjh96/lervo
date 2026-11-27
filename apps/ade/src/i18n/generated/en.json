@@ -3181,6 +3181,120 @@
       "value": ")"
     }
   ],
+  "room.claimUnresolved": [
+    {
+      "type": 8,
+      "value": "code",
+      "children": [
+        {
+          "type": 1,
+          "value": "path"
+        }
+      ]
+    },
+    {
+      "type": 0,
+      "value": " stays unresolved · "
+    },
+    {
+      "type": 1,
+      "value": "holder"
+    },
+    {
+      "type": 0,
+      "value": " holds it in "
+    },
+    {
+      "type": 8,
+      "value": "link",
+      "children": [
+        {
+          "type": 1,
+          "value": "title"
+        }
+      ]
+    }
+  ],
+  "room.claimUnresolvedCode": [
+    {
+      "type": 8,
+      "value": "code",
+      "children": [
+        {
+          "type": 1,
+          "value": "path"
+        }
+      ]
+    },
+    {
+      "type": 0,
+      "value": " stays unresolved ("
+    },
+    {
+      "type": 1,
+      "value": "reason"
+    },
+    {
+      "type": 0,
+      "value": ")"
+    }
+  ],
+  "room.claimUnresolvedHeld": [
+    {
+      "type": 8,
+      "value": "code",
+      "children": [
+        {
+          "type": 1,
+          "value": "path"
+        }
+      ]
+    },
+    {
+      "type": 0,
+      "value": " stays unresolved · "
+    },
+    {
+      "type": 1,
+      "value": "holder"
+    },
+    {
+      "type": 0,
+      "value": " holds it"
+    }
+  ],
+  "room.claimUnresolvedMore": [
+    {
+      "type": 6,
+      "value": "count",
+      "options": {
+        "one": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " more path stays unresolved"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " more paths stay unresolved"
+            }
+          ]
+        }
+      },
+      "offset": 0,
+      "pluralType": "cardinal"
+    }
+  ],
   "room.conversationStarted": [
     {
       "type": 1,

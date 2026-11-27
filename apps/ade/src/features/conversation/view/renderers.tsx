@@ -5,7 +5,7 @@ import { FormattedMessage, type MessageDescriptor } from "react-intl";
 import { attachedFiles } from "../model/files";
 import { useConversationStore } from "../model/store";
 import { QuestionChoices } from "./ChoiceCard";
-import { ClaimLine } from "./ClaimLine";
+import { ClaimLine, isClaimLine } from "./ClaimLine";
 import { MessageFiles } from "./MessageFiles";
 import { MessageImages } from "./MessageImages";
 import { usePacedText } from "./paced";
@@ -184,7 +184,7 @@ function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_
   if (item.code === "context_compacted")
     return <CompactionDivider manual={item.parameters.trigger === "manual"} />;
   if (Object.hasOwn(startedMessages, item.code)) return <StartedLine item={item} />;
-  if (item.code === "claim_conflict") return <ClaimLine item={item} />;
+  if (isClaimLine(item.code)) return <ClaimLine item={item} />;
   if (Object.hasOwn(roomMessages, item.code))
     return (
       <p className={styles.roomLine}>

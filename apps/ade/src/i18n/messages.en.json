@@ -1423,6 +1423,22 @@
     "defaultMessage": "{agent} was stopped at <code>{path}</code> ({reason})",
     "description": "A room line after a tool call Lervo stopped for a reason no agent holds, such as a path outside the lead's responsibility; {reason} is the core's code."
   },
+  "room.claimUnresolved": {
+    "defaultMessage": "<code>{path}</code> stays unresolved · {holder} holds it in <link>{title}</link>",
+    "description": "A room line at a turn's end for a path the turn changed that another conversation holds; the title opens that conversation."
+  },
+  "room.claimUnresolvedCode": {
+    "defaultMessage": "<code>{path}</code> stays unresolved ({reason})",
+    "description": "A room line at a turn's end for a path the turn changed that Lervo could not claim for a reason no agent holds; {reason} is the core's code."
+  },
+  "room.claimUnresolvedHeld": {
+    "defaultMessage": "<code>{path}</code> stays unresolved · {holder} holds it",
+    "description": "A room line at a turn's end for a path another agent holds, when the holder's conversation is not listed here."
+  },
+  "room.claimUnresolvedMore": {
+    "defaultMessage": "{count, plural, one {# more path stays unresolved} other {# more paths stay unresolved}}",
+    "description": "A room line after the first unresolved paths of a turn, counting the rest."
+  },
   "room.deliveryFailed": {
     "defaultMessage": "Lervo could not deliver a mention ({code}).",
     "description": "A room line: a mention could not reach the mentioned agent; {code} is the core's code."
