@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5a7efd1802386738a79c481d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "The claim log can list a conversation's claims that reconciliation left unresolved, so a later reconciliation retries them and they can become resolved."

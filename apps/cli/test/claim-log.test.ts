@@ -93,6 +93,30 @@ describe("the claim log", () => {
     }
   });
 
+  it("lists a conversation's unresolved claims, oldest first, and none once resolved", async () => {
+    const log = await ClaimLog.open(join(await folder(), "claim-log.sqlite"));
+    try {
+      const first = log.record(refusal, new Date("2026-11-27T01:00:00Z"));
+      const second = log.record(
+        { ...refusal, toolUseId: "toolu_2" },
+        new Date("2026-11-27T01:00:01Z"),
+      );
+      log.record({ ...refusal, workspaceId: "wsp_c", toolUseId: "toolu_3" });
+      expect(log.unresolvedOf("wsp_b")).toEqual([]);
+      log.updateState(second.claimId, "unresolved", new Date("2026-11-27T02:00:00Z"));
+      log.updateState(first.claimId, "unresolved", new Date("2026-11-27T02:00:01Z"));
+      expect(log.unresolvedOf("wsp_b").map((entry) => entry.claimId)).toEqual([
+        first.claimId,
+        second.claimId,
+      ]);
+      expect(log.unresolvedOf("wsp_c")).toEqual([]);
+      log.updateState(first.claimId, "resolved");
+      expect(log.unresolvedOf("wsp_b").map((entry) => entry.claimId)).toEqual([second.claimId]);
+    } finally {
+      log.close();
+    }
+  });
+
   it("is read only once it exists", async () => {
     expect(ClaimLog.openExisting(join(await folder(), "claim-log.sqlite"))).toBeNull();
   });
