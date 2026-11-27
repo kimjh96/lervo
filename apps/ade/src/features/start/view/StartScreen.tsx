@@ -33,6 +33,7 @@ import { canStart, type StartDraft, startWork } from "../model/start";
 import { useStartStore } from "../model/store";
 import { FirstRunWelcome } from "./FirstRunWelcome";
 import { useFirstRun } from "./first-run";
+import { KeptChangesNotice } from "./KeptChangesNotice";
 import styles from "./StartScreen.module.css";
 
 /** The text of each start failure the interface explains; other codes show with their code. */
@@ -70,6 +71,32 @@ export function StartScreen() {
         </ConversationImagesProvider>
       )}
     </ViewPresence>
+  );
+}
+
+/**
+ * The quiet notes under the start card: no repository to start in, a provider older than the
+ * native conversation needs, and the changes a removed workspace kept.
+ */
+function StartNotes(props: { noRepository: boolean; olderProvider: boolean }) {
+  return (
+    <>
+      <Presence>
+        {props.noRepository ? (
+          <p className={styles.explain}>
+            <FormattedMessage id="start.repository.none" />
+          </p>
+        ) : null}
+      </Presence>
+      <Presence>
+        {props.olderProvider ? (
+          <p className={styles.explain}>
+            <FormattedMessage id="start.provider.older" />
+          </p>
+        ) : null}
+      </Presence>
+      <KeptChangesNotice />
+    </>
   );
 }
 
@@ -221,20 +248,10 @@ function StartForm() {
             />
           </div>
         </InputCard>
-        <Presence>
-          {repositories.length === 0 && !firstRun.managed ? (
-            <p className={styles.explain}>
-              <FormattedMessage id="start.repository.none" />
-            </p>
-          ) : null}
-        </Presence>
-        <Presence>
-          {registry.status === "older" ? (
-            <p className={styles.explain}>
-              <FormattedMessage id="start.provider.older" />
-            </p>
-          ) : null}
-        </Presence>
+        <StartNotes
+          noRepository={repositories.length === 0 && !firstRun.managed}
+          olderProvider={registry.status === "older"}
+        />
         <Presence className={styles.error}>
           {/* motion: Inline errors */}
           {attachments.notice !== null && error === null ? (

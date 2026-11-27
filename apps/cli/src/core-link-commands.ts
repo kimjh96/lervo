@@ -115,7 +115,10 @@ export function commandAnswer(
       // An invalid ID fails this request alone, never the link.
       return {
         kind: "result",
-        run: async () => handlers.retireWorkspace(workspaceIdArgument(arguments_)),
+        run: async () =>
+          handlers.retireWorkspace(workspaceIdArgument(arguments_), {
+            discardChanges: arguments_.discardChanges === true,
+          }),
       };
     default:
       return { kind: "launch", run: () => handlers.startWorkspace(arguments_) };

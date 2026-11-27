@@ -20,6 +20,7 @@ import {
 import { hostedSessionSettingsDirectory } from "./hosted-session-settings.js";
 import type { WorkspaceRetireEffects } from "./hosted-workspace-retire.js";
 import { branchMergedIntoDefault } from "./hosted-branch-merged.js";
+import { keepRetiredChanges } from "./retired-workspace-changes.js";
 import { worktreeOfBranch } from "./workspace-start-effects.js";
 
 const execute = promisify(execFile);
@@ -98,9 +99,11 @@ export function hostedWorkspaceRetireEffects(): WorkspaceRetireEffects {
     async hasChanges(worktree) {
       return (await git(worktree, ["status", "--porcelain", "--untracked-files=normal"])) !== "";
     },
-    async removeWorktree(root, worktree) {
-      // Without --force, Git itself refuses a worktree that changed after the check above.
-      await git(root, ["worktree", "remove", worktree]).catch(() => {
+    keepChanges: (root, worktree, workspaceId) => keepRetiredChanges(root, worktree, workspaceId),
+    async removeWorktree(root, worktree, force) {
+      // Without --force, Git itself refuses a worktree that changed after the check above; with
+      // it, only after the changes were kept.
+      await git(root, ["worktree", "remove", ...(force ? ["--force"] : []), worktree]).catch(() => {
         throw new CommandFailure(
           "workspace_has_changes",
           "Git refused to remove the workspace, which changed or is locked. Check it and retry.",

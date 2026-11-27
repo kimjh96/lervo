@@ -33,7 +33,7 @@ export interface CoreLinkHandlers {
     limit: number,
   ): Promise<{ items: HostedTranscriptItem[]; complete: boolean }>;
   /** Retires a hosted workspace without discarding work. */
-  retireWorkspace(workspaceId: string): Promise<object>;
+  retireWorkspace(workspaceId: string, options: { discardChanges: boolean }): Promise<object>;
   /** Answers a project command (Lervo ADE projects, "Core link"). */
   runProjectCommand?(command: string, arguments_: Record<string, unknown>): Promise<object>;
   /** Answers an agent command (Lervo ADE agents, "Core link"). */

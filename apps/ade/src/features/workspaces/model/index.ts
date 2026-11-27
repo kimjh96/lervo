@@ -4,6 +4,6 @@
  */
 export { bindWorkspaces, reloadWorkspaces, restoreWorkspaces } from "./controller";
 export { isRunning, visibleStatus } from "./decisions";
-export { type RetireStep, retireWorkspace } from "./retire";
+export { type RetireStep, retireWorkspace, useKeptChanges } from "./retire";
 export { useWorkspaceStore } from "./store";
 export type { Repository, Workspace } from "./types";

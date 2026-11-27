@@ -72,8 +72,8 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,
   readTranscript: (workspaceId, offset, limit) => transcripts.read(workspaceId, offset, limit),
-  retireWorkspace: (workspaceId) =>
-    retireHostedWorkspace(workspaceId, hostedWorkspaceRetireEffects()),
+  retireWorkspace: (workspaceId, options) =>
+    retireHostedWorkspace(workspaceId, hostedWorkspaceRetireEffects(), options),
   recordSessionExit: async (sessionId, exitCode) => {
     try {
       return await recordHostedSessionExit(sessionId, exitCode);

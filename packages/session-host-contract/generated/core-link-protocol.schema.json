@@ -697,6 +697,23 @@
             "kept",
             "absent"
           ]
+        },
+        "keptChanges": {
+          "type": "object",
+          "required": [
+            "ref",
+            "restore"
+          ],
+          "properties": {
+            "ref": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "restore": {
+              "type": "string",
+              "maxLength": 4096
+            }
+          }
         }
       }
     },

@@ -246,6 +246,19 @@ export const workspaceRetireResultSchema = {
     worktree: { type: "string", enum: ["removed", "absent"] },
     /** `kept` when the branch holds commits the default branch lacks. */
     branch: { type: "string", enum: ["deleted", "kept", "absent"] },
+    /**
+     * The copy of the changes a workspace removed with them had: its ref, such as
+     * `refs/lervo/retired-changes/wsp_…`, and the Git command that brings them back. Absent when
+     * it had none.
+     */
+    keptChanges: {
+      type: "object",
+      required: ["ref", "restore"],
+      properties: {
+        ref: { type: "string", maxLength: 128 },
+        restore: { type: "string", maxLength: 4096 },
+      },
+    },
   },
 } as const;
 

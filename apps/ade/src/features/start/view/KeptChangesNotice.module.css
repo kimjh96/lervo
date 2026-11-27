@@ -1,0 +1,32 @@
+/* The kept changes' notice under the start card: a line, the command, and its two buttons. */
+.notice {
+  display: grid;
+  gap: var(--space-6);
+  padding-inline: var(--space-4);
+}
+
+.text {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-note-size);
+  line-height: var(--type-note-line-height);
+}
+
+/* The command wraps anywhere, since it holds long paths, and stays selectable. */
+.command {
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-mono);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+  overflow-wrap: anywhere;
+  background: var(--color-surface-hover);
+  user-select: text;
+}
+
+.actions {
+  display: inline-flex;
+  gap: var(--space-6);
+  justify-self: end;
+}

@@ -4,8 +4,19 @@ import {
   RequestFailure,
   type SessionHost,
 } from "../../../ports";
+import { create } from "zustand";
+
 import { reloadWorkspaces } from "./controller";
 import { useWorkspaceStore } from "./store";
+
+/**
+ * The changes the last removal kept, with the Git command that brings them back, which the start
+ * screen shows until the person dismisses it or removes another workspace.
+ */
+export const useKeptChanges = create<{
+  restore: string | null;
+  dismiss: () => void;
+}>((set) => ({ restore: null, dismiss: () => set({ restore: null }) }));
 
 /** How long a stopped session may take to end: the session host's 8 s grace, with room. */
 const STOP_WAIT_MS = 15_000;
@@ -62,6 +73,8 @@ export async function retireWorkspace(input: {
   commands: ApplicationCommands;
   lists: ListCache;
   workspaceId: string;
+  /** Removes the workspace with its uncommitted changes, which the core keeps a copy of first. */
+  discardChanges?: boolean;
   onStep?: (step: RetireStep) => void;
 }): Promise<void> {
   const workspace = useWorkspaceStore
@@ -78,7 +91,11 @@ export async function retireWorkspace(input: {
     input.onStep?.("stopping");
   await Promise.all(sessionIds.map((sessionId) => stopSession(input.host, sessionId)));
   input.onStep?.("removing");
-  await input.commands.run("workspace.retire", { workspaceId: input.workspaceId });
+  const result = await input.commands.run("workspace.retire", {
+    workspaceId: input.workspaceId,
+    ...(input.discardChanges === true ? { discardChanges: true } : {}),
+  });
+  useKeptChanges.setState({ restore: result.keptChanges?.restore ?? null });
   const store = useWorkspaceStore.getState();
   if (store.selected === input.workspaceId) store.select(null);
   await reloadWorkspaces(input.commands, input.lists).catch(() => undefined);

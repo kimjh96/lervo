@@ -1,8 +1,11 @@
 // `workspace.retire` and `lervo workspace retire`: removes a hosted workspace its user is done
-// with (Lervo ADE sessions, "Retiring a workspace"). Retiring never discards work: it refuses a
-// worktree that a process still uses or that holds changes, and it deletes the branch only when
-// Lervo created it and the default branch or its upstream already holds its changes.
+// with (Lervo ADE sessions, "Retiring a workspace"). Retiring never loses work: it refuses a
+// worktree that a process still uses, and one that holds changes unless its owner removes it with
+// them, when it first keeps a bounded copy of them. It deletes the branch only when Lervo created
+// it and the default branch or its upstream already holds its changes.
 import type { WorkspaceRetireResult } from "@lervo/session-host-contract";
+
+import { type KeptChanges, NestedRepositoryChanges } from "./retired-workspace-changes.js";
 
 import { CommandFailure } from "./command-error-output.js";
 import type { ConversationRetirementEffects } from "./conversation-retirement-effects.js";
@@ -21,7 +24,10 @@ export interface WorkspaceRetireEffects {
   inUse(worktree: string): Promise<boolean>;
   /** Whether the worktree holds changes to tracked files or untracked files Git does not ignore. */
   hasChanges(worktree: string): Promise<boolean>;
-  removeWorktree(root: string, worktree: string): Promise<void>;
+  /** Keeps a copy of the worktree's changes under the workspace's ref. */
+  keepChanges(root: string, worktree: string, workspaceId: string): Promise<KeptChanges>;
+  /** Removes the worktree; `force` only after its changes were kept. */
+  removeWorktree(root: string, worktree: string, force: boolean): Promise<void>;
   branchExists(root: string, branch: string): Promise<boolean>;
   /**
    * Whether the default branch, or its upstream, already holds every change of `branch`: the tip
@@ -37,6 +43,8 @@ export interface WorkspaceRetireEffects {
 export async function retireHostedWorkspace(
   workspaceId: string,
   effects: WorkspaceRetireEffects,
+  /** Whether the owner chose to remove the workspace with its changes, keeping a copy of them. */
+  options: { discardChanges?: boolean } = {},
 ): Promise<WorkspaceRetireResult> {
   const launch = await effects.latestLaunch(workspaceId);
   const root = launch === null ? null : await effects.repositoryRoot(launch.projectId);
@@ -51,6 +59,7 @@ export async function retireHostedWorkspace(
   const worktree =
     (await effects.worktreeOf(root, launch.branch)) ??
     (await effects.conversation.worktreeOf(root, workspaceId));
+  let keptChanges: KeptChanges | undefined;
   if (worktree !== null) {
     if (await effects.inUse(worktree))
       throw new CommandFailure(
@@ -58,13 +67,36 @@ export async function retireHostedWorkspace(
         "A process still runs in the workspace. Stop its session, leave the directory, and retry.",
         { workspaceId },
       );
-    if (await effects.hasChanges(worktree))
-      throw new CommandFailure(
-        "workspace_has_changes",
-        "The workspace holds uncommitted changes or new files. Commit or remove them, then retry.",
-        { workspaceId },
-      );
-    await effects.removeWorktree(root, worktree);
+    if (await effects.hasChanges(worktree)) {
+      if (options.discardChanges !== true)
+        throw new CommandFailure(
+          "workspace_has_changes",
+          "The workspace holds uncommitted changes or new files. Commit or remove them, or remove the workspace with them, then retry.",
+          { workspaceId },
+        );
+      // Nothing is removed unless the copy exists.
+      keptChanges = await effects.keepChanges(root, worktree, workspaceId).catch((error) => {
+        if (error instanceof NestedRepositoryChanges)
+          throw new CommandFailure(
+            "workspace_nested_repository",
+            "A nested repository or submodule in the workspace holds work a copy cannot keep. Commit and push it, or remove it, then retry.",
+            { workspaceId, paths: error.paths.slice(0, 10) },
+          );
+        throw new CommandFailure(
+          "workspace_changes_not_kept",
+          "Lervo could not keep a copy of the workspace's changes, so it removed nothing.",
+          { workspaceId },
+        );
+      });
+      // A process that started meanwhile could still be writing what the copy missed.
+      if (await effects.inUse(worktree))
+        throw new CommandFailure(
+          "workspace_in_use",
+          "A process still runs in the workspace. Stop its session, leave the directory, and retry.",
+          { workspaceId },
+        );
+    }
+    await effects.removeWorktree(root, worktree, keptChanges !== undefined);
   }
   await effects.conversation.retire(root, workspaceId);
   let branch: WorkspaceRetireResult["branch"] = "absent";
@@ -75,5 +107,12 @@ export async function retireHostedWorkspace(
     branch = removable ? "deleted" : "kept";
   }
   await effects.removeSessionSettings(await effects.sessionsOf(workspaceId));
-  return { workspaceId, worktree: worktree === null ? "absent" : "removed", branch };
+  return {
+    workspaceId,
+    worktree: worktree === null ? "absent" : "removed",
+    branch,
+    ...(keptChanges === undefined
+      ? {}
+      : { keptChanges: { ref: keptChanges.ref, restore: keptChanges.restore } }),
+  };
 }
