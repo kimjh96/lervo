@@ -169,7 +169,6 @@
     "packages/repository-knowledge/src/instruction-bridge.ts:createKnowledgeInstructionBridgePlan": 328,
     "packages/repository-knowledge/src/knowledge-convergence-owner.ts:processKnowledgeConvergence": 196,
     "packages/repository-knowledge/src/lint-query.ts:lintRepositoryKnowledge": 384,
-    "packages/repository-knowledge/src/repository-layout-migration.ts:createRepositoryLayoutMigrationPlan": 686,
     "packages/repository-knowledge/src/scanner-intake.ts:readRepositoryKnowledgeSources": 275,
     "packages/repository-knowledge/src/terminal-integration-provider.ts:mergeTarget": 153,
     "packages/repository-knowledge/src/workstream.ts:createContinuationWorkstreamMigrationPlan": 216,

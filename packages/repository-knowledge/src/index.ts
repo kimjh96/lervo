@@ -219,6 +219,7 @@ export { archiveScopes } from "./historical-documents.js";
 export * from "./repository-change-source.js";
 export * from "./repository-knowledge-worker.js";
 export * from "./repository-knowledge-job-admission.js";
+export * from "./repository-layout-apply.js";
 export * from "./repository-layout-migration.js";
 export type { RepositoryLayoutCapacityFinding } from "./repository-layout-capacity.js";
 export * from "./repository-layout-revert.js";

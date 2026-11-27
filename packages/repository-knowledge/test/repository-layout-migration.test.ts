@@ -12,8 +12,11 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  applyKnowledgeInstructionBridgePlan,
   applyRepositoryLayoutMigrationPlan,
+  canonicalJson,
   classifyRepositoryDocument,
+  createKnowledgeInstructionBridgePlan,
   createDocumentMoveLineage,
   createDocumentRouteClassificationRecords,
   createDocumentRouteClassificationRequest,
@@ -25,6 +28,7 @@ import {
   lintRepositoryKnowledge,
   loadRepositoryKnowledgePolicy,
   recoverKnowledgeMaterialization,
+  repositoryLayoutItemBindings,
   scanConfiguredRepositoryKnowledge,
   sha256,
   stableId,
@@ -1462,6 +1466,138 @@ describe("repository layout migration", () => {
     });
     await expect(access(resolve(root, ".prettierignore"))).rejects.toMatchObject({
       code: "ENOENT",
+    });
+  });
+});
+
+describe("repository layout migration phase boundaries", () => {
+  it("binds an AGENTS route refresh as its own user update when nothing moves", async () => {
+    const root = await repository({ classifyRoots: false });
+    const original = "# Instructions\n\nKeep this preface.\n";
+    await writeFile(resolve(root, "AGENTS.md"), original);
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    const operation = plan.operations.find((item) => item.path === "AGENTS.md");
+    expect(operation).toMatchObject({
+      action: "update",
+      ownership: "user",
+      mediaType: "text/markdown",
+      expectedCurrentHash: sha256(original),
+    });
+    const content = (operation as { content: string }).content;
+    expect(
+      content.startsWith(`${original}\n<!-- lervo:begin block=repository_instruction_routes`),
+    ).toBe(true);
+    const afterHash = sha256(content);
+    const operationId = stableId("kdocop", {
+      projectId: plan.projectId,
+      action: "refresh_instruction_routes",
+      path: "AGENTS.md",
+      beforeHash: sha256(original),
+      afterHash,
+    });
+    expect(plan).toMatchObject({
+      status: "review_required",
+      moves: [],
+      referenceUpdates: [
+        { path: "AGENTS.md", beforeHash: sha256(original), afterHash, replacementCount: 1 },
+      ],
+      userUpdates: [
+        {
+          operationId,
+          approvalHash: sha256(
+            canonicalJson({
+              operationId,
+              action: "update_user_document",
+              path: "AGENTS.md",
+              beforeHash: sha256(original),
+              afterHash,
+            }),
+          ),
+          path: "AGENTS.md",
+          beforeHash: sha256(original),
+          afterHash,
+          reason: "refresh_instruction_routes",
+        },
+      ],
+    });
+    await applyRepositoryLayoutMigrationPlan({
+      plan,
+      itemBindings: repositoryLayoutItemBindings(plan),
+      now: new Date("2026-08-23T00:01:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toBe(content);
+  });
+
+  it("rebinds a recorded Claude bridge to the canonical bytes the migration writes", async () => {
+    const root = await repository();
+    const instructions = "# Instructions\n\nRead EXAMPLE_VISION.md first.\n";
+    await writeFile(resolve(root, "AGENTS.md"), instructions);
+    await writeFile(resolve(root, "CLAUDE.md"), instructions);
+    const bridge = await createKnowledgeInstructionBridgePlan({
+      repositoryRoot: root,
+      provider: "claude",
+    });
+    await applyKnowledgeInstructionBridgePlan({
+      plan: bridge,
+      approvedOperationId: bridge.operationId,
+      approvedHash: bridge.approvalHash,
+      now: new Date("2026-08-23T00:01:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    const agents = plan.operations.find((item) => item.path === "AGENTS.md") as {
+      content: string;
+    };
+    expect(agents.content).toContain("Read docs/product/vision.md first.");
+    const record = plan.operations.find((item) =>
+      item.path.startsWith(".lervo/knowledge/instruction-bridges/"),
+    ) as { action: string; ownership: string; content: string; desiredHash: string };
+    expect(record).toMatchObject({ action: "update", ownership: "lervo_generated" });
+    expect(record.desiredHash).toBe(sha256(record.content));
+    expect(record.content).toContain(`contentHash: ${sha256(agents.content)}`);
+  });
+
+  it("blocks a machine artifact move whose sharded destination already exists", async () => {
+    const root = await repository();
+    const initial = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    await applyRepositoryLayoutMigrationPlan({
+      plan: initial,
+      itemBindings: repositoryLayoutItemBindings(initial),
+      now: new Date("2026-08-23T00:01:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    const id = "kcomp_aaaaaaaaaaaaaaaaaaaaaaaa";
+    const toPath = `.lervo/state/knowledge/candidates/aa/${id}.json`;
+    await mkdir(resolve(root, ".lervo/state/knowledge/candidates/aa"), { recursive: true });
+    await writeFile(resolve(root, `.lervo/state/knowledge/candidates/${id}.json`), "{}\n");
+    await writeFile(resolve(root, toPath), "[]\n");
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    expect(plan).toMatchObject({
+      status: "blocked",
+      machineMoves: [expect.objectContaining({ toPath })],
+      blockers: [{ code: "destination_exists", pathDigest: sha256(toPath) }],
+    });
+    expect(plan.operations.at(-1)).toEqual({
+      path: `.lervo/state/knowledge/candidates/${id}.json`,
+      destinationPath: toPath,
+      action: "move",
+      expectedCurrentHash: sha256("{}\n"),
+    });
+  });
+
+  it("rejects a plan over an incomplete concept registry", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, ".lervo/knowledge/concepts"), { recursive: true });
+    await writeFile(
+      resolve(root, ".lervo/knowledge/concepts/kconcept_aaaaaaaaaaaaaaaaaaaaaaaa.yaml"),
+      "schemaVersion: 2\n",
+    );
+    await expect(
+      createRepositoryLayoutMigrationPlan({ repositoryRoot: root }),
+    ).rejects.toMatchObject({
+      code: "knowledge_reconciliation_conflict",
+      message: "The knowledge concept registry is incomplete.",
     });
   });
 });
