@@ -19,7 +19,7 @@ import { claimWriterSessionId, type ClaimingConversation } from "./claim-convers
 import { CLAIM_STORE_BUSY_MS, deferralCode, guardBeforeLock } from "./claim-deferral.js";
 import { resolveClaimHolder } from "./claim-holder.js";
 import { claimRefusalMessage } from "./claim-message.js";
-import { groupPaths, refusalGroups } from "./claim-refusal-groups.js";
+import { groupHeldPaths, groupPaths, refusalGroups } from "./claim-refusal-groups.js";
 import {
   locateClaimTargets,
   unignoredClaimPaths,
@@ -45,6 +45,12 @@ function detectionOf(request: ConversationClaimRequest): "tool" | "shell" {
   return request.intent.toolClass === "shell" ? "shell" : "tool";
 }
 
+/** A group's held paths as an optional field: absent when the holder holds exactly its paths. */
+function heldPathsField(group: readonly AssignmentPathRefusal[]) {
+  const heldPaths = groupHeldPaths(group);
+  return heldPaths === undefined ? {} : { heldPaths };
+}
+
 /**
  * A denial named for the first refusal's code and holder, with every path that holder refused.
  * The write stops for every refusal, since one request claims all or none, and the claim log keeps
@@ -58,19 +64,22 @@ async function denial(
   const [named, ...others] = refusalGroups(refusals);
   const first = named![0]!;
   const paths = groupPaths(named!);
+  const held = heldPathsField(named!);
   const holder = await resolveClaimHolder({ repositoryRoot, refusal: first, workspaces });
   return {
     decision: "deny",
     code: first.code,
     paths,
+    ...held,
     holder,
-    message: claimRefusalMessage({ code: first.code, paths, holder }),
+    message: claimRefusalMessage({ code: first.code, paths, ...held, holder }),
     ...(others.length === 0
       ? {}
       : {
           otherRefusals: others.map((group) => ({
             code: group[0]!.code,
             paths: groupPaths(group),
+            ...heldPathsField(group),
             holder:
               group[0]!.holderAgentId === null
                 ? null

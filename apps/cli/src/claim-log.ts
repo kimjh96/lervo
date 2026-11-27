@@ -14,6 +14,8 @@ import { hostedLaunchRecordsPath } from "./hosted-launch-records.js";
 
 /** The most entries one conversation keeps; the oldest go first. */
 export const CLAIM_LOG_ENTRIES_PER_CONVERSATION = 512;
+/** The most held paths one entry keeps; the refusal's message counts the rest. */
+export const CLAIM_LOG_HELD_PATHS = 3;
 /** How long a hook waits for another writer before it gives the entry up rather than wait. */
 const CLAIM_LOG_BUSY_MS = 250;
 
@@ -30,6 +32,11 @@ export interface ClaimLogEntry {
   readonly code: string;
   /** Repository-relative, with forward slashes. */
   readonly paths: readonly string[];
+  /**
+   * The holder's paths that overlap `paths`, at most 3, when they differ from them: a held file
+   * inside a claimed directory, or a held directory around a claimed file.
+   */
+  readonly heldPaths?: readonly string[];
   readonly holder: { readonly agentId: string; readonly workspaceId: string | null } | null;
   readonly state: ClaimLogState;
   readonly createdAt: string;
@@ -51,6 +58,8 @@ interface Row {
   decision: string;
   code: string;
   paths: string;
+  /** Absent in a log created before held paths, until a writer adds the column. */
+  held_paths?: string | null;
   holder_agent_id: string | null;
   holder_workspace_id: string | null;
   state: string;
@@ -66,6 +75,9 @@ const entryOf = (row: Row): ClaimLogEntry => ({
   decision: row.decision === "deny" ? "deny" : "defer",
   code: row.code,
   paths: JSON.parse(row.paths) as string[],
+  ...(row.held_paths === undefined || row.held_paths === null
+    ? {}
+    : { heldPaths: JSON.parse(row.held_paths) as string[] }),
   holder:
     row.holder_agent_id === null
       ? null
@@ -74,6 +86,25 @@ const entryOf = (row: Row): ClaimLogEntry => ({
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
+
+function hasHeldPathsColumn(database: DatabaseSync): boolean {
+  const columns = database.prepare("PRAGMA table_info(claims)").all() as { name: string }[];
+  return columns.some((column) => column.name === "held_paths");
+}
+
+/**
+ * Adds `held_paths` to a log created before it; a reader of such a log sees no held paths. Two
+ * hooks may open such a log at once and both try the addition: the one that loses finds the column
+ * the other added and goes on, since a failed open would let a refused write go ahead as deferred.
+ */
+function addHeldPathsColumn(database: DatabaseSync): void {
+  if (hasHeldPathsColumn(database)) return;
+  try {
+    database.exec("ALTER TABLE claims ADD COLUMN held_paths TEXT");
+  } catch (error) {
+    if (!hasHeldPathsColumn(database)) throw error;
+  }
+}
 
 /** An open claim log. Each call is one statement or one transaction. */
 export class ClaimLog {
@@ -113,6 +144,7 @@ export class ClaimLog {
         CREATE INDEX IF NOT EXISTS claims_tool_use ON claims (session_id, tool_use_id);
         CREATE INDEX IF NOT EXISTS claims_conversation ON claims (workspace_id, created_at);
       `);
+      addHeldPathsColumn(database);
     } catch (error) {
       database.close();
       throw error;
@@ -138,8 +170,10 @@ export class ClaimLog {
   /** Records a refusal or a deferral, and keeps the conversation's newest entries. */
   record(entry: NewClaimLogEntry, at = new Date()): ClaimLogEntry {
     const time = at.toISOString();
+    const { heldPaths, ...rest } = entry;
     const recorded: ClaimLogEntry = {
-      ...entry,
+      ...rest,
+      ...(heldPaths === undefined ? {} : { heldPaths: heldPaths.slice(0, CLAIM_LOG_HELD_PATHS) }),
       claimId: `clm_${randomBytes(12).toString("hex")}`,
       state: entry.decision === "deny" ? "refused" : "deferred",
       createdAt: time,
@@ -150,8 +184,9 @@ export class ClaimLog {
       this.database
         .prepare(
           `INSERT INTO claims (claim_id, workspace_id, session_id, tool_use_id, decision, code,
-             paths, holder_agent_id, holder_workspace_id, state, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             paths, held_paths, holder_agent_id, holder_workspace_id, state, created_at,
+             updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           recorded.claimId,
@@ -161,6 +196,7 @@ export class ClaimLog {
           recorded.decision,
           recorded.code,
           JSON.stringify(recorded.paths),
+          recorded.heldPaths === undefined ? null : JSON.stringify(recorded.heldPaths),
           recorded.holder?.agentId ?? null,
           recorded.holder?.workspaceId ?? null,
           recorded.state,

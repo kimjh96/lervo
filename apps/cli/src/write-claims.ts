@@ -88,6 +88,7 @@ async function claimLogEntries(
     {
       code: decision.code,
       paths: decision.paths,
+      ...(decision.heldPaths === undefined ? {} : { heldPaths: decision.heldPaths }),
       holder:
         decision.holder === null
           ? null

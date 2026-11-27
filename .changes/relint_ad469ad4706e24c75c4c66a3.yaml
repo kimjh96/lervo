@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ad469ad4706e24c75c4c66a3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A claim refused for an overlapping ancestor or descendant now names the path the holder actually holds, with the requested path for context."

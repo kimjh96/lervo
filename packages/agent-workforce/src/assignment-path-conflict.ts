@@ -22,6 +22,11 @@ export interface AssignmentPathRefusal {
   holderAgentId: string | null;
   holderAssignmentId: string | null;
   holderWorkspaceId: string | null;
+  /**
+   * The holder's paths that overlap `path`, sorted, when they are not just `path` itself: a held
+   * file inside a claimed directory, or a held directory around a claimed file.
+   */
+  heldPaths?: readonly string[];
 }
 
 /**
@@ -57,7 +62,7 @@ export interface AssignmentPathConflictInput extends AssignmentPathHolderInput {
  * other conversations' changed paths. A read-only claimant and read-only leases hold nothing.
  */
 export class AssignmentPathHolders {
-  readonly #leases = new PathScopeIndex<WorkforceAssignment>();
+  readonly #leases = new PathScopeIndex<{ scope: string; lease: WorkforceAssignment }>();
   readonly #changed = new PathScopeIndex<ChangedPathHolder>();
 
   constructor(input: AssignmentPathHolderInput) {
@@ -71,7 +76,7 @@ export class AssignmentPathHolders {
         Date.parse(item.lease.expiresAt) > now &&
         assignmentAccessMode(item) === "write"
       )
-        for (const path of item.expectedPaths) this.#leases.add(path, item);
+        for (const path of item.expectedPaths) this.#leases.add(path, { scope: path, lease: item });
     for (const holder of input.changedPathHolders ?? [])
       if (
         holder.holderAssignmentId !== input.claimant.assignmentId &&
@@ -85,25 +90,33 @@ export class AssignmentPathHolders {
     return this.#leases.overlaps(path) || this.#changed.overlaps(path);
   }
 
+  /** One refusal per holder of `path`, naming the holder's overlapping paths. */
   refusals(path: string): AssignmentPathRefusal[] {
-    return [
-      ...this.#leases
-        .overlapping(path)
-        .map((lease) =>
-          refusal("path_leased", path, lease.lease!.agentId, lease.assignmentId, null),
+    const held = new Map<string, { refusal: AssignmentPathRefusal; scopes: Set<string> }>();
+    const hold = (item: AssignmentPathRefusal, scope: string) => {
+      const key = [item.code, item.holderAgentId, item.holderAssignmentId, item.holderWorkspaceId]
+        .map((part) => part ?? "")
+        .join("\0");
+      const entry = held.get(key) ?? { refusal: item, scopes: new Set<string>() };
+      entry.scopes.add(scope);
+      held.set(key, entry);
+    };
+    for (const { scope, lease } of this.#leases.overlapping(path))
+      hold(refusal("path_leased", path, lease.lease!.agentId, lease.assignmentId, null), scope);
+    for (const holder of this.#changed.overlapping(path))
+      hold(
+        refusal(
+          holder.code,
+          path,
+          holder.holderAgentId,
+          holder.holderAssignmentId ?? null,
+          holder.holderWorkspaceId,
         ),
-      ...this.#changed
-        .overlapping(path)
-        .map((holder) =>
-          refusal(
-            holder.code,
-            path,
-            holder.holderAgentId,
-            holder.holderAssignmentId ?? null,
-            holder.holderWorkspaceId,
-          ),
-        ),
-    ];
+        holder.path,
+      );
+    return [...held.values()].map(({ refusal: item, scopes }) =>
+      scopes.size === 1 && scopes.has(path) ? item : { ...item, heldPaths: [...scopes].sort() },
+    );
   }
 }
 

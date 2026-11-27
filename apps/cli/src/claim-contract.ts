@@ -32,6 +32,8 @@ export interface WriteClaimRequest<Session extends WritingSession = WritingSessi
 export interface ClaimRefusalGroup {
   readonly code: string;
   readonly paths: readonly string[];
+  /** The holder's paths that overlap `paths`, when they differ from them. */
+  readonly heldPaths?: readonly string[];
   readonly holder: { readonly agentId: string; readonly workspaceId: string | null } | null;
 }
 
@@ -59,6 +61,8 @@ export type ClaimDecision =
       readonly decision: "deny";
       readonly code: string;
       readonly paths: readonly string[];
+      /** The holder's paths that overlap `paths`, when they differ from them. */
+      readonly heldPaths?: readonly string[];
       readonly holder: ClaimHolder | null;
       readonly message: string;
       /** The other holders' refusals of the same request, which the message does not name. */

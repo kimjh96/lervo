@@ -279,6 +279,41 @@ describe("widening a conversation lease", () => {
     ]);
   });
 
+  it("names the holder's overlapping paths when they differ from the claimed one", async () => {
+    const root = await repository();
+    const held = await holder(root, [
+      "src/scratch/a.md",
+      "src/scratch/b.md",
+      "src/kept",
+      "src/x.ts",
+    ]);
+    const { lead, assignment } = await conversation(root);
+    const events: ConversationLeaseEvent[] = [];
+    const result = await widen(root, lead, assignment, events, {
+      mode: "reconcile",
+      detection: undefined,
+      paths: ["src/scratch", "src/kept/c.md", "src/x.ts"],
+    });
+    const holderFields = {
+      code: "path_leased",
+      holderAgentId: held.agent.agentId,
+      holderAssignmentId: held.assignment.assignmentId,
+      holderWorkspaceId: null,
+    };
+    expect(result.refusals).toEqual([
+      { ...holderFields, path: "src/kept/c.md", heldPaths: ["src/kept"] },
+      { ...holderFields, path: "src/scratch", heldPaths: ["src/scratch/a.md", "src/scratch/b.md"] },
+      { ...holderFields, path: "src/x.ts" },
+    ]);
+    // The event names only the claimed path's digest, never a held path.
+    expect(events.map((event) => event.payload)).toEqual(
+      ["src/kept/c.md", "src/scratch", "src/x.ts"].map((path) =>
+        expect.objectContaining({ pathDigest: pathDigest(path) }),
+      ),
+    );
+    expect(JSON.stringify(events)).not.toContain("src/");
+  });
+
   it("reconciles the conflict-free part and reports each conflict", async () => {
     const root = await repository();
     const held = await holder(root, ["src/held"]);
@@ -306,6 +341,7 @@ describe("widening a conversation lease", () => {
         holderAgentId: held.agent.agentId,
         holderAssignmentId: held.assignment.assignmentId,
         holderWorkspaceId: null,
+        heldPaths: ["src/held"],
       },
     ]);
     expect(events.map((event) => event.type)).toEqual([
@@ -403,8 +439,14 @@ describe("widening a conversation lease", () => {
     expect(result.addedPaths).toEqual(["src/mine.ts"]);
     expect(result.refusals).toMatchObject([
       { code: "path_changed_unsealed", path: "src/a.ts", holderWorkspaceId: OTHER_WORKSPACE },
-      { code: "path_awaiting_integration", path: "src/sealed/x.ts", holderAssignmentId: null },
+      {
+        code: "path_awaiting_integration",
+        path: "src/sealed/x.ts",
+        holderAssignmentId: null,
+        heldPaths: ["src/sealed"],
+      },
     ]);
+    expect(result.refusals[0]).not.toHaveProperty("heldPaths");
   });
 
   it("restores the bytes and keeps the refusals when the widening event fails", async () => {

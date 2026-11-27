@@ -20,3 +20,12 @@ export function refusalGroups(
 export function groupPaths(group: readonly AssignmentPathRefusal[]): string[] {
   return [...new Set(group.map((refusal) => refusal.path))];
 }
+
+/**
+ * The paths a group's holder holds over the group's paths, in order, or undefined when it holds
+ * exactly the requested ones. A refusal without held paths holds its own path.
+ */
+export function groupHeldPaths(group: readonly AssignmentPathRefusal[]): string[] | undefined {
+  if (group.every((refusal) => refusal.heldPaths === undefined)) return undefined;
+  return [...new Set(group.flatMap((refusal) => refusal.heldPaths ?? [refusal.path]))];
+}
