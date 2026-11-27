@@ -28,7 +28,10 @@ export interface WidenConversationLeaseInput {
   assignmentId: string;
   agentId: string;
   sessionId: string;
-  /** At most 2,000 for a request; a reconciliation of up to 10,000 runs in chunks of 2,000. */
+  /**
+   * At most 2,000 for a request; a reconciliation of up to 10,000 runs in chunks of 2,000. A
+   * reconciliation that found nothing changed names none and only renews the lease when it runs low.
+   */
   paths: readonly string[];
   mode: ConversationClaimMode;
   /** How a request found its paths: a file tool's input or a command's targets. */
@@ -54,6 +57,11 @@ export interface WidenConversationLeaseInput {
    * there, so a caller can check its remaining time at the last moment.
    */
   beforeLock?: () => void;
+  /**
+   * Reacquires the lease under the next generation when it is the lead's but expired, keeping the
+   * paths no other holder took meanwhile.
+   */
+  regenerate?: boolean;
   /** The repository instance's local secret for `assignment.claim.refused`'s `pathDigest`. */
   claimPathKey: Uint8Array;
   now?: Date;
@@ -73,6 +81,10 @@ export interface WidenConversationLeaseResult {
   refusals: AssignmentPathRefusal[];
   /** Whether a claim of held paths renewed a lease with less than 5 minutes left. */
   leaseRenewed: boolean;
+  /** Whether the lease was reacquired under the next generation first. */
+  leaseRegenerated: boolean;
+  /** The stale lease's paths that the reacquisition gave up to other holders. */
+  droppedPaths: string[];
   /** False when an `assignment.claim.refused` event failed; the refusals stand regardless. */
   refusalsRecorded: boolean;
   /** New refusals past the first 32, which recorded no event. */
@@ -91,7 +103,8 @@ export async function widenConversationLease(
   const paths = validatedPaths(input);
   const now = input.now ?? new Date();
   const outcomes: ConversationClaimOutcome[] = [];
-  for (let start = 0; start < paths.length; start += MAXIMUM_CLAIM_PATHS_PER_CALL) {
+  // A reconciliation without paths still runs one chunk, which renews or regenerates the lease.
+  for (let start = 0; start === 0 || start < paths.length; start += MAXIMUM_CLAIM_PATHS_PER_CALL) {
     const chunk = {
       repositoryRoot: input.repositoryRoot,
       assignmentId: input.assignmentId,
@@ -109,6 +122,7 @@ export async function widenConversationLease(
         : { changedPathHolders: input.changedPathHolders }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
       ...(input.beforeLock === undefined ? {} : { beforeLock: input.beforeLock }),
+      ...(input.regenerate === undefined ? {} : { regenerate: input.regenerate }),
     };
     // Every input is reread under the lock, so only a busy lock is worth another attempt.
     const outcome = await retryConcurrent(() => claimConversationChunk(chunk), ["workforce_busy"]);
@@ -151,12 +165,16 @@ function validatedPaths(input: WidenConversationLeaseInput): string[] {
     !validRecordedRefusals(input.recordedRefusals) ||
     !(input.signal === undefined || input.signal instanceof AbortSignal) ||
     !(input.beforeLock === undefined || typeof input.beforeLock === "function") ||
+    !(input.regenerate === undefined || typeof input.regenerate === "boolean") ||
     !(input.claimPathKey instanceof Uint8Array) ||
     input.claimPathKey.byteLength < MINIMUM_CLAIM_PATH_KEY_BYTES ||
     typeof input.recordEvent !== "function"
   )
     fail("assignment_invalid", "The conversation claim coordinates are invalid.");
-  const paths = normalizeClaimPaths(input.paths);
+  const paths =
+    input.mode === "reconcile" && Array.isArray(input.paths) && input.paths.length === 0
+      ? []
+      : normalizeClaimPaths(input.paths);
   if (paths === null)
     fail("assignment_invalid", "A claimed path is not a normalized repository-relative path.");
   if (input.mode === "request" && paths.length > MAXIMUM_CLAIM_PATHS_PER_CALL)
@@ -182,5 +200,7 @@ function combinedOutcome(
     addedPaths,
     refusals,
     leaseRenewed: outcomes.some((outcome) => outcome.leaseRenewed),
+    leaseRegenerated: outcomes.some((outcome) => outcome.leaseRegenerated),
+    droppedPaths: outcomes.flatMap((outcome) => outcome.droppedPaths),
   };
 }

@@ -24,6 +24,7 @@ import {
   pauseTerminalWorkspace,
 } from "./terminal-workspace-lifecycle.js";
 import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
+import { stopAnswer } from "./terminal-stop-answer.js";
 
 /**
  * Knowledge inspections own every `*_inspection_failed` code except the replica service's, which
@@ -62,6 +63,7 @@ export async function completeTerminalHookTurn({
   timing,
   io,
   onRepositoryCaptured,
+  conversationBlockReason,
 }: {
   /** The repository the turn's evidence, queues, and shared state belong to. */
   root: string;
@@ -77,6 +79,8 @@ export async function completeTerminalHookTurn({
   io: CliIo;
   /** ADR-0636: called once the turn's repository is captured; a served Stop may answer then. */
   onRepositoryCaptured?: () => void;
+  /** A conversation's reconciliation found conflicts: the `Stop` blocks once with this reason. */
+  conversationBlockReason?: string | null;
 }): Promise<number> {
   const lifecycle = await timing.measure("lifecycle_inspection", () =>
     inspectTerminalLifecycle(root, expectation, undefined, executionRoot, onRepositoryCaptured),
@@ -191,52 +195,18 @@ export async function completeTerminalHookTurn({
   await withinTerminalDeadline(timing.observationDeadlineMs ?? performance.now() + 1000, () =>
     launchTerminalTurnSettlements(root, executionRoot),
   ).catch(() => false);
-  if (
+  const blockReason =
     expectation.workspaceBinding?.executionKind === "worker" &&
     lifecycle.status === "action_required"
-  ) {
-    const reason = [
-      "Lervo blocked worker completion because this workspace isolation boundary is not current.",
-      ...lifecycle.issues.map(
-        (item) =>
-          `${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}run ${item.command}, review the read-only plan, and apply the exact current plan with --apply; Lervo cross-checks it first.`,
-      ),
-      "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle.",
-    ].join("\n");
-    await timing.measure("event_commit", () =>
-      writeTerminalActivationReceipt(root, {
-        schemaVersion: 1,
-        contractId,
-        provider,
-        hookEvent: input.event,
-        result: "completion_blocked",
-        occurredAt,
-        observationEventId: observation.eventId,
-        referenceCount: observation.referenceCount,
-        selectedCount: observation.selectedCount,
-        pathMentionCount: observation.pathMentionCount,
-      }),
-    );
-    await recordTerminalStageObservation({
-      root,
-      coordinates,
-      observationId: expectation.observationId,
-      hookEvent: input.event,
-      timing,
-      outcome: "completed",
-      ...(failureReason === undefined ? {} : { failureReason }),
-      policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
-    });
-    io.stdout(`${JSON.stringify({ decision: "block", reason })}\n`);
-    return 0;
-  }
+      ? workerBlockReason(lifecycle.issues)
+      : (conversationBlockReason ?? null);
   await timing.measure("event_commit", () =>
     writeTerminalActivationReceipt(root, {
       schemaVersion: 1,
       contractId,
       provider,
       hookEvent: input.event,
-      result: "completion_allowed",
+      result: blockReason === null ? "completion_allowed" : "completion_blocked",
       occurredAt,
       observationEventId: observation.eventId,
       referenceCount: observation.referenceCount,
@@ -254,6 +224,20 @@ export async function completeTerminalHookTurn({
     ...(failureReason === undefined ? {} : { failureReason }),
     policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
   });
-  io.stdout("{}\n");
+  io.stdout(stopAnswer(blockReason));
   return 0;
+}
+
+/** Why a worker may not finish: its workspace isolation boundary is not current. */
+function workerBlockReason(
+  issues: Array<{ code: string; detail?: string; command: string }>,
+): string {
+  return [
+    "Lervo blocked worker completion because this workspace isolation boundary is not current.",
+    ...issues.map(
+      (item) =>
+        `${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}run ${item.command}, review the read-only plan, and apply the exact current plan with --apply; Lervo cross-checks it first.`,
+    ),
+    "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle.",
+  ].join("\n");
 }

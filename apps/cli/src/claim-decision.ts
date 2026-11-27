@@ -2,7 +2,6 @@
 // conversation's own lease answers at once; a new path widens the lease under the scheduler lock;
 // a conflict denies with the holder and the message; any failure defers to the turn's end.
 import {
-  conversationChangedPathHolders,
   conversationLeaseCovers,
   conversationLeaseHolderWorkspaceIds,
   listWorkspaces,
@@ -12,15 +11,15 @@ import {
   widenConversationLease,
   type AgentWorkspace,
   type AssignmentPathRefusal,
-  type RecordedClaimRefusal,
 } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { CLAIM_DEFERRED, type ClaimDecision, type WriteClaimRequest } from "./claim-contract.js";
-import type { ClaimingConversation } from "./claim-conversation.js";
+import { claimWriterSessionId, type ClaimingConversation } from "./claim-conversation.js";
+import { CLAIM_STORE_BUSY_MS, deferralCode, guardBeforeLock } from "./claim-deferral.js";
 import { resolveClaimHolder } from "./claim-holder.js";
-import { ClaimLog } from "./claim-log.js";
 import { claimRefusalMessage } from "./claim-message.js";
+import { groupPaths, refusalGroups } from "./claim-refusal-groups.js";
 import {
   locateClaimTargets,
   unignoredClaimPaths,
@@ -30,72 +29,20 @@ import {
   conversationLeaseEventRecorder,
   conversationLeaseEventsWritable,
 } from "./conversation-lease-events.js";
-import { terminalProviderSessionDigest } from "./terminal-event-coordinates.js";
-import { sessionOpenTerminalTurn } from "./terminal-open-turns.js";
-
-/** How long before the hook's deadline a claim stops rather than take the scheduler lock. */
-const LOCK_MARGIN_MS = 500;
-
-/**
- * How long a claim's event write waits for another writer of the event store. The write runs under
- * the scheduler lock, so a busy store defers the claim quickly instead of holding the lock.
- */
-const CLAIM_STORE_BUSY_MS = 250;
+import { turnRefusals } from "./claim-turn-refusals.js";
 
 const ALLOW: ClaimDecision = { decision: "allow" };
 
 type ConversationClaimRequest = WriteClaimRequest<ClaimingConversation>;
 
-/**
- * The refusals this session's turn already recorded, from the claim log since its prompt. Without
- * an open turn or a readable log there is nothing to skip, and every refusal records its event.
- */
-async function turnRefusals(request: ConversationClaimRequest): Promise<RecordedClaimRefusal[]> {
+function requestTurnRefusals(request: ConversationClaimRequest) {
   const { session } = request;
-  const turn = await sessionOpenTerminalTurn(
-    session.repositoryRoot,
-    terminalProviderSessionDigest(session.provider, request.providerSessionId),
-  ).catch(() => null);
-  if (turn === null) return [];
-  let log: ClaimLog | null;
-  try {
-    log = ClaimLog.openExisting();
-  } catch {
-    return [];
-  }
-  if (log === null) return [];
-  try {
-    return log
-      .refusedSince(request.providerSessionId, turn.openedAt)
-      .flatMap((entry) =>
-        entry.paths.map((path) => ({ path, holderAgentId: entry.holder?.agentId ?? null })),
-      );
-  } catch {
-    return [];
-  } finally {
-    log.close();
-  }
+  return turnRefusals(session.repositoryRoot, session.provider, request.providerSessionId);
 }
 
 /** The detection an event names: a file tool's input, or a command's targets. */
 function detectionOf(request: ConversationClaimRequest): "tool" | "shell" {
   return request.intent.toolClass === "shell" ? "shell" : "tool";
-}
-
-/** A request's refusals grouped by code and holder, in order. */
-function refusalGroups(refusals: readonly AssignmentPathRefusal[]): AssignmentPathRefusal[][] {
-  const groups = new Map<string, AssignmentPathRefusal[]>();
-  for (const refusal of refusals) {
-    const key = [refusal.code, refusal.holderAgentId ?? "", refusal.holderWorkspaceId ?? ""].join(
-      "\0",
-    );
-    groups.set(key, [...(groups.get(key) ?? []), refusal]);
-  }
-  return [...groups.values()];
-}
-
-function groupPaths(group: readonly AssignmentPathRefusal[]): string[] {
-  return [...new Set(group.map((refusal) => refusal.path))];
 }
 
 /**
@@ -170,27 +117,12 @@ async function recordOtherCheckoutRefusals(
       detection: detectionOf(request),
       claimPathKey: await readOrCreateClaimPathKey(repositoryRoot),
       recordEvent: conversationLeaseEventRecorder(storage),
-      recordedRefusals: await turnRefusals(request),
+      recordedRefusals: await requestTurnRefusals(request),
       now,
     });
   } finally {
     await storage.close();
   }
-}
-
-/**
- * Checked immediately before the scheduler lock is taken: the hook has not answered without this
- * claim, and enough time remains to finish under the lock. Only then does the hook wait for it.
- */
-function beforeLock(request: ConversationClaimRequest): () => void {
-  return () => {
-    request.signal.throwIfAborted();
-    if (performance.now() > request.deadline - LOCK_MARGIN_MS)
-      throw Object.assign(new Error("Too little time remains to claim under the lock."), {
-        code: CLAIM_DEFERRED,
-      });
-    request.lockTaken();
-  };
 }
 
 /** Widens the lease by `paths` under the scheduler lock and answers the outcome. */
@@ -212,6 +144,8 @@ async function widen(
     // Below schema 16 no lease grows, and the conversation writes without claims.
     if (!conversationLeaseEventsWritable(storage)) return ALLOW;
     const workspaces = await listWorkspaces(session.repositoryRoot);
+    // Other conversations' changed paths are read under the scheduler lock. A lead whose lease
+    // expired, or which another of its sessions holds, reacquires it there (`lease_regenerated`).
     const result = await widenConversationLease({
       repositoryRoot: session.repositoryRoot,
       assignmentId: session.assignmentId,
@@ -221,9 +155,9 @@ async function widen(
       mode: "request",
       detection: detectionOf(request),
       claimantWorkspaceId: session.workspaceId,
-      changedPathHolders: conversationChangedPathHolders(workspaces, session.workspaceId),
+      regenerate: true,
       leaseHolderWorkspaceIds: conversationLeaseHolderWorkspaceIds(workspaces),
-      recordedRefusals: await turnRefusals(request),
+      recordedRefusals: await requestTurnRefusals(request),
       claimPathKey: await readOrCreateClaimPathKey(session.repositoryRoot),
       recordEvent: (event) => {
         try {
@@ -234,7 +168,7 @@ async function widen(
         }
       },
       signal: request.signal,
-      beforeLock: beforeLock(request),
+      beforeLock: guardBeforeLock(request),
       now,
     });
     if (result.refusals.length !== 0)
@@ -256,8 +190,8 @@ async function decide(request: ConversationClaimRequest, now: Date): Promise<Cla
   if (located.otherCheckout.length !== 0) return refuseOtherCheckout(request, located, now);
   if (located.inside.length === 0) return ALLOW;
   const assignment = await readAssignment(session.repositoryRoot, session.assignmentId);
-  // A session without a launch record claims under the lease's own writer session.
-  const sessionId = session.writerSessionId ?? assignment.lease?.sessionId ?? "";
+  // The lead's live lease keeps its writer session, whichever of the lead's sessions claims.
+  const sessionId = claimWriterSessionId(session, assignment.lease, now);
   const covered = conversationLeaseCovers(assignment, {
     agentId: session.agentId,
     sessionId,
@@ -268,21 +202,6 @@ async function decide(request: ConversationClaimRequest, now: Date): Promise<Cla
   const paths = await unignoredClaimPaths(session.worktree, located.inside);
   if (paths.length === 0) return ALLOW;
   return widen(request, sessionId, paths, now);
-}
-
-/** SQLite's `SQLITE_BUSY` and `SQLITE_LOCKED`: another writer held the store. */
-const SQLITE_BUSY_CODES = new Set([5, 6]);
-
-/**
- * A failure's code as a deferral carries it, such as `workforce_busy`, or `claim_deferred`. A
- * store another writer held past the claim's short wait is `workforce_busy` too.
- */
-function deferralCode(error: unknown): string {
-  const failure = error as { code?: unknown; errcode?: unknown } | null;
-  if (typeof failure?.errcode === "number" && SQLITE_BUSY_CODES.has(failure.errcode & 0xff))
-    return "workforce_busy";
-  const code = failure?.code;
-  return typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code) ? code : CLAIM_DEFERRED;
 }
 
 /**

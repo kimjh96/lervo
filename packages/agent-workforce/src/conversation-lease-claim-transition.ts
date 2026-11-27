@@ -2,8 +2,15 @@ import { listAgents } from "./agent-registry.js";
 import { assignmentAccessMode } from "./assignment-access-mode.js";
 import { isConversationTaskType } from "./assignment-path-bounds.js";
 import type { AssignmentPathRefusal, ChangedPathHolder } from "./assignment-path-conflict.js";
+import {
+  conversationLeaseCurrent,
+  conversationLeaseRegenerable,
+  regenerateConversationLease,
+} from "./conversation-lease-regeneration.js";
+import { readConversationPathHolders } from "./conversation-path-holders.js";
 import { assignmentPath, listAssignments, readAssignmentState } from "./assignment-state.js";
 import {
+  leaseClaimedEvent,
   leaseRenewedEvent,
   leaseWidenedEvent,
   type ConversationLeaseEvent,
@@ -46,6 +53,11 @@ export interface ConversationClaimChunk {
   signal?: AbortSignal;
   /** Runs immediately before the scheduler lock is taken; throwing takes no lock. */
   beforeLock?: () => void;
+  /**
+   * Reacquires the lease under the next generation when it is the same lead's but expired (Lervo
+   * ADE coordination, "Lease lifetime").
+   */
+  regenerate?: boolean;
 }
 
 export interface ConversationClaimOutcome {
@@ -55,9 +67,18 @@ export interface ConversationClaimOutcome {
   addedPaths: string[];
   refusals: AssignmentPathRefusal[];
   leaseRenewed: boolean;
+  /** Whether the lease was reacquired under the next generation before the widening. */
+  leaseRegenerated: boolean;
+  /** The stale lease's paths a regeneration gave up because another holder took them meanwhile. */
+  droppedPaths: string[];
 }
 
-/** One scheduler lock hold: reread, judge, and widen or renew the lease for one chunk of paths. */
+/**
+ * One scheduler lock hold: reread, judge, and widen or renew the lease for one chunk of paths.
+ * Other conversations' changed and sealed paths are read under the lock unless the caller passed
+ * them. A lead whose lease expired reacquires it first when `regenerate` allows, in the same hold,
+ * and the widening then judges against the new lease.
+ */
 export async function claimConversationChunk(
   input: ConversationClaimChunk,
 ): Promise<ConversationClaimOutcome> {
@@ -66,69 +87,109 @@ export async function claimConversationChunk(
   input.beforeLock?.();
   const release = await acquireLock(target.lockPath, input.now);
   try {
-    const { value: assignment, source: before } = await readAssignmentState(
-      input.repositoryRoot,
-      input.assignmentId,
-    );
+    const stored = await readAssignmentState(input.repositoryRoot, input.assignmentId);
+    let { value: assignment, source: before } = stored;
     assertConversationLeaseHolder(assignment, input);
     const agent = (await listAgents(input.repositoryRoot)).find(
       (item) => item.agentId === input.agentId,
     );
     if (agent === undefined || agent.status !== "active")
       fail("agent_state_conflict", "Only an active agent can widen its conversation lease.");
-    const plan = planConversationLeaseWidening({
-      assignment,
-      paths: input.paths,
-      mode: input.mode,
+    const assignments = await listAssignments(input.repositoryRoot);
+    const judged = {
       responsibilityPaths: agent.responsibilityPaths,
-      assignments: await listAssignments(input.repositoryRoot),
+      assignments,
       now: input.now,
-      ...(input.changedPathHolders === undefined
-        ? {}
-        : { changedPathHolders: input.changedPathHolders }),
+      changedPathHolders:
+        input.changedPathHolders ??
+        (await readConversationPathHolders({
+          repositoryRoot: input.repositoryRoot,
+          workforceDirectory: target.workforceDirectory,
+          claimantConversationId: input.claimantWorkspaceId ?? null,
+          assignments,
+          now: input.now,
+        })),
       ...(input.claimantWorkspaceId === undefined
         ? {}
         : { claimantWorkspaceId: input.claimantWorkspaceId }),
-    });
-    const unchanged = { assignment, addedPaths: [], refusals: plan.refusals, leaseRenewed: false };
-    if (plan.entries === null) {
-      if (plan.refusals.length !== 0) return { ...unchanged, status: "refused" };
-      const renewed = renewedAssignment(assignment, input.now);
-      if (renewed === null) return { ...unchanged, status: "covered" };
-      const committed = await commit(
-        target.path,
-        before,
-        renewed,
-        leaseRenewedEvent(renewed),
-        input,
-      );
-      return committed
-        ? { ...unchanged, assignment: renewed, status: "covered", leaseRenewed: true }
-        : { ...unchanged, status: "deferred" };
+    };
+    let droppedPaths: string[] | null = null;
+    if (!conversationLeaseCurrent(assignment, input, input.now)) {
+      const regenerated = regenerateConversationLease({
+        ...judged,
+        assignment,
+        claimant: input,
+        leaseMs: CONVERSATION_LEASE_MS,
+      });
+      const event = leaseClaimedEvent(regenerated.assignment);
+      if (!(await commit(target.path, before, regenerated.assignment, event, input)))
+        return { ...unchangedOutcome(assignment, []), status: "deferred" };
+      assignment = regenerated.assignment;
+      before = serialized(assignment);
+      droppedPaths = regenerated.droppedPaths;
     }
-    const next = widenedAssignment(assignment, plan.entries, input.now);
-    if (!workforceStateFits(serialized(next), MAXIMUM_WIDENED_ASSIGNMENT_BYTES))
-      return {
-        ...unchanged,
-        status: "refused",
-        refusals: [...plan.refusals, ...pathLimitRefusals(plan.claimedPaths)],
-      };
-    if (!validAssignment(next, assignment.projectId))
-      fail("assignment_invalid", "The widened conversation assignment is invalid.");
-    const cause = input.mode === "request" ? "claim" : "reconcile";
-    const committed = await commit(
-      target.path,
-      before,
-      next,
-      leaseWidenedEvent(assignment, next, cause),
-      input,
-    );
-    return committed
-      ? { ...unchanged, status: "widened", assignment: next, addedPaths: plan.claimedPaths }
-      : { ...unchanged, status: "deferred" };
+    const outcome = await widenOrRenew(target.path, before, assignment, judged, input);
+    return droppedPaths === null ? outcome : { ...outcome, leaseRegenerated: true, droppedPaths };
   } finally {
     await release();
   }
+}
+
+function unchangedOutcome(
+  assignment: WorkforceAssignment,
+  refusals: AssignmentPathRefusal[],
+): Omit<ConversationClaimOutcome, "status"> {
+  return {
+    assignment,
+    addedPaths: [],
+    refusals,
+    leaseRenewed: false,
+    leaseRegenerated: false,
+    droppedPaths: [],
+  };
+}
+
+/** Under the lock, with the lease current: widens it by the chunk's claimable paths, or renews it. */
+async function widenOrRenew(
+  path: string,
+  before: string,
+  assignment: WorkforceAssignment,
+  judged: Omit<
+    Parameters<typeof planConversationLeaseWidening>[0],
+    "assignment" | "paths" | "mode"
+  >,
+  input: ConversationClaimChunk,
+): Promise<ConversationClaimOutcome> {
+  const plan = planConversationLeaseWidening({
+    ...judged,
+    assignment,
+    paths: input.paths,
+    mode: input.mode,
+  });
+  const unchanged = unchangedOutcome(assignment, plan.refusals);
+  if (plan.entries === null) {
+    if (plan.refusals.length !== 0) return { ...unchanged, status: "refused" };
+    const renewed = renewedAssignment(assignment, input.now);
+    if (renewed === null) return { ...unchanged, status: "covered" };
+    const committed = await commit(path, before, renewed, leaseRenewedEvent(renewed), input);
+    return committed
+      ? { ...unchanged, assignment: renewed, status: "covered", leaseRenewed: true }
+      : { ...unchanged, status: "deferred" };
+  }
+  const next = widenedAssignment(assignment, plan.entries, input.now);
+  if (!workforceStateFits(serialized(next), MAXIMUM_WIDENED_ASSIGNMENT_BYTES))
+    return {
+      ...unchanged,
+      status: "refused",
+      refusals: [...plan.refusals, ...pathLimitRefusals(plan.claimedPaths)],
+    };
+  if (!validAssignment(next, assignment.projectId))
+    fail("assignment_invalid", "The widened conversation assignment is invalid.");
+  const cause = input.mode === "request" ? "claim" : "reconcile";
+  const event = leaseWidenedEvent(assignment, next, cause);
+  return (await commit(path, before, next, event, input))
+    ? { ...unchanged, status: "widened", assignment: next, addedPaths: plan.claimedPaths }
+    : { ...unchanged, status: "deferred" };
 }
 
 function assertConversationLeaseHolder(
@@ -138,11 +199,8 @@ function assertConversationLeaseHolder(
   if (!isConversationTaskType(assignment.taskType) || assignmentAccessMode(assignment) !== "write")
     fail("assignment_invalid", "Only a writing conversation assignment widens its lease.");
   if (
-    assignment.status !== "leased" ||
-    assignment.lease === null ||
-    assignment.lease.agentId !== input.agentId ||
-    assignment.lease.sessionId !== input.sessionId ||
-    Date.parse(assignment.lease.expiresAt) <= input.now.getTime()
+    !conversationLeaseCurrent(assignment, input, input.now) &&
+    !(input.regenerate === true && conversationLeaseRegenerable(assignment, input, input.now))
   )
     fail(
       "assignment_lease_conflict",

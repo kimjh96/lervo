@@ -10,7 +10,7 @@ import { workforceLimits } from "./limits.js";
 export async function assignmentPath(
   root: string,
   assignmentId: string,
-): Promise<{ path: string; lockPath: string; projectId: string }> {
+): Promise<{ path: string; lockPath: string; projectId: string; workforceDirectory: string }> {
   if (!ASSIGNMENT_ID.test(assignmentId))
     fail("assignment_invalid", "The assignment ID is invalid.");
   const current = await state(root);
@@ -18,6 +18,7 @@ export async function assignmentPath(
     path: resolve(current.base, "assignments", `${assignmentId}.json`),
     lockPath: resolve(current.base, "scheduler.lock"),
     projectId: current.manifest.projectId,
+    workforceDirectory: current.base,
   };
 }
 

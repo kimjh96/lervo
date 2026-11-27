@@ -146,3 +146,27 @@ export async function findClaimingConversation(
     writerSessionId: null,
   });
 }
+
+/**
+ * The writer session a claim widens the conversation's lease with. A live lease of the lead,
+ * whichever of the lead's sessions holds it, is the lead's own, so its writer session is kept and
+ * two live sessions never trade the lease. A session without a launch record does the same. Only
+ * an expired lease, which the claim then reacquires, takes the claiming session's own writer.
+ */
+export function claimWriterSessionId(
+  conversation: Pick<ClaimingConversation, "agentId" | "writerSessionId">,
+  lease: {
+    readonly agentId: string;
+    readonly sessionId: string;
+    readonly expiresAt: string;
+  } | null,
+  now: Date,
+): string {
+  if (
+    lease !== null &&
+    lease.agentId === conversation.agentId &&
+    Date.parse(lease.expiresAt) > now.getTime()
+  )
+    return lease.sessionId;
+  return conversation.writerSessionId ?? lease?.sessionId ?? "";
+}
