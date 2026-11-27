@@ -9,6 +9,8 @@
 //
 // Usage: node scripts/measure-webview.mjs [scenario...] > results.json
 // It opens a window on the screen for each scenario, so run it while nobody is using the Mac.
+// With LERVO_MEASURE_VMMAP=1 it writes `vmmap --summary` of the WebContent process to stderr as it
+// samples, which separates the JavaScript heap from graphics memory.
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -169,11 +171,23 @@ async function measure(scenario) {
           Object.entries(byRole).map(([role, spent]) => [role, percent(spent)]),
         );
       }
-      result.residentMb =
-        Math.round(
-          windowProcesses(window.pid, webkitBefore).reduce((total, p) => total + p.rssKb, 0) /
-            10.24,
-        ) / 100;
+      const resident = windowProcesses(window.pid, webkitBefore);
+      const megabytes = (kilobytes) => Math.round(kilobytes / 10.24) / 100;
+      result.residentMb = megabytes(resident.reduce((total, p) => total + p.rssKb, 0));
+      if (process.env.LERVO_MEASURE_VMMAP === "1")
+        for (const p of resident.filter((p) => processRole(p, window.pid) === "WebContent"))
+          process.stderr.write(
+            execFileSync("vmmap", ["--summary", String(p.pid)], { encoding: "utf8" }),
+          );
+      // Which process holds it: the shell, or one of WebKit's.
+      const byRole = {};
+      for (const process of resident) {
+        const role = processRole(process, window.pid);
+        byRole[role] = (byRole[role] ?? 0) + process.rssKb;
+      }
+      result.residentMbByProcess = Object.fromEntries(
+        Object.entries(byRole).map(([role, kilobytes]) => [role, megabytes(kilobytes)]),
+      );
       return result;
     } finally {
       window.kill("SIGTERM");

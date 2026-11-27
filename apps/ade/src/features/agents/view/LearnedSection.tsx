@@ -4,6 +4,7 @@ import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 import { useApplicationCommands } from "../../../ports";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
+import { HeldSection } from "./HeldSection";
 import { loadLearned } from "../model/learned";
 import { useAgentStore } from "../model/store";
 import styles from "./LearnedSection.module.css";
@@ -88,5 +89,18 @@ export function LearnedSection(props: { projectId: string; agentId: string }) {
         )}
       </Presence>
     </section>
+  );
+}
+
+/**
+ * What the agent has learned, then the paths it holds, both from the core's `agent.context`,
+ * which this section reads.
+ */
+export function ContextSections(props: { projectId: string; agentId: string }) {
+  return (
+    <>
+      <LearnedSection projectId={props.projectId} agentId={props.agentId} />
+      <HeldSection agentId={props.agentId} />
+    </>
   );
 }

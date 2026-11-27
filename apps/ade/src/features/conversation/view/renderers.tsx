@@ -3,6 +3,7 @@ import { type ComponentType, lazy, type ReactNode, Suspense } from "react";
 import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
 import { attachedFiles } from "../model/files";
+import { useConversationStore } from "../model/store";
 import { QuestionChoices } from "./ChoiceCard";
 import { ClaimLine } from "./ClaimLine";
 import { MessageFiles } from "./MessageFiles";
@@ -79,7 +80,10 @@ function AgentText(props: { text: string; className: string | undefined }) {
 }
 
 function AgentMessage({ item }: { item: Extract<ConversationItem, { kind: "agent_message" }> }) {
-  const text = usePacedText(item.text);
+  // A joined agent's items carry its session in their identifier, so only this conversation's
+  // own streaming items find an arrival time here.
+  const arrivedAt = useConversationStore((store) => store.grownAt[item.itemId]);
+  const text = usePacedText(item.text, arrivedAt);
   return <AgentText text={text} className={styles.agent} />;
 }
 

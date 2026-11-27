@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_601c855cf0968b0df73b11ff"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "agent.context also answers the repository paths the agent holds under a live write lease, sorted, at most 100 with their total."

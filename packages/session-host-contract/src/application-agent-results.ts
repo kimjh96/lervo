@@ -161,6 +161,8 @@ export const agentMarkReadResultSchema = {
 export const MAXIMUM_LEARNED_ENTRIES = 50;
 /** The most characters of one learned entry's summary that `agent.context` answers. */
 export const MAXIMUM_LEARNED_SUMMARY_CHARACTERS = 4_000;
+/** The most held paths `agent.context` lists; `pathsTotal` counts them all. */
+export const MAXIMUM_HELD_PATHS = 100;
 
 /**
  * `agent.context`: what the agent has learned, from its promoted context entries that are still
@@ -195,6 +197,17 @@ export const agentContextResultSchema = {
         },
       },
     },
+    /**
+     * The repository paths the agent holds under a live write lease, sorted, as its
+     * conversations' claims and its other assignments widened them (Lervo ADE agents, "The
+     * profile"). Absent from a core that does not read leases.
+     */
+    paths: {
+      type: "array",
+      maxItems: MAXIMUM_HELD_PATHS,
+      items: { type: "string", minLength: 1, maxLength: 1024 },
+    },
+    pathsTotal: { type: "integer", minimum: 0 },
   },
 } as const;
 

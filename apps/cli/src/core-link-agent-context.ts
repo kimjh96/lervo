@@ -1,9 +1,11 @@
-// What an agent has learned, as its profile shows it (Lervo ADE agents, "The profile").
+// What an agent has learned and the paths it holds, as its profile shows them (Lervo ADE agents,
+// "The profile").
 import { projectAgentContextFromEventSource } from "@lervo/agent-organization";
-import { listAgents } from "@lervo/agent-workforce";
+import { listAgents, listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   type AgentContextResult,
+  MAXIMUM_HELD_PATHS,
   MAXIMUM_LEARNED_ENTRIES,
   MAXIMUM_LEARNED_SUMMARY_CHARACTERS,
 } from "@lervo/session-host-contract";
@@ -70,4 +72,26 @@ export async function learnedEntries(
   } finally {
     await storage.close();
   }
+}
+
+/**
+ * The repository paths the agent holds under a live write lease, sorted: the first
+ * `MAXIMUM_HELD_PATHS` and how many there are. A lease that expired holds nothing, and a read
+ * lease never blocks a write, so neither counts.
+ */
+export async function heldPaths(
+  repositoryRoot: string,
+  agentId: string,
+  now = new Date(),
+): Promise<{ paths: string[]; total: number }> {
+  const held = new Set<string>();
+  for (const assignment of await listAssignments(repositoryRoot)) {
+    const lease = assignment.lease;
+    if (assignment.status !== "leased" || lease === null || lease.agentId !== agentId) continue;
+    if (assignment.accessMode === "read_only" || Date.parse(lease.expiresAt) <= now.getTime())
+      continue;
+    for (const path of assignment.expectedPaths) held.add(path);
+  }
+  const sorted = [...held].sort();
+  return { paths: sorted.slice(0, MAXIMUM_HELD_PATHS), total: sorted.length };
 }

@@ -88,15 +88,29 @@ describe("the delta buffer", () => {
   it("merges deltas and releases them once per frame or on demand", () => {
     const frames: (() => void)[] = [];
     const released: [string, string][][] = [];
+    const arrivals: [string, number][][] = [];
+    let clock = 100;
     const buffer = new DeltaBuffer(
-      (deltas) => released.push([...deltas]),
+      (deltas, arrived) => {
+        released.push([...deltas]);
+        arrivals.push([...arrived]);
+      },
       (run) => frames.push(run),
+      () => clock,
     );
     buffer.add("i1", "Hel");
+    clock = 110;
     buffer.add("i1", "lo");
     buffer.add("i2", "!");
     expect(frames).toHaveLength(1);
     frames[0]?.();
+    // Each item's text counts from when its first part of the frame arrived.
+    expect(arrivals).toEqual([
+      [
+        ["i1", 100],
+        ["i2", 110],
+      ],
+    ]);
     expect(released).toEqual([
       [
         ["i1", "Hello"],

@@ -1421,6 +1421,19 @@
               }
             }
           }
+        },
+        "paths": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        },
+        "pathsTotal": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },

@@ -22,7 +22,7 @@ import {
   readAgentMarkImage,
   setAgentMark,
 } from "./core-link-agent-marks.js";
-import { learnedEntries } from "./core-link-agent-context.js";
+import { heldPaths, learnedEntries } from "./core-link-agent-context.js";
 import { defaultHostedProvider, hostedProviderModels } from "./hosted-session-adapters.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 import { CommandFailure } from "./command-error-output.js";
@@ -152,7 +152,11 @@ async function answer(command: string, arguments_: Record<string, unknown>): Pro
   }
   if (command === "agent.context") {
     const agentId = text(arguments_, "agentId", 64);
-    return { projectId, agentId, entries: await learnedEntries(root, agentId) };
+    const [entries, held] = await Promise.all([
+      learnedEntries(root, agentId),
+      heldPaths(root, agentId),
+    ]);
+    return { projectId, agentId, entries, paths: held.paths, pathsTotal: held.total };
   }
   if (command === "agent.mark.read") {
     const agentId = text(arguments_, "agentId", 64);

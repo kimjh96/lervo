@@ -129,6 +129,50 @@
       "value": ")."
     }
   ],
+  "agents.profile.held": [
+    {
+      "type": 0,
+      "value": "Paths it holds"
+    }
+  ],
+  "agents.profile.held.more": [
+    {
+      "type": 6,
+      "value": "count",
+      "options": {
+        "one": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " more path"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " more paths"
+            }
+          ]
+        }
+      },
+      "offset": 0,
+      "pluralType": "cardinal"
+    }
+  ],
+  "agents.profile.held.none": [
+    {
+      "type": 0,
+      "value": "It holds no paths. The paths it writes in a conversation are leased to it and show here."
+    }
+  ],
   "agents.profile.image.choose": [
     {
       "type": 0,

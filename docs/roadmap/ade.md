@@ -308,7 +308,28 @@ The page now bundles both modules with the main script and checks the permission
 - **Result.** The stored page arrived 14–31 ms after the click. First paint measured 84, 86, 98, and 100 ms, and once 165 ms, at a load average near 8.5 with another process using 92% of a core. That meets the 100 ms budget except under the heaviest load.
 - **In daily use.** A conversation that rested ten minutes stopped its provider, so it waited for the core and the provider before showing anything. In the development build it now showed its history 0.2 seconds after the click, before its session started.
 
-**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. What is left is the trail's maximum, 159 ms against 137 at a load average of 12, with its p95 within target. It is to be measured on an idle Mac.
+**The trail (2026-11-27).** The pacer counted its 120 ms from the passive effect after the frame that rendered new text. That came up to two frames after the text reached the page: one while the delta buffer waited for a frame, and one because the effect ran after the paint. The delta buffer now records when each item's text arrived, and the pacer counts from then. At a load average of 10 to 11, the trail's maximum measured 121, 123, 125, and 151 ms, against 157–168 ms before. Its p95 measured 109–120 ms.
+
+**Memory with the conversation open (2026-11-27).** The harness now reports resident memory by process. With `LERVO_MEASURE_VMMAP=1`, it also writes WebContent's `vmmap` summary. Sampled at once, the conversation scenario read about 100 MB above idle (245 MB against 138), most of it in WebContent. Sampled again after 10 settled seconds:
+
+- **Open, no scrolling.** WebContent's physical footprint was 106 MB against 61 MB idle, 45 MB above. Its WebKit heap held 13.9 MB allocated against 8.3 MB idle. That is within the 50 MB budget.
+- **During the scroll.** The scenario scrolls 600 px a frame for 600 frames. WebKit's tiles for that scroll briefly held about 1 GB of graphics memory, "owned unmapped (graphics)", which was released within 10 seconds. The footprint then measured 133 MB. Positioning rows with `top` instead of a transform, and removing the scroller's fade mask, each left that peak unchanged, so neither causes it.
+
+**Fifth run (2026-11-27).** Every scenario ran on main after #590 with the trail change, at a load average of 9 to 10:
+
+| Scenario                                                                              | Result                                                                     | Target                     |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------- |
+| Cold start to the start screen (warm; the first launch after a build: 1,351–1,449 ms) | 424 and 539 ms                                                             | 500 ms                     |
+| UI CPU, idle, window visible, no field focused                                        | 0.4%                                                                       | 0.5%                       |
+| UI CPU, idle, window hidden                                                           | 0.042%                                                                     | 0.1%                       |
+| First paint of the 100,000-item conversation                                          | 89, 117, 128, and 263 ms; earlier the same day 84, 86, 98, 100, and 165 ms | 100 ms                     |
+| Scrolling it: p95 and longest frame                                                   | 19 ms and 26 ms, none over 50 ms                                           | 60 fps, no task over 50 ms |
+| Streamed delta to the page, p95                                                       | 17 ms                                                                      | 33 ms                      |
+| Streamed delta to screen, p95                                                         | 118 ms                                                                     | 153 ms                     |
+| Trail, p95 and maximum                                                                | 112 ms and 123 ms                                                          | 137 ms                     |
+| Keystroke to echo, p95                                                                | 19 ms                                                                      | 25 ms                      |
+
+**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. Under load, first paint now has a median near 100 ms, one of two warm cold starts measured 539 ms against 500, and every other interface budget meets its target. What is left is a run of first paint and cold start on an idle Mac. There the open no longer waits for the session.
 
 ### S1.6c measurements
 
