@@ -99,6 +99,8 @@ export function gitDocumentStalenessPort(repositoryRoot: string): DocumentStalen
           windowsHide: true,
         });
         let stdout = "";
+        // Git that exits before reading every lookup answered only some of them.
+        let lookupsCutShort = false;
         child.stdout.setEncoding("utf8");
         child.stdout.on("data", (chunk: string) => {
           stdout += chunk;
@@ -108,7 +110,7 @@ export function gitDocumentStalenessPort(repositoryRoot: string): DocumentStalen
         );
         child.on("close", (code) => {
           const lines = stdout.split("\n").slice(0, lookups.length);
-          if (code !== 0 || lines.length !== lookups.length) {
+          if (code !== 0 || lines.length !== lookups.length || lookupsCutShort) {
             reject(new DocumentStalenessGitUnavailable("Git object lookup failed."));
             return;
           }
@@ -121,7 +123,13 @@ export function gitDocumentStalenessPort(repositoryRoot: string): DocumentStalen
             ),
           );
         });
-        child.stdin.end(lookups.map((lookup) => `${lookup}\n`).join(""));
+        const request = lookups.map((lookup) => `${lookup}\n`).join("");
+        // An empty request is never written, so only a written one can be cut short.
+        child.stdin.on("error", () => {
+          lookupsCutShort = request.length > 0;
+        });
+        if (request.length === 0) child.stdin.end();
+        else child.stdin.end(request);
       });
     },
   };

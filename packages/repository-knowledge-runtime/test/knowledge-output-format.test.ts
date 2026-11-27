@@ -4,10 +4,13 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { formatSettledKnowledgeOutputs } from "../src/knowledge-output-commit.js";
-import { knowledgeOutputFormatTargets } from "../src/knowledge-output-format-scope.js";
+import {
+  knowledgeOutputFormatTargets,
+  readRevisionFiles,
+} from "../src/knowledge-output-format-scope.js";
 import {
   loadRepositoryKnowledgeOutputFormatter,
   type KnowledgeOutputFormatter,
@@ -17,6 +20,7 @@ const execute = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 const directories: string[] = [];
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(
     directories
       .splice(0)
@@ -150,5 +154,17 @@ describe("repository formatter", () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-format-none-"));
     directories.push(root);
     expect(await loadRepositoryKnowledgeOutputFormatter(root)).toBeNull();
+  });
+});
+
+describe("revision file reads", () => {
+  it("fail when Git exits before reading every lookup, without an uncaught EPIPE", async () => {
+    const bin = await mkdtemp(resolve(tmpdir(), "lervo-unread-git-"));
+    directories.push(bin);
+    // A Git that exits 0 without reading stdin would otherwise report every file absent.
+    await writeFile(resolve(bin, "git"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    vi.stubEnv("PATH", bin);
+    const paths = Array.from({ length: 200_000 }, (_, index) => `docs/page-${index}.md`);
+    await expect(readRevisionFiles(bin, "HEAD", paths)).rejects.toMatchObject({ code: "EPIPE" });
   });
 });

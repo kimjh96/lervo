@@ -25,6 +25,10 @@ export function ghRunner(
   return async (args, input) => {
     const env = { ...(await environment()), GH_PROMPT_DISABLED: "1" };
     return new Promise((resolveRun, reject) => {
+      // `gh` that exits 0 before reading all of its input, such as a body, acted on part of it at
+      // most, so that run fails. A nonzero exit still rejects with its own stderr, which classifies
+      // the failure, such as auth or a rate limit.
+      let inputError: Error | null = null;
       const child = execFile(
         executable,
         args,
@@ -35,10 +39,20 @@ export function ghRunner(
           timeout: 60_000,
           env,
         },
-        (error, stdout, stderr) =>
-          error === null ? resolveRun(stdout) : reject(Object.assign(error, { stderr })),
+        (error, stdout, stderr) => {
+          if (error !== null) reject(Object.assign(error, { stderr }));
+          else if (inputError !== null) reject(Object.assign(inputError, { stderr }));
+          else resolveRun(stdout);
+        },
       );
-      if (input !== undefined) child.stdin?.end(input);
+      child.stdin?.on("error", (error) => {
+        inputError = error;
+      });
+      // Empty input is never written: `gh` may exit before even an empty write.
+      if (input !== undefined) {
+        if (input.length === 0) child.stdin?.end();
+        else child.stdin?.end(input);
+      }
     });
   };
 }

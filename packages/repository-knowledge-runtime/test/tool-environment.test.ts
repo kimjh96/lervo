@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
 
-import { ghRunner } from "../src/knowledge-publication-github-cli.js";
+import { classifyGitHubCliFailure, ghRunner } from "../src/knowledge-publication-github-cli.js";
 import {
   rememberedToolEnvironment,
   TOOL_ENVIRONMENT_RETRY_MS,
@@ -66,6 +66,33 @@ it("finds gh on the login-shell PATH that the service PATH lacks", async () => {
     await expect(
       ghRunner(bin, "lervo-test-gh", async () => process.env)(["api"]),
     ).rejects.toMatchObject({ code: "ENOENT" });
+  } finally {
+    await rm(bin, { recursive: true, force: true });
+  }
+});
+
+it("classifies gh's own failure when gh exits before reading a large body", async () => {
+  const bin = await mkdtemp(resolve(tmpdir(), "lervo-gh-unread-"));
+  try {
+    // Both fakes exit without reading stdin, so a body larger than any pipe buffer is cut short.
+    await writeFile(
+      resolve(bin, "lervo-failing-gh"),
+      '#!/bin/sh\necho "HTTP 401: Bad credentials" >&2\nexit 1\n',
+      { mode: 0o755 },
+    );
+    await writeFile(resolve(bin, "lervo-silent-gh"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    const environment = async () => ({ ...process.env, PATH: bin });
+    const body = "body ".repeat(2 * 1024 * 1024);
+    const failure: unknown = await ghRunner(
+      bin,
+      "lervo-failing-gh",
+      environment,
+    )(["pr", "create", "--body-file", "-"], body).catch((error: unknown) => error);
+    expect(classifyGitHubCliFailure(failure)).toMatchObject({ exitCode: 1, failureClass: "auth" });
+    // An exit 0 that left the body unread still fails rather than reporting success.
+    await expect(
+      ghRunner(bin, "lervo-silent-gh", environment)(["pr", "create", "--body-file", "-"], body),
+    ).rejects.toMatchObject({ code: "EPIPE" });
   } finally {
     await rm(bin, { recursive: true, force: true });
   }

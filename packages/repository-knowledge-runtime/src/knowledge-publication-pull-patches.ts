@@ -41,6 +41,12 @@ function streamPatchIds(root: string, logArgs: readonly string[]): Promise<Map<s
     const patchId = spawn("git", ["-C", root, "patch-id", "--stable"], {
       stdio: ["pipe", "pipe", "ignore"],
     });
+    // patch-id that exits before reading the whole log leaves commits without an id; stop the log
+    // and fail the inspection instead of matching on the ids it did print.
+    patchId.stdin.on("error", (error) => {
+      log.kill();
+      fail(error);
+    });
     log.stdout.pipe(patchId.stdin);
     let output = "";
     patchId.stdout.setEncoding("utf8");
@@ -267,6 +273,12 @@ function diffPatchId(root: string, from: string, to: string): Promise<string | n
     });
     const patchId = spawn("git", ["-C", root, "patch-id", "--stable"], {
       stdio: ["pipe", "pipe", "ignore"],
+    });
+    // patch-id that exits before reading the whole diff would name another change; stop the diff
+    // and fail the inspection.
+    patchId.stdin.on("error", (error) => {
+      diff.kill();
+      fail(error);
     });
     patchId.stdin.write(`commit ${"0".repeat(40)}\n`);
     diff.stdout.pipe(patchId.stdin);
