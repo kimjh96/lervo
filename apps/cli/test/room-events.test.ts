@@ -190,6 +190,21 @@ describe("the room's records", () => {
     expect(await recordRoomEvents(root, events)).toBe("recorded");
     const storage = await openProjectStorage(root);
     try {
+      // A mention's record under any other ID is refused, so attestation always finds it.
+      expect(() =>
+        storage.events.append({
+          eventId: "evt_mention_elsewhere",
+          projectId: storage.manifest.projectId,
+          runId: "run_room_test",
+          sessionId: "ses_room_test",
+          type: "room.mention.recorded",
+          schemaVersion: 15,
+          occurredAt: "2026-11-27T03:00:00.000Z",
+          actor: { kind: "system" },
+          policyVersion: `sha256:${"a".repeat(64)}`,
+          payload: { ...events[0]!.payload },
+        } as never),
+      ).toThrowError(expect.objectContaining({ code: "invalid_event" }));
       const kept = storage.events.list().filter((event) => event.type.startsWith("room."));
       expect(kept).toEqual([
         expect.objectContaining({ type: "room.mention.recorded", schemaVersion: 15 }),

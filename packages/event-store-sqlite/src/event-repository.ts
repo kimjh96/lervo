@@ -9,7 +9,7 @@ import {
   type EventHashInput,
   type EventSchemaVersion,
 } from "@lervo/event-contract";
-import { type EventEnvelope, validateSchema } from "@lervo/schemas";
+import { type EventEnvelope, roomMentionRecordedEventId, validateSchema } from "@lervo/schemas";
 import {
   type AppendEventResult,
   type EventChainReport,
@@ -72,6 +72,16 @@ export class SQLiteEventRepository {
       throw new EventStoreError(
         "event_schema_unsupported",
         "Convergence assignment provenance requires event schema version 4.",
+      );
+    // A mention's record takes the ID its mention derives, so a conversation note's attestation
+    // finds it with one lookup (ADR-0648).
+    if (
+      draft.type === "room.mention.recorded" &&
+      draft.eventId !== roomMentionRecordedEventId(String(draft.payload.mentionId))
+    )
+      throw new EventStoreError(
+        "invalid_event",
+        "A mention's record takes the ID its mention derives.",
       );
     const sanitized = sanitizeEventPayload(draft.type, draft.payload);
     const requestedIdentity = eventIdentity(draft, sanitized.payload);
