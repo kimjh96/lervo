@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { learnedEntries } from "../src/core-link-agent-context.js";
+import { heldPaths, learnedEntries } from "../src/core-link-agent-context.js";
 import { runCli } from "../src/main.js";
 
 const roots: string[] = [];
@@ -135,6 +135,67 @@ describe("what an agent has learned, for its profile", () => {
     ]);
     await expect(learnedEntries(root, "agt_unknown0000000000000000")).rejects.toMatchObject({
       code: "agent_not_found",
+    });
+  });
+
+  it("lists the paths an agent holds under a live write lease, sorted, and nothing for others", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-agent-held-"));
+    roots.push(root);
+    expect(await runCli(["init", "--root", root, "--name", "held"], io(root))).toBe(0);
+    const holder = await hire(root);
+    const other = await hire(root);
+    const created: string[] = [];
+    expect(
+      await runCli(
+        [
+          "assignment",
+          "create",
+          "--type",
+          "implementation",
+          "--role",
+          "developer",
+          "--criteria",
+          "Held paths are visible.",
+          "--suite",
+          "project.quick",
+          "--path",
+          "src/net",
+          "--path",
+          "docs",
+          "--write",
+          "--json",
+          "--root",
+          root,
+        ],
+        io(root, created),
+      ),
+    ).toBe(0);
+    const { assignmentId } = JSON.parse(created.join("")) as { assignmentId: string };
+    expect(
+      await runCli(
+        [
+          "assignment",
+          "claim",
+          "--assignment",
+          assignmentId,
+          "--agent",
+          holder,
+          "--session",
+          "ses_cli_held_01",
+          "--write",
+          "--json",
+          "--root",
+          root,
+        ],
+        io(root),
+      ),
+    ).toBe(0);
+    expect(await heldPaths(root, holder)).toEqual({ paths: ["docs", "src/net"], total: 2 });
+    expect(await heldPaths(root, other)).toEqual({ paths: [], total: 0 });
+    // A lease that expired holds nothing.
+    expect(await heldPaths(root, holder, new Date("2999-01-01T00:00:00Z"))).toEqual({
+      paths: [],
+      total: 0,
     });
   });
 });

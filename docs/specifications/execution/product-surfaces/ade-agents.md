@@ -54,7 +54,10 @@ Agents work together by mentioning each other directly, by role and by what each
 - **Pausing.** "Pause agent" sets the agent suspended through `agent.status`; it takes no new work, keeps its conversations, and shows quieter in the sidebar. "Resume agent" undoes it. Retiring cannot be undone, so the profile does not offer it (invariant 10); `lervo agent status` retires an agent.
 - **Image.** Pressing the agent's large mark opens the image panel, as a project's logo does; an agent with an image first offers "Choose Image" and "Remove Image" in a menu. The image shows wherever the agent's mark does: the sidebar, the conversation's header, the speaker lines, the mention suggestions, and the participants chip.
 - **What it has learned.** The agent's active context entries, newest first: each entry's words, then what kind of note it is and when it was observed. A restricted entry says that its words stay with the agent's own sessions. An agent without entries says that what it learns in its conversations appears here. Conversation notes join them once event schema 16 is active ([Lervo ADE rooms](ade-rooms.md), "Memory from conversation").
-- **Still to come.** The paths the agent holds, once claims lease them ([Lervo ADE coordination](ade-coordination.md)).
+- **Paths it holds.** The repository paths the agent holds under a live write lease, sorted and shown whole, as its conversations' claims and its other assignments widened them ([Lervo ADE coordination](ade-coordination.md)).
+  - `agent.context` answers them with what the agent has learned, at most 100, with `pathsTotal` counting them all. Beyond the 100 shown, a line says how many more it holds.
+  - A lease that expired, and a read lease, hold nothing.
+  - An agent that holds nothing says that the paths it writes in a conversation are leased to it and show there. A core that does not read leases answers no paths, and the section stays out.
 - **Failure.** A failed rename or model change shows one line under the profile: "Lervo could not change the agent (<code>)."
 
 ## Model and effort

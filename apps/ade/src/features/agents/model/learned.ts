@@ -1,4 +1,5 @@
-// What an agent has learned, as its profile shows it (Lervo ADE agents, "The profile").
+// What an agent has learned and the paths it holds, as its profile shows them (Lervo ADE agents,
+// "The profile").
 import type { AgentContextResult } from "@lervo/session-host-contract";
 
 import { type ApplicationCommands, failureCode } from "../../../ports";
@@ -6,10 +7,20 @@ import { useAgentStore } from "./store";
 
 export type LearnedEntry = AgentContextResult["entries"][number];
 
-/** One agent's learned entries: null while the core reads them, or the failure's code. */
+/** The paths an agent holds under a live write lease: the first ones, sorted, and how many. */
+export interface Held {
+  readonly paths: readonly string[];
+  readonly total: number;
+}
+
+/**
+ * One agent's learned entries and held paths: null while the core reads them, or the failure's
+ * code. `held` stays null from a core that does not read leases.
+ */
 export interface Learned {
   readonly agentId: string;
   readonly entries: readonly LearnedEntry[] | null;
+  readonly held: Held | null;
   readonly failure: string | null;
 }
 
@@ -24,17 +35,30 @@ export async function loadLearned(
   agentId: string,
 ): Promise<void> {
   const shown = useAgentStore.getState().learned;
+  const same = shown?.agentId === agentId;
   useAgentStore.setState({
-    learned: { agentId, entries: shown?.agentId === agentId ? shown.entries : null, failure: null },
+    learned: {
+      agentId,
+      entries: same ? shown.entries : null,
+      held: same ? shown.held : null,
+      failure: null,
+    },
   });
   const current = () => useAgentStore.getState().learned?.agentId === agentId;
   try {
-    const { entries } = await commands.run("agent.context", { projectId, agentId });
-    if (current()) useAgentStore.setState({ learned: { agentId, entries, failure: null } });
+    const answer = await commands.run("agent.context", { projectId, agentId });
+    const held =
+      answer.paths === undefined
+        ? null
+        : { paths: answer.paths, total: answer.pathsTotal ?? answer.paths.length };
+    if (current())
+      useAgentStore.setState({
+        learned: { agentId, entries: answer.entries, held, failure: null },
+      });
   } catch (failure) {
     if (current())
       useAgentStore.setState({
-        learned: { agentId, entries: null, failure: failureCode(failure) },
+        learned: { agentId, entries: null, held: null, failure: failureCode(failure) },
       });
   }
 }

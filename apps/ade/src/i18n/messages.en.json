@@ -83,6 +83,18 @@
     "defaultMessage": "Choose an image for {name}",
     "description": "The title of the image panel that chooses an agent's image."
   },
+  "agents.profile.held": {
+    "defaultMessage": "Paths it holds",
+    "description": "The heading over the repository paths an agent holds under a live lease, in its profile."
+  },
+  "agents.profile.held.more": {
+    "defaultMessage": "{count, plural, one {# more path} other {# more paths}}",
+    "description": "Under the held paths, when the agent holds more than the profile lists; {count} is how many more."
+  },
+  "agents.profile.held.none": {
+    "defaultMessage": "It holds no paths. The paths it writes in a conversation are leased to it and show here.",
+    "description": "Under Paths it holds, when the agent holds no path under a live lease."
+  },
   "agents.profile.learned": {
     "defaultMessage": "What it has learned",
     "description": "The heading over the agent's learned context in its profile."

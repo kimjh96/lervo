@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f2459f30e7cad5c4c2bcf8d5"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "An agent's profile shows the paths it holds: the repository paths its conversations' claims and its assignments lease to it, whole and sorted."

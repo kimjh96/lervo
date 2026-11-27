@@ -22,7 +22,7 @@ import { renameAgent, setAgentModel, setAgentStatus } from "../model/controller"
 import { chooseAgentMark, clearAgentMark } from "../model/marks";
 import { useAgentStore } from "../model/store";
 import styles from "./AgentProfile.module.css";
-import { LearnedSection } from "./LearnedSection";
+import { ContextSections } from "./LearnedSection";
 import { PauseSection } from "./PauseSection";
 
 /** Each effort's words, lowest first. */
@@ -262,7 +262,7 @@ export function AgentProfile(props: { agentId: string }) {
         </Presence>
       </section>
       {/* motion: History loads or a workspace reopens */}
-      {learns ? <LearnedSection projectId={projectId} agentId={agent.agentId} /> : null}
+      {learns ? <ContextSections projectId={projectId} agentId={agent.agentId} /> : null}
       {/* motion: History loads or a workspace reopens */}
       {pauses ? (
         <PauseSection
