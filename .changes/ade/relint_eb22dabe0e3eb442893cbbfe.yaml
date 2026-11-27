@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_eb22dabe0e3eb442893cbbfe"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "An agent's profile scrolls when it is taller than the window, so what it learned, the paths it holds, and Pause agent stay reachable."
