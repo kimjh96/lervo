@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_da3a79a354973a6da160bc87"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "The turn summary card shows how many rules Lervo gave the agent for the turn, such as 2, or 2 of 14 when some did not fit."

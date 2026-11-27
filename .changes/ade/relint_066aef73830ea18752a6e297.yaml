@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_066aef73830ea18752a6e297"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Agents chosen for new work in one project no longer go with new work in another project after a switch, and a refused start names the core's reason."
