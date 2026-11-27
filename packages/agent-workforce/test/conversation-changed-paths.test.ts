@@ -13,8 +13,10 @@ import {
   claimAssignment,
   CONVERSATION_TASK_TYPE,
   createAssignment,
+  listAssignments,
   listConversationChangedPaths,
   listWorkspaces,
+  readAssignmentClaimRefusals,
   readConversationChangedPaths,
   recordConversationChangedPaths,
   recordConversationWorkspaceGeneration,
@@ -321,6 +323,42 @@ describe("recording a generation's changed paths", () => {
     await record(fixture.root, workspace, ["src/a.ts"]);
     await expect(claim(["src"])).rejects.toMatchObject({ code: "assignment_path_conflict" });
     await expect(claim(["src/other.ts"])).resolves.toMatchObject({ status: "leased" });
+    // A waiter reads the same judgment without claiming or writing anything.
+    const refusals = async (expectedPaths: string[]) =>
+      readAssignmentClaimRefusals({
+        repositoryRoot: fixture.root,
+        assignment: await create(expectedPaths),
+        assignments: await listAssignments(fixture.root),
+        now: NOW,
+      });
+    // The worker's own earlier claims hold their files too, as live leases.
+    expect(await refusals(["src"])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "path_changed_unsealed",
+          path: "src",
+          holderWorkspaceId: HOLDER_CONVERSATION,
+        }),
+        expect.objectContaining({ code: "path_leased", path: "src" }),
+      ]),
+    );
+    expect(await refusals(["docs"])).toEqual([]);
+    // A path outside the agent's responsibility is not an overlap, and has its own code.
+    const scoped = await registerAgent({
+      repositoryRoot: fixture.root,
+      roleId: "developer",
+      origin: "lervo",
+      responsibilityPaths: ["docs"],
+    });
+    await expect(
+      claimAssignment({
+        repositoryRoot: fixture.root,
+        assignmentId: (await create(["src/elsewhere.ts"])).assignmentId,
+        agentId: scoped.agentId,
+        sessionId: "ses_scoped_session_01",
+        now: NOW,
+      }),
+    ).rejects.toMatchObject({ code: "assignment_path_outside_responsibility" });
 
     // A changes file this release cannot read, or one of a record it cannot read, holds nothing.
     const changes = resolve(folder.workforce, "conversation-changes");

@@ -106,3 +106,14 @@ it("keeps an unclassified failure's identifier-shaped code and name, never its m
   });
   expect(unclassifiedFailureCause(null)).toEqual({ code: null, name: null });
 });
+
+it("keeps a claim outside the stage's responsibility apart from an overlap, and never retries it", () => {
+  expect(normalizedConvergenceFailure({ code: "assignment_path_outside_responsibility" })).toBe(
+    "assignment_path_outside_responsibility",
+  );
+  expect(normalizedConvergenceFailure({ code: "assignment_path_conflict" })).toBe(
+    "assignment_path_conflict",
+  );
+  expect(convergenceRetryLimit("assignment_path_outside_responsibility")).toBeNull();
+  expect(reevaluatedConvergenceFailure("assignment_path_outside_responsibility")).toBe(false);
+});

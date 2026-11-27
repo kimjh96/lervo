@@ -81,7 +81,12 @@ export async function claimAssignmentOnce(input: {
         agent.responsibilityPaths.some((scope) => repositoryPathWithinScope(path, scope)),
       )
     )
-      fail("assignment_path_conflict", "The assignment is outside the agent responsibility scope.");
+      // Outside the agent's responsibility is no overlap: nothing another holder releases ever
+      // makes the claim possible, so it has its own code and nothing waits on it.
+      fail(
+        "assignment_path_outside_responsibility",
+        "The assignment is outside the agent responsibility scope.",
+      );
     if (
       assignment.dependencyIds.some(
         (dependencyId) =>

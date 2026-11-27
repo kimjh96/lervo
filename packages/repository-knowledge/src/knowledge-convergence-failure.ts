@@ -83,6 +83,7 @@ export function normalizedConvergenceFailure(error: unknown): string {
     "normalization_budget_exceeded",
     "knowledge_capacity_unavailable",
     "assignment_path_conflict",
+    "assignment_path_outside_responsibility",
     "knowledge_semantic_review_invalid",
     "knowledge_usage_unavailable",
     "knowledge_job_source_invalid",

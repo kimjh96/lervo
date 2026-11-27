@@ -57,6 +57,7 @@ export {
   type AssignmentPathRefusalCode,
   type ChangedPathHolder,
 } from "./assignment-path-conflict.js";
+export { readAssignmentClaimRefusals } from "./assignment-claim-refusals.js";
 export { claimPathDigest } from "./claim-path-digest.js";
 export type { ConversationClaimMode } from "./conversation-lease-widening-plan.js";
 export type {

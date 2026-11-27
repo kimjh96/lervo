@@ -208,11 +208,11 @@ The conversation's own generations never count, because its next generation star
 
 A claim is also refused when the path is outside the lead's responsibility paths (`outside_responsibility`), inside another checkout (`path_outside_workspace`), or past the lease bound (`lease_path_limit`). Read-only leases never conflict, as today.
 
-Knowledge convergence today holds a stage refused with `assignment_path_conflict` while any live write lease exists, overlapping or not. Conversation leases and changed paths last for hours, so slice 1:
+Knowledge convergence held a stage refused with `assignment_path_conflict` while any live write lease existed, overlapping or not. Conversation leases and changed paths last for hours, so slice 1:
 
-- splits the code: `assignment_path_conflict` keeps meaning an overlap, and a path outside the stage's responsibility gets `assignment_path_outside_responsibility`, which does not wait;
-- narrows the hold to a holder that overlaps the stage's paths, judged as above;
-- reports a stage held longer than a day as Lervo debt with its age and its holder's conversation ([ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)).
+- splits the code: `assignment_path_conflict` keeps meaning an overlap, and `claimAssignment` refuses a path outside the agent's responsibility paths with `assignment_path_outside_responsibility`. Convergence settles that as attention, not as a wait, because no holder's release makes it claimable;
+- narrows the hold to a holder that overlaps the stage's paths, judged as above. The stage's failure record names its obligation and stage, and the stage waits only while `readAssignmentClaimRefusals`, the claim's judgment read without the lock, finds a holder over the paths of the stage's unfinished write assignment. A record from before this names neither and keeps the broad hold;
+- reports a stage held longer than a day as Lervo debt with its age and its holder's conversation ([ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)). `lervo application attention` shows a `knowledge_convergence_continuity` item with the finding `convergence_stage_held`, state `lervo_debt`, the holder's conversation workspace ID as its detail, and the time the stage's assignment was created as its start. It counts a convergence writer still queued more than a day after its creation whose claim a conversation's lease or change refuses now, at most 8 per report. It reads existing workforce and workspace state only, and reads nothing while the gate is closed.
 
 ## The claim contract
 

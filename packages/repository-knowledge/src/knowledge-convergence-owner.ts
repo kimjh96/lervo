@@ -274,6 +274,10 @@ export async function processKnowledgeConvergence(
           ...(code === "knowledge_stage_failure_unclassified"
             ? { cause: unclassifiedFailureCause(error) }
             : {}),
+          // A refused claim waits only while a holder overlaps this stage's own paths.
+          ...(code === "assignment_path_conflict"
+            ? { obligationId: state.obligationId, stage }
+            : {}),
         }),
       );
       const exhausted = attempts >= MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS;
