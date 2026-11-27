@@ -164,6 +164,54 @@ describe("claims at first write in a conversation's worktree", () => {
     );
   });
 
+  it("names the held file when a claimed directory contains it", async () => {
+    const { first, second } = app;
+    await write(first.sessionId, first.worktree, `${first.worktree}/docs/scratch/canary-a.md`);
+
+    const answer = await answerClaimHook(
+      preToolUse(second.sessionId, second.worktree, "Bash", { command: "rm -r docs/scratch" }),
+      "claude",
+      second.worktree,
+    );
+    expect(denial(answer)).toContain(
+      "Lervo stopped this write. `docs/scratch/canary-a.md` (inside `docs/scratch`) is claimed by Arin (Developer) until ",
+    );
+    const log = ClaimLog.openExisting(claimLogPath())!;
+    try {
+      expect(log.ofToolUse(second.sessionId, "toolu_1")).toMatchObject({
+        paths: ["docs/scratch"],
+        heldPaths: ["docs/scratch/canary-a.md"],
+        holder: { agentId: first.leadAgentId },
+      });
+    } finally {
+      log.close();
+    }
+  });
+
+  it("names the held directory when it contains the claimed file", async () => {
+    const { first, second } = app;
+    await answerClaimHook(
+      preToolUse(first.sessionId, first.worktree, "Bash", { command: "rm -r docs/scratch" }),
+      "claude",
+      first.worktree,
+    );
+    expect((await conversationAssignment(first.leadAgentId)).expectedPaths).toEqual([
+      "docs/scratch",
+    ]);
+
+    const answer = await write(
+      second.sessionId,
+      second.worktree,
+      `${second.worktree}/docs/scratch/new.md`,
+    );
+    expect(denial(answer)).toContain(
+      "Lervo stopped this write. `docs/scratch` (which contains `docs/scratch/new.md`) is claimed by Arin (Developer) until ",
+    );
+    expect(claimLogEntries(second.sessionId)).toMatchObject([
+      { paths: ["docs/scratch/new.md"], heldPaths: ["docs/scratch"] },
+    ]);
+  });
+
   it("records one refusal event per path and holder in a turn", async () => {
     const { first, second } = app;
     await write(first.sessionId, first.worktree, `${first.worktree}/src/a.ts`);

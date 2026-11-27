@@ -11,10 +11,10 @@ export type AgentNames = (agentId: string) => string | null;
 
 /**
  * Adds the claim log's lines to a session's decoded events: after a tool call Lervo stopped, who
- * holds its path (`claim_conflict`); once in a turn whose writes went ahead undecided, that the
- * turn's end claims them (`claim_deferred`); and at the turn's end, the paths its reconciliation
- * left unresolved and who holds each (`claim_unresolved`, then `claim_unresolved_more` for the
- * rest). It reads the log only for a tool call or a finished turn, and only once the log exists.
+ * holds its path, or the held path when it differs from the requested one (`claim_conflict`); once
+ * in a turn whose writes went ahead undecided, that the turn's end claims them (`claim_deferred`);
+ * and at the turn's end, the paths its reconciliation left unresolved and who holds each
+ * (`claim_unresolved`, then `claim_unresolved_more` for the rest). It reads the log only for a tool call or a finished turn, and only once the log exists.
  */
 export class ClaimLines {
   private log: ClaimLog | null = null;
@@ -68,7 +68,7 @@ export class ClaimLines {
     return [
       this.line("claim_conflict", {
         agent: (agentId === null ? null : names(agentId)) ?? "",
-        path: entry.paths[0] ?? "",
+        path: entry.heldPaths?.[0] ?? entry.paths[0] ?? "",
         code: entry.code,
         holder: holder === null ? "" : (names(holder.agentId) ?? holder.agentId),
         workspace: holder?.workspaceId ?? "",

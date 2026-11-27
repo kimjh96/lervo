@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import type { HostedDecodedEvent } from "@lervo/adapter-contract";
 import { afterEach, describe, expect, it } from "vitest";
@@ -112,6 +113,44 @@ describe("the claim log", () => {
       expect(log.unresolvedOf("wsp_c")).toEqual([]);
       log.updateState(first.claimId, "resolved");
       expect(log.unresolvedOf("wsp_b").map((entry) => entry.claimId)).toEqual([second.claimId]);
+    } finally {
+      log.close();
+    }
+  });
+
+  it("keeps at most three held paths, and adds their column to a log made without it", async () => {
+    const path = join(await folder(), "claim-log.sqlite");
+    const earlier = new DatabaseSync(path);
+    earlier.exec(`CREATE TABLE claims (claim_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL,
+      session_id TEXT NOT NULL, tool_use_id TEXT, decision TEXT NOT NULL, code TEXT NOT NULL,
+      paths TEXT NOT NULL, holder_agent_id TEXT, holder_workspace_id TEXT, state TEXT NOT NULL,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`);
+    earlier
+      .prepare("INSERT INTO claims VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(
+        "clm_old",
+        "wsp_b",
+        "s1",
+        "toolu_0",
+        "deny",
+        "path_leased",
+        '["src"]',
+        null,
+        null,
+        "refused",
+        "2026-11-27T00:00:00.000Z",
+        "2026-11-27T00:00:00.000Z",
+      );
+    earlier.close();
+    const log = await ClaimLog.open(path);
+    try {
+      expect(log.ofToolUse("s1", "toolu_0")).not.toHaveProperty("heldPaths");
+      const held = ["docs/a.md", "docs/b.md", "docs/c.md", "docs/d.md"];
+      log.record({ ...refusal, paths: ["docs"], heldPaths: held });
+      expect(log.ofToolUse("s1", "toolu_1")).toMatchObject({
+        paths: ["docs"],
+        heldPaths: held.slice(0, 3),
+      });
     } finally {
       log.close();
     }
@@ -259,6 +298,11 @@ describe("the claim lines in a conversation", () => {
       ]);
       // The next turn starts clean.
       expect(lines.annotate("s1", "agt_ciel", [finished], names)).toEqual([finished]);
+      // A stopped directory names the file its holder holds inside it.
+      log.record({ ...refusal, toolUseId: "toolu_4", paths: ["docs"], heldPaths: ["docs/a.md"] });
+      expect(lines.annotate("s1", "agt_ciel", [tool("failed", "toolu_4")], names)[1]).toMatchObject(
+        { content: { code: "claim_conflict", parameters: { path: "docs/a.md" } } },
+      );
     } finally {
       log.close();
     }

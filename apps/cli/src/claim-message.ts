@@ -32,6 +32,35 @@ export function listedPaths(paths: readonly string[]): string {
   return `${shown.slice(0, -1).join(", ")}, and ${shown.at(-1)}`;
 }
 
+/** Whether `inner` lies strictly below the scope `outer`; `.` and `*` cover every path. */
+function within(inner: string, outer: string): boolean {
+  return outer === "." || outer === "*" || inner.startsWith(`${outer}/`);
+}
+
+/**
+ * The paths a refusal names: the holder's own when they differ from the requested ones, with the
+ * requested ones after them, so the agent knows which file is taken, such as
+ * "`docs/a.md` (inside `docs`)".
+ */
+function refusedSubject(
+  paths: readonly string[],
+  heldPaths: readonly string[] | undefined,
+): { readonly subject: string; readonly plural: boolean } {
+  if (heldPaths === undefined || heldPaths.length === 0)
+    return { subject: listedPaths(paths), plural: paths.length > 1 };
+  const relates = (relation: (held: string, requested: string) => boolean) =>
+    heldPaths.every((held) => paths.some((path) => held === path || relation(held, path)));
+  const relation = relates(within)
+    ? "inside"
+    : relates((held, path) => within(path, held))
+      ? "which contains"
+      : "overlapping";
+  return {
+    subject: `${listedPaths(heldPaths)} (${relation} ${listedPaths(paths)})`,
+    plural: heldPaths.length > 1,
+  };
+}
+
 /** The holder's name with its role. */
 export function holderLabel(holder: ClaimHolder): string {
   return holder.roleName === "" ? holder.displayName : `${holder.displayName} (${holder.roleName})`;
@@ -101,11 +130,12 @@ function unheldMessage(code: string, subject: string, plural: boolean): string {
 export function claimRefusalMessage(input: {
   readonly code: string;
   readonly paths: readonly string[];
+  /** The holder's paths that overlap `paths`, when they differ from them. */
+  readonly heldPaths?: readonly string[];
   readonly holder: ClaimHolder | null;
   readonly clockTime?: (instant: string) => string;
 }): string {
-  const subject = listedPaths(input.paths);
-  const plural = input.paths.length > 1;
+  const { subject, plural } = refusedSubject(input.paths, input.heldPaths);
   const holder = input.holder;
   const until =
     holder?.until === null || holder?.until === undefined

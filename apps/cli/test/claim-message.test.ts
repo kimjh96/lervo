@@ -33,6 +33,48 @@ describe("the refusal's message", () => {
     );
   });
 
+  it("names what the holder holds when it differs from the requested path", () => {
+    const lease = { ...arin, kind: "lease" as const };
+    expect(
+      claimRefusalMessage({
+        code: "path_leased",
+        paths: ["docs/scratch"],
+        heldPaths: ["docs/scratch/canary-a.md"],
+        holder: lease,
+      }),
+    ).toBe(
+      'Lervo stopped this write. `docs/scratch/canary-a.md` (inside `docs/scratch`) is claimed by Arin (Developer). Two agents changing one path in parallel conflict when their work integrates. Do not write this path another way. Mention @Arin with the change you need, continue with other paths, or try again after Arin\'s change is sealed. Arin works in the conversation "Log format".',
+    );
+    expect(
+      claimRefusalMessage({
+        code: "path_leased",
+        paths: ["docs/scratch/new.md"],
+        heldPaths: ["docs/scratch"],
+        holder: lease,
+      }),
+    ).toContain(
+      "`docs/scratch` (which contains `docs/scratch/new.md`) is claimed by Arin (Developer).",
+    );
+    expect(
+      claimRefusalMessage({
+        code: "path_changed_unsealed",
+        paths: ["docs"],
+        heldPaths: ["docs/a.md", "docs/b.md", "docs/c.md", "docs/d.md"],
+        holder: arin,
+      }),
+    ).toContain(
+      "`docs/a.md`, `docs/b.md`, `docs/c.md`, and 1 more path (inside `docs`) were changed by Arin",
+    );
+    expect(
+      claimRefusalMessage({
+        code: "path_leased",
+        paths: ["docs", "src/a/b.ts"],
+        heldPaths: ["docs/a.md", "src/a"],
+        holder: lease,
+      }),
+    ).toContain("`docs/a.md` and `src/a` (overlapping `docs` and `src/a/b.ts`) are claimed");
+  });
+
   it("mentions nobody when the holder's origin is unknown", () => {
     const message = claimRefusalMessage({
       code: "path_leased",
