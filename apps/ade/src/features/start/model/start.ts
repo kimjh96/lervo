@@ -100,6 +100,7 @@ export async function startWork(
       workspaceId: null,
       baseNotice: null,
       hireFailure: null,
+      coordinationFailure: null,
       images: marks,
     },
     draft: { ...draft, instruction: "" },
@@ -129,9 +130,17 @@ export async function startWork(
     const notice = result.base?.notice ?? null;
     const baseNotice =
       notice === null ? null : { code: notice, upstream: result.base?.upstream ?? null };
+    const coordination = result.coordination;
+    const coordinationFailure =
+      coordination?.status === "unavailable"
+        ? (coordination.cause ?? coordination.code ?? coordination.status)
+        : null;
     if (current())
       useStartStore.setState((store) => ({
-        pending: store.pending === null ? null : { ...store.pending, workspaceId, baseNotice },
+        pending:
+          store.pending === null
+            ? null
+            : { ...store.pending, workspaceId, baseNotice, coordinationFailure },
       }));
     await reloadWorkspaces(commands);
     if (workspaceId !== null && current()) useWorkspaceStore.getState().select(workspaceId);

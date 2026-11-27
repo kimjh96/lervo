@@ -2703,6 +2703,20 @@
       "value": ")."
     }
   ],
+  "notice.start.coordination_unavailable": [
+    {
+      "type": 0,
+      "value": "This work writes without claiming its paths, because Lervo could not set up its coordination ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
   "notice.start.hire_failed": [
     {
       "type": 0,

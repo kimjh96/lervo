@@ -19,6 +19,8 @@ const FILE_TOOLS: Readonly<Record<string, "file_path" | "notebook_path">> = {
   MultiEdit: "file_path",
   NotebookEdit: "notebook_path",
 };
+/** The tools Claude Code's pre-tool hook sends for claims: the file tools, and the shell. */
+export const CLAUDE_CLAIM_TOOLS = [...Object.keys(FILE_TOOLS), "Bash"].join("|");
 const REDIRECTION = /^(?:>>?|&>|2>)(.*)$/u;
 const WILDCARD = /[*?[]/u;
 
@@ -205,6 +207,7 @@ export function claudeClaimAnswer(decision: HostedClaimDecision): string {
 
 /** Claude Code's claim reading, for the terminal hook runtime. */
 export const claudeClaims: HostedClaimAnswering = {
+  claimTools: CLAUDE_CLAIM_TOOLS,
   writeIntent: claudeWriteIntent,
   claimAnswer: claudeClaimAnswer,
 };

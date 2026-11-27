@@ -13,7 +13,7 @@ import {
 
 import { claudeSignInState } from "./hosted-sign-in.js";
 import { ClaudeHostedStreamDecoder } from "./hosted-stream.js";
-import { claudeClaimAnswer, claudeWriteIntent } from "./hosted-claims.js";
+import { CLAUDE_CLAIM_TOOLS, claudeClaimAnswer, claudeWriteIntent } from "./hosted-claims.js";
 import { readClaudeTranscript } from "./hosted-transcript.js";
 
 /**
@@ -163,6 +163,7 @@ export function createClaudeHostedSessionAdapter(
     displayName: "Claude Code",
     capabilities: claudeHostedCapabilities,
     models: claudeHostedModels,
+    claimTools: CLAUDE_CLAIM_TOOLS,
     writeIntent: claudeWriteIntent,
     claimAnswer: claudeClaimAnswer,
     signInState: (environment) => claudeSignInState(executable, environment),

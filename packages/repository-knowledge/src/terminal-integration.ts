@@ -51,6 +51,13 @@ export {
   terminalHookCommand,
   terminalHookWindowsCommand,
 } from "./terminal-integration-provider.js";
+export {
+  type ClaimHandler,
+  type ClaimHandlerBlocker,
+  claimHandlerCovered,
+  type ClaimHandlerMerge,
+  mergeClaimHandler,
+} from "./terminal-claim-handler.js";
 
 export function serializableTerminalIntegrationPlan(plan: TerminalIntegrationPlan): Omit<
   TerminalIntegrationPlan,

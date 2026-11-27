@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
+import { claudeSessionSettings, createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
 import { createCodexHostedSessionAdapter } from "@lervo/adapter-codex";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -38,7 +38,7 @@ const settings = (events: string[], command = projectCommand) =>
 /** A user home without Claude settings, and no host launcher, unless a test says otherwise. */
 async function plan(
   worktree: string,
-  options: { home?: string; launcher?: string; platform?: NodeJS.Platform } = {},
+  options: { home?: string; launcher?: string; platform?: NodeJS.Platform; claims?: boolean } = {},
 ) {
   const home = options.home ?? (await folder({}));
   return hostedTerminalHooks(claude, worktree, {
@@ -46,6 +46,7 @@ async function plan(
     environment: {},
     launcher: options.launcher ?? join(home, "missing-launcher.mjs"),
     ...(options.platform === undefined ? {} : { platform: options.platform }),
+    ...(options.claims === undefined ? {} : { claims: options.claims }),
   });
 }
 
@@ -144,6 +145,51 @@ describe("the terminal hooks a hosted session adds", () => {
     expect((await plan(worktree))?.events).toEqual([
       { name: "SessionStart", matcher: "resume|compact" },
     ]);
+  });
+
+  it("adds the claim handler for a claiming conversation, unless the worktree's settings run it", async () => {
+    const tools = "Edit|Write|MultiEdit|NotebookEdit|Bash";
+    const hooked = settings(
+      ["SessionStart", "UserPromptSubmit", "Stop"],
+      "lervo terminal hook --provider claude --contract 2",
+    );
+    expect(await plan(await folder({ ".claude/settings.json": hooked }), { claims: true })).toEqual(
+      {
+        command: "lervo terminal hook --provider claude --contract 2",
+        events: [{ name: "PreToolUse", matcher: tools }],
+        via: "cli",
+        claimCommand: "lervo terminal hook --provider claude --contract 2 --claim",
+      },
+    );
+    const local = JSON.stringify({
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: tools,
+            hooks: [
+              {
+                type: "command",
+                command: "node '/h/launcher.mjs' --provider claude --contract 2 --claim",
+                timeout: 10,
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const claiming = await folder({
+      ".claude/settings.json": hooked,
+      ".claude/settings.local.json": local,
+    });
+    expect(await plan(claiming, { claims: true })).toBeUndefined();
+    expect(await plan(await folder({ ".claude/settings.json": hooked }))).toBeUndefined();
+    const planned = await plan(await folder({}), { claims: true });
+    if (planned === undefined) throw new Error("no plan");
+    const written = claudeSessionSettings("lervo hosted-hook", planned);
+    expect(writtenTerminalHooks(planned, { content: written })).toEqual({
+      events: ["SessionStart", "UserPromptSubmit", "Stop", "PreToolUse"],
+      via: "cli",
+    });
   });
 
   it("adds nothing for a provider that takes no hooks", async () => {

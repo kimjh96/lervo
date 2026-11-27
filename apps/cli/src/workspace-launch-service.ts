@@ -9,6 +9,7 @@ import {
   type HostedSessionAdapter,
   preferredConversationMode,
 } from "@lervo/adapter-contract";
+import { readNewestConversationWorkspace } from "@lervo/agent-workforce";
 import {
   defaultRepositoryRegistryPath,
   resolveRegisteredRepository,
@@ -38,6 +39,7 @@ import {
   writeHostedSessionSettings,
 } from "./hosted-session-settings.js";
 import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
+import { writeClaimHandler } from "./claim-handler-settings.js";
 import { hostedTerminalHooks, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import { prefetchTerminalPromptContext } from "./terminal-knowledge-snapshot.js";
 import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
@@ -186,11 +188,16 @@ export async function startWorkspaceFromInstruction(
       recordLaunch,
       writeSettings: writeHostedSessionSettings,
       recordEvents: (events) => recordEvents(repository.repositoryRoot, events),
-      coordinate: (request) =>
-        coordinateConversationWorkspace(
+      coordinate: async (request) => {
+        const coordination = await coordinateConversationWorkspace(
           request,
           conversationCoordinationPorts(git.provisionedMarker),
-        ),
+        );
+        // Every session in the worktree then claims its writes, hosted or the owner's terminal.
+        if (coordination.status === "active")
+          await writeClaimHandler(request.workspacePath, request.provider);
+        return coordination;
+      },
       now: () => new Date(),
     },
   );
@@ -238,8 +245,14 @@ export async function openWorkspace(
   const resume = adapter.capabilities.resume;
   const sessionId = resume ? previous.sessionId : randomUUID();
   const sessionHooks = hostedSessionHooks(adapter, sessionId);
+  // A conversation that claims keeps claiming when it reopens, even if its worktree lost the
+  // handler the start wrote.
   const terminal =
-    sessionHooks === undefined ? undefined : await hostedTerminalHooks(adapter, workingDirectory);
+    sessionHooks === undefined
+      ? undefined
+      : await hostedTerminalHooks(adapter, workingDirectory, {
+          claims: (await readNewestConversationWorkspace(repositoryRoot, workspaceId)) !== null,
+        });
   const hooks =
     sessionHooks === undefined || terminal === undefined
       ? sessionHooks

@@ -32,6 +32,11 @@ export const MAX_CLAIM_REASON_CHARACTERS = 2048;
 
 /** A hosted-session adapter that reads its provider's tool calls and answers them for claims. */
 export interface HostedClaimAnswering {
+  /**
+   * The tools whose calls the provider's pre-tool hook sends for claims, as the hook's matcher
+   * takes them: tool names separated by `|`, such as `Edit|Write`.
+   */
+  readonly claimTools: string;
   /** The call's write intent, or null for a tool that writes nothing Lervo claims. */
   writeIntent(toolName: string, input: unknown, workingDirectory: string): HostedWriteIntent | null;
   /**
@@ -44,5 +49,9 @@ export interface HostedClaimAnswering {
 /** Whether `adapter` answers claims. */
 export function answersClaims(adapter: object): adapter is HostedClaimAnswering {
   const candidate = adapter as Partial<HostedClaimAnswering>;
-  return typeof candidate.writeIntent === "function" && typeof candidate.claimAnswer === "function";
+  return (
+    typeof candidate.claimTools === "string" &&
+    typeof candidate.writeIntent === "function" &&
+    typeof candidate.claimAnswer === "function"
+  );
 }

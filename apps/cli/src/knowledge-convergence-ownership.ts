@@ -8,6 +8,7 @@ import {
   defaultConvergenceContinuityPolicyPath,
   probeKnowledgePublicationSettings,
   createGitHubKnowledgePublicationForge,
+  type KnowledgePublicationForge,
   publishKnowledgeOutputs,
   type InstructionCandidateExchangeTransport,
   type KnowledgeHubChangeTransport,
@@ -22,6 +23,8 @@ import {
 } from "@lervo/sync";
 
 import { knowledgeHostHubCandidates } from "./knowledge-host-hub-candidates.js";
+import { readFollowControl } from "./host-follow-state.js";
+import { hostUpgradeLayout, type HostUpgradeLayout } from "./host-upgrade-layout.js";
 
 /** Composes the ADR-0466 owner with the Hub lease adapter for CLI-hosted knowledge workers. */
 export function createKnowledgeConvergenceOwnership(
@@ -45,7 +48,12 @@ export function createKnowledgePublisher(
 ): (context?: {
   events: KnowledgePublicationRepairEvents;
 }) => Promise<KnowledgePublicationOutcome> {
-  const forge = createGitHubKnowledgePublicationForge({ repositoryRoot });
+  const github = createGitHubKnowledgePublicationForge({ repositoryRoot });
+  // The gate the publisher reads before merging also answers whether a release train holds it.
+  const forge: KnowledgePublicationForge = {
+    ...github,
+    gate: async (number) => (await releaseTrainHold()) ?? github.gate(number),
+  };
   return (context) =>
     publishKnowledgeOutputs({
       repositoryRoot,
@@ -82,4 +90,16 @@ export function createKnowledgeConvergenceContinuity(
       hostname: hostname(),
     }),
   });
+}
+
+/**
+ * While this host's release follower is paused, a CLI release train is between its cut and its
+ * tag: merging a knowledge publication then moves main and supersedes the release's preparation.
+ * The publication waits as at any merge gate and merges once the follower resumes.
+ */
+export async function releaseTrainHold(
+  layout: HostUpgradeLayout = hostUpgradeLayout({}),
+): Promise<"release_train" | null> {
+  const control = await readFollowControl(layout).catch(() => null);
+  return control?.paused === true ? "release_train" : null;
 }

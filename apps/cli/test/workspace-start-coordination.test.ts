@@ -32,7 +32,7 @@ import {
   terminalWorkspaceMarker,
   terminalWriterSessionId,
 } from "../src/terminal-workspace-boundary.js";
-import { startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
+import { openWorkspace, startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
 
 /** A claim failure the next coordination stage meets, after its assignment was created. */
 const claimFailure = vi.hoisted(() => ({ next: null as Error | null }));
@@ -228,6 +228,18 @@ describe("the coordination stage of lervo workspace start", () => {
     const types = (await events(app.repository)).map((event) => event.type);
     expect(types).toEqual(expect.arrayContaining(["assignment.created", "assignment.claimed"]));
 
+    // Every session in the worktree claims: the start wrote the claim handler into its local
+    // settings, which the repository's info/exclude keeps from showing as a change.
+    const local = JSON.parse(
+      await readFile(resolve(worktree, ".claude/settings.local.json"), "utf8"),
+    ) as { hooks: { PreToolUse: { matcher: string; hooks: { command: string }[] }[] } };
+    expect(local.hooks.PreToolUse).toHaveLength(1);
+    expect(local.hooks.PreToolUse[0]!.matcher).toBe("Edit|Write|MultiEdit|NotebookEdit|Bash");
+    expect(local.hooks.PreToolUse[0]!.hooks[0]!.command).toMatch(
+      / --provider claude --contract 2 --claim$/u,
+    );
+    expect(await git(worktree, "status", "--porcelain", "--", ".claude")).toBe("");
+
     // A conversation's checkout keeps ADR-0633's two roots and attaches no worker binding.
     expect(await resolveTerminalRoots(worktree)).toEqual({
       executionRoot: worktree,
@@ -270,6 +282,24 @@ describe("the coordination stage of lervo workspace start", () => {
     });
   });
 
+  it("keeps a claiming conversation claiming when it reopens without the worktree's handler", async () => {
+    const app = await fixture(16);
+    const started = await startWorkspaceFromInstruction({
+      instruction,
+      repository: app.projectId,
+      participants: [app.lead.agentId],
+    });
+    expect(started.coordination).toEqual({ status: "active" });
+    // The worktree's handler runs Lervo, so the reopened session's own settings add none.
+    const settings = (opened: Awaited<ReturnType<typeof openWorkspace>>) =>
+      opened.launch.settingsFile?.content ?? "";
+    expect(settings(await openWorkspace(started.workspaceId))).not.toContain("--claim");
+    await rm(resolve(started.launch.workingDirectory, ".claude/settings.local.json"));
+    const reopened = settings(await openWorkspace(started.workspaceId));
+    expect(reopened).toContain('"matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash"');
+    expect(reopened).toMatch(/--provider claude --contract 2 --claim"/u);
+  });
+
   it("stays inactive below schema 16 and starts the conversation without claims", async () => {
     const app = await fixture(null);
     const started = await startWorkspaceFromInstruction({
@@ -279,6 +309,10 @@ describe("the coordination stage of lervo workspace start", () => {
     });
     expect(started.coordination).toEqual({ status: "inactive", code: "coordination_inactive" });
     expect(await listWorkspaces(app.repository)).toEqual([]);
+    // A conversation that does not claim gets no claim handler.
+    await expect(
+      readFile(resolve(started.launch.workingDirectory, ".claude/settings.local.json"), "utf8"),
+    ).rejects.toMatchObject({ code: "ENOENT" });
     expect(
       (await listAssignments(app.repository)).filter(
         (item) => item.taskType === CONVERSATION_TASK_TYPE,
