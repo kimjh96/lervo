@@ -28,6 +28,8 @@ function effects(state: {
   changes?: boolean;
   branch?: boolean;
   merged?: boolean;
+  /** The conversation's refusal before anything is removed, such as a pending integration. */
+  pending?: boolean;
 }) {
   const changes: string[] = [];
   const port: WorkspaceRetireEffects = {
@@ -42,6 +44,13 @@ function effects(state: {
     branchMerged: async () => state.merged ?? true,
     deleteBranch: async (_root, branch) => void changes.push(`branch ${branch}`),
     removeSessionSettings: async (ids) => void changes.push(`settings ${ids.join(",")}`),
+    conversation: {
+      assertRetirable: async () => {
+        if (state.pending === true)
+          throw Object.assign(new Error("pending"), { code: "workspace_integration_pending" });
+      },
+      retire: async (_root, conversationId) => void changes.push(`conversation ${conversationId}`),
+    },
   };
   return { port, changes };
 }
@@ -56,6 +65,7 @@ describe("retiring a hosted workspace", () => {
     });
     expect(changes).toEqual([
       "worktree /repo-wt/fix",
+      "conversation wsp_a",
       "branch lervo/fix-the-build-1a2b3c",
       "settings session-a,session-b",
     ]);
@@ -78,6 +88,7 @@ describe("retiring a hosted workspace", () => {
     for (const [state, code] of [
       [{ inUse: true }, "workspace_in_use"],
       [{ changes: true }, "workspace_has_changes"],
+      [{ pending: true }, "workspace_integration_pending"],
     ] as const) {
       const { port, changes } = effects(state);
       await expect(retireHostedWorkspace("wsp_a", port)).rejects.toMatchObject({ code });
@@ -92,7 +103,7 @@ describe("retiring a hosted workspace", () => {
       worktree: "absent",
       branch: "absent",
     });
-    expect(changes).toEqual(["settings session-a,session-b"]);
+    expect(changes).toEqual(["conversation wsp_a", "settings session-a,session-b"]);
   });
 
   it("knows no workspace without a launch record or a registered repository", async () => {

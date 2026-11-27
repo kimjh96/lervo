@@ -77,7 +77,7 @@ The events are the existing `assignment.created`, `assignment.claimed`, and `age
 - **The suite.** A project with no `.lervo/verifications` suite gets an assignment with no suite, which only a conversation assignment may have. A project whose suites leave the automatic choice ambiguous makes the stage `unavailable`.
 - **The target.** Until slice 3 opens batches, the integration target digest is that of `refs/heads/<default branch>`.
 - **Before slice 1's hook and `Stop`.** A session in a conversation's worktree attaches no worker binding and keeps the cached base, as any linked worktree's session does.
-- **Retiring.** `lervo workspace retire` does not yet cancel the conversation assignment or move the generation record to `removed`. Cancellation refuses a live lease today, so it needs the holder-bound cancellation under "Lease lifetime". Until both land the gate stays closed.
+- **Retiring.** `lervo workspace retire`, and the ADE's `workspace.retire`, retire the conversation's coordination with its worktree, as "Release when retired" under "Lease lifetime" describes.
 
 A new conversation starts from the open batch's tip when a batch is open, and from the default branch's upstream tip otherwise. A change that integrated into the batch but has not merged is then already in the new conversation's base.
 
@@ -287,7 +287,7 @@ How slice 1 reconciles:
   - its worktree directory still exists;
   - its assignment has a lease that expired less than 24 hours ago.
 
-  A retired conversation, whose worktree is gone, and an abandoned one, which renews nothing, therefore stop holding by themselves. Retiring itself does not yet move the record to `removed` or delete the file (under "Lease lifetime").
+  A retired conversation, whose worktree is gone, and an abandoned one, which renews nothing, therefore stop holding by themselves. Retiring also moves the records to `removed` and deletes their files (under "Lease lifetime").
 
 - **Reading them.** A claim reads only the generations that have a file. It reads each one's record and file, and a record or file it cannot use, such as one of another release's shape, holds nothing and fails no claim.
   - `claimAssignment` reads nothing for an assignment without paths. In a repository where no conversation ever reconciled, which only an open gate does, it costs one directory read.
@@ -323,7 +323,13 @@ How slice 1 reconciles:
   - Only an expired lease regenerates, so the generation advances at most once per expiry. A live lease of the lead is the lead's own whichever of its sessions claims, as after the lead's session restarted: the claim widens it under the lease's writer session, which stays, as the owner's terminal does. Two live sessions of one lead therefore never trade the lease. Another agent's lease never regenerates, and the exit's reconciliation follows the same rules.
   - A workspace record cannot change its lease generation yet, and a conversation's session does not activate its record yet, so the record keeps generation 1's lease generation until conversation activation lands; nothing reads it for a conversation before then.
 - **Release when sealed.** Sealing completes the assignment (`assignment.completed`), which ends its lease. Until the sealed change integrates, its paths conflict for every claim through `path_awaiting_integration`, so the release opens no window, for another conversation or for Lervo's own agents.
-- **Release when retired.** Until retiring moves a conversation's records to `removed`, the removed worktree alone ends its changed paths' hold. Retiring cancels the conversation assignment (`assignment.cancelled`, reason `requested`). Cancellation refuses a live lease today (`active_lease`), so the retire passes the holder's exact agent and lease, a holder-bound form of cancellation. Retire refuses with `workspace_integration_pending` while a sealed generation of the conversation waits for integration.
+- **Release when retired.** Retire refuses with `workspace_integration_pending`, before it removes anything, while a generation of the conversation is sealing or its sealed change waits for integration. Otherwise, once the worktree is removed and Git no longer registers it, retiring:
+  1. cancels each conversation assignment that is not finished (`assignment.cancelled`, reason `requested`). Cancellation refuses a live lease (`active_lease`), so the retire passes the holder's exact agent and lease, a holder-bound form of cancellation whose plan binds that holder and which a lease regenerated meanwhile refuses;
+  2. moves each generation record that is not `removed` to `recovery_required` and then `removed`, both with the reason `conversation_retired`, on the host's proof that the checkout and its Git metadata are gone;
+  3. deletes the changes files of records that are now `removed`.
+
+  Retiring removes the worktree first, so a retire that cannot remove it releases nothing. Each step is idempotent, and a retire that stopped after the worktree is gone finishes when it runs again. With the gate closed, retiring reads and changes no coordination record.
+
 - **Across hosts.** A lease coordinates one repository instance through its Git common directory. A Hub-coordinated repository reserves paths at the Hub before a local claim (ADR-0222), which a growing lease would break, so its conversations stay `inactive` (`hub_coordinated_unsupported`) until Hub reservations grow with the lease.
 - **Archiving.** A completed or cancelled conversation assignment whose generation integrated or was removed is archived as convergence's assignments are, so finished conversations never push the workforce toward its 10,000-assignment bound or slow the claims that read every assignment.
 

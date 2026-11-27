@@ -111,6 +111,34 @@ describe("assignment graph safety", () => {
     ).toMatchObject({ status: "blocked", blockedReason: "active_lease" });
   });
 
+  it("ends a live lease only when the caller names its exact holder", () => {
+    const now = new Date("2026-11-27T00:00:00.000Z");
+    const holder = { agentId: `agt_${"a".repeat(24)}`, leaseId: `lse_${"b".repeat(24)}` };
+    const leased = {
+      ...assignment("asn_000000000000000000000001", [], "leased"),
+      revision: 3,
+      lease: { ...holder, expiresAt: "2026-11-27T00:10:00.000Z" },
+    } as unknown as WorkforceAssignment;
+    const plan = (named?: typeof holder) =>
+      createAssignmentCancellationPlan({
+        assignments: [leased],
+        assignmentId: leased.assignmentId,
+        reason: "requested",
+        now,
+        ...(named === undefined ? {} : { holder: named }),
+      });
+    expect(plan()).toMatchObject({ status: "blocked", blockedReason: "active_lease" });
+    expect(plan()).not.toHaveProperty("holder");
+    expect(plan(holder)).toMatchObject({ status: "ready", blockedReason: null, holder });
+    // The holder is part of what the plan binds, so its ID differs from an unbound plan's.
+    expect(plan(holder).planId).not.toBe(plan().planId);
+    for (const other of [
+      { ...holder, leaseId: `lse_${"c".repeat(24)}` },
+      { ...holder, agentId: `agt_${"d".repeat(24)}` },
+    ])
+      expect(plan(other)).toMatchObject({ status: "blocked", blockedReason: "active_lease" });
+  });
+
   it("reports each capacity and backpressure boundary without mutation", () => {
     expect(
       evaluateWorkforceAdmission({

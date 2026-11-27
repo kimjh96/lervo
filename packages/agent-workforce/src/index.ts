@@ -87,6 +87,7 @@ export {
   listConversationChangedPaths,
   readConversationChangedPaths,
   READ_CHANGED_PATHS_LIMIT,
+  pruneConversationChangedPaths,
   recordConversationChangedPaths,
   type ConversationChangedPaths,
   type ConversationChangedPathsSummary,
@@ -106,4 +107,11 @@ export {
   recordConversationWorkspaceGeneration,
   type ConversationWorkspaceGenerationInput,
 } from "./conversation-workspace-store.js";
+export {
+  assertConversationRetirable,
+  CONVERSATION_RETIRED,
+  retireConversation,
+  type ConversationCheckoutRemoval,
+  type ConversationRetirement,
+} from "./conversation-retirement.js";
 export { CLAIM_PATH_KEY_FILE, readOrCreateClaimPathKey } from "./claim-path-key-store.js";

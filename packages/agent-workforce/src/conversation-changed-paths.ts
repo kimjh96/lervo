@@ -168,6 +168,19 @@ async function pruneChangedPaths(
   }
 }
 
+/**
+ * Removes the changes files of every record that is gone or `removed`, as retiring a conversation
+ * needs once its records moved to `removed`. It writes nothing while the coordination home does
+ * not exist, and it rereads each record before it removes its file.
+ */
+export async function pruneConversationChangedPaths(
+  repositoryRoot: string,
+  workspaces: readonly AgentWorkspace[],
+): Promise<void> {
+  const folder = await readableFolder(repositoryRoot);
+  if (folder !== null) await pruneChangedPaths(repositoryRoot, folder, workspaces);
+}
+
 /** The record IDs that have a file, or none when the directory does not exist. */
 async function recordIds(folder: string): Promise<string[]> {
   let names: string[];
