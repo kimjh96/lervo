@@ -17,7 +17,11 @@ import {
 } from "./conversation-reconciliation.js";
 import { reconciliationMessage } from "./reconciliation-message.js";
 
-/** How long a `Stop` may spend before its reconciliation takes no scheduler lock. */
+/**
+ * How long after the `Stop` began its reconciliation may still list changes or take the scheduler
+ * lock. Git calls are bounded by the time left, and the turn's repository capture runs after, on
+ * its own deadline.
+ */
 export const STOP_RECONCILIATION_MS = 3_000;
 /** How long the reconciliation at a session's exit may spend before it takes no lock. */
 const EXIT_RECONCILIATION_MS = 10_000;
@@ -80,19 +84,20 @@ export async function reconcileConversationTurn(
       now,
       ...(input.reconciliationPorts === undefined ? {} : { ports: input.reconciliationPorts }),
     });
-    if (reconciliation.status !== "reconciled") return { blockReason: null, reconciliation };
-    await settleReconciledClaims({
+    // An overflowing reconciliation judged no path, so nothing pending settles against it.
+    if (reconciliation.status !== "reconciled" || reconciliation.overflow)
+      return { blockReason: null, reconciliation };
+    const settled = await settleReconciledClaims({
       providerSessionId: input.providerSessionId,
       workspaceId: conversation.workspaceId,
       conflicts: reconciliation.conflicts,
       final: input.final,
       now,
-    }).catch(() => undefined);
+    }).catch(() => null);
+    // Only a conflict the claim log did not hold yet blocks, so one that persists blocks once.
+    const blocking = settled?.newConflicts ?? [];
     return {
-      blockReason:
-        input.final || reconciliation.conflicts.length === 0
-          ? null
-          : reconciliationMessage(reconciliation.conflicts),
+      blockReason: input.final || blocking.length === 0 ? null : reconciliationMessage(blocking),
       reconciliation,
     };
   } catch {
@@ -132,13 +137,15 @@ export async function reconcileAtStop(input: {
   readonly providerSessionId: string;
   readonly workingDirectory: string;
   readonly stopHookActive: boolean;
+  /** When the `Stop` hook started, on the `performance.now()` clock. */
+  readonly startedAt: number;
 }): Promise<string | null> {
   const { blockReason } = await reconcileConversationTurn({
     provider: input.provider,
     providerSessionId: input.providerSessionId,
     workingDirectory: input.workingDirectory,
     final: input.stopHookActive,
-    deadline: performance.now() + STOP_RECONCILIATION_MS,
+    deadline: input.startedAt + STOP_RECONCILIATION_MS,
   });
   return blockReason;
 }

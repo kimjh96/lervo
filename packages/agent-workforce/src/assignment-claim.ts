@@ -97,21 +97,16 @@ export async function claimAssignmentOnce(input: {
         : ["queued", "leased"];
     if (currentLeaseActive || !claimableStatuses.includes(assignment.status))
       fail("assignment_lease_conflict", "The assignment is not claimable.");
-    // Other conversations' changed and sealed paths hold too (Lervo ADE coordination, "Conflicts").
-    const conversations = await readAssignmentClaimPathHolders(
-      input.repositoryRoot,
-      assignment.assignmentId,
-    );
+    // Other conversations' unsealed changes hold too (Lervo ADE coordination, "Conflicts").
     const paths = assignment.expectedPaths;
-    if (
-      judgeAssignmentPathConflicts({
-        claimant: assignment,
-        paths,
-        assignments: all,
-        now,
-        ...conversations,
-      }).length !== 0
-    )
+    const changedPathHolders = await readAssignmentClaimPathHolders({
+      repositoryRoot: input.repositoryRoot,
+      paths,
+      assignments: all,
+      now,
+    });
+    const judged = { claimant: assignment, paths, assignments: all, now, changedPathHolders };
+    if (judgeAssignmentPathConflicts(judged).length !== 0)
       fail(
         "assignment_path_conflict",
         "Another active assignment owns an overlapping repository path.",

@@ -44,8 +44,7 @@ export function validChangedPathHolder(value: unknown): value is ChangedPathHold
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
   const holder = value as ChangedPathHolder;
   return (
-    // A generation whose changes fit no bound holds its whole checkout as `.`.
-    (holder.path === "." || normalizeClaimPath(holder.path) === holder.path) &&
+    normalizeClaimPath(holder.path) === holder.path &&
     typeof holder.holderAgentId === "string" &&
     AGENT_ID.test(holder.holderAgentId) &&
     typeof holder.holderWorkspaceId === "string" &&

@@ -58,8 +58,8 @@ export interface WidenConversationLeaseInput {
    */
   beforeLock?: () => void;
   /**
-   * Reacquires the lease under the next generation when it is the lead's but expired, or another
-   * of the lead's sessions holds it, keeping the paths no other holder took meanwhile.
+   * Reacquires the lease under the next generation when it is the lead's but expired, keeping the
+   * paths no other holder took meanwhile.
    */
   regenerate?: boolean;
   /** The repository instance's local secret for `assignment.claim.refused`'s `pathDigest`. */

@@ -17,7 +17,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 
 import { listCheckoutChangedPaths } from "./checkout-changed-paths.js";
 import type { ClaimHolder } from "./claim-contract.js";
-import type { ClaimingConversation } from "./claim-conversation.js";
+import { claimWriterSessionId, type ClaimingConversation } from "./claim-conversation.js";
 import { CLAIM_STORE_BUSY_MS, deferralCode, guardBeforeLock } from "./claim-deferral.js";
 import { resolveClaimHolder } from "./claim-holder.js";
 import { groupPaths, refusalGroups } from "./claim-refusal-groups.js";
@@ -36,11 +36,14 @@ export interface ReconciliationConflict {
 export type ConversationReconciliation =
   | {
       readonly status: "reconciled";
-      /** How many claimable paths the generation changed since its base. */
+      /** How many claimable paths the generation changed. */
       readonly changedPathCount: number;
       readonly claimedPaths: readonly string[];
       readonly conflicts: readonly ReconciliationConflict[];
-      /** The changes fit no bound, so the generation holds its whole checkout and claims none. */
+      /**
+       * The changes fit no bound: the generation holds its top-level entries and claims nothing,
+       * so no path was judged and no pending claim settles.
+       */
       readonly overflow: boolean;
       /** The lead reacquired the lease under the next generation first. */
       readonly leaseRegenerated: boolean;
@@ -55,7 +58,7 @@ const OPEN_STATES = new Set<AgentWorkspace["state"]>(["ready", "active", "paused
 
 /** What reconciliation reads besides the workforce; replaced in tests. */
 export interface ReconciliationPorts {
-  changedPaths(worktree: string, baseCommit: string): Promise<string[] | null>;
+  changedPaths: typeof listCheckoutChangedPaths;
 }
 
 const defaultPorts: ReconciliationPorts = { changedPaths: listCheckoutChangedPaths };
@@ -117,10 +120,11 @@ async function reconcile(
   if (generation === null || generation.assignmentId !== conversation.assignmentId)
     return { status: "skipped", code: "workspace_not_found" };
   if (!OPEN_STATES.has(generation.state)) return { status: "skipped", code: "workspace_not_open" };
-  const changed = await (input.ports ?? defaultPorts).changedPaths(
-    conversation.worktree,
-    generation.baseCommit,
-  );
+  const changed = await (input.ports ?? defaultPorts).changedPaths(conversation.worktree, {
+    baseCommit: generation.baseCommit,
+    integrationTargetDigest: generation.integrationTargetDigest,
+    deadline: input.deadline,
+  });
   if (changed === null) return { status: "deferred", code: "reconcile_unavailable" };
   const storage = await openProjectStorage(repositoryRoot, { busyTimeoutMs: CLAIM_STORE_BUSY_MS });
   try {
@@ -129,7 +133,8 @@ async function reconcile(
     const recorded = await recordConversationChangedPaths({
       repositoryRoot,
       workspace: generation,
-      changedPaths: changed,
+      changedPaths: changed.paths,
+      measuredFrom: changed.measuredFrom,
       workspaces,
       now,
     });
@@ -138,7 +143,8 @@ async function reconcile(
       repositoryRoot,
       assignmentId: conversation.assignmentId,
       agentId: conversation.agentId,
-      sessionId: conversation.writerSessionId ?? assignment.lease?.sessionId ?? "",
+      // The lead's live lease keeps its writer session; only an expired one is reacquired.
+      sessionId: claimWriterSessionId(conversation, assignment.lease, now),
       paths: recorded.overflow ? [] : recorded.paths,
       mode: "reconcile",
       claimantWorkspaceId: conversation.workspaceId,

@@ -15,7 +15,7 @@ import {
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { CLAIM_DEFERRED, type ClaimDecision, type WriteClaimRequest } from "./claim-contract.js";
-import type { ClaimingConversation } from "./claim-conversation.js";
+import { claimWriterSessionId, type ClaimingConversation } from "./claim-conversation.js";
 import { CLAIM_STORE_BUSY_MS, deferralCode, guardBeforeLock } from "./claim-deferral.js";
 import { resolveClaimHolder } from "./claim-holder.js";
 import { claimRefusalMessage } from "./claim-message.js";
@@ -190,8 +190,8 @@ async function decide(request: ConversationClaimRequest, now: Date): Promise<Cla
   if (located.otherCheckout.length !== 0) return refuseOtherCheckout(request, located, now);
   if (located.inside.length === 0) return ALLOW;
   const assignment = await readAssignment(session.repositoryRoot, session.assignmentId);
-  // A session without a launch record claims under the lease's own writer session.
-  const sessionId = session.writerSessionId ?? assignment.lease?.sessionId ?? "";
+  // The lead's live lease keeps its writer session, whichever of the lead's sessions claims.
+  const sessionId = claimWriterSessionId(session, assignment.lease, now);
   const covered = conversationLeaseCovers(assignment, {
     agentId: session.agentId,
     sessionId,

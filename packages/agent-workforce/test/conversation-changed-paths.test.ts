@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -11,7 +11,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   AgentWorkforceError,
   claimAssignment,
-  conversationChangedPathHolders,
   CONVERSATION_TASK_TYPE,
   createAssignment,
   listConversationChangedPaths,
@@ -23,9 +22,11 @@ import {
   widenConversationLease,
   type AgentWorkspace,
   type ConversationLeaseEvent,
+  type WorkforceAssignment,
   type WidenConversationLeaseInput,
 } from "../src/index.js";
-import { heldChangedPaths } from "../src/conversation-changed-paths.js";
+import { heldChangedPaths } from "../src/conversation-changed-path-bounds.js";
+import { readUnsealedChangedPathHolders } from "../src/conversation-changed-paths.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -56,17 +57,48 @@ async function repository() {
   return { root, baseCommit: stdout.trim() };
 }
 
-/** Another conversation's generation 1, in `ready`, whose changes then hold their paths. */
+async function conversation(root: string) {
+  const lead = await registerAgent({
+    repositoryRoot: root,
+    roleId: "developer",
+    responsibilityPaths: ["src"],
+  });
+  const created = await createAssignment({
+    repositoryRoot: root,
+    taskType: CONVERSATION_TASK_TYPE,
+    roleId: "developer",
+    acceptanceCriteria: ["The conversation's sealed change passes its verification."],
+    verificationSuiteIds: ["project.quick"],
+    expectedPaths: [],
+    now: NOW,
+  });
+  const assignment = await claimAssignment({
+    repositoryRoot: root,
+    assignmentId: created.assignmentId,
+    agentId: lead.agentId,
+    sessionId: LEAD_SESSION,
+    leaseDurationMs: 10 * 60_000,
+    now: NOW,
+  });
+  return { lead, assignment };
+}
+
+/**
+ * Another conversation's generation 1, in `ready`, bound to its lead's live conversation lease,
+ * with a worktree directory, so its recorded changes hold their paths.
+ */
 async function holderGeneration(fixture: Awaited<ReturnType<typeof repository>>) {
   const records = await RepositoryCoordinationRecords.open(fixture.root);
-  const holder = await registerAgent({ repositoryRoot: fixture.root, roleId: "developer" });
+  const { lead: holder, assignment } = await conversation(fixture.root);
+  const worktree = resolve(fixture.root, "worktrees", "log-format");
+  await mkdir(worktree, { recursive: true });
   const { workspace } = await recordConversationWorkspaceGeneration({
     repositoryRoot: fixture.root,
     conversationId: HOLDER_CONVERSATION,
     generation: 1,
     repositoryInstanceId: records.home.repositoryInstanceId,
     projectId: "prj_conversation_changes",
-    assignmentId: "asn_0123456789abcdef01234567",
+    assignmentId: assignment.assignmentId,
     agentId: holder.agentId,
     leaseGeneration: 1,
     host: { kind: "git", version: "1.0.0", nativeInstanceDigest: null },
@@ -75,11 +107,11 @@ async function holderGeneration(fixture: Awaited<ReturnType<typeof repository>>)
     creationPlanId: "wpl_0123456789abcdef01234567",
     markerHash: hash,
     pathDigest: `sha256:${"c".repeat(64)}`,
-    ownerWorkspacePath: "/workspaces/app/log-format-1a2b3c",
+    ownerWorkspacePath: worktree,
     inspection: { hostInspected: true, markerMatched: true, checkoutClean: true },
     now: NOW,
   });
-  return { holder, workspace };
+  return { holder, workspace, assignment, worktree };
 }
 
 function record(
@@ -92,6 +124,7 @@ function record(
     repositoryRoot: root,
     workspace,
     changedPaths,
+    measuredFrom: workspace.baseCommit,
     workspaces,
     now: NOW,
   });
@@ -110,13 +143,13 @@ describe("what a generation's changes hold", () => {
       ]),
     ).toEqual({
       paths: ["docs", "src/a.ts"],
-      changedPathCount: 2,
+      changedPathCount: 3,
       coalesced: false,
       overflow: false,
     });
   });
 
-  it("coalesces past 10,000 paths, and holds the checkout when nothing fits", () => {
+  it("coalesces past 10,000 paths or the byte bound, and never holds the checkout", () => {
     const nested = Array.from({ length: 10_001 }, (_, index) => `src/gen/f${index}.ts`);
     expect(heldChangedPaths(["README.md", ...nested])).toEqual({
       paths: ["README.md", "src/gen"],
@@ -124,8 +157,23 @@ describe("what a generation's changes hold", () => {
       coalesced: true,
       overflow: false,
     });
-    const flat = Array.from({ length: 10_001 }, (_, index) => `f${index}.ts`);
-    expect(heldChangedPaths(flat)).toMatchObject({ paths: [], overflow: true });
+    // 3,000 long paths pass the 2 MiB bound well below 10,000 entries.
+    const long = Array.from({ length: 3_000 }, (_, index) => `gen/${"x".repeat(900)}/f${index}.ts`);
+    expect(heldChangedPaths(long)).toEqual({
+      paths: [`gen/${"x".repeat(900)}`],
+      changedPathCount: 3_000,
+      coalesced: true,
+      overflow: false,
+    });
+    // Nothing below the root coalesces: the top-level entries hold, as many as fit, and overflow.
+    const flat = Array.from(
+      { length: 10_001 },
+      (_, index) => `f${String(index).padStart(5, "0")}.ts`,
+    );
+    const overflowing = heldChangedPaths(flat);
+    expect(overflowing).toMatchObject({ changedPathCount: 10_001, overflow: true });
+    expect(overflowing.paths).toHaveLength(10_000);
+    expect(overflowing.paths).not.toContain(".");
   });
 });
 
@@ -140,6 +188,7 @@ describe("recording a generation's changed paths", () => {
       conversationId: HOLDER_CONVERSATION,
       generation: 1,
       baseCommit: fixture.baseCommit,
+      measuredFrom: fixture.baseCommit,
       paths: ["src/b.ts"],
       overflow: false,
     });
@@ -149,6 +198,8 @@ describe("recording a generation's changed paths", () => {
     expect(await readConversationChangedPaths(fixture.root, HOLDER_CONVERSATION)).toEqual({
       paths: ["src/b.ts"],
       total: 1,
+      heldEntries: 1,
+      coalesced: false,
       overflow: false,
       recordedAt: NOW.toISOString(),
     });
@@ -161,26 +212,38 @@ describe("recording a generation's changed paths", () => {
     expect(await readConversationChangedPaths(fixture.root, HOLDER_CONVERSATION)).toMatchObject({
       paths: many.slice(0, 100),
       total: 150,
+      heldEntries: 150,
     });
 
-    // A generation that is gone keeps no record once any generation records again.
+    // A generation whose record is gone keeps no file once any generation records again.
     const folder = (await RepositoryCoordinationRecords.open(fixture.root)).home.workforce;
     const gone = `wsp_${"e".repeat(24)}`;
     await writeFile(resolve(folder, "conversation-changes", `${gone}.json`), "{}", {
       mode: 0o600,
     });
-    await record(fixture.root, workspace, ["src/b.ts"]);
+    // A live record the caller did not list is reread and keeps its file.
+    await record(fixture.root, workspace, ["src/b.ts"], []);
     expect(await readdir(resolve(folder, "conversation-changes"))).toEqual([
       `${workspace.workspaceId}.json`,
     ]);
   });
 
-  it("holds the recorded paths against other conversations until the base moves", async () => {
+  it("holds the recorded paths only while the generation is current, present, and recent", async () => {
     const fixture = await repository();
-    const { holder, workspace } = await holderGeneration(fixture);
+    const { holder, workspace, assignment, worktree } = await holderGeneration(fixture);
     await record(fixture.root, workspace, ["src/a.ts"]);
-    const changes = await listConversationChangedPaths(fixture.root);
-    expect(conversationChangedPathHolders([workspace], CLAIMANT_CONVERSATION, changes)).toEqual([
+    const read = (
+      claimantConversationId: string | null,
+      assignments: readonly WorkforceAssignment[] = [assignment],
+      now = NOW,
+    ) =>
+      readUnsealedChangedPathHolders({
+        repositoryRoot: fixture.root,
+        claimantConversationId,
+        assignments,
+        now,
+      });
+    expect(await read(CLAIMANT_CONVERSATION)).toEqual([
       {
         path: "src/a.ts",
         holderAgentId: holder.agentId,
@@ -189,25 +252,22 @@ describe("recording a generation's changed paths", () => {
         code: "path_changed_unsealed",
       },
     ]);
-    expect(conversationChangedPathHolders([workspace], HOLDER_CONVERSATION, changes)).toEqual([]);
-    const rebased = { ...workspace, baseCommit: "f".repeat(40) };
-    expect(conversationChangedPathHolders([rebased], CLAIMANT_CONVERSATION, changes)).toEqual([]);
-
-    const flat = Array.from({ length: 10_001 }, (_, index) => `f${index}.ts`);
-    await record(fixture.root, workspace, flat);
-    expect(
-      conversationChangedPathHolders(
-        [workspace],
-        CLAIMANT_CONVERSATION,
-        await listConversationChangedPaths(fixture.root),
-      ),
-    ).toMatchObject([{ path: ".", code: "path_changed_unsealed" }]);
+    expect(await read(HOLDER_CONVERSATION)).toEqual([]);
+    // An expired lease still holds for a day, then nothing does.
+    const expiry = Date.parse(assignment.lease!.expiresAt);
+    expect(await read(null, [assignment], new Date(expiry + 23 * 60 * 60_000))).toHaveLength(1);
+    expect(await read(null, [assignment], new Date(expiry + 25 * 60 * 60_000))).toEqual([]);
+    // A cancelled or missing assignment holds nothing.
+    expect(await read(null, [{ ...assignment, lease: null }])).toEqual([]);
+    expect(await read(null, [])).toEqual([]);
+    // A retired conversation's worktree is gone, and so is its hold.
+    await rm(worktree, { recursive: true });
+    expect(await read(null)).toEqual([]);
   });
 
-  it("keeps every claim, Lervo's own included, off a path a conversation changed", async () => {
+  it("keeps Lervo's own claims off a changed path, and never fails them on a bad record", async () => {
     const fixture = await repository();
-    const { workspace } = await holderGeneration(fixture);
-    await record(fixture.root, workspace, ["src/a.ts"]);
+    const folder = (await RepositoryCoordinationRecords.open(fixture.root)).home;
     const worker = await registerAgent({
       repositoryRoot: fixture.root,
       roleId: "developer",
@@ -231,38 +291,26 @@ describe("recording a generation's changed paths", () => {
         sessionId: "ses_worker_session_01",
         now: NOW,
       });
+    // Without any changes file a claim reads no workspace record, so an invalid one fails nothing.
+    const invalid = resolve(folder.workspaces, `wsp_${"f".repeat(24)}.json`);
+    await writeFile(invalid, "{}", { mode: 0o600 });
+    await expect(claim(["src/x.ts"])).resolves.toMatchObject({ status: "leased" });
+    await rm(invalid);
+
+    const { workspace } = await holderGeneration(fixture);
+    await record(fixture.root, workspace, ["src/a.ts"]);
     await expect(claim(["src"])).rejects.toMatchObject({ code: "assignment_path_conflict" });
     await expect(claim(["src/other.ts"])).resolves.toMatchObject({ status: "leased" });
+
+    // A changes file this release cannot read, or one of a record it cannot read, holds nothing.
+    const changes = resolve(folder.workforce, "conversation-changes");
+    await writeFile(resolve(changes, `${workspace.workspaceId}.json`), "not json", { mode: 0o600 });
+    await writeFile(resolve(changes, `wsp_${"d".repeat(24)}.json`), "{}", { mode: 0o644 });
+    await expect(claim(["src/a.ts"])).resolves.toMatchObject({ status: "leased" });
   });
 });
 
 describe("regenerating a conversation lease", () => {
-  async function conversation(root: string) {
-    const lead = await registerAgent({
-      repositoryRoot: root,
-      roleId: "developer",
-      responsibilityPaths: ["src"],
-    });
-    const created = await createAssignment({
-      repositoryRoot: root,
-      taskType: CONVERSATION_TASK_TYPE,
-      roleId: "developer",
-      acceptanceCriteria: ["The conversation's sealed change passes its verification."],
-      verificationSuiteIds: ["project.quick"],
-      expectedPaths: [],
-      now: NOW,
-    });
-    const assignment = await claimAssignment({
-      repositoryRoot: root,
-      assignmentId: created.assignmentId,
-      agentId: lead.agentId,
-      sessionId: LEAD_SESSION,
-      leaseDurationMs: 10 * 60_000,
-      now: NOW,
-    });
-    return { lead, assignment };
-  }
-
   function widen(
     root: string,
     input: Pick<WidenConversationLeaseInput, "assignmentId" | "agentId"> &
@@ -340,20 +388,24 @@ describe("regenerating a conversation lease", () => {
     expect(events[0]!.payload).toMatchObject({ generation: 2, accessMode: "write" });
   });
 
-  it("takes the lease over from another session of the same lead, never another agent's", async () => {
+  it("never trades a live lease between sessions of the same lead or another agent", async () => {
     const { root } = await repository();
     const { lead, assignment } = await conversation(root);
-    const resumed = `ses_terminal_${"b".repeat(24)}`;
+    const sibling = `ses_terminal_${"b".repeat(24)}`;
     const now = new Date(NOW.getTime() + 60_000);
     const ids = { assignmentId: assignment.assignmentId, agentId: lead.agentId };
-    const result = await widen(root, { ...ids, sessionId: resumed, regenerate: true, now });
-    expect(result).toMatchObject({ status: "widened", leaseRegenerated: true });
-    expect(result.assignment.lease).toMatchObject({ sessionId: resumed, generation: 2 });
-
-    const stranger = await registerAgent({ repositoryRoot: root, roleId: "developer" });
     await expect(
-      widen(root, { ...ids, agentId: stranger.agentId, regenerate: true, now }),
+      widen(root, { ...ids, sessionId: sibling, regenerate: true, now }),
+    ).rejects.toMatchObject({ code: "assignment_lease_conflict" });
+    const stranger = await registerAgent({ repositoryRoot: root, roleId: "developer" });
+    const expired = new Date(NOW.getTime() + 11 * 60_000);
+    await expect(
+      widen(root, { ...ids, agentId: stranger.agentId, regenerate: true, now: expired }),
     ).rejects.toBeInstanceOf(AgentWorkforceError);
+    // The lead's own sessions claim under the live lease's writer session, which stays.
+    const kept = await widen(root, { ...ids, regenerate: true, now });
+    expect(kept).toMatchObject({ status: "widened", leaseRegenerated: false });
+    expect(kept.assignment.lease).toMatchObject({ sessionId: LEAD_SESSION, generation: 1 });
   });
 
   it("renews from a reconciliation that found nothing changed, once less than 5 minutes remain", async () => {

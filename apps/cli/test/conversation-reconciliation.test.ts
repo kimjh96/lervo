@@ -9,13 +9,18 @@ import {
   CONVERSATION_TASK_TYPE,
   listAssignments,
   listConversationChangedPaths,
+  readConversationChangedPaths,
   type WorkforceAssignment,
 } from "@lervo/agent-workforce";
 import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
 
 import { claimLogPath } from "../src/claim-log.js";
 import { localClockTime } from "../src/claim-message.js";
-import { reconcileExitedSession } from "../src/conversation-turn-reconciliation.js";
+import { claimWriterSessionId } from "../src/claim-conversation.js";
+import {
+  reconcileConversationTurn,
+  reconcileExitedSession,
+} from "../src/conversation-turn-reconciliation.js";
 import { runTerminalHookCommand } from "../src/terminal-hook-command.js";
 import { parseTerminalHookIngress } from "../src/terminal-hook-input.js";
 import { createTerminalStageObservation } from "../src/terminal-stage-observation.js";
@@ -276,5 +281,90 @@ describe("a conversation's lease over time", () => {
       blockReason: null,
       reconciliation: null,
     });
+  });
+});
+
+describe("conflicts that persist, and changes that are not the conversation's", () => {
+  it("blocks a persisting conflict once, and resolves it when the path returns to its base", async () => {
+    const { first, second } = app;
+    expect(await write(first.sessionId, first.worktree, "src/a.ts")).toBe("{}\n");
+    await writeFile(resolve(second.worktree, "src/a.ts"), "export const a = 2;\n");
+    expect((await stop(second.sessionId, second.worktree)).decision).toBe("block");
+    expect(await stop(second.sessionId, second.worktree, true)).toEqual({});
+    expect(claimLogStates(second.sessionId)).toMatchObject([{ state: "unresolved" }]);
+
+    // The next turn's end finds the same conflict: no second entry, event, or block.
+    expect(await stop(second.sessionId, second.worktree)).toEqual({});
+    expect(claimLogStates(second.sessionId)).toHaveLength(1);
+    expect(await eventsOf(app.repository, "assignment.claim.refused")).toHaveLength(1);
+
+    await git(second.worktree, "checkout", "--", "src/a.ts");
+    expect(await stop(second.sessionId, second.worktree)).toEqual({});
+    expect(claimLogStates(second.sessionId)).toMatchObject([{ state: "resolved" }]);
+  });
+
+  it("measures from where the branch last met its target, so merged upstream work never counts", async () => {
+    const { second } = app;
+    await writeFile(resolve(second.worktree, "src/b.ts"), "export const b = 1;\n");
+    await git(second.worktree, "add", "-A");
+    await git(second.worktree, "commit", "-m", "b");
+    await writeFile(resolve(app.repository, "src/up.ts"), "export const up = 1;\n");
+    await git(app.repository, "add", "src/up.ts");
+    await git(app.repository, "commit", "-m", "upstream");
+    await git(second.worktree, "merge", "--no-edit", "main");
+    expect(await stop(second.sessionId, second.worktree)).toEqual({});
+    expect(await changedPathsOf(second.workspaceId)).toEqual(["src/b.ts"]);
+  });
+
+  it("settles nothing against a reconciliation that overflowed, and reports the overflow", async () => {
+    const { first } = app;
+    widening.failure = new AgentWorkforceError("workforce_busy", "busy");
+    expect(await write(first.sessionId, first.worktree, "src/e.ts")).toBe("{}\n");
+    const head = await git(first.worktree, "rev-parse", "HEAD");
+    const flat = Array.from(
+      { length: 10_001 },
+      (_, index) => `f${String(index).padStart(5, "0")}.ts`,
+    );
+    const turn = await reconcileConversationTurn({
+      provider: "claude",
+      providerSessionId: first.sessionId,
+      workingDirectory: first.worktree,
+      final: true,
+      deadline: performance.now() + 3_000,
+      reconciliationPorts: { changedPaths: async () => ({ paths: flat, measuredFrom: head }) },
+    });
+    expect(turn.reconciliation).toMatchObject({
+      status: "reconciled",
+      overflow: true,
+      claimedPaths: [],
+    });
+    expect(claimLogStates(first.sessionId)).toMatchObject([{ state: "deferred" }]);
+    expect(await readConversationChangedPaths(app.repository, first.workspaceId)).toMatchObject({
+      total: 10_001,
+      heldEntries: 10_000,
+      overflow: true,
+    });
+  });
+});
+
+describe("which writer session a claim uses", () => {
+  const lead = { agentId: "agt_lead", writerSessionId: "ses_terminal_new" };
+  const now = new Date("2026-11-27T10:00:00.000Z");
+  const lease = (sessionId: string, minutes: number, agentId = "agt_lead") => ({
+    agentId,
+    sessionId,
+    expiresAt: new Date(now.getTime() + minutes * 60_000).toISOString(),
+  });
+
+  it("keeps a live lease of the lead whichever of its sessions claims, and takes an expired one", () => {
+    expect(claimWriterSessionId(lead, lease("ses_terminal_old", 5), now)).toBe("ses_terminal_old");
+    expect(claimWriterSessionId(lead, lease("ses_terminal_old", -1), now)).toBe("ses_terminal_new");
+    expect(claimWriterSessionId(lead, lease("ses_other", 5, "agt_other"), now)).toBe(
+      "ses_terminal_new",
+    );
+    expect(claimWriterSessionId({ ...lead, writerSessionId: null }, lease("ses_x", -1), now)).toBe(
+      "ses_x",
+    );
+    expect(claimWriterSessionId({ ...lead, writerSessionId: null }, null, now)).toBe("");
   });
 });

@@ -2,21 +2,16 @@ import { formatDegradedTerminalContext } from "./terminal-compact-format.js";
 import { withTerminalSnapshotDeadline } from "./terminal-repository-snapshot.js";
 import { parseArgs } from "node:util";
 
-import { turnEndingEventSchemaVersion } from "@lervo/event-contract";
-import { inspectEventWriterCoordinate } from "@lervo/project";
-
 import { type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 
 import {
   newTerminalIdentifier,
   TERMINAL_HOOK_BUILD_DIGEST,
   TERMINAL_OBSERVATION_POLICY_VERSION,
-  terminalProviderSessionDigest,
   unmanagedTerminalCoordinates,
 } from "./terminal-event-coordinates.js";
 import type {
   ParsedPreToolUseInput,
-  ParsedSessionStartInput,
   UnmanagedTerminalCoordinates,
 } from "./terminal-hook-contract.js";
 import { parseTerminalHookIngress } from "./terminal-hook-input.js";
@@ -31,7 +26,6 @@ import {
   withinTerminalDeadline,
 } from "./terminal-hook-budget.js";
 import { prepareTerminalBaseContext } from "./terminal-degraded-context.js";
-import { prepareTerminalSessionStart } from "./terminal-session-start.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
 import { preparedTerminalTurnExpectation } from "./terminal-turn-observation.js";
@@ -42,10 +36,8 @@ import {
 } from "./terminal-workspace-lifecycle.js";
 import type { CliIo, CliServices } from "./types.js";
 import { resolveTerminalRoots } from "./terminal-roots.js";
-import { requestOpenTerminalTurnSettlement } from "./terminal-turn-settlement.js";
-import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
-import { roomBlock } from "./room-context.js";
 import { answerClaimHook } from "./write-claims.js";
+import { answerSessionStart } from "./terminal-session-start-hook.js";
 
 /**
  * Claims at first write (Lervo ADE coordination). A claim that took the scheduler lock finishes
@@ -68,6 +60,23 @@ async function answerClaimAndSettle(
   if (io.answer === undefined) io.stdout(answer);
   else io.answer(answer);
   await Promise.all(locked);
+}
+
+/** A conversation's reconciliation at `Stop`: the block reason, or null to let the turn end. */
+function reconcileStop(
+  input: { readonly providerSessionId: string },
+  provider: TerminalIntegrationProvider,
+  workingDirectory: string,
+  startedAt: number,
+  stopHookActive: boolean,
+): Promise<string | null> {
+  return reconcileAtStop({
+    providerSessionId: input.providerSessionId,
+    provider,
+    workingDirectory,
+    stopHookActive,
+    startedAt,
+  });
 }
 
 export function runTerminalHookCommand(
@@ -134,7 +143,7 @@ async function executeTerminalHookCommand(
     }
     if (input.event === "Stop" && input.stopHookActive) {
       // The second run lets the turn end; a conversation's remaining conflicts become unresolved.
-      await reconcileAtStop({ ...input, provider, workingDirectory: io.cwd, stopHookActive: true });
+      await reconcileStop(input, provider, io.cwd, startedAt, true);
       io.stdout("{}\n");
       return 0;
     }
@@ -226,7 +235,7 @@ async function executeTerminalHookCommand(
       // A conversation reconciles its claims before its workspace is inspected, and its first
       // `Stop` blocks once on a conflict (Lervo ADE coordination, "Reconciliation").
       const conversationBlockReason = await timing.measure("lifecycle_inspection", () =>
-        reconcileAtStop({ ...input, provider, workingDirectory: io.cwd, stopHookActive: false }),
+        reconcileStop(input, provider, io.cwd, startedAt, false),
       );
       const expectation = await timing.measure("lifecycle_inspection", () =>
         preparedTerminalTurnExpectation(root, coordinates, provider, input.providerSessionId),
@@ -318,73 +327,4 @@ async function executeTerminalHookCommand(
     io.stdout("{}\n");
     return 0;
   }
-}
-
-/**
- * At a session start, requests the settlement of the session's turn that no Stop closed, with
- * the checkout's snapshot taken when the worker runs, and starts the worker for every pending
- * request. Below writer schema 12 nothing can be recorded, so no request is written.
- */
-async function settleOnSessionStart(
-  cwd: string,
-  provider: TerminalIntegrationProvider,
-  input: { providerSessionId: string },
-): Promise<boolean> {
-  const { evidenceRoot, executionRoot } = await resolveTerminalRoots(cwd);
-  const writer = (await inspectEventWriterCoordinate(evidenceRoot)).coordinate
-    .selectedEventSchemaVersion;
-  if (writer >= turnEndingEventSchemaVersion)
-    await requestOpenTerminalTurnSettlement({
-      root: evidenceRoot,
-      executionRoot,
-      provider,
-      providerSessionDigest: terminalProviderSessionDigest(provider, input.providerSessionId),
-      ending: "session_start",
-      afterObservationId: null,
-      transcriptEnd: null,
-      now: new Date(),
-    });
-  return launchTerminalTurnSettlements(evidenceRoot, executionRoot);
-}
-
-/**
- * ADR-0562 section 4: the epoch's base block at a session start. Without it the next prompt still
- * delivers the full context, so a failure answers with nothing instead of blocking the session.
- */
-async function answerSessionStart(
-  io: CliIo,
-  provider: TerminalIntegrationProvider,
-  input: ParsedSessionStartInput,
-  startedAt: number,
-): Promise<void> {
-  const additionalContext = await withinTerminalDeadline(
-    startedAt + TERMINAL_HOOK_BUDGET_MS,
-    async () =>
-      prepareTerminalSessionStart({
-        // The base block, its rules, and the session's epoch belong to the repository.
-        ...(await resolveTerminalRoots(io.cwd).then(({ evidenceRoot, executionRoot }) => ({
-          root: evidenceRoot,
-          executionRoot,
-        }))),
-        provider,
-        session: input,
-        deadline: startedAt + TERMINAL_HOOK_BUDGET_MS,
-        now: new Date(),
-      }),
-  ).catch(() => null);
-  // A hosted session with an agent also learns its conversation (Lervo ADE rooms).
-  const room =
-    process.env.LERVO_AGENT_ID === undefined
-      ? null
-      : await withinTerminalDeadline(startedAt + TERMINAL_HOOK_BUDGET_MS, () =>
-          roomBlock(input.providerSessionId),
-        ).catch(() => null);
-  const context = [additionalContext, room].filter((part) => part !== null).join("\n\n");
-  io.stdout(
-    context.length === 0
-      ? "{}\n"
-      : `${JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: context } })}\n`,
-  );
-  // Schema 12: a resumed session whose last turn no Stop closed settles that turn now.
-  await settleOnSessionStart(io.cwd, provider, input).catch(() => false);
 }

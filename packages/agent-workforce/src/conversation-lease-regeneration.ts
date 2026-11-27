@@ -40,9 +40,10 @@ export function conversationLeaseCurrent(
 }
 
 /**
- * Whether the lead comes back to its conversation's lease (Lervo ADE coordination, "Coming back
- * after expiry"): the lease is the same lead's, but it expired or another of the lead's sessions
- * holds it, as after the lead's session restarted. Another agent's lease never regenerates.
+ * Whether the lead comes back to its conversation's expired lease (Lervo ADE coordination, "Coming
+ * back after expiry"). A live lease never regenerates: another session of the same lead claims
+ * under the lease's own writer session instead, so two live sessions never trade the lease and
+ * the generation advances at most once per expiry. Another agent's lease never regenerates.
  */
 export function conversationLeaseRegenerable(
   assignment: WorkforceAssignment,
@@ -52,7 +53,7 @@ export function conversationLeaseRegenerable(
   return (
     writingConversation(assignment) &&
     assignment.lease!.agentId === claimant.agentId &&
-    !conversationLeaseCurrent(assignment, claimant, now)
+    Date.parse(assignment.lease!.expiresAt) <= now.getTime()
   );
 }
 

@@ -54,8 +54,8 @@ export interface ConversationClaimChunk {
   /** Runs immediately before the scheduler lock is taken; throwing takes no lock. */
   beforeLock?: () => void;
   /**
-   * Reacquires the lease under the next generation when it is the same lead's but expired or
-   * another of its sessions holds it (Lervo ADE coordination, "Lease lifetime").
+   * Reacquires the lease under the next generation when it is the same lead's but expired (Lervo
+   * ADE coordination, "Lease lifetime").
    */
   regenerate?: boolean;
 }
@@ -76,8 +76,8 @@ export interface ConversationClaimOutcome {
 /**
  * One scheduler lock hold: reread, judge, and widen or renew the lease for one chunk of paths.
  * Other conversations' changed and sealed paths are read under the lock unless the caller passed
- * them. A lead whose lease expired, or another of whose sessions holds it, reacquires it first when
- * `regenerate` allows, in the same hold, and the widening then judges against the new lease.
+ * them. A lead whose lease expired reacquires it first when `regenerate` allows, in the same hold,
+ * and the widening then judges against the new lease.
  */
 export async function claimConversationChunk(
   input: ConversationClaimChunk,
@@ -95,16 +95,19 @@ export async function claimConversationChunk(
     );
     if (agent === undefined || agent.status !== "active")
       fail("agent_state_conflict", "Only an active agent can widen its conversation lease.");
+    const assignments = await listAssignments(input.repositoryRoot);
     const judged = {
       responsibilityPaths: agent.responsibilityPaths,
-      assignments: await listAssignments(input.repositoryRoot),
+      assignments,
       now: input.now,
       changedPathHolders:
         input.changedPathHolders ??
-        (await readConversationPathHolders(
-          input.repositoryRoot,
-          input.claimantWorkspaceId ?? null,
-        )),
+        (await readConversationPathHolders({
+          repositoryRoot: input.repositoryRoot,
+          claimantConversationId: input.claimantWorkspaceId ?? null,
+          assignments,
+          now: input.now,
+        })),
       ...(input.claimantWorkspaceId === undefined
         ? {}
         : { claimantWorkspaceId: input.claimantWorkspaceId }),
