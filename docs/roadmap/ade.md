@@ -303,7 +303,12 @@ The page now bundles both modules with the main script and checks the permission
 - **The fix.** While the list is unplaced, the follow effect now dispatches that scroll event itself after scrolling to the end, so the end's rows mount and are measured before the first paint. The settle also counts the height at layout as its first, so a list measured in its first commit is placed after one frame.
 - **Result.** Placing now takes 6–12 ms after the rows commit. At a load average of 10 to 12, with `fseventsd` using 85% of a core, first paint measured 113, 116, and 136 ms when the core sent the newest page within 65 ms. It measured 217 and 226 ms when the core took 132–139 ms.
 
-**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. What is left is the first paint of the 100,000-item conversation, now 13–36 ms over its target under load and dominated by how long the core takes to send the newest page, and the trail's maximum. Both are to be measured on an idle Mac.
+**Reopening from the index (2026-11-27).** The harness's conversation is not running when it opens, so its newest page waited for the session to open. The interface sent `session.open`, which waits for the core's `workspace.open` and the provider process to start, and attached only after that. A stopped session's index now answers `conversation.range` itself, read only and marked `stored`, and the interface shows that page while the session opens ([Lervo ADE sessions](../specifications/execution/product-surfaces/ade-sessions.md), "Reopening a conversation"). A session the host reported not running also opens without a refused attach first.
+
+- **Result.** The stored page arrived 14–31 ms after the click. First paint measured 84, 86, 98, and 100 ms, and once 165 ms, at a load average near 8.5 with another process using 92% of a core. That meets the 100 ms budget except under the heaviest load.
+- **In daily use.** A conversation that rested ten minutes stopped its provider, so it waited for the core and the provider before showing anything. In the development build it now showed its history 0.2 seconds after the click, before its session started.
+
+**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. What is left is the trail's maximum, 159 ms against 137 at a load average of 12, with its p95 within target. It is to be measured on an idle Mac.
 
 ### S1.6c measurements
 

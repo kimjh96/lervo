@@ -193,6 +193,12 @@ export const conversationPageMessageSchema = {
     items: itemListSchema,
     hasEarlier: { type: "boolean" },
     hasLater: { type: "boolean" },
+    /**
+     * True when the session does not run and the page comes from the index it left (ADE
+     * sessions, "Reopening a conversation"). The conversation can show it at once, and the
+     * session must open before it streams. Absent from a running session's page.
+     */
+    stored: { type: "boolean" },
   },
 } as const;
 

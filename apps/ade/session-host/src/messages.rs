@@ -200,6 +200,27 @@ pub fn page(
         kind: ConversationPageMessageKind::ConversationPage,
         request_id: request.clone(),
         session_id: session.clone(),
+        stored: None,
+    })
+}
+
+/// A page read from the index of a session that does not run, marked `stored` so the interface
+/// opens the session before it expects the page to stream.
+pub fn stored_page(
+    request: &Identifier,
+    session: &Identifier,
+    items: Vec<ConversationItem>,
+    has_earlier: bool,
+    has_later: bool,
+) -> HostMessage {
+    HostMessage::from(ConversationPageMessage {
+        has_earlier,
+        has_later,
+        items,
+        kind: ConversationPageMessageKind::ConversationPage,
+        request_id: request.clone(),
+        session_id: session.clone(),
+        stored: Some(true),
     })
 }
 

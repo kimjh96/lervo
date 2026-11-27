@@ -1,5 +1,6 @@
 import type {
   ConversationItem,
+  ConversationPageMessage,
   HostMessage,
   ImageMark,
   SentImage,
@@ -24,6 +25,12 @@ export interface SessionTarget {
   readonly firstImages?: readonly ImageMark[];
   /** Whether the session last ran in another mode, so it opens in the native conversation first. */
   readonly reopenNatively?: boolean;
+  /**
+   * False when the session host reported no running session as the view opened. Such a session
+   * opens first rather than attach and be refused, which saves a round trip; opening finds a
+   * session that runs after all, so a stale report costs nothing more.
+   */
+  readonly running?: boolean;
 }
 
 /** The windows of conversations closed recently, shared by every controller. */
@@ -31,13 +38,17 @@ const recentWindows = new RecentWindows();
 
 /**
  * Shows one workspace's native conversation. It attaches to the session, loads the newest page,
- * and applies live items and frame-bound deltas. When the session is not running, it opens it
- * through the core, which resumes the provider's session.
+ * and applies live items and frame-bound deltas. When the session is not running, it shows the
+ * newest page the session's index holds and opens the session through the core, which resumes
+ * the provider's session.
  */
 export class ConversationController implements ConversationSource {
   private sessionId: string;
   private readonly unsubscribe: (() => void)[] = [];
   private readonly deltas: DeltaBuffer;
+  /** Whether the session's live page has shown, after which no stored page may replace it. */
+  private live = false;
+  private closed = false;
 
   constructor(
     private readonly client: SessionHost,
@@ -81,6 +92,7 @@ export class ConversationController implements ConversationSource {
   }
 
   close(): void {
+    this.closed = true;
     for (const unsubscribe of this.unsubscribe.splice(0)) unsubscribe();
     const state = useConversationStore.getState();
     if (state.sessionId === this.sessionId)
@@ -155,7 +167,15 @@ export class ConversationController implements ConversationSource {
   /** Attaches and loads the newest page, opening the session first when it does not run. */
   private async load(): Promise<void> {
     try {
-      if (this.target.reopenNatively === true) await this.openNatively();
+      if (this.target.reopenNatively === true) await this.openSession("native");
+      else if (this.target.running === false) {
+        // The index the session left shows while the session opens.
+        void this.range("latest").then(
+          (page) => this.showStored(page),
+          () => undefined,
+        );
+        await this.openSession();
+      }
       await this.attachAndLoad();
     } catch (failure) {
       if (!(failure instanceof RequestFailure) || failure.code !== "session_not_found") {
@@ -166,12 +186,7 @@ export class ConversationController implements ConversationSource {
       }
       try {
         performance.mark("lervo:conversation-not-running");
-        const opened = await this.client.request({
-          kind: "session.open",
-          workspaceId: this.target.workspaceId,
-        });
-        performance.mark("lervo:conversation-opened");
-        if (opened.kind === "session.opened") this.sessionId = opened.sessionId;
+        await this.openSession();
         await this.attachAndLoad();
       } catch (reopening) {
         useConversationStore.setState({
@@ -181,13 +196,17 @@ export class ConversationController implements ConversationSource {
     }
   }
 
-  /** Opens the workspace's session in the native conversation; the core resumes the same one. */
-  private async openNatively(): Promise<void> {
+  /**
+   * Opens the workspace's session, in the native conversation when `mode` says so: the session
+   * host answers with the session it runs, or the core resumes the same one.
+   */
+  private async openSession(mode?: "native"): Promise<void> {
     const opened = await this.client.request({
       kind: "session.open",
       workspaceId: this.target.workspaceId,
-      conversationMode: "native",
+      ...(mode === undefined ? {} : { conversationMode: mode }),
     });
+    performance.mark("lervo:conversation-opened");
     if (opened.kind === "session.opened") this.sessionId = opened.sessionId;
   }
 
@@ -197,6 +216,12 @@ export class ConversationController implements ConversationSource {
     performance.mark("lervo:conversation-attached");
     const page = await this.range("latest");
     performance.mark("lervo:conversation-page");
+    // A session that does not run answers from the index it left: that shows, and it opens.
+    if (page.stored === true) {
+      this.showStored(page);
+      throw new RequestFailure("session_not_found");
+    }
+    this.live = true;
     const current = useConversationStore.getState().window;
     // Until the session reports the first message, the stand-in stays.
     const waiting = page.items.length === 0 && current.items[0]?.itemId === FIRST_MESSAGE_ID;
@@ -205,6 +230,18 @@ export class ConversationController implements ConversationSource {
       window: waiting ? current : applyPage(emptyWindow, page, "latest"),
       error: null,
     });
+  }
+
+  /**
+   * Shows a page the session's index answered while the session does not run, until the live
+   * page arrives. The stand-in of work just sent stays, as it does for an empty live page.
+   */
+  private showStored(page: ConversationPageMessage): void {
+    const current = useConversationStore.getState().window;
+    if (this.live || this.closed || page.stored !== true || page.items.length === 0) return;
+    if (current.items[0]?.itemId === FIRST_MESSAGE_ID) return;
+    performance.mark("lervo:conversation-stored");
+    useConversationStore.setState({ window: applyPage(emptyWindow, page, "latest") });
   }
 
   private async range(side: "latest" | "before" | "after", anchor?: string) {

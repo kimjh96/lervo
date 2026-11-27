@@ -46,6 +46,11 @@ export function visibleStatus(status: SessionStatus | undefined): VisibleStatus 
   return null;
 }
 
+/** Whether the session host runs the session, as its last status says; no status counts as not. */
+export function isRunning(status: SessionStatus | undefined): boolean {
+  return status !== undefined && status !== "ended";
+}
+
 export type NotificationKind = "needsYou" | "finished";
 
 /**

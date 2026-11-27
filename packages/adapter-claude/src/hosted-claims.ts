@@ -21,13 +21,32 @@ const FILE_TOOLS: Readonly<Record<string, "file_path" | "notebook_path">> = {
 };
 /** The tools Claude Code's pre-tool hook sends for claims: the file tools, and the shell. */
 export const CLAUDE_CLAIM_TOOLS = [...Object.keys(FILE_TOOLS), "Bash"].join("|");
-const REDIRECTION = /^(?:>>?|&>|2>)(.*)$/u;
+/**
+ * An output redirection: an optional descriptor such as `2` or `1`, its operator, and the operand
+ * when it is attached, as in `2>err.log` or `>|out.txt`.
+ */
+const REDIRECTION = /^\d*(&>>|&>|>>|>\||>&|>)(.*)$/u;
+
+/**
+ * Whether a redirection's operand names a descriptor rather than a file. `2>&1` and `>&2`
+ * duplicate one and `>&-` closes one, so they write no file; `>&out.txt` writes the file.
+ */
+function namesDescriptor(operator: string, operand: string): boolean {
+  return (
+    operand.startsWith("&") ||
+    operand.startsWith("-") ||
+    (operator === ">&" && /^\d+$/u.test(operand))
+  );
+}
 const WILDCARD = /[*?[]/u;
 
 /** The words of one shell statement, with quotes removed. */
 type Words = { readonly words: readonly string[] };
 
-/** Splits a command into statements at `;`, `&&`, `||`, `|`, and line ends, outside quotes. */
+/**
+ * Splits a command into statements at `;`, `&&`, `||`, `|`, and line ends, outside quotes. The
+ * `|` of `>|`, which writes over a file the shell would protect, stays in its word.
+ */
 function statements(command: string): Words[] {
   const all: Words[] = [];
   let words: string[] = [];
@@ -62,7 +81,7 @@ function statements(command: string): Words[] {
     else if (char === "&" && command[at + 1] === "&") {
       endStatement();
       at += 1;
-    } else if (char === "|") {
+    } else if (char === "|" && !word.endsWith(">")) {
       endStatement();
       if (command[at + 1] === "|") at += 1;
     } else {
@@ -146,9 +165,13 @@ function shellIntent(command: string, workingDirectory: string): HostedWriteInte
         continue;
       }
       const redirect = REDIRECTION.exec(word);
-      if (redirect === null) words.push(word);
-      else if (redirect[1] !== "") add(redirect[1]!, "file");
-      else if (statement.words[at + 1] !== undefined) add(statement.words[(at += 1)]!, "file");
+      if (redirect === null) {
+        words.push(word);
+        continue;
+      }
+      const operator = redirect[1]!;
+      const operand = redirect[2] !== "" ? redirect[2] : statement.words[(at += 1)];
+      if (operand !== undefined && !namesDescriptor(operator, operand)) add(operand, "file");
     }
     if (words[0] === "cd" && words[1] !== undefined) {
       const moved = target(words[1], directory, "directory");

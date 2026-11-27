@@ -131,15 +131,15 @@ The handler finds the conversation from the session's hosted launch record. A jo
 
 The handler reads only those fields, never `content`, `old_string`, `new_string`, or `edits`. Command detection splits the command at `;`, `&&`, `||`, `|`, and line ends, outside quotes. It follows a leading `cd <dir>`, skips input redirections, and recognizes these forms:
 
-| Form                                                          | Claims                                         |
-| ------------------------------------------------------------- | ---------------------------------------------- |
-| Redirection `>`, `>>`, `&>`, or `2>` to a path outside `/dev` | The file                                       |
-| `tee [-a] <files>`                                            | Each file                                      |
-| `touch`, `mkdir`, `rm`, `rmdir`                               | Each operand; a directory claims the directory |
-| `mv <sources> <target>`                                       | Each source and the target                     |
-| `cp <sources> <target>`                                       | The target                                     |
-| `sed -i`, `perl -i`                                           | Each file operand                              |
-| `git mv`, `git rm`                                            | Each operand                                   |
+| Form                                                                                                                            | Claims                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Redirection `>`, `>>`, `>\|`, `>&`, `&>`, or `&>>`, with or without a descriptor such as `1>` or `2>`, to a path outside `/dev` | The file; `2>&1`, `>&2`, and `>&-` name descriptors and claim nothing |
+| `tee [-a] <files>`                                                                                                              | Each file                                                             |
+| `touch`, `mkdir`, `rm`, `rmdir`                                                                                                 | Each operand; a directory claims the directory                        |
+| `mv <sources> <target>`                                                                                                         | Each source and the target                                            |
+| `cp <sources> <target>`                                                                                                         | The target                                                            |
+| `sed -i`, `perl -i`                                                                                                             | Each file operand                                                     |
+| `git mv`, `git rm`                                                                                                              | Each operand                                                          |
 
 An operand that contains `$`, a backquote, or a leading `~` is undetected. `git checkout ... -- <paths>` and `git restore` claim nothing: they return paths toward committed bytes, and reconciliation judges the result. Every other write, such as a formatter, a generator, a package manager, `git apply`, a branch switch, or an MCP tool that writes files, is undetected, and the turn's end claims what it changed.
 

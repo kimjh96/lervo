@@ -32,6 +32,8 @@ pub enum StoreError {
     RecordTooLarge { bytes: usize },
     #[error("conversation_range_outside_index")]
     OutOfRange,
+    #[error("conversation_index_read_only")]
+    ReadOnly,
 }
 
 /// A segment read into memory: its bytes and the span of each record.
@@ -55,6 +57,8 @@ pub struct ConversationStore {
     cache: ByteBoundedCache<u64, Segment>,
     total: u64,
     writer: Option<File>,
+    /// Opened for reading only: appends fail, and nothing on disk changes.
+    read_only: bool,
 }
 
 impl ConversationStore {
@@ -63,24 +67,35 @@ impl ConversationStore {
     pub fn open(directory: impl Into<PathBuf>, cache_bytes: usize) -> Result<Self, StoreError> {
         let directory = directory.into();
         fs::create_dir_all(&directory)?;
-        let segments = segment_ids(&directory)?;
-        let total = match segments.last() {
-            None => 0,
-            Some(&last) => {
-                if segments.iter().copied().ne(0..=last) {
-                    return Err(StoreError::Corrupt { segment: last });
-                }
-                let path = segment_path(&directory, last);
-                let records = recover_tail(&path)?;
-                last * ITEMS_PER_SEGMENT + records
-            }
-        };
+        let total = stored_total(&directory, recover_tail)?;
         Ok(Self {
             directory,
             cache: ByteBoundedCache::new(cache_bytes),
             total,
             writer: None,
+            read_only: false,
         })
+    }
+
+    /// Opens an index that exists, for reading only, such as a session's that does not run.
+    /// Nothing is created or repaired: a torn final record, which the writer truncates when it
+    /// opens the index, makes reading that segment fail. `None` when `directory` holds no index.
+    pub fn open_read_only(
+        directory: impl Into<PathBuf>,
+        cache_bytes: usize,
+    ) -> Result<Option<Self>, StoreError> {
+        let directory = directory.into();
+        if !directory.is_dir() {
+            return Ok(None);
+        }
+        let total = stored_total(&directory, complete_records)?;
+        Ok(Some(Self {
+            directory,
+            cache: ByteBoundedCache::new(cache_bytes),
+            total,
+            writer: None,
+            read_only: true,
+        }))
     }
 
     /// Items in the index.
@@ -95,6 +110,9 @@ impl ConversationStore {
 
     /// Appends one encoded item and returns its position.
     pub fn append(&mut self, item: &[u8]) -> Result<u64, StoreError> {
+        if self.read_only {
+            return Err(StoreError::ReadOnly);
+        }
         if item.len() > MAX_RECORD_BYTES {
             return Err(StoreError::RecordTooLarge { bytes: item.len() });
         }
@@ -222,6 +240,26 @@ fn spans(bytes: &[u8]) -> Spans {
         spans,
         complete: offset,
     }
+}
+
+/// The items in the index in `directory`, counting the open segment's records with `records`.
+fn stored_total(
+    directory: &Path,
+    records: fn(&Path) -> Result<u64, StoreError>,
+) -> Result<u64, StoreError> {
+    let segments = segment_ids(directory)?;
+    let Some(&last) = segments.last() else {
+        return Ok(0);
+    };
+    if segments.iter().copied().ne(0..=last) {
+        return Err(StoreError::Corrupt { segment: last });
+    }
+    Ok(last * ITEMS_PER_SEGMENT + records(&segment_path(directory, last))?)
+}
+
+/// The complete records the open segment holds, leaving a torn final record in place.
+fn complete_records(path: &Path) -> Result<u64, StoreError> {
+    Ok(spans(&fs::read(path)?).spans.len() as u64)
 }
 
 /// Truncates a torn final record and returns the records the open segment holds.

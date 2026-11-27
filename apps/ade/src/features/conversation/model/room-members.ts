@@ -159,6 +159,8 @@ export class RoomMembers {
       limit: PAGE_ITEMS,
     });
     if (page.kind !== "conversation.page") throw new RequestFailure("range_invalid");
+    // A stored page comes from the index of a session that does not run: the member rejoins.
+    if (page.stored === true) throw new RequestFailure("session_not_found");
     this.lane(member, (lane) => ({ ...lane, window: applyPage(emptyWindow, page, "latest") }));
   }
 

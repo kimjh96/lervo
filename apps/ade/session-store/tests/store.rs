@@ -48,6 +48,48 @@ fn reopens_with_every_item_in_place() {
 }
 
 #[test]
+fn reads_an_index_without_creating_or_changing_anything() {
+    let directory = tempfile::tempdir().unwrap();
+    let missing = directory.path().join("none");
+    assert!(
+        ConversationStore::open_read_only(&missing, 0)
+            .unwrap()
+            .is_none()
+    );
+    assert!(!missing.exists());
+
+    let path = directory.path().join("ses_1");
+    drop(filled(&path, ITEMS_PER_SEGMENT + 2));
+    let segment = path.join("0000000000000001.seg");
+    let before = fs::read(&segment).unwrap();
+    let mut store = ConversationStore::open_read_only(&path, 0)
+        .unwrap()
+        .unwrap();
+    assert_eq!(store.len(), ITEMS_PER_SEGMENT + 2);
+    assert_eq!(
+        store
+            .read(ITEMS_PER_SEGMENT, ITEMS_PER_SEGMENT + 2)
+            .unwrap(),
+        vec![item(ITEMS_PER_SEGMENT), item(ITEMS_PER_SEGMENT + 1)]
+    );
+    assert!(matches!(store.append(b"next"), Err(StoreError::ReadOnly)));
+
+    // A torn final record stays for the writer to truncate, and reading its segment fails.
+    OpenOptions::new()
+        .append(true)
+        .open(&segment)
+        .unwrap()
+        .write_all(&[0, 0, 0, 9, b'x'])
+        .unwrap();
+    let mut torn = ConversationStore::open_read_only(&path, 0)
+        .unwrap()
+        .unwrap();
+    assert_eq!(torn.len(), ITEMS_PER_SEGMENT + 2);
+    assert!(torn.read(ITEMS_PER_SEGMENT, ITEMS_PER_SEGMENT + 1).is_err());
+    assert_eq!(fs::read(&segment).unwrap().len(), before.len() + 5);
+}
+
+#[test]
 fn truncates_a_torn_final_record() {
     let directory = tempfile::tempdir().unwrap();
     drop(filled(directory.path(), 3));
