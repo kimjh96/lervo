@@ -180,10 +180,46 @@ function StartedLine({ item }: { item: Extract<ConversationItem, { kind: "lervo_
   );
 }
 
+/**
+ * What the lead answered in another conversation (Lervo ADE rooms, "Mentioning across
+ * conversations"): "Ciel answered Iris in Log format", which opens that conversation.
+ */
+function AnsweredLine({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
+  const workspaceId = String(item.parameters.workspace ?? "");
+  const known = useWorkspaceStore((store) =>
+    store.workspaces.find((workspace) => workspace.workspaceId === workspaceId),
+  );
+  const select = useWorkspaceStore((store) => store.select);
+  const values = {
+    agent: String(item.parameters.agent ?? ""),
+    from: String(item.parameters.from ?? ""),
+  };
+  if (known === undefined)
+    return (
+      <p className={styles.roomLine}>
+        <FormattedMessage id="room.answeredElsewhereUnlisted" values={values} />
+      </p>
+    );
+  const link = (chunks: ReactNode) => (
+    <button type="button" className={styles.roomLink} onClick={() => select(workspaceId)}>
+      {chunks}
+    </button>
+  );
+  return (
+    <p className={styles.roomLine}>
+      <FormattedMessage
+        id="room.answeredElsewhere"
+        values={{ ...values, title: known.title ?? known.branch, link }}
+      />
+    </p>
+  );
+}
+
 function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
   if (item.code === "context_compacted")
     return <CompactionDivider manual={item.parameters.trigger === "manual"} />;
   if (Object.hasOwn(startedMessages, item.code)) return <StartedLine item={item} />;
+  if (item.code === "room_answered_elsewhere") return <AnsweredLine item={item} />;
   if (isClaimLine(item.code)) return <ClaimLine item={item} />;
   if (Object.hasOwn(roomMessages, item.code))
     return (

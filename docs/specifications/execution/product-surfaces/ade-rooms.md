@@ -81,6 +81,9 @@ The resident core decodes every hosted session's output, so it sees each turn en
 ## Across conversations and agent-started conversations (slice 2)
 
 - **Mentioning across conversations.** A mentioned agent that works in another conversation joins this one with a new session here; its session there continues undisturbed. Its own conversation gains one quiet line, "Ciel answered Iris in Log format", which opens the answer.
+  - The ADE reads the line from the core's `room.answers`, which answers from the rooms' schema-15 records. The answers are the mentions delivered to the conversation's lead in other conversations, newest first, at most 50.
+  - The ADE reads again whenever the lead's session changes status. It places each line at its delivery's time in the timeline, and its title opens the other conversation. An answer outside the loaded pages waits until a page reaches it.
+  - A repository below schema 15 has no records and shows no line. The ADE asks only a core that advertises `room.answers`.
 - **Agent-started conversations.** Work that is an agent's own and belongs apart from the conversation it is in, such as a fix it found while reviewing, gets a conversation the agent starts and leads ([ADR-0644](../../../decisions/coordination/conversations/agent-organization/0644-keep-agent-coordination-in-conversations.md)). Nothing waits on the owner.
 
 ### How an agent starts a conversation

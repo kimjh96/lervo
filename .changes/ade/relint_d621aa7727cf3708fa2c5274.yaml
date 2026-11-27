@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d621aa7727cf3708fa2c5274"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "A conversation shows a quiet line when its lead answered another agent in a different conversation, such as \"Ciel answered Iris in Log format\", which opens that conversation."

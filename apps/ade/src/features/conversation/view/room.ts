@@ -7,6 +7,7 @@ import { useAgentStore } from "../../agents";
 import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
 import { mentionablesOf } from "../model/mentionables";
+import { loadRoomAnswers } from "../model/room-answers";
 import { RoomMembers } from "../model/room-members";
 import { routeTurn } from "../model/room-routing";
 import { useRoomStore } from "../model/room-store";
@@ -65,6 +66,40 @@ export function useRoom(input: {
 
   const nameOf = (agentId: string | null) =>
     agents.find((agent) => agent.agentId === agentId)?.displayName ?? null;
+
+  // What the lead answered elsewhere, read again whenever its session's status changes.
+  const answering = useWorkspaceStore(
+    (store) => store.advertisedCommands?.includes("room.answers") === true,
+  );
+  const leadStatus = useWorkspaceStore((store) =>
+    sessionId === null ? undefined : store.statuses[sessionId],
+  );
+  const leadName = nameOf(leadAgentId);
+  const agentNames = useMemo(
+    () => new Map(agents.map((agent) => [agent.agentId, agent.displayName])),
+    [agents],
+  );
+  // Another conversation's lines never show here while this one's are read.
+  useEffect(() => {
+    useRoomStore.setState({ answers: [] });
+  }, [workspaceId]);
+  useEffect(() => {
+    if (workspaceId === null || !answering || leadName === null) {
+      useRoomStore.setState({ answers: [] });
+      return;
+    }
+    let current = true;
+    void loadRoomAnswers(
+      commands,
+      workspaceId,
+      leadName,
+      (agentId) => agentNames.get(agentId) ?? null,
+      () => current,
+    );
+    return () => {
+      current = false;
+    };
+  }, [commands, workspaceId, answering, leadName, agentNames, leadStatus]);
   const named = (name: string, activity: string) =>
     intl.formatMessage({ id: "conversation.working.agent" }, { name, activity });
 

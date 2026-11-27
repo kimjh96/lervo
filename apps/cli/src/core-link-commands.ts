@@ -109,6 +109,8 @@ export function commandAnswer(
     }
     case "room.route":
       return optional(handlers.routeRoom, arguments_, "This core holds no rooms.");
+    case "room.answers":
+      return optional(handlers.roomAnswers, arguments_, "This core holds no rooms.");
     case "workspace.retire":
       // An invalid ID fails this request alone, never the link.
       return {

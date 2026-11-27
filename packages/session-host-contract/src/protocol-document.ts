@@ -23,6 +23,7 @@ import {
 } from "./application-agent-results.js";
 import {
   roomJoinResultSchema,
+  roomAnswersResultSchema,
   roomRouteResultSchema,
   roomSessionSchema,
 } from "./application-room-results.js";
@@ -134,6 +135,7 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     agentContextResultSchema,
     roomSessionSchema,
     roomJoinResultSchema,
+    roomAnswersResultSchema,
     roomRouteResultSchema,
   ].map((schema) => [schema.title, schema] as const),
   ...[

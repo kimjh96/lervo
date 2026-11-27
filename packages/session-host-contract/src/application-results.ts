@@ -46,9 +46,11 @@ import {
 import {
   MAXIMUM_ROOM_AGENTS,
   roomJoinResultSchema,
+  roomAnswersResultSchema,
   roomRouteResultSchema,
   roomSessionSchema,
   type RoomJoinResult,
+  type RoomAnswersResult,
   type RoomRouteResult,
 } from "./application-room-results.js";
 import { turnSummaryResultSchema, type TurnSummaryResult } from "./application-turn-results.js";
@@ -84,6 +86,7 @@ export const applicationCommandNames = [
   "agent.context",
   "room.join",
   "room.route",
+  "room.answers",
 ] as const;
 
 /** Commands every core answers. Any other command is sent only to a core that advertises it. */
@@ -357,6 +360,7 @@ export const applicationResultSchemas = {
   "agent.context": agentContextResultSchema,
   "room.join": roomJoinResultSchema,
   "room.route": roomRouteResultSchema,
+  "room.answers": roomAnswersResultSchema,
 } as const;
 
 export type ApplicationCommandName = (typeof applicationCommandNames)[number];
@@ -396,4 +400,5 @@ export interface ApplicationResults {
   "agent.context": AgentContextResult;
   "room.join": RoomJoinResult;
   "room.route": RoomRouteResult;
+  "room.answers": RoomAnswersResult;
 }
