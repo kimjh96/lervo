@@ -7,6 +7,10 @@ import type { KnowledgeMaterializationSettlement } from "@lervo/repository-knowl
 
 import { CommandFailure } from "./command-error-output.js";
 import { applyEventWriterStage } from "./event-writer-activation-stage.js";
+import {
+  applyEventWriterBackupRetention,
+  type EventWriterBackupRetentionOutcome,
+} from "./event-writer-backup-retention.js";
 import { effectBackupUndoCommand } from "./effect-backup.js";
 import { holdEffect, releaseHeldEffects } from "./held-effect-debt.js";
 import { applyKnowledgeStages } from "./upgrade-knowledge-apply.js";
@@ -23,6 +27,7 @@ import type { UpgradeHost } from "./upgrade-host.js";
 import { applyRegisteredNodeUpgrade, inspectRegisteredNodeUpgrade } from "./upgrade-node.js";
 import {
   createRepositoryUpgradePlan,
+  holdFailedBackupRetention,
   knowledgeStageRefusedByMarker,
   type RepositoryUpgradePlan,
 } from "./upgrade-plan.js";
@@ -61,6 +66,7 @@ export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pend
     { stage: "knowledge", ...plan.stages.knowledge },
     { stage: "node", ...plan.stages.node },
     { stage: "event_writer", ...plan.stages.eventWriter },
+    { stage: "event_writer_backup_retention", ...plan.stages.eventWriterBackupRetention },
     { stage: "host_service", ...plan.stages.hostService },
     { stage: "replica_service", ...plan.stages.replicaService },
   ];
@@ -72,6 +78,65 @@ export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pend
       reason: stage.reason,
       blockers: stage.blockers ?? [],
     }));
+}
+
+/**
+ * ADR-0651 and ADR-0534: the retention stages run last, after every stage that could write a new
+ * backup or runtime, and each removes only what a fresh plan still names. A failed backup removal
+ * is skipped and held as Lervo debt; it never fails the upgrade or stops runtime retention.
+ */
+async function applyRetentionStages(
+  approved: RepositoryUpgradePlan,
+  host: UpgradeHost,
+  run: {
+    confirmExclusion: (nextStage: UpgradeStageName | null) => Promise<void>;
+    clock: UpgradeStageClock;
+    appliedStages: string[];
+    skippedStages: UpgradeReceipt["skippedStages"];
+  },
+): Promise<EventWriterBackupRetentionOutcome | null> {
+  const { confirmExclusion, clock, appliedStages } = run;
+  await confirmExclusion("event_writer_backup_retention");
+  const backups = await applyEventWriterBackupRetention(
+    approved.repositoryRoot,
+    approved.stages.eventWriterBackupRetention,
+  );
+  if (backups.removed.length) appliedStages.push("event_writer_backup_retention");
+  if (backups.failure !== undefined)
+    run.skippedStages.push({
+      stage: "event_writer_backup_retention",
+      reason: backups.failure.code,
+    });
+  clock.lap("event_writer_backup_retention");
+  await confirmExclusion("runtime_retention");
+  if (await applyNodeRuntimeRetention(approved.stages.runtimeRetention, host.runtimeRetention))
+    appliedStages.push("runtime_retention");
+  // A holder that still holds was never replaced, so every stage ran under the exclusion.
+  await confirmExclusion(null);
+  clock.lap("runtime_retention");
+  return backups.removed.length || backups.failure !== undefined ? backups : null;
+}
+
+/**
+ * ADR-0561: the workforce and Node stages have no commit or backup of their own, so their notices
+ * join the effect notice journal; the other stages record theirs where they apply.
+ */
+async function journalUnrecordedNotices(
+  approved: RepositoryUpgradePlan,
+  notices: UpgradeReceipt["notices"],
+): Promise<void> {
+  for (const [index, notice] of notices.entries())
+    if (notice.stage === "workforce" || notice.stage === "node")
+      await noticeEffect({
+        repositoryRoot: approved.repositoryRoot,
+        effect: notice.stage === "node" ? "node_service_upgrade" : "workforce_role_refresh",
+        subject: `${approved.planId}:${index}`,
+        targets: [approved.planId],
+        reason: notice.summary,
+        reviewers: [notice.stage === "node" ? "Node readiness check" : "role contract validation"],
+        verdict: "verified",
+        undo: notice.undo,
+      });
 }
 
 /**
@@ -295,30 +360,17 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("replica_service");
 
-  await confirmExclusion("runtime_retention");
-  if (await applyNodeRuntimeRetention(approved.stages.runtimeRetention, host.runtimeRetention))
-    appliedStages.push("runtime_retention");
-  // A holder that still holds was never replaced, so every stage ran under the exclusion.
-  await confirmExclusion(null);
-  clock.lap("runtime_retention");
+  const backups = await applyRetentionStages(approved, host, {
+    confirmExclusion,
+    clock,
+    appliedStages,
+    skippedStages,
+  });
 
-  // ADR-0561: the workforce and Node stages have no commit or backup of their own, so their
-  // notices join the effect notice journal; the other stages record theirs where they apply.
-  for (const [index, notice] of notices.entries())
-    if (notice.stage === "workforce" || notice.stage === "node")
-      await noticeEffect({
-        repositoryRoot: root,
-        effect: notice.stage === "node" ? "node_service_upgrade" : "workforce_role_refresh",
-        subject: `${approved.planId}:${index}`,
-        targets: [approved.planId],
-        reason: notice.summary,
-        reviewers: [notice.stage === "node" ? "Node readiness check" : "role contract validation"],
-        verdict: "verified",
-        undo: notice.undo,
-      });
+  await journalUnrecordedNotices(approved, notices);
 
   const final = await materialization.run(
-    () => createRepositoryUpgradePlan(root, host),
+    async () => holdFailedBackupRetention(await createRepositoryUpgradePlan(root, host), backups),
     knowledgeStageRefusedByMarker,
   );
   clock.lap("final_plan");
@@ -331,6 +383,7 @@ export async function applyRepositoryUpgrade(
     skippedStages,
     notices,
     knowledgeLint: lint,
+    ...(backups === null ? {} : { eventWriterBackupRetention: backups }),
     nextPlanId: final.status === "current" ? null : final.planId,
     pending: pendingStages(final),
     cliAcquisition: "outside_repository_upgrade",

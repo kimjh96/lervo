@@ -20,6 +20,7 @@ export type UpgradeTimedStage =
   | "event_writer"
   | "host_service"
   | "replica_service"
+  | "event_writer_backup_retention"
   | "runtime_retention"
   | "final_plan";
 

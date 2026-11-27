@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d0d54bda8edea221806ee5a1"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "lervo upgrade prunes event writer backups superseded more than 14 days ago and always keeps the rollback point"

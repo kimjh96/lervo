@@ -3,6 +3,11 @@ import { repositoryReplicaPerCallLauncherGuidance } from "@lervo/sync";
 
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
 import { layoutCapacityLines } from "./layout-capacity-lines.js";
+import type { EventWriterBackupRetentionOutcome } from "./event-writer-backup-retention.js";
+import {
+  eventWriterBackupRetentionLines,
+  eventWriterBackupRetentionReceiptLines,
+} from "./event-writer-backup-retention-format.js";
 import type { NodeConfigExecutablesStage } from "./node-config-executable-upgrade.js";
 import type { RepositoryUpgradePlan } from "./upgrade-plan.js";
 import type { UpgradeStageTiming } from "./upgrade-stage-timing.js";
@@ -20,6 +25,8 @@ export interface UpgradeReceipt {
   /** ADR-0561 after-the-fact notices: what changed and the one way to undo it. */
   notices: Array<{ stage: UpgradeStageName; summary: string; undo: string }>;
   knowledgeLint: { valid: boolean; issueCount: number } | null;
+  /** ADR-0651: backups this apply removed, and a removal that failed. Absent when neither. */
+  eventWriterBackupRetention?: EventWriterBackupRetentionOutcome;
   nextPlanId: string | null;
   pending: Array<{
     stage: UpgradeStageName;
@@ -105,6 +112,7 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
     ...nodeConfigExecutableLines(plan.stages.node.configExecutables),
     `event writer: ${plan.stages.eventWriter.disposition} (${plan.stages.eventWriter.reason}) · schema ${plan.stages.eventWriter.currentSchemaVersion} → ${plan.stages.eventWriter.targetSchemaVersion}`,
     ...blockerLines(plan.stages.eventWriter.blockers, "  "),
+    ...eventWriterBackupRetentionLines(plan.stages.eventWriterBackupRetention),
     `host resident service: ${plan.stages.hostService.disposition} (${plan.stages.hostService.reason})${
       plan.stages.hostService.serviceIdentity === null
         ? ""
@@ -166,6 +174,7 @@ export function formatUpgradeReceipt(receipt: UpgradeReceipt): string {
     `applied: ${receipt.appliedStages.length === 0 ? "none" : receipt.appliedStages.join(", ")}`,
     ...receipt.skippedStages.map((item) => `skipped: ${item.stage} (${item.reason})`),
     ...receipt.notices.map((item) => `notice: ${item.stage}: ${item.summary} Undo: ${item.undo}`),
+    ...eventWriterBackupRetentionReceiptLines(receipt.eventWriterBackupRetention),
     ...(receipt.nextPlanId === null ? [] : [`next plan: ${receipt.nextPlanId}`]),
     ...(receipt.knowledgeLint === null || receipt.knowledgeLint.valid
       ? []
