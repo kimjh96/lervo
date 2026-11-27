@@ -22,7 +22,7 @@ const OBLIGATION = "kob_0123456789abcdef01234567";
 
 function assignment(
   assignmentId: string,
-  extra: Partial<WorkforceAssignment> & Record<string, unknown> = {},
+  extra: Record<string, unknown> = {},
 ): WorkforceAssignment {
   return {
     assignmentId,

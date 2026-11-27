@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   convergenceRetryLimit,
+  convergenceStageFailureRecord,
   normalizedConvergenceFailure,
   reevaluatedConvergenceFailure,
   unclassifiedFailureCause,
@@ -116,4 +117,36 @@ it("keeps a claim outside the stage's responsibility apart from an overlap, and 
   );
   expect(convergenceRetryLimit("assignment_path_outside_responsibility")).toBeNull();
   expect(reevaluatedConvergenceFailure("assignment_path_outside_responsibility")).toBe(false);
+});
+
+it("names the refused stage on a path conflict's record, so its hold can find the stage's paths", () => {
+  const record = (code: string, error: unknown = {}) =>
+    convergenceStageFailureRecord({
+      code,
+      error,
+      evaluationContract: undefined,
+      state: {
+        snapshotHash: `sha256:${"1".repeat(64)}`,
+        obligationId: "kob_0123456789abcdef01234567",
+        baseline: { delegationHash: `sha256:${"2".repeat(64)}` },
+      } as Parameters<typeof convergenceStageFailureRecord>[0]["state"],
+      stage: "normalization_apply",
+      now: new Date("2026-11-27T00:00:00.000Z"),
+    });
+  expect(record("assignment_path_conflict")).toEqual({
+    schemaVersion: 1,
+    kind: "stage_failure",
+    code: "assignment_path_conflict",
+    evaluationContract: "adr-0532",
+    snapshotHash: `sha256:${"1".repeat(64)}`,
+    delegationHash: `sha256:${"2".repeat(64)}`,
+    evidenceHash: null,
+    obligationId: "kob_0123456789abcdef01234567",
+    stage: "normalization_apply",
+  });
+  const outside = record("assignment_path_outside_responsibility", {
+    dependencyHash: `sha256:${"3".repeat(64)}`,
+  });
+  expect(outside).not.toHaveProperty("obligationId");
+  expect(outside).toMatchObject({ evidenceHash: `sha256:${"3".repeat(64)}` });
 });
