@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c5c276b7f659a83bf68c097b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Opening an agent's profile only reads: agent.context no longer creates the repository's workforce home or its assignments folder."
