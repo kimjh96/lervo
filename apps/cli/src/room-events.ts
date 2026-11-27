@@ -33,6 +33,16 @@ export function mentionIdOf(deliveryId: string): string {
 }
 
 /**
+ * An event's ID: a mention's record has the ID its mention derives, so a note's attestation finds
+ * it; every other record's ID derives from its type and payload.
+ */
+export function roomEventId(event: RoomEvent): string {
+  return event.type === "room.mention.recorded"
+    ? roomMentionRecordedEventId(event.payload.mentionId)
+    : `evt_${sha256(JSON.stringify([event.type, event.payload])).slice(7, 39)}`;
+}
+
+/**
  * Appends `events`, or nothing when the writer selects a schema below 15. Each event's ID derives
  * from its type and payload, so recording the same event again changes nothing.
  */
@@ -43,11 +53,7 @@ export function appendRoomEvents(
   if ((storage.writableEventSchemaVersion ?? 1) < roomEventSchemaVersion) return "inactive";
   for (const event of events) {
     const digest = sha256(JSON.stringify([event.type, event.payload])).slice(7, 39);
-    // A mention's record has the ID its mention derives, so a note's attestation finds it.
-    const eventId =
-      event.type === "room.mention.recorded"
-        ? roomMentionRecordedEventId(event.payload.mentionId)
-        : `evt_${digest}`;
+    const eventId = roomEventId(event);
     if (storage.events.get(eventId)) continue;
     const anchor =
       "workspaceId" in event.payload ? event.payload.workspaceId : event.payload.mentionId;

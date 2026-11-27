@@ -3,6 +3,7 @@ import type { HostedDecodedContent, HostedDecodedEvent } from "@lervo/adapter-co
 
 import { ClaimLines } from "./claim-lines.js";
 import { readEnvelope } from "./room-envelope.js";
+import type { ConversationNote } from "./conversation-notes.js";
 import type { RoomEvent } from "./room-events.js";
 import { RoomRouter, type RoomContext, type RoomDelivery } from "./room-router.js";
 import type { PendingStart } from "./room-starts.js";
@@ -31,17 +32,27 @@ export class RoomLink {
     private readonly claims: ClaimLines = new ClaimLines(),
     /** Keeps the room's records in its repository; absent, the room records nothing. */
     recordEvents?: (repositoryRoot: string, events: readonly RoomEvent[]) => Promise<unknown>,
+    /** Writes an agent's note after a turn a mention delivered; absent, no note is written. */
+    writeNote?: (note: ConversationNote) => Promise<unknown>,
   ) {
-    this.router = new RoomRouter(undefined, undefined, (root, events) => {
-      // Records go out off the decoder's path, and a failed one changes nothing here.
-      if (recordEvents !== undefined)
-        this.track(
-          recordEvents(root, events).then(
-            () => undefined,
-            () => undefined,
-          ),
-        );
-    });
+    // Records and notes go out off the decoder's path, and a failed one changes nothing here.
+    const background = (work: Promise<unknown>) =>
+      this.track(
+        work.then(
+          () => undefined,
+          () => undefined,
+        ),
+      );
+    this.router = new RoomRouter(
+      undefined,
+      undefined,
+      (root, events) => {
+        if (recordEvents !== undefined) background(recordEvents(root, events));
+      },
+      (note) => {
+        if (writeNote !== undefined) background(writeNote(note));
+      },
+    );
   }
 
   /** A decoder the session host opened or named; it routes when the host performs deliveries. */
