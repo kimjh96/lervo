@@ -21,8 +21,11 @@ const item = (
   text,
 });
 
-/** A session host that knows only `ses_new`, which `session.open` starts. */
-async function scriptedHost() {
+/**
+ * A session host that runs only `ses_new`, which `session.open` starts. With `stored`, the index
+ * `ses_old` left answers its ranges, as a current session host's does.
+ */
+async function scriptedHost(options: { stored?: boolean } = {}) {
   let emit: (message: ShellMessage) => void = () => undefined;
   const sent: ClientMessage[] = [];
   const answer = (message: HostMessage) => queueMicrotask(() => emit(message));
@@ -40,12 +43,24 @@ async function scriptedHost() {
           parameters: {},
         });
       if (message.kind === "conversation.range" && message.sessionId !== "ses_new")
-        answer({
-          kind: "request.failed",
-          requestId: message.requestId,
-          code: "session_not_found",
-          parameters: {},
-        });
+        answer(
+          options.stored === true
+            ? {
+                kind: "conversation.page",
+                requestId: message.requestId,
+                sessionId: message.sessionId,
+                items: [item(1, "Stored")],
+                hasEarlier: false,
+                hasLater: false,
+                stored: true,
+              }
+            : {
+                kind: "request.failed",
+                requestId: message.requestId,
+                code: "session_not_found",
+                parameters: {},
+              },
+        );
       if (message.kind === "conversation.range" && message.sessionId === "ses_new")
         answer({
           kind: "conversation.page",
@@ -76,6 +91,53 @@ async function scriptedHost() {
 }
 
 describe("the conversation controller", () => {
+  it("shows the page a stopped session's index holds while it opens the session", async () => {
+    for (const running of [undefined, false]) {
+      const host = await scriptedHost({ stored: true });
+      const shown: string[][] = [];
+      const stop = useConversationStore.subscribe((state) =>
+        shown.push(state.window.items.map((entry) => ("text" in entry ? entry.text : ""))),
+      );
+      const controller = new ConversationController(
+        host.client,
+        {
+          workspaceId: "wsp_1",
+          sessionId: "ses_old",
+          ...(running === undefined ? {} : { running }),
+        },
+        () => undefined,
+      );
+      await controller.open();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      stop();
+      // The stored page showed first, and the live page replaced it once the session opened.
+      expect(shown).toContainEqual(["Stored"]);
+      expect(shown.at(-1)).toEqual(["Earlier", "Hel"]);
+      expect(useConversationStore.getState()).toMatchObject({ sessionId: "ses_new", error: null });
+      expect(host.sent.filter((message) => message.kind === "session.open")).toHaveLength(1);
+      controller.close();
+    }
+  });
+
+  it("opens a session the host reported not running at once, asking its index for a page meanwhile", async () => {
+    const host = await scriptedHost();
+    const controller = new ConversationController(
+      host.client,
+      { workspaceId: "wsp_1", sessionId: "ses_old", running: false },
+      () => undefined,
+    );
+    await controller.open();
+    // No refused attach: the index's page and the open go out together, then the live page.
+    expect(host.sent.map((message) => message.kind)).toEqual([
+      "conversation.range",
+      "session.open",
+      "session.attach",
+      "conversation.range",
+    ]);
+    expect(useConversationStore.getState()).toMatchObject({ sessionId: "ses_new", error: null });
+    controller.close();
+  });
+
   it("opens a session that no longer runs, loads its newest page, and applies live changes", async () => {
     const host = await scriptedHost();
     const frames: (() => void)[] = [];

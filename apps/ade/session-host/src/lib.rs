@@ -17,6 +17,7 @@ mod registry;
 mod rooms;
 pub mod serve;
 mod session;
+mod stored_range;
 mod subscriber;
 mod terminal;
 mod watch;

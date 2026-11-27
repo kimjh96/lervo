@@ -65,6 +65,7 @@ The session host removes the socket and the token when it shuts down. Its sessio
 - `session.open` returns the workspace's running session, with its terminal channel, when the session runs in the requested mode or no mode is named. When it runs in the other mode, the session host stops it, waits up to 5 seconds for the provider to exit, and asks the core for a launch in the requested mode. For a provider that resumes, that launch continues the same session. Only then does it ask the core, so one provider process serves each workspace.
 - `sessions.watch` makes the session host send the latest `session.status` of every session it holds, and then each status change, to that connection until it closes. The workspace list uses it, so it shows live status without receiving any session's output.
 - An ended session still answers `session.attach` and `conversation.range` for 10 minutes, keeping the last 256 KiB of its CLI output. At most 32 ended sessions are kept at once: opening a session releases the oldest beyond that. After either, `session.open` starts the session again.
+- A session the host does not hold answers `conversation.range` from the index it left, read only, with `stored: true` on the `conversation.page`. A session that left no index answers `session_not_found`. `session.attach` still fails for it, so a client opens the session before it expects items to stream ([Lervo ADE sessions](ade-sessions.md), "Reopening a conversation").
 - Consecutive deltas of one item merge into one `conversation.delta` of at most 64 KiB, so a fast stream sends few messages.
 - The session host buffers at most 4 MiB per client and session. When a client falls further behind, the session host drops that client's terminal frames for the session and sends `session.resync_required`. The client then attaches again: the native conversation reloads its newest page, and the CLI conversation attaches after the last sequence it wrote.
 
@@ -104,7 +105,7 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 | `session.status`          | Reports `starting`, `working`, `needs_user`, `idle`, or `ended`.               |
 | `conversation.appended`   | Appends live conversation items, or replaces an item with the same `itemId`.   |
 | `conversation.delta`      | Appends streamed text to one conversation item.                                |
-| `conversation.page`       | Answers `conversation.range`.                                                  |
+| `conversation.page`       | Answers `conversation.range`; `stored` marks a page from a stopped session.    |
 | `session.resync_required` | Tells a client that fell behind to attach again.                               |
 | `notice`                  | Reports a condition that is notice-only, such as `provider_login_unavailable`. |
 

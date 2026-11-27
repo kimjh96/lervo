@@ -78,6 +78,33 @@ describe("a joined agent's session in the open conversation", () => {
     expect(client.attached).toBe(1);
   });
 
+  it("rejoins a stopped session whose index answered its page, rather than show it as running", async () => {
+    let started = false;
+    let attaches = 0;
+    const client = {
+      connection: "connected",
+      // A current session host takes the attach quietly and answers the range from the index.
+      async post() {
+        attaches += 1;
+      },
+      async request() {
+        return started ? page : { ...page, stored: true };
+      },
+      async send() {},
+      onMessage: () => () => undefined,
+      onState: () => () => undefined,
+    } as unknown as SessionHost;
+    const core = commands(async () => {
+      started = true;
+      useWorkspaceStore.setState({ statuses: { ses_arin: "idle" } });
+    });
+    new RoomMembers(client, core, "wsp_1", "agt_elio", () => () => undefined).follow(member);
+    await settle();
+    await settle();
+    expect(core.joins).toBe(1);
+    expect(attaches).toBe(2);
+  });
+
   it("shows a room line when the session cannot reopen, never failing silently", async () => {
     const client = host(() => false);
     const core = commands(async () => {

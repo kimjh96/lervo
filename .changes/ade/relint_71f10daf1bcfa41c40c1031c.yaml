@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_71f10daf1bcfa41c40c1031c"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "A conversation whose agent rested shows its history at once, from the index its session left, while the session opens again; the 100,000-item conversation first paints in about 90 ms."

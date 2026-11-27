@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { type PreparedImage, useApplicationCommands, useSessionHost } from "../../../ports";
 import { useHostIsCurrent } from "../../connection";
-import { useWorkspaceStore, visibleStatus } from "../../workspaces";
+import { isRunning, useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
 import { ConversationController } from "../model/controller";
 import { remember, sentImages } from "../model/images";
@@ -60,6 +60,7 @@ export function WorkspaceConversation(props: {
             workspaceId,
             sessionId,
             reopenNatively,
+            running: isRunning(useWorkspaceStore.getState().statuses[sessionId]),
             ...(firstMessage === undefined ? {} : { firstMessage }),
             ...(firstImages === undefined ? {} : { firstImages }),
           }),

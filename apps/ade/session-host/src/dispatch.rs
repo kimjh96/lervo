@@ -12,6 +12,7 @@ use crate::host::Host;
 use crate::images;
 use crate::messages;
 use crate::session::{Command, Range, Reply};
+use crate::stored_range::{self, StoredRange};
 use crate::subscriber::{Output, Subscriber};
 use lervo_session_core::ports::{Core, SentImage};
 
@@ -156,18 +157,30 @@ impl<C: Core> Host<C> {
                     .await;
             }
             ClientMessage::ConversationRangeMessage(range) => {
+                let anchor = range.anchor_item_id.map(|item| item.to_string());
+                let direction = match range.direction {
+                    ConversationRangeMessageDirection::Before => Direction::Before,
+                    ConversationRangeMessageDirection::After => Direction::After,
+                };
                 let command = Command::Range(Range {
                     request: range.request_id.clone(),
-                    anchor: range.anchor_item_id.map(|item| item.to_string()),
-                    direction: match range.direction {
-                        ConversationRangeMessageDirection::Before => Direction::Before,
-                        ConversationRangeMessageDirection::After => Direction::After,
-                    },
+                    anchor: anchor.clone(),
+                    direction,
                     limit: range.limit.get(),
                     reply: Reply::new(output),
                 });
-                self.request(&range.session_id, &range.request_id, command, &reply)
-                    .await;
+                // A session that does not run answers from the index it left.
+                if !self.send(&range.session_id, command).await {
+                    let directory = self.indexes.join(range.session_id.as_str());
+                    let stored = StoredRange {
+                        request: range.request_id,
+                        session: range.session_id,
+                        anchor,
+                        direction,
+                        limit: range.limit.get(),
+                    };
+                    stored_range::answer(directory, stored, reply);
+                }
             }
         }
     }

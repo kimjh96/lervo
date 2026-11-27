@@ -15,10 +15,11 @@ use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{Content, Input};
 use lervo_session_host::paths::Layout;
 use lervo_session_host::serve::{ServeError, run};
-use lervo_session_protocol::codec::MessageCodec;
+use lervo_session_protocol::codec::{MessageCodec, encode};
 use lervo_session_protocol::{
     ClientMessage, ConversationItem, HostMessage, SessionStatusMessageStatus,
 };
+use lervo_session_store::ConversationStore;
 use lervo_session_transport::client::{ClientIdentity, hello};
 use lervo_session_transport::framed::{FrameReader, FrameWriter, Incoming};
 use lervo_session_transport::handshake::HostIdentity;
@@ -673,6 +674,8 @@ async fn runs_a_native_session_and_pages_its_stored_conversation() {
     };
     assert_eq!(texts(&page.items), ["user:hi", "agent:hi"]);
     assert!(!page.has_earlier && !page.has_later);
+    // A running session's page is live, never marked stored.
+    assert_eq!(page.stored, None);
     assert!(layout.indexes.join("ses_native").exists());
 
     again
@@ -685,6 +688,60 @@ async fn runs_a_native_session_and_pages_its_stored_conversation() {
         serde_json::to_value(failed.code).unwrap(),
         json!("range_invalid")
     );
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn answers_a_stopped_sessions_ranges_from_the_index_it_left() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut store = ConversationStore::open(layout.indexes.join("ses_stopped"), 0).unwrap();
+    for (position, text) in ["first", "second", "third"].into_iter().enumerate() {
+        let item: ConversationItem = serde_json::from_value(json!({
+            "kind": "agent_message",
+            "itemId": format!("i{position}"),
+            "createdAtMs": position,
+            "state": "complete",
+            "text": text,
+        }))
+        .unwrap();
+        store.append(&encode(&item).unwrap()).unwrap();
+    }
+    drop(store);
+
+    // The conversation shows its newest page before its session starts.
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "conversation.range", "requestId": "req_1", "sessionId": "ses_stopped", "direction": "before", "limit": 2}))
+        .await;
+    let HostMessage::ConversationPageMessage(page) = client.next_message().await else {
+        panic!("expected conversation.page")
+    };
+    assert_eq!(texts(&page.items), ["agent:second", "agent:third"]);
+    assert!(page.has_earlier && !page.has_later);
+    assert_eq!(page.stored, Some(true));
+    client
+        .send(json!({"kind": "conversation.range", "requestId": "req_2", "sessionId": "ses_stopped", "direction": "before", "anchorItemId": "i1", "limit": 2}))
+        .await;
+    let HostMessage::ConversationPageMessage(earlier) = client.next_message().await else {
+        panic!("expected conversation.page")
+    };
+    assert_eq!(texts(&earlier.items), ["agent:first"]);
+
+    // A session that left no index answers as before, and reading creates none.
+    client
+        .send(json!({"kind": "conversation.range", "requestId": "req_3", "sessionId": "ses_never", "direction": "before", "limit": 2}))
+        .await;
+    let HostMessage::RequestFailedMessage(failed) = client.next_message().await else {
+        panic!("expected request.failed")
+    };
+    assert_eq!(
+        serde_json::to_value(failed.code).unwrap(),
+        json!("session_not_found")
+    );
+    assert!(!layout.indexes.join("ses_never").exists());
 
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();

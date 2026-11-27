@@ -156,7 +156,7 @@ An agent that needs the owner to decide asks with choices the owner picks in the
 A provider process holds about 150 MB. Without a limit, every conversation opened since the session host started kept one: four visited conversations held five Claude Code processes and 746 MB (measured 2026-11-27).
 
 - **When a session rests.** No client shows it, no turn runs, no question waits for the person, and no delivered turn waits. A session that rests for 10 minutes has its provider asked to end, as `session.stop` does. Its conversation and index stay.
-- **Coming back.** The stopped session does not linger, so the next attach finds no session, and the interface opens the workspace again. The core then resumes the provider's session, and the conversation continues where it was. A mention of an agent whose session stopped joins it again the same way (Lervo ADE rooms).
+- **Coming back.** The stopped session does not linger. The interface shows the conversation from its index and opens the workspace again ([Reopening a conversation](#reopening-a-conversation)). The core then resumes the provider's session, and the conversation continues where it was. A mention of an agent whose session stopped joins it again the same way (Lervo ADE rooms).
 - **What never stops.** A conversation on screen, a running turn, and a question that waits for the person.
 
 ## The turn summary
@@ -213,6 +213,15 @@ The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/exec
 - The session host ends a native session's provider with SIGTERM, so Claude Code runs its own shutdown and its `SessionEnd` hook. It kills the provider 8 seconds later if it still runs, which stays below the 10 seconds a mode switch waits. When the process has ended, the session host reports its exit code, or none after a signal, with `session.exited` to a core that advertises it ([core link](ade-core-link.md)).
 - The terminal and its renderer load on first use, so the start screen does not pay for them.
 - When the session host cannot be reached, the interface's reconnection makes the shell start it again (session-host protocol, "Transport").
+
+## Reopening a conversation
+
+A conversation whose session does not run shows the newest page its index holds while the session opens, so it shows before the core and the provider are ready.
+
+- **Stored pages.** The session host answers `conversation.range` for a session it does not hold from the index that session left. It reads the index without creating or repairing anything and marks the page `stored`. A session that left no index, or whose index is damaged or being rebuilt, answers `session_not_found`, as before.
+- **Opening.** The interface opens the session at once when the session host reported no running session as the conversation opened, and asks the index for its newest page meanwhile. Otherwise it attaches first, and a `stored` page tells it that the session does not run. The live page replaces the stored one once the session attaches, so a stored page never streams.
+- **Joined agents.** A joined agent's lane takes a `stored` page as a session that does not run and joins it again ([Lervo ADE rooms](ade-rooms.md)).
+- **First paint.** On the 100,000-item conversation, first paint measured 84–100 ms in four of five runs at a load average near 8.5 (2026-11-27). It was 113–136 ms when the page waited for the session to open.
 
 ## Conversation index
 
