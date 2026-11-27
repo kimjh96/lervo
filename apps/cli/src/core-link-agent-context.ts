@@ -25,7 +25,8 @@ export async function learnedEntries(
   agentId: string,
   now = new Date(),
 ): Promise<LearnedEntry[]> {
-  const agents = await listAgents(repositoryRoot);
+  // A profile reads; it never creates the repository's workforce home.
+  const agents = await listAgents(repositoryRoot, { readOnly: true });
   if (!agents.some((agent) => agent.agentId === agentId))
     throw new CommandFailure("agent_not_found", "No agent of this project has that ID.");
   const storage = await openProjectStorage(repositoryRoot);
@@ -85,7 +86,7 @@ export async function heldPaths(
   now = new Date(),
 ): Promise<{ paths: string[]; total: number }> {
   const held = new Set<string>();
-  for (const assignment of await listAssignments(repositoryRoot)) {
+  for (const assignment of await listAssignments(repositoryRoot, { readOnly: true })) {
     const lease = assignment.lease;
     if (assignment.status !== "leased" || lease === null || lease.agentId !== agentId) continue;
     if (assignment.accessMode === "read_only" || Date.parse(lease.expiresAt) <= now.getTime())

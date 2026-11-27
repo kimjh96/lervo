@@ -1,5 +1,6 @@
 import { ASSIGNMENT_ID, fail, validAssignment } from "./workforce-state-validation.js";
 import { state, readBounded } from "./workforce-state-io.js";
+import { inspectRepositoryCoordinationHome } from "@lervo/project-storage";
 import { resolve } from "node:path";
 import { type WorkforceAssignment } from "./types.js";
 import { createRoleContractResolver, type RoleContractResolver } from "@lervo/roles";
@@ -106,11 +107,25 @@ export async function readAssignment(
   return (await readAssignmentState(root, assignmentId)).value;
 }
 
-export async function listAssignments(root: string): Promise<WorkforceAssignment[]> {
-  const current = await state(root);
-  const names = (await readdir(resolve(current.base, "assignments")))
-    .filter((name) => /^asn_[a-f0-9]{24}\.json$/u.test(name))
-    .sort();
+/**
+ * Every assignment of the repository. With `readOnly`, as a reader such as a profile needs, it
+ * creates nothing: a repository without a workforce home has no assignments.
+ */
+export async function listAssignments(
+  root: string,
+  options: { readOnly?: boolean } = {},
+): Promise<WorkforceAssignment[]> {
+  if (options.readOnly === true && (await inspectRepositoryCoordinationHome(root)) === null)
+    return [];
+  const current = await state(root, options);
+  let listed: string[];
+  try {
+    listed = await readdir(resolve(current.base, "assignments"));
+  } catch (error) {
+    if (options.readOnly === true && (error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const names = listed.filter((name) => /^asn_[a-f0-9]{24}\.json$/u.test(name)).sort();
   if (names.length > workforceLimits.maximumAssignments)
     fail("workforce_state_invalid", "The assignment limit was exceeded.");
   // Every assignment in one listing is checked against the same read of the role sources.
