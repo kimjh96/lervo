@@ -212,7 +212,7 @@ Knowledge convergence held a stage refused with `assignment_path_conflict` while
 
 - splits the code: `assignment_path_conflict` keeps meaning an overlap, and `claimAssignment` refuses a path outside the agent's responsibility paths with `assignment_path_outside_responsibility`. Convergence settles that as attention, not as a wait, because no holder's release makes it claimable;
 - narrows the hold to a holder that overlaps the stage's paths, judged as above. The stage's failure record names its obligation and stage, and the stage waits only while `readAssignmentClaimRefusals`, the claim's judgment read without the lock, finds a holder over the paths of the stage's unfinished write assignment. A record from before this names neither and keeps the broad hold;
-- reports a stage held longer than a day as Lervo debt with its age and its holder's conversation ([ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)). `lervo application attention` shows a `knowledge_convergence_continuity` item with the finding `convergence_stage_held`, state `lervo_debt`, the holder's conversation workspace ID as its detail, and the time the stage's assignment was created as its start. It counts a convergence writer still queued more than a day after its creation whose claim a conversation's lease or change refuses now, at most 8 per report. It reads existing workforce and workspace state only, and reads nothing while the gate is closed.
+- reports a stage held longer than a day as Lervo debt with its age and its holder's conversation ([ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)). `lervo application attention` shows a `knowledge_convergence_continuity` item with the finding `convergence_stage_held`, state `lervo_debt`, the holder's conversation workspace ID as its detail, and the time the stage's refused claim settled as its start. It counts a queued convergence writer whose open obligation's latest stage record has waited on `assignment_path_conflict` for more than a day, and whose claim a conversation's lease or unsealed change refuses now, at most 8 per report. An obligation that has an outcome, superseded or archived, counts nothing. It reads existing workforce, workspace, and convergence event state only, and reads nothing while the gate is closed.
 
 ## The claim contract
 
@@ -278,7 +278,8 @@ Reconciliation lists the paths the generation changed since its base: committed,
 How slice 1 reconciles:
 
 - **The changed paths.** Git lists them in the worktree from where the branch last met its integration target: the merge base of `HEAD` with the generation's base, the local branch whose ref the target digest names, and that branch's upstream, so it never falls before the base. A merge from upstream, or a rebase onto it, therefore adds nothing. An upstream that is configured but gone is left out, and when no local branch is the target, the merge base with the generation's base stands in.
-  - The listing is `git diff --name-only --no-renames`, so a rename counts as its source and its target, and `git ls-files --others --exclude-standard --directory`, so an untracked directory counts once.
+  - The listing is `git diff --name-only --no-renames`, so a rename counts as its source and its target, and `git ls-files --others --exclude-standard` streamed file by file, so a new file in a new untracked directory holds only itself. A field canary on 0.64.0 recorded `notes/canary.md` as `notes` while the listing collapsed untracked directories, which would have refused another conversation's `notes/other.md`.
+  - Past 10,000 untracked files, or once the file listing would spend more than half the time left, Git is stopped and the listing falls back to `--directory`, where an untracked directory counts once; the bound's coalescing then fits the set.
   - Git runs without optional locks and without the variables that would redirect it to another directory, index, or object store.
   - Lervo's runtime paths hold nothing. A name with a glob character holds the deepest directory before it, as a glob operand claims; a root-level one holds nothing.
 - **Where they live.** Each generation's latest set sits in its own owner-only file beside the workforce state, `conversation-changes/<record ID>.json`. The file records the generation, its base, the commit it was measured from, the time, and the count. It is not in the workspace record: a record write advances the revision a session's workspace binding checks, and every claim lists every record. Each write removes the files of records that are gone or `removed`, rereading each such record first, so there is at most one file per live record.
@@ -328,7 +329,7 @@ How slice 1 reconciles:
   2. moves each generation record that is not `removed` to `recovery_required` and then `removed`, both with the reason `conversation_retired`, on the host's proof that the checkout and its Git metadata are gone;
   3. deletes the changes files of records that are now `removed`.
 
-  Retiring removes the worktree first, so a retire that cannot remove it releases nothing. Each step is idempotent, and a retire that stopped after the worktree is gone finishes when it runs again. With the gate closed, retiring reads and changes no coordination record.
+  Retiring finds the worktree by the launch's branch and, when no worktree has that branch checked out, as after a branch switch or a detached `HEAD`, by the path the newest generation record names among Git's registered worktrees. A checkout still on disk or still registered that neither finds refuses with `workspace_worktree_unresolved` and releases nothing; once its directory is gone, retiring releases. Retiring removes the worktree first, so a retire that cannot remove it releases nothing. Each step is idempotent, and a retire that stopped after the worktree is gone finishes when it runs again. With the gate closed, retiring reads and changes no coordination record.
 
 - **Across hosts.** A lease coordinates one repository instance through its Git common directory. A Hub-coordinated repository reserves paths at the Hub before a local claim (ADR-0222), which a growing lease would break, so its conversations stay `inactive` (`hub_coordinated_unsupported`) until Hub reservations grow with the lease.
 - **Archiving.** A completed or cancelled conversation assignment whose generation integrated or was removed is archived as convergence's assignments are, so finished conversations never push the workforce toward its 10,000-assignment bound or slow the claims that read every assignment.
@@ -384,28 +385,29 @@ The [craft rules](ade-craft.md) apply: finished work shows nothing, and only wha
   - Payloads exclude paths, tool input, command text, file content, conversation titles, the message, provider session IDs, and tool use IDs.
 - **Activation.** Readers ship first; `lervo upgrade` activates schema 16 only after every configured reader, the Hub included, reports it ([event envelope compatibility](../events-and-privacy/event-envelope-compatibility.md)). A workforce transition without its event does not commit (ADR-0205), so a lease cannot grow below 16: the coordination stage does not run, and conversations write without claims. The CLI's recorder of `assignment.lease.widened`, `assignment.claim.refused`, and a claim's `assignment.lease.renewed` writes schema 16 envelopes to the registered repository's store and refuses with `coordination_inactive` below 16, so such a widening restores its bytes and answers `defer`.
 
-| Code                              | Meaning                                                                                                    |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `path_leased`                     | Another assignment's live write lease overlaps the path. The write stopped.                                |
-| `path_changed_unsealed`           | Another conversation's worktree changed the path and has not sealed it. The write stopped.                 |
-| `path_awaiting_integration`       | Another conversation's sealed change touched the path and has not integrated. The write stopped.           |
-| `outside_responsibility`          | The path is outside the lead's responsibility paths. The write stopped.                                    |
-| `path_outside_workspace`          | The path is inside another checkout of the repository. The write stopped.                                  |
-| `lease_path_limit`                | The lease holds 10,000 entries and cannot coalesce without overlapping another holder. The write stopped.  |
-| `claim_deferred`                  | Lervo could not decide within 2 seconds or failed. The write went ahead, and the turn's end claims it.     |
-| `claim_unresolved`                | A changed path still conflicted after `Stop`'s second run. Sealing refuses until it resolves.              |
-| `coordination_inactive`           | The writer selects a schema below 16, or the stage's gate is closed. Nothing is claimed.                   |
-| `hub_coordinated_unsupported`     | The repository is Hub-coordinated. The conversation writes without claims.                                 |
-| `hook_runtime_stale`              | The host's installed hook runtime does not read conversation workspaces. Nothing is claimed.               |
-| `coordination_unavailable`        | The start could not create the assignment or the workspace record. The conversation writes without claims. |
-| `seal_checkout_not_clean`         | The worktree holds uncommitted changes or untracked files. Nothing was sealed.                             |
-| `seal_paths_conflict`             | A changed path is unresolved. Nothing was sealed.                                                          |
-| `seal_verification_failed`        | A suite failed on the requested head. Nothing was sealed, and the lease holds.                             |
-| `seal_superseded`                 | The head no longer descends from the requested head. Nothing was sealed.                                   |
-| `workspace_integration_pending`   | Retire refused while a sealed generation waits for integration. Nothing changed.                           |
-| `verification_unconfigured`       | The project configures no suite. Sealed changes wait for integration.                                      |
-| `publication_diverged`            | The remote batch branch moved. Lervo pushed nothing and never force-pushes.                                |
-| `publication_credentials_missing` | No remote or no signed-in forge client. Integration goes on locally; the pull request waits.               |
+| Code                              | Meaning                                                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `path_leased`                     | Another assignment's live write lease overlaps the path. The write stopped.                                     |
+| `path_changed_unsealed`           | Another conversation's worktree changed the path and has not sealed it. The write stopped.                      |
+| `path_awaiting_integration`       | Another conversation's sealed change touched the path and has not integrated. The write stopped.                |
+| `outside_responsibility`          | The path is outside the lead's responsibility paths. The write stopped.                                         |
+| `path_outside_workspace`          | The path is inside another checkout of the repository. The write stopped.                                       |
+| `lease_path_limit`                | The lease holds 10,000 entries and cannot coalesce without overlapping another holder. The write stopped.       |
+| `claim_deferred`                  | Lervo could not decide within 2 seconds or failed. The write went ahead, and the turn's end claims it.          |
+| `claim_unresolved`                | A changed path still conflicted after `Stop`'s second run. Sealing refuses until it resolves.                   |
+| `coordination_inactive`           | The writer selects a schema below 16, or the stage's gate is closed. Nothing is claimed.                        |
+| `hub_coordinated_unsupported`     | The repository is Hub-coordinated. The conversation writes without claims.                                      |
+| `hook_runtime_stale`              | The host's installed hook runtime does not read conversation workspaces. Nothing is claimed.                    |
+| `coordination_unavailable`        | The start could not create the assignment or the workspace record. The conversation writes without claims.      |
+| `seal_checkout_not_clean`         | The worktree holds uncommitted changes or untracked files. Nothing was sealed.                                  |
+| `seal_paths_conflict`             | A changed path is unresolved. Nothing was sealed.                                                               |
+| `seal_verification_failed`        | A suite failed on the requested head. Nothing was sealed, and the lease holds.                                  |
+| `seal_superseded`                 | The head no longer descends from the requested head. Nothing was sealed.                                        |
+| `workspace_integration_pending`   | Retire refused while a sealed generation waits for integration. Nothing changed.                                |
+| `workspace_worktree_unresolved`   | Retire found the conversation's checkout still on disk or registered, but not as its worktree. Nothing changed. |
+| `verification_unconfigured`       | The project configures no suite. Sealed changes wait for integration.                                           |
+| `publication_diverged`            | The remote batch branch moved. Lervo pushed nothing and never force-pushes.                                     |
+| `publication_credentials_missing` | No remote or no signed-in forge client. Integration goes on locally; the pull request waits.                    |
 
 ## Verification
 
