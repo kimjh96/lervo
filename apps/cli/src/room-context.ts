@@ -14,11 +14,17 @@ import { clipAtWord } from "./conversation-note-text.js";
 import type { RoomContext } from "./room-router.js";
 import { teamAgents } from "./workspace-participants.js";
 
+/** A session's conversation, and whether the session joined it with read access only. */
+export interface SessionRoom extends RoomContext {
+  /** The session reads and answers, never writes: it joined by a mention (Lervo ADE rooms). */
+  readonly readOnly?: boolean;
+}
+
 /**
  * The conversation of a session that carries an agent: the project's team and each agent's session
  * there. A session without an agent, or of a project no longer registered, has none.
  */
-export async function loadRoomContext(sessionId: string): Promise<RoomContext | null> {
+export async function loadRoomContext(sessionId: string): Promise<SessionRoom | null> {
   const path = hostedLaunchRecordsPath();
   const record = await latestHostedLaunchOfSession(path, sessionId);
   if (record?.agentId === undefined) return null;
@@ -38,6 +44,7 @@ export async function loadRoomContext(sessionId: string): Promise<RoomContext | 
     agentId: record.agentId,
     team: await teamAgents(repository.repositoryRoot),
     sessions,
+    ...(record.access === "read" ? { readOnly: true } : {}),
   };
 }
 
@@ -109,7 +116,10 @@ export async function roomBlock(sessionId: string): Promise<string | null> {
       present.length === 0 ? "" : ` with ${named(present)}`
     }.`,
     others.length === 0 ? null : `The project's team: ${named(others)}.`,
-    "When your work needs another agent's role or what it knows, write @Name in your reply. Your message reaches that agent, and its answer comes back to you as a turn. Mention the product owner only for priorities and decisions; never route work through it. A mention grants no access beyond your own.",
+    "When your work needs another agent's role or what it knows, write @Name in your reply. Your message reaches that agent, and its answer comes back to you as a turn. Mention the product owner only for priorities and decisions; never route work through it. A mention grants no access beyond your own: an agent you mention joins this conversation able to read and answer, never to change files.",
+    context.readOnly === true
+      ? "Your session in this conversation reads and answers; it cannot change files. When a request needs changes, start a conversation you lead for them, as below, and say so in your answer. Never ask anyone for write permission here."
+      : null,
     `When work is your own and belongs apart from this conversation, start a conversation you lead: run \`lervo workspace start --repository ${context.projectId} --started-by ${self.agentId} --title "<title>" --json\` with its first turn on standard input. It opens when your turn ends. Never start one for work this conversation already covers.`,
     notes.length === 0
       ? null

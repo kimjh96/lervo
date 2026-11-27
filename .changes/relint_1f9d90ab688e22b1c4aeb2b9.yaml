@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1f9d90ab688e22b1c4aeb2b9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A session that joined a conversation by a mention learns it reads only, and starts a conversation it leads for changes instead of asking for write permission."

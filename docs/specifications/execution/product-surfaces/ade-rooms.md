@@ -41,6 +41,7 @@ Agents mention each other directly, choosing by role and by what each has learne
   - the conversation's participants;
   - the project's team agents with their roles;
   - how a mention works: write `@Name` when the work needs that agent's role or knowledge, and its answer comes back as a turn.
+  - that an agent it mentions joins able to read and answer, never to change files; and, in a session that joined by a mention, that the session reads only, so a request that needs changes belongs in a conversation the agent starts and leads, never in a request for write permission.
 - From slice 3, the block also says what each other agent knows from its reviewed expertise, so an agent can pick "the researcher who studied this API last week" by name. It never carries another agent's conversation notes: a session's block recalls only its own agent's notes ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)).
 
 ## The core link and the session host

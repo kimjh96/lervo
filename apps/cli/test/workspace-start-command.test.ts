@@ -456,6 +456,14 @@ describe("agents joining a conversation", () => {
       `you are ${lead.displayName}, the Developer, in this conversation with ${researcher.displayName} (Researcher)`,
     );
     expect(block).toContain("write @Name in your reply");
+    expect(block).toContain("able to read and answer, never to change files");
+    // The lead writes; only a session that joined by a mention hears that it reads only.
+    expect(block).not.toContain("cannot change files");
+    const member = await roomBlock(joined.sessionId);
+    expect(member).toContain(`you are ${researcher.displayName}, the Researcher`);
+    expect(member).toContain(
+      "cannot change files. When a request needs changes, start a conversation you lead",
+    );
     expect(await roomBlock("00000000-0000-4000-8000-000000000000")).toBeNull();
 
     // Joining again continues the agent's session, and reopening still opens the lead's.
