@@ -82,6 +82,8 @@ describe("claims at first write", () => {
         },
         session: lead,
         deadline: expect.any(Number),
+        signal: expect.any(AbortSignal),
+        lockTaken: expect.any(Function),
       },
     ]);
     expect(JSON.parse(answer).hookSpecificOutput).toEqual({
@@ -181,9 +183,14 @@ describe("claims at first write", () => {
         "reader",
         { workspaceId: conversation, projectId: "prj_1", agentId: "agt_2", access: "read" },
       ],
+      ["agentless", { workspaceId: conversation, projectId: "prj_1" }],
     ]);
+    const gated: string[] = [];
     const ports: ClaimingConversationPorts = {
-      coordinationEnabled: () => true,
+      coordinationEnabled: (root) => {
+        gated.push(root);
+        return Promise.resolve(true);
+      },
       launchOfSession: (session) =>
         Promise.resolve((launches.get(session) as HostedLaunchRecord | undefined) ?? null),
       registeredRoot: () => Promise.resolve("/work/repo"),
@@ -205,28 +212,73 @@ describe("claims at first write", () => {
       assignmentId: `asn_${"a".repeat(24)}`,
       writerSessionId: terminalWriterSessionId("claude", "lead"),
     });
+    expect(gated).toEqual(["/work/repo"]);
     expect(await find("reader")).toBeNull();
-    // Without a launch record, a main checkout has no conversation.
+    // A hosted launch without an agent claims nothing, as before; it never looks at the checkout.
+    expect(await find("agentless")).toBeNull();
+    // Without a launch record, a main checkout has no conversation, and no gate is read.
     expect(await find("owner")).toBeNull();
-    expect(
-      await findClaimingConversation(
-        { provider: "claude", providerSessionId: "lead", workingDirectory: "/work/worktree" },
-        { ...ports, coordinationEnabled: () => false },
-      ),
-    ).toBeNull();
+    expect(gated).toEqual(["/work/repo"]);
   });
 
-  it("reads no state and allows every write while the coordination gate is closed", async () => {
+  it("reads no workspace record while the repository's gate is closed", async () => {
     const read = () => {
       throw new Error("read state");
     };
     const answer = await answerClaimHook(hook("Write", { file_path: "src/a.ts" }), "claude", "/", {
-      coordinationEnabled: () => false,
-      launchOfSession: read,
-      registeredRoot: read,
-      terminalRoots: read,
-      workspaces: read,
+      ports: {
+        coordinationEnabled: () => Promise.resolve(false),
+        launchOfSession: () =>
+          Promise.resolve({
+            workspaceId: "wsp_1",
+            projectId: "prj_1",
+            agentId: "agt_1",
+          } as HostedLaunchRecord),
+        registeredRoot: () => Promise.resolve("/work/repo"),
+        terminalRoots: read,
+        workspaces: read,
+      },
     });
     expect(answer).toBe("{}\n");
+  });
+
+  it("lets a claim that took the lock finish, and stops one that had not when the hook answered", async () => {
+    const base = {
+      hook: hook("Edit", { file_path: "a.ts" }),
+      answering,
+      fallbackDirectory: "/",
+      writing: () => Promise.resolve(lead),
+      decisionMs: 20,
+    };
+    const tracked: Promise<unknown>[] = [];
+    let finished = false;
+    const locked = await answerPreToolUse({
+      ...base,
+      trackWork: (work) => tracked.push(work),
+      claim: async (request) => {
+        request.lockTaken();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        finished = true;
+        return { decision: "allow" };
+      },
+    });
+    // The hook answered at its deadline, and the work it holds settles once the claim finished.
+    expect([locked, finished, tracked.length]).toEqual(["{}\n", false, 1]);
+    await Promise.all(tracked);
+    expect(finished).toBe(true);
+
+    let aborted: unknown = null;
+    const untracked: Promise<unknown>[] = [];
+    await answerPreToolUse({
+      ...base,
+      trackWork: (work) => untracked.push(work),
+      claim: async (request) => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+        aborted = request.signal.aborted;
+        return { decision: "allow" };
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect([aborted, untracked.length]).toEqual([true, 0]);
   });
 });

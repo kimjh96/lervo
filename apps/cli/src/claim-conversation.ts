@@ -17,6 +17,7 @@ import {
 } from "@lervo/repository-registry";
 
 import { checkoutPathDigests } from "./checkout-path-digests.js";
+import { coordinationGateOpen } from "./coordination-gate.js";
 import {
   hostedLaunchRecordsPath,
   latestHostedLaunchOfSession,
@@ -28,7 +29,6 @@ import {
   resolveTerminalRoots,
   type TerminalRoots,
 } from "./terminal-roots.js";
-import { coordinationStageEnabled } from "./workspace-coordination.js";
 import type { WritingSession } from "./claim-contract.js";
 
 /** A conversation whose coordination is active, as one session's write claims for it. */
@@ -53,8 +53,8 @@ export interface ClaimingConversation extends WritingSession {
 
 /** What finding the conversation reads; each is replaced in tests. */
 export interface ClaimingConversationPorts {
-  /** Whether the coordination stage's gate is open. */
-  coordinationEnabled(): boolean;
+  /** Whether the coordination gate is open for the repository (`coordinationGateOpen`). */
+  coordinationEnabled(repositoryRoot: string): Promise<boolean>;
   launchOfSession(providerSessionId: string): Promise<HostedLaunchRecord | null>;
   registeredRoot(projectId: string): Promise<string | null>;
   terminalRoots(workingDirectory: string): Promise<TerminalRoots>;
@@ -62,7 +62,7 @@ export interface ClaimingConversationPorts {
 }
 
 export const defaultClaimingConversationPorts: ClaimingConversationPorts = {
-  coordinationEnabled: () => coordinationStageEnabled(process.env),
+  coordinationEnabled: (repositoryRoot) => coordinationGateOpen(repositoryRoot, process.env),
   launchOfSession: (providerSessionId) =>
     latestHostedLaunchOfSession(hostedLaunchRecordsPath(), providerSessionId),
   registeredRoot: (projectId) =>
@@ -103,10 +103,11 @@ async function claiming(
 }
 
 /**
- * The conversation a session's write claims for, or null when the session claims nothing: the gate
- * is closed, the session is a joined agent's, which reads, or no conversation workspace record
- * speaks for it, as below schema 16. A closed gate reads no state, and a main checkout spawns no
- * Git, so the hook stays cheap on every write tool call.
+ * The conversation a session's write claims for, or null when the session claims nothing: the
+ * session is a joined agent's, which reads, or a hosted launch without an agent; the repository's
+ * coordination gate is closed; or no conversation workspace record speaks for it, as below schema
+ * 16. A session without a launch record finds the conversation from its checkout, and a main
+ * checkout has none, so it spawns no Git and stays cheap on every write tool call.
  */
 export async function findClaimingConversation(
   input: {
@@ -116,12 +117,11 @@ export async function findClaimingConversation(
   },
   ports: ClaimingConversationPorts = defaultClaimingConversationPorts,
 ): Promise<ClaimingConversation | null> {
-  if (!ports.coordinationEnabled()) return null;
   const launch = await ports.launchOfSession(input.providerSessionId);
-  if (launch?.access === "read") return null;
-  if (launch?.agentId !== undefined) {
+  if (launch !== null) {
+    if (launch.access === "read" || launch.agentId === undefined) return null;
     const repositoryRoot = await ports.registeredRoot(launch.projectId);
-    if (repositoryRoot === null) return null;
+    if (repositoryRoot === null || !(await ports.coordinationEnabled(repositoryRoot))) return null;
     const workspace = newestConversationWorkspace(
       await ports.workspaces(repositoryRoot),
       launch.workspaceId,
@@ -134,7 +134,8 @@ export async function findClaimingConversation(
     });
   }
   const roots = await ports.terminalRoots(input.workingDirectory);
-  if (roots.reason !== "linked_worktree") return null;
+  if (roots.reason !== "linked_worktree" || !(await ports.coordinationEnabled(roots.evidenceRoot)))
+    return null;
   const workspace = newestCheckoutWorkspace(
     await ports.workspaces(roots.evidenceRoot),
     await checkoutPathDigests(roots.executionRoot),

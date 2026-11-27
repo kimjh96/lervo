@@ -25,22 +25,10 @@ export interface WorkspaceCoordinationRequest {
   readonly sessionId: string;
 }
 
-/**
- * Whether this release runs the coordination stage. Schema 16 also carries conversation notes, so
- * it may be activated before claims are complete: the stage stays closed until the claim handler
- * and the turn's reconciliation land (Lervo ADE coordination, slice 1), whatever the writer selects.
- */
-export const COORDINATION_STAGE_ENABLED = false;
-
-/** The stage's gate: this release's switch, or `LERVO_COORDINATION=1` for canaries and tests. */
-export function coordinationStageEnabled(environment: NodeJS.ProcessEnv): boolean {
-  return COORDINATION_STAGE_ENABLED || environment.LERVO_COORDINATION === "1";
-}
-
 /** What the coordination stage reads and writes; each is replaced in tests. */
 export interface WorkspaceCoordinationPorts {
-  /** Whether the stage's gate is open (`coordinationStageEnabled`). */
-  stageEnabled(): boolean;
+  /** Whether the stage's gate is open for the repository (`coordinationGateOpen`). */
+  stageEnabled(repositoryRoot: string): Promise<boolean>;
   /** The event schema the registered repository's writer selects. */
   writerSchemaVersion(repositoryRoot: string): Promise<number>;
   /** Whether a Node of this host reserves the repository's paths at the Hub. */
@@ -62,7 +50,7 @@ export async function coordinateConversationWorkspace(
 ): Promise<WorkspaceCoordination> {
   try {
     if (
-      !ports.stageEnabled() ||
+      !(await ports.stageEnabled(request.repositoryRoot)) ||
       (await ports.writerSchemaVersion(request.repositoryRoot)) < coordinationEventSchemaVersion
     )
       return { status: "inactive", code: "coordination_inactive" };

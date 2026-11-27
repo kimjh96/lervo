@@ -688,6 +688,41 @@ describe("naming holders and recording refusals once per turn", () => {
     expect(result).toMatchObject({ refusalsRecorded: true, omittedRefusalEvents: 0 });
   });
 
+  it("takes no lock when the guard before it throws, and records no refusal once aborted", async () => {
+    const root = await repository();
+    const held = await holder(root, ["src/a.ts"]);
+    const { lead, assignment } = await conversation(root);
+    const before = await assignmentBytes(root, assignment.assignmentId);
+    const events: ConversationLeaseEvent[] = [];
+    await expect(
+      widen(root, lead, assignment, events, {
+        paths: ["src/b.ts"],
+        beforeLock: () => {
+          throw Object.assign(new Error("late"), { code: "claim_deferred" });
+        },
+      }),
+    ).rejects.toMatchObject({ code: "claim_deferred" });
+    const cancelled = new AbortController();
+    cancelled.abort();
+    await expect(
+      widen(root, lead, assignment, events, { paths: ["src/b.ts"], signal: cancelled.signal }),
+    ).rejects.toBeDefined();
+    expect(await assignmentBytes(root, assignment.assignmentId)).toBe(before);
+    expect(events).toEqual([]);
+
+    // Aborted while it held the lock: the refusal stands but records no event.
+    const answered = new AbortController();
+    const result = await widen(root, lead, assignment, events, {
+      signal: answered.signal,
+      beforeLock: () => answered.abort(),
+    });
+    expect(result.refusals).toMatchObject([
+      { code: "path_leased", holderAgentId: held.agent.agentId },
+    ]);
+    expect(result).toMatchObject({ omittedRefusalEvents: 1 });
+    expect(events).toEqual([]);
+  });
+
   it("answers a claim inside its own lease only while more than 30 seconds remain", async () => {
     const root = await repository();
     const { lead, assignment } = await conversation(root);

@@ -2,11 +2,21 @@
 // repository-relative paths of the conversation's worktree. Runtime and Git-ignored paths claim
 // nothing, and a target inside another checkout of the same repository is refused.
 import { execFile } from "node:child_process";
-import { realpath } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
+import { lstat, readlink, realpath } from "node:fs/promises";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve as resolvePath,
+  sep,
+} from "node:path";
 
 const GIT_TIMEOUT_MS = 1_000;
 const MAXIMUM_GIT_OUTPUT_BYTES = 1024 * 1024;
+/** The most links one target follows, as the system's own resolution bounds them. */
+const MAXIMUM_LINK_HOPS = 40;
 
 /** Lervo's runtime paths, which no sealed change may contain, and Git's own directory. */
 const UNCLAIMED_PREFIXES = [".lervo/state", ".lervo/data", ".lervo/run", ".git"];
@@ -20,7 +30,10 @@ export interface ClaimTarget {
 export interface LocatedClaimTargets {
   /** Targets inside the conversation's worktree that a claim may name, repository-relative. */
   readonly inside: readonly ClaimTarget[];
-  /** Targets inside another checkout of the repository, relative to that checkout. */
+  /**
+   * Targets inside another checkout of the repository that a claim would name there, relative to
+   * that checkout.
+   */
   readonly otherCheckout: readonly string[];
 }
 
@@ -53,16 +66,31 @@ function git(worktree: string, args: readonly string[], input?: string): Promise
 
 /**
  * The real path of `path`: its nearest existing ancestor resolved through links, and the rest as
- * given. On a case-insensitive filesystem the resolved part takes the spelling on disk, which is
- * the tracked spelling of a tracked file.
+ * given. A dangling link is followed through `readlink`, so a link in the worktree that names a
+ * file not yet written in another checkout is judged by where it points. On a case-insensitive
+ * filesystem the resolved part takes the spelling on disk, which is the tracked spelling of a
+ * tracked file.
  */
 async function realTargetPath(path: string): Promise<string> {
-  const rest: string[] = [];
-  for (let current = path; ; current = dirname(current)) {
+  let rest: string[] = [];
+  let current = path;
+  for (let hops = 0; ;) {
     const real = await realpath(current).catch(() => null);
-    if (real !== null) return rest.length === 0 ? real : join(real, ...rest.reverse());
+    if (real !== null) return rest.length === 0 ? real : join(real, ...[...rest].reverse());
+    const link = await lstat(current).then(
+      (found) => found.isSymbolicLink(),
+      () => false,
+    );
+    if (link && hops < MAXIMUM_LINK_HOPS) {
+      hops += 1;
+      const target = resolvePath(dirname(current), await readlink(current));
+      current = rest.length === 0 ? target : join(target, ...[...rest].reverse());
+      rest = [];
+      continue;
+    }
     if (dirname(current) === current) return path;
     rest.push(basename(current));
+    current = dirname(current);
   }
 }
 
@@ -96,6 +124,36 @@ async function otherCheckouts(worktree: string): Promise<string[]> {
 }
 
 /**
+ * Targets in other checkouts that a claim would name there. Their runtime paths, `.git`, and the
+ * paths Git ignores there claim nothing, as they would in the worktree; such a write is allowed.
+ */
+async function claimedInOtherCheckouts(
+  outside: readonly ClaimTarget[],
+  worktree: string,
+): Promise<string[]> {
+  const checkouts = await otherCheckouts(worktree);
+  const byCheckout = new Map<string, ClaimTarget[]>();
+  const roots: string[] = [];
+  for (const target of outside)
+    for (const checkout of checkouts) {
+      const within = inside(checkout, target.path);
+      if (within === null) continue;
+      // A write to another checkout's root would replace all of it.
+      if (within === "") roots.push(".");
+      else if (!unclaimed(within))
+        byCheckout.set(checkout, [
+          ...(byCheckout.get(checkout) ?? []),
+          { path: within, kind: target.kind },
+        ]);
+      break;
+    }
+  const claimed = await Promise.all(
+    [...byCheckout].map(([checkout, targets]) => unignoredClaimPaths(checkout, targets)),
+  );
+  return [...roots, ...claimed.flat()];
+}
+
+/**
  * Locates a write's absolute targets. A target outside the worktree is looked up among the other
  * checkouts only when there is one, so a write inside the worktree spawns no Git. The worktree
  * itself, Lervo's runtime paths, `.git`, and a target outside every checkout claim nothing: a
@@ -106,26 +164,17 @@ export async function locateClaimTargets(
   worktree: string,
 ): Promise<LocatedClaimTargets> {
   const located = await Promise.all(
-    targets.map(async (target) => ({ kind: target.kind, real: await realTargetPath(target.path) })),
+    targets.map(async (target) => ({ kind: target.kind, path: await realTargetPath(target.path) })),
   );
   const claimed: ClaimTarget[] = [];
-  const outside: string[] = [];
+  const outside: ClaimTarget[] = [];
   for (const target of located) {
-    const path = inside(worktree, target.real);
-    if (path === null) outside.push(target.real);
+    const path = inside(worktree, target.path);
+    if (path === null) outside.push(target);
     else if (!unclaimed(path)) claimed.push({ path, kind: target.kind });
   }
-  const otherCheckout: string[] = [];
-  if (outside.length !== 0) {
-    const checkouts = await otherCheckouts(worktree);
-    for (const path of outside)
-      for (const checkout of checkouts) {
-        const within = inside(checkout, path);
-        if (within === null) continue;
-        otherCheckout.push(within === "" ? "." : within);
-        break;
-      }
-  }
+  const otherCheckout =
+    outside.length === 0 ? [] : await claimedInOtherCheckouts(outside, worktree);
   return { inside: claimed, otherCheckout };
 }
 

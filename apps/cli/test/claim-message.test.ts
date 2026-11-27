@@ -16,11 +16,11 @@ const arin: ClaimHolder = {
 const clockTime = () => "14:32";
 
 describe("the refusal's message", () => {
-  it("names a changed or sealed holder's conversation and offers a mention without a time", () => {
+  it("names a changed or sealed holder and its conversation after the guidance", () => {
     expect(
       claimRefusalMessage({ code: "path_changed_unsealed", paths: ["src/a.ts"], holder: arin }),
     ).toBe(
-      'Lervo stopped this write. `src/a.ts` was changed by Arin (Developer) in the conversation "Log format", and that change is not sealed yet. Two agents changing one path in parallel conflict when their work integrates. Do not write this path another way. Mention @Arin with the change you need, continue with other paths, or try again after Arin\'s change is sealed.',
+      'Lervo stopped this write. `src/a.ts` was changed by Arin (Developer), and that change is not sealed yet. Two agents changing one path in parallel conflict when their work integrates. Do not write this path another way. Mention @Arin with the change you need, continue with other paths, or try again after Arin\'s change is sealed. Arin works in the conversation "Log format".',
     );
     expect(
       claimRefusalMessage({
@@ -29,8 +29,36 @@ describe("the refusal's message", () => {
         holder: { ...arin, kind: "sealed_change" },
       }),
     ).toContain(
-      '`src/a.ts` and `src/b.ts` are part of a sealed change by Arin (Developer) in the conversation "Log format" that has not integrated yet.',
+      "`src/a.ts` and `src/b.ts` are part of a sealed change by Arin (Developer) that has not integrated yet.",
     );
+  });
+
+  it("mentions nobody when the holder's origin is unknown", () => {
+    const message = claimRefusalMessage({
+      code: "path_leased",
+      paths: ["src/a.ts"],
+      holder: {
+        ...arin,
+        displayName: arin.agentId,
+        roleName: "",
+        origin: "unknown",
+        kind: "lease",
+      },
+    });
+    expect(message).toContain(
+      "Continue with other paths, or try again after that change is sealed.",
+    );
+    expect(message).not.toContain("@");
+  });
+
+  it("keeps the guidance when long paths fill the message", () => {
+    const message = claimRefusalMessage({
+      code: "path_leased",
+      paths: ["a".repeat(3000), "b".repeat(3000), "c".repeat(3000)],
+      holder: { ...arin, conversationTitle: "t".repeat(80), kind: "lease" },
+    });
+    expect(message.length).toBeLessThanOrEqual(2048);
+    expect(message).toContain("Do not write these paths another way. Mention @Arin");
   });
 
   it("never offers a mention of Lervo's own agents", () => {
@@ -65,6 +93,6 @@ describe("the refusal's message", () => {
         paths: ["x".repeat(4000)],
         holder: null,
       }).length,
-    ).toBe(2048);
+    ).toBeLessThan(500);
   });
 });

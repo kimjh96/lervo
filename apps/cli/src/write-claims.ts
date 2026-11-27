@@ -16,6 +16,7 @@ import {
 import {
   CLAIM_DEFERRED,
   type ClaimDecision,
+  type ClaimRefusalGroup,
   type WriteClaimer,
   type WritingSession,
 } from "./claim-contract.js";
@@ -44,11 +45,57 @@ export function hookDecision(decision: ClaimDecision): HostedClaimDecision {
 /** How long a claim may hold a tool call before the write goes ahead, claimed at the turn's end. */
 export const CLAIM_DECISION_MS = 2000;
 
-/** The claim while the coordination stage's gate is closed: every write goes ahead, as it did. */
-export const unclaimed: WriteClaimer = () => Promise.resolve({ decision: "allow" });
-
 /** How long the hook may spend recording a refusal or a deferral after deciding it. */
 const CLAIM_RECORD_MS = 500;
+
+/**
+ * How long the hook process stays for a claim that took the scheduler lock, so exiting never
+ * abandons a lock or the widened bytes without their event.
+ */
+export const CLAIM_SETTLE_MS = 5000;
+
+/** `work`, or nothing once `milliseconds` passed. */
+function bounded(work: Promise<unknown>, milliseconds: number): Promise<void> {
+  let timer: NodeJS.Timeout | undefined;
+  return Promise.race([
+    work.then(
+      () => undefined,
+      () => undefined,
+    ),
+    new Promise<void>((resolve) => (timer = setTimeout(resolve, milliseconds))),
+  ]).finally(() => clearTimeout(timer));
+}
+
+/** The claim log's entries for a decision: each other holder's first, the named one last. */
+async function claimLogEntries(
+  decision: Exclude<ClaimDecision, { decision: "allow" }>,
+  base: Pick<NewClaimLogEntry, "workspaceId" | "sessionId" | "toolUseId">,
+  deferredPaths: () => Promise<string[]>,
+): Promise<NewClaimLogEntry[]> {
+  if (decision.decision === "defer")
+    return [
+      {
+        ...base,
+        decision: "defer",
+        code: decision.code,
+        paths: await deferredPaths(),
+        holder: null,
+      },
+    ];
+  // `ofToolUse` reads a tool use's newest entry, so the one the message names goes last.
+  const groups: ClaimRefusalGroup[] = [
+    ...(decision.otherRefusals ?? []),
+    {
+      code: decision.code,
+      paths: decision.paths,
+      holder:
+        decision.holder === null
+          ? null
+          : { agentId: decision.holder.agentId, workspaceId: decision.holder.workspaceId },
+    },
+  ];
+  return groups.map((group) => ({ ...base, decision: "deny", ...group, paths: [...group.paths] }));
+}
 
 /** The worktree that holds `directory`: the nearest folder with a `.git` entry, or null. */
 async function worktreeRoot(directory: string): Promise<string | null> {
@@ -89,7 +136,13 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
    * An allowed write records nothing.
    */
   readonly record?: (entry: NewClaimLogEntry) => Promise<void>;
+  /**
+   * Receives a claim's work once it takes the scheduler lock, bounded by `settleMs`. The hook
+   * waits for it before its process exits, and a context server drains it before the next request.
+   */
+  readonly trackWork?: (work: Promise<unknown>) => void;
   readonly decisionMs?: number;
+  readonly settleMs?: number;
 }): Promise<string> {
   const { hook, answering } = input;
   if (answering === null) return "{}\n";
@@ -99,7 +152,9 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
     return answering.claimAnswer({ decision: "allow" });
   const decisionMs = input.decisionMs ?? CLAIM_DECISION_MS;
   const deadline = performance.now() + decisionMs;
+  const answered = new AbortController();
   let session: Session | null = null;
+  let deciding: Promise<ClaimDecision> | undefined;
   const decide = async (): Promise<ClaimDecision> => {
     const found = await input.writing(hook.providerSessionId);
     session = found;
@@ -112,69 +167,71 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
       intent,
       session: found,
       deadline,
+      signal: answered.signal,
+      lockTaken: () => input.trackWork?.(bounded(deciding!, input.settleMs ?? CLAIM_SETTLE_MS)),
     });
   };
   const deferred: ClaimDecision = { decision: "defer", code: CLAIM_DEFERRED };
   let timer: NodeJS.Timeout | undefined;
+  deciding = decide().catch(() => deferred);
   const decision = await Promise.race([
-    decide().catch(() => deferred),
+    deciding,
     new Promise<ClaimDecision>((resolve) => {
-      timer = setTimeout(() => resolve(deferred), decisionMs);
+      timer = setTimeout(() => {
+        answered.abort(
+          Object.assign(new Error("The claim was not decided in time."), {
+            code: CLAIM_DEFERRED,
+          }),
+        );
+        resolve(deferred);
+      }, decisionMs);
     }),
   ]).finally(() => clearTimeout(timer));
   const writing = session as WritingSession | null;
   if (decision.decision !== "allow" && writing !== null && input.record !== undefined) {
     const record = input.record;
-    const entry = async (): Promise<NewClaimLogEntry> => ({
+    const base = {
       workspaceId: writing.workspaceId,
       sessionId: hook.providerSessionId,
       toolUseId: hook.toolUseId,
-      decision: decision.decision,
-      code: decision.code,
-      paths:
-        decision.decision === "deny"
-          ? [...decision.paths]
-          : await repositoryPaths(intent.targets, workingDirectory),
-      holder:
-        decision.decision === "deny" && decision.holder !== null
-          ? { agentId: decision.holder.agentId, workspaceId: decision.holder.workspaceId }
-          : null,
-    });
-    // The log serves the conversation's lines; a write never waits long on it, nor fails for it.
-    let recordTimer: NodeJS.Timeout | undefined;
-    await Promise.race([
-      entry()
-        .then(record)
-        .catch(() => undefined),
-      new Promise<void>((resolve) => (recordTimer = setTimeout(resolve, CLAIM_RECORD_MS))),
-    ]).finally(() => clearTimeout(recordTimer));
+    };
+    // The log serves the conversation's lines and the turn's one refusal event per holder; a write
+    // never waits long on it, nor fails for it. Parallel hooks of one turn may both miss each
+    // other's entry and record a second event, which the log's readers tolerate.
+    const recordAll = async () => {
+      for (const entry of await claimLogEntries(decision, base, () =>
+        repositoryPaths(intent.targets, workingDirectory),
+      ))
+        await record(entry);
+    };
+    await bounded(recordAll(), CLAIM_RECORD_MS);
   }
   return answering.claimAnswer(hookDecision(decision));
 }
 
 /**
- * The pre-tool hook's answer for a provider's session. While the coordination stage's gate is
- * open, the conversation the session writes for claims through the core's decision, with refusals
- * and deferrals kept in the claim log; while it is closed, no state is read and every write goes
- * ahead.
+ * The pre-tool hook's answer for a provider's session: the conversation the session writes for
+ * claims through the core's decision while the repository's coordination gate is open, with
+ * refusals and deferrals kept in the claim log. `trackWork` receives a claim that took the
+ * scheduler lock, which the caller lets finish before its process exits.
  */
 export function answerClaimHook(
   hook: ParsedPreToolUseInput,
   provider: TerminalIntegrationProvider,
   fallbackDirectory: string,
-  ports: ClaimingConversationPorts = defaultClaimingConversationPorts,
+  options: {
+    readonly ports?: ClaimingConversationPorts;
+    readonly trackWork?: (work: Promise<unknown>) => void;
+  } = {},
 ): Promise<string> {
   const workingDirectory = hook.workingDirectory ?? fallbackDirectory;
-  const answer = {
+  const ports = options.ports ?? defaultClaimingConversationPorts;
+  return answerPreToolUse({
     hook,
     answering: claimReading(provider),
     fallbackDirectory,
     record: (entry: NewClaimLogEntry) => recordClaimLogEntry(entry),
-  };
-  if (!ports.coordinationEnabled())
-    return answerPreToolUse({ ...answer, writing: () => Promise.resolve(null), claim: unclaimed });
-  return answerPreToolUse({
-    ...answer,
+    ...(options.trackWork === undefined ? {} : { trackWork: options.trackWork }),
     writing: (providerSessionId) =>
       findClaimingConversation({ provider, providerSessionId, workingDirectory }, ports),
     claim: (request) => decideClaim(request),

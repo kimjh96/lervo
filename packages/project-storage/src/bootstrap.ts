@@ -17,6 +17,7 @@ import {
   type ProjectStorage,
   type ProjectStorageBackends,
   ProjectStorageError,
+  type ProjectStorageOpenOptions,
 } from "./types.js";
 
 const defaultBackends: ProjectStorageBackends = {
@@ -79,8 +80,8 @@ function assertOpeningProject(openingProjectId: string, currentProjectId: string
 
 export function createProjectStorageOpener(
   backends: ProjectStorageBackends,
-): (root: string) => Promise<ProjectStorage> {
-  return async (root: string): Promise<ProjectStorage> => {
+): (root: string, options?: ProjectStorageOpenOptions) => Promise<ProjectStorage> {
+  return async (root: string, options: ProjectStorageOpenOptions = {}): Promise<ProjectStorage> => {
     const paths = resolveProjectPaths(root);
     await validateRepositoryRoot(paths);
     const manifest = await loadProjectManifest(paths.repositoryRoot);
@@ -98,6 +99,7 @@ export function createProjectStorageOpener(
       path: paths.eventDatabase,
       projectId: manifest.projectId,
       writableEventSchemaVersion: writerCoordinate.coordinate.selectedEventSchemaVersion,
+      ...(options.busyTimeoutMs === undefined ? {} : { busyTimeoutMs: options.busyTimeoutMs }),
       ...(reportSelection.coordinate && writerCoordinate.coordinate.selectedEventSchemaVersion >= 6
         ? { reportStorage: "sqlite_v1" as const }
         : {}),

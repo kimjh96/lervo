@@ -9,7 +9,9 @@ import { promisify } from "node:util";
 import { expect, vi } from "vitest";
 
 import { registerAgent } from "@lervo/agent-workforce";
-import { openProjectStorage } from "@lervo/project-storage";
+import { openProjectStorage, resolveRepositoryCoordinationHome } from "@lervo/project-storage";
+
+import { COORDINATION_GATE_FILE } from "../src/coordination-gate.js";
 
 import { runCli } from "../src/main.js";
 import { startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
@@ -72,6 +74,8 @@ export interface ClaimFixture {
   readonly repository: string;
   readonly first: StartedConversation;
   readonly second: StartedConversation;
+  /** Starts another conversation led by a new agent. */
+  startConversation(title: string, displayName: string): Promise<StartedConversation>;
   cleanup(): Promise<void>;
 }
 
@@ -149,6 +153,7 @@ export async function claimFixture(): Promise<ClaimFixture> {
     repository,
     first,
     second,
+    startConversation: start,
     async cleanup() {
       vi.unstubAllEnvs();
       await rm(root, { recursive: true, force: true });
@@ -167,4 +172,12 @@ export async function eventsOf(repository: string, ...types: string[]) {
   } finally {
     await storage.close();
   }
+}
+
+/** Opens the repository's coordination gate by its owner-only file, as a canary does. */
+export async function openGateByFile(repository: string): Promise<string> {
+  const home = await resolveRepositoryCoordinationHome(repository);
+  const path = resolve(home.root, COORDINATION_GATE_FILE);
+  await writeFile(path, "", { mode: 0o600 });
+  return path;
 }

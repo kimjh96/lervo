@@ -27,12 +27,17 @@ export interface ConversationClaimRefusalRecording {
    * session, holder, and path in a turn (Lervo ADE coordination, "Event schema 16").
    */
   recordedRefusals?: readonly RecordedClaimRefusal[];
+  /**
+   * Aborted when the hook answered without the claim and the write went ahead: a refusal it never
+   * delivered records no event.
+   */
+  signal?: AbortSignal;
 }
 
 export interface ConversationClaimRefusalRecordingResult {
   /** False when an event failed; the refusals stand regardless. */
   recorded: boolean;
-  /** Refusals past the first 32 new ones, which recorded no event. */
+  /** New refusals that recorded no event: past the first 32, or every one left after an abort. */
   omitted: number;
 }
 
@@ -61,6 +66,8 @@ export async function recordConversationClaimRefusals(
   const recording = fresh.slice(0, MAXIMUM_REFUSAL_EVENTS_PER_CALL);
   let recorded = true;
   for (const refusal of recording) {
+    if (input.signal?.aborted === true)
+      return { recorded, omitted: fresh.length - recording.indexOf(refusal) };
     try {
       await input.recordEvent(
         claimRefusedEvent({

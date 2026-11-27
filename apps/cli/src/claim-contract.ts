@@ -19,6 +19,20 @@ export interface WriteClaimRequest<Session extends WritingSession = WritingSessi
   readonly session: Session;
   /** When the hook answers regardless, on the `performance.now()` clock. */
   readonly deadline: number;
+  /**
+   * Aborted when the hook answered without this decision, so the write went ahead: a claim that
+   * has not taken the scheduler lock stops, and records no refusal.
+   */
+  readonly signal: AbortSignal;
+  /** Called as the claim takes the scheduler lock; the hook then lets it finish before exiting. */
+  readonly lockTaken: () => void;
+}
+
+/** One holder's refusal of some of a request's paths, as the claim log keeps it. */
+export interface ClaimRefusalGroup {
+  readonly code: string;
+  readonly paths: readonly string[];
+  readonly holder: { readonly agentId: string; readonly workspaceId: string | null } | null;
 }
 
 /** Who holds a refused path: a live lease, another conversation's changed bytes, or a sealed change. */
@@ -26,7 +40,8 @@ export interface ClaimHolder {
   readonly agentId: string;
   readonly displayName: string;
   readonly roleName: string;
-  readonly origin: "team" | "lervo";
+  /** `unknown` when the agent's record could not be read; a message then mentions nobody. */
+  readonly origin: "team" | "lervo" | "unknown";
   readonly workspaceId: string | null;
   readonly conversationTitle: string | null;
   readonly kind: "lease" | "changed" | "sealed_change";
@@ -46,6 +61,8 @@ export type ClaimDecision =
       readonly paths: readonly string[];
       readonly holder: ClaimHolder | null;
       readonly message: string;
+      /** The other holders' refusals of the same request, which the message does not name. */
+      readonly otherRefusals?: readonly ClaimRefusalGroup[];
     }
   | { readonly decision: "defer"; readonly code: string };
 

@@ -44,6 +44,16 @@ export interface WidenConversationLeaseInput {
   leaseHolderWorkspaceIds?: ReadonlyMap<string, string>;
   /** Refusals this session's turn already recorded; none of them records an event again. */
   recordedRefusals?: readonly RecordedClaimRefusal[];
+  /**
+   * Aborted when the hook answered without this claim, so the write went ahead. A chunk that has
+   * not taken the scheduler lock stops, and no refusal records its event.
+   */
+  signal?: AbortSignal;
+  /**
+   * Runs immediately before each chunk takes the scheduler lock. Throwing stops the widening
+   * there, so a caller can check its remaining time at the last moment.
+   */
+  beforeLock?: () => void;
   /** The repository instance's local secret for `assignment.claim.refused`'s `pathDigest`. */
   claimPathKey: Uint8Array;
   now?: Date;
@@ -97,6 +107,8 @@ export async function widenConversationLease(
       ...(input.changedPathHolders === undefined
         ? {}
         : { changedPathHolders: input.changedPathHolders }),
+      ...(input.signal === undefined ? {} : { signal: input.signal }),
+      ...(input.beforeLock === undefined ? {} : { beforeLock: input.beforeLock }),
     };
     // Every input is reread under the lock, so only a busy lock is worth another attempt.
     const outcome = await retryConcurrent(() => claimConversationChunk(chunk), ["workforce_busy"]);
@@ -116,6 +128,7 @@ export async function widenConversationLease(
     recordEvent: input.recordEvent,
     now,
     ...(input.recordedRefusals === undefined ? {} : { recordedRefusals: input.recordedRefusals }),
+    ...(input.signal === undefined ? {} : { signal: input.signal }),
   });
   return {
     ...result,
@@ -136,6 +149,8 @@ function validatedPaths(input: WidenConversationLeaseInput): string[] {
     !(input.changedPathHolders ?? []).every(validChangedPathHolder) ||
     !validLeaseHolderWorkspaceIds(input.leaseHolderWorkspaceIds) ||
     !validRecordedRefusals(input.recordedRefusals) ||
+    !(input.signal === undefined || input.signal instanceof AbortSignal) ||
+    !(input.beforeLock === undefined || typeof input.beforeLock === "function") ||
     !(input.claimPathKey instanceof Uint8Array) ||
     input.claimPathKey.byteLength < MINIMUM_CLAIM_PATH_KEY_BYTES ||
     typeof input.recordEvent !== "function"

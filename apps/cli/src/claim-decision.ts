@@ -33,8 +33,14 @@ import {
 import { terminalProviderSessionDigest } from "./terminal-event-coordinates.js";
 import { sessionOpenTerminalTurn } from "./terminal-open-turns.js";
 
-/** How long before the hook's deadline a claim stops before it would take the scheduler lock. */
+/** How long before the hook's deadline a claim stops rather than take the scheduler lock. */
 const LOCK_MARGIN_MS = 500;
+
+/**
+ * How long a claim's event write waits for another writer of the event store. The write runs under
+ * the scheduler lock, so a busy store defers the claim quickly instead of holding the lock.
+ */
+const CLAIM_STORE_BUSY_MS = 250;
 
 const ALLOW: ClaimDecision = { decision: "allow" };
 
@@ -76,32 +82,54 @@ function detectionOf(request: ConversationClaimRequest): "tool" | "shell" {
   return request.intent.toolClass === "shell" ? "shell" : "tool";
 }
 
+/** A request's refusals grouped by code and holder, in order. */
+function refusalGroups(refusals: readonly AssignmentPathRefusal[]): AssignmentPathRefusal[][] {
+  const groups = new Map<string, AssignmentPathRefusal[]>();
+  for (const refusal of refusals) {
+    const key = [refusal.code, refusal.holderAgentId ?? "", refusal.holderWorkspaceId ?? ""].join(
+      "\0",
+    );
+    groups.set(key, [...(groups.get(key) ?? []), refusal]);
+  }
+  return [...groups.values()];
+}
+
+function groupPaths(group: readonly AssignmentPathRefusal[]): string[] {
+  return [...new Set(group.map((refusal) => refusal.path))];
+}
+
 /**
- * A denial for the first refusal's code and holder, naming every path that holder refused. The
- * write stops for every refusal, since one request claims all or none.
+ * A denial named for the first refusal's code and holder, with every path that holder refused.
+ * The write stops for every refusal, since one request claims all or none, and the claim log keeps
+ * each other holder's group too, so the turn records one refusal event per holder.
  */
 async function denial(
   repositoryRoot: string,
   refusals: readonly AssignmentPathRefusal[],
   workspaces: readonly AgentWorkspace[],
 ): Promise<ClaimDecision> {
-  const first = refusals[0]!;
-  const paths = refusals
-    .filter(
-      (refusal) =>
-        refusal.code === first.code &&
-        refusal.holderAgentId === first.holderAgentId &&
-        refusal.holderWorkspaceId === first.holderWorkspaceId,
-    )
-    .map((refusal) => refusal.path);
-  const unique = [...new Set(paths)];
+  const [named, ...others] = refusalGroups(refusals);
+  const first = named![0]!;
+  const paths = groupPaths(named!);
   const holder = await resolveClaimHolder({ repositoryRoot, refusal: first, workspaces });
   return {
     decision: "deny",
     code: first.code,
-    paths: unique,
+    paths,
     holder,
-    message: claimRefusalMessage({ code: first.code, paths: unique, holder }),
+    message: claimRefusalMessage({ code: first.code, paths, holder }),
+    ...(others.length === 0
+      ? {}
+      : {
+          otherRefusals: others.map((group) => ({
+            code: group[0]!.code,
+            paths: groupPaths(group),
+            holder:
+              group[0]!.holderAgentId === null
+                ? null
+                : { agentId: group[0]!.holderAgentId, workspaceId: group[0]!.holderWorkspaceId },
+          })),
+        }),
   };
 }
 
@@ -132,10 +160,11 @@ async function recordOtherCheckoutRefusals(
   now: Date,
 ): Promise<void> {
   const { repositoryRoot, assignmentId } = request.session;
-  const storage = await openProjectStorage(repositoryRoot);
+  const storage = await openProjectStorage(repositoryRoot, { busyTimeoutMs: CLAIM_STORE_BUSY_MS });
   try {
     if (!conversationLeaseEventsWritable(storage)) return;
     await recordConversationClaimRefusals({
+      signal: request.signal,
       assignment: await readAssignment(repositoryRoot, assignmentId),
       refusals,
       detection: detectionOf(request),
@@ -149,6 +178,21 @@ async function recordOtherCheckoutRefusals(
   }
 }
 
+/**
+ * Checked immediately before the scheduler lock is taken: the hook has not answered without this
+ * claim, and enough time remains to finish under the lock. Only then does the hook wait for it.
+ */
+function beforeLock(request: ConversationClaimRequest): () => void {
+  return () => {
+    request.signal.throwIfAborted();
+    if (performance.now() > request.deadline - LOCK_MARGIN_MS)
+      throw Object.assign(new Error("Too little time remains to claim under the lock."), {
+        code: CLAIM_DEFERRED,
+      });
+    request.lockTaken();
+  };
+}
+
 /** Widens the lease by `paths` under the scheduler lock and answers the outcome. */
 async function widen(
   request: ConversationClaimRequest,
@@ -157,7 +201,13 @@ async function widen(
   now: Date,
 ): Promise<ClaimDecision> {
   const { session } = request;
-  const storage = await openProjectStorage(session.repositoryRoot);
+  const storage = await openProjectStorage(session.repositoryRoot, {
+    busyTimeoutMs: CLAIM_STORE_BUSY_MS,
+  });
+  // A widening whose event failed restores its bytes and reports only `deferred`; its cause, such
+  // as a busy store, is the deferral's code.
+  let eventFailure: unknown = null;
+  const recordEvent = conversationLeaseEventRecorder(storage);
   try {
     // Below schema 16 no lease grows, and the conversation writes without claims.
     if (!conversationLeaseEventsWritable(storage)) return ALLOW;
@@ -175,12 +225,26 @@ async function widen(
       leaseHolderWorkspaceIds: conversationLeaseHolderWorkspaceIds(workspaces),
       recordedRefusals: await turnRefusals(request),
       claimPathKey: await readOrCreateClaimPathKey(session.repositoryRoot),
-      recordEvent: conversationLeaseEventRecorder(storage),
+      recordEvent: (event) => {
+        try {
+          return recordEvent(event);
+        } catch (error) {
+          eventFailure = error;
+          throw error;
+        }
+      },
+      signal: request.signal,
+      beforeLock: beforeLock(request),
       now,
     });
     if (result.refusals.length !== 0)
       return denial(session.repositoryRoot, result.refusals, workspaces);
-    return result.status === "deferred" ? { decision: "defer", code: CLAIM_DEFERRED } : ALLOW;
+    return result.status === "deferred"
+      ? {
+          decision: "defer",
+          code: eventFailure === null ? CLAIM_DEFERRED : deferralCode(eventFailure),
+        }
+      : ALLOW;
   } finally {
     await storage.close();
   }
@@ -203,14 +267,21 @@ async function decide(request: ConversationClaimRequest, now: Date): Promise<Cla
   if (covered) return ALLOW;
   const paths = await unignoredClaimPaths(session.worktree, located.inside);
   if (paths.length === 0) return ALLOW;
-  if (request.deadline !== undefined && performance.now() > request.deadline - LOCK_MARGIN_MS)
-    return { decision: "defer", code: CLAIM_DEFERRED };
   return widen(request, sessionId, paths, now);
 }
 
-/** A failure's code as a deferral carries it, such as `workforce_busy`, or `claim_deferred`. */
+/** SQLite's `SQLITE_BUSY` and `SQLITE_LOCKED`: another writer held the store. */
+const SQLITE_BUSY_CODES = new Set([5, 6]);
+
+/**
+ * A failure's code as a deferral carries it, such as `workforce_busy`, or `claim_deferred`. A
+ * store another writer held past the claim's short wait is `workforce_busy` too.
+ */
 function deferralCode(error: unknown): string {
-  const code = (error as { code?: unknown } | null)?.code;
+  const failure = error as { code?: unknown; errcode?: unknown } | null;
+  if (typeof failure?.errcode === "number" && SQLITE_BUSY_CODES.has(failure.errcode & 0xff))
+    return "workforce_busy";
+  const code = failure?.code;
   return typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code) ? code : CLAIM_DEFERRED;
 }
 

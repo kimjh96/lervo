@@ -12,6 +12,20 @@ import { roleCatalog } from "./role-catalog.js";
 import type { ClaimHolder } from "./claim-contract.js";
 import { workstreamTitle } from "./workstream-title.js";
 
+/** The longest name or title a refusal carries into the agent's message. */
+const MAXIMUM_LABEL_CHARACTERS = 80;
+
+/** `value` on one line without control characters, at most 80 characters. */
+function label(value: string): string {
+  const line = value
+    .replace(/[\p{Cc}\p{Cf}\u2028\u2029]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+  return line.length <= MAXIMUM_LABEL_CHARACTERS
+    ? line
+    : `${line.slice(0, MAXIMUM_LABEL_CHARACTERS - 1).trimEnd()}…`;
+}
+
 const HOLDER_KINDS: Readonly<Record<string, ClaimHolder["kind"]>> = {
   path_leased: "lease",
   path_changed_unsealed: "changed",
@@ -25,9 +39,9 @@ async function conversationTitle(
 ): Promise<string | null> {
   if (conversationId === null) return null;
   const newest = newestConversationWorkspace(workspaces, conversationId);
-  return newest?.ownerWorkspacePath === undefined
-    ? null
-    : workstreamTitle(newest.ownerWorkspacePath);
+  if (newest?.ownerWorkspacePath === undefined) return null;
+  const title = await workstreamTitle(newest.ownerWorkspacePath);
+  return title === null || label(title) === "" ? null : label(title);
 }
 
 /** When a live lease frees the path, or null when no timer does or the lease is unreadable. */
@@ -50,17 +64,17 @@ export async function resolveClaimHolder(input: {
   const kind = HOLDER_KINDS[refusal.code];
   if (kind === undefined || refusal.holderAgentId === null) return null;
   const [agents, roles, title, until] = await Promise.all([
-    listAgents(input.repositoryRoot, { readOnly: true }).catch(() => []),
+    listAgents(input.repositoryRoot, { readOnly: true }).catch(() => null),
     roleCatalog(input.repositoryRoot).catch(() => ({ names: new Map<string, string>() })),
     conversationTitle(input.workspaces, refusal.holderWorkspaceId),
     kind === "lease" ? leaseExpiry(input.repositoryRoot, refusal.holderAssignmentId) : null,
   ]);
-  const agent = agents.find((item) => item.agentId === refusal.holderAgentId);
+  const agent = agents?.find((item) => item.agentId === refusal.holderAgentId);
   return {
     agentId: refusal.holderAgentId,
-    displayName: agent?.displayName ?? refusal.holderAgentId,
-    roleName: agent === undefined ? "" : (roles.names.get(agent.roleId) ?? agent.roleId),
-    origin: agent?.origin === "lervo" ? "lervo" : "team",
+    displayName: agent === undefined ? refusal.holderAgentId : label(agent.displayName),
+    roleName: agent === undefined ? "" : label(roles.names.get(agent.roleId) ?? agent.roleId),
+    origin: agent === undefined ? "unknown" : agent.origin === "lervo" ? "lervo" : "team",
     workspaceId: refusal.holderWorkspaceId,
     conversationTitle: title,
     kind,

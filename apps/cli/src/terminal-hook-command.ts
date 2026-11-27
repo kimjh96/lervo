@@ -61,10 +61,8 @@ async function executeTerminalHookCommand(
   services: Pick<CliServices, "createTerminalStageObservation">,
   startedAt: number,
 ): Promise<number> {
-  const timing = budgetTerminalStages(
-    services.createTerminalStageObservation(TERMINAL_HOOK_BUILD_DIGEST),
-    startedAt,
-  );
+  const observation = services.createTerminalStageObservation(TERMINAL_HOOK_BUILD_DIGEST);
+  const timing = budgetTerminalStages(observation, startedAt);
   try {
     const { provider, contractId, input } = await timing.measure("ingress_integrity", async () => {
       const parsed = parseArgs({
@@ -97,9 +95,19 @@ async function executeTerminalHookCommand(
       };
     });
     if (input.event === "PreToolUse") {
-      // Claims at first write (Lervo ADE coordination). The claim is the core's coordination
-      // stage; until it runs, every write goes ahead.
-      io.stdout(await answerClaimHook(input, provider, io.cwd));
+      // Claims at first write (Lervo ADE coordination). A claim that took the scheduler lock
+      // finishes before the hook returns, so its process never exits holding the lock, and a
+      // context server answers first and drains it before the next request.
+      const locked: Promise<unknown>[] = [];
+      const answer = await answerClaimHook(input, provider, io.cwd, {
+        trackWork: (work) => {
+          locked.push(work);
+          observation.trackWork?.(work);
+        },
+      });
+      if (io.answer === undefined) io.stdout(answer);
+      else io.answer(answer);
+      await Promise.all(locked);
       return 0;
     }
     if (input.event === "SessionStart") {

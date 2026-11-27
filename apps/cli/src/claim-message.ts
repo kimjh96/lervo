@@ -1,10 +1,13 @@
 // The refusal's message (Lervo ADE coordination, "The message"): one paragraph that says what
-// stopped, the path, the holder and where it works, until when, why, and what to do next.
+// stopped, the path, the holder, until when, why, what to do next, and where the holder works. The
+// guidance comes before the holder's conversation title, so a long message never loses it.
 import { MAX_CLAIM_REASON_CHARACTERS } from "@lervo/adapter-contract";
 
 import type { ClaimHolder } from "./claim-contract.js";
 
 const LISTED_PATHS = 3;
+/** The most characters of one path the message shows; a longer path keeps its start and end. */
+const MAXIMUM_SHOWN_PATH_CHARACTERS = 200;
 const CONFLICT_REASON =
   "Two agents changing one path in parallel conflict when their work integrates.";
 
@@ -14,8 +17,14 @@ export function localClockTime(instant: string): string {
   return `${String(time.getHours()).padStart(2, "0")}:${String(time.getMinutes()).padStart(2, "0")}`;
 }
 
+function shownPath(path: string): string {
+  if (path.length <= MAXIMUM_SHOWN_PATH_CHARACTERS) return path;
+  const half = (MAXIMUM_SHOWN_PATH_CHARACTERS - 1) / 2;
+  return `${path.slice(0, Math.floor(half))}…${path.slice(-Math.ceil(half))}`;
+}
+
 function listed(paths: readonly string[]): string {
-  const shown = paths.slice(0, LISTED_PATHS).map((path) => `\`${path}\``);
+  const shown = paths.slice(0, LISTED_PATHS).map((path) => `\`${shownPath(path)}\``);
   const more = paths.length - shown.length;
   if (more > 0) return `${shown.join(", ")}, and ${more} more ${more === 1 ? "path" : "paths"}`;
   if (shown.length < 3) return shown.join(" and ");
@@ -26,15 +35,21 @@ function who(holder: ClaimHolder): string {
   return holder.roleName === "" ? holder.displayName : `${holder.displayName} (${holder.roleName})`;
 }
 
+/** Where the holder works, after the guidance, or nothing when its conversation is unknown. */
 function where(holder: ClaimHolder): string {
   return holder.conversationTitle === null
     ? ""
-    : ` in the conversation "${holder.conversationTitle}"`;
+    : ` ${holder.displayName} works in the conversation "${holder.conversationTitle}".`;
 }
 
-/** The choices a team holder leaves: mention it, other paths, or waiting for `waitFor`. */
+/**
+ * The choices a holder leaves: mentioning it when it is a team agent, other paths, or waiting for
+ * `waitFor`. A holder of unknown origin is never mentioned.
+ */
 function choices(holder: ClaimHolder, waitFor: string): string {
-  return `Mention @${holder.displayName} with the change you need, continue with other paths, or ${waitFor}.`;
+  return holder.origin === "team"
+    ? `Mention @${holder.displayName} with the change you need, continue with other paths, or ${waitFor}.`
+    : `Continue with other paths, or ${waitFor}.`;
 }
 
 function heldMessage(
@@ -45,19 +60,22 @@ function heldMessage(
   until: string | null,
 ): string | null {
   const these = plural ? "these paths" : "this path";
-  const dontWrite = `Do not write ${these} another way.`;
+  const guidance = `${CONFLICT_REASON} Do not write ${these} another way.`;
+  const untilTime = until === null ? "" : ` until ${until}`;
   if (holder.origin === "lervo") {
-    const owner = "Lervo's knowledge maintenance";
     const later = until === null ? "later" : `after ${until}`;
-    return `${subject} ${plural ? "are" : "is"} claimed by ${owner}${until === null ? "" : ` until ${until}`}. ${CONFLICT_REASON} ${dontWrite} Continue with other paths, or try again ${later}.`;
+    return `${subject} ${plural ? "are" : "is"} claimed by Lervo's knowledge maintenance${untilTime}. ${guidance} Continue with other paths, or try again ${later}.`;
   }
-  const sealed = `try again after ${holder.displayName}'s change is sealed`;
+  const sealed =
+    holder.origin === "team"
+      ? `try again after ${holder.displayName}'s change is sealed`
+      : "try again after that change is sealed";
   if (code === "path_leased")
-    return `${subject} ${plural ? "are" : "is"} claimed by ${who(holder)}${where(holder)}${until === null ? "" : ` until ${until}`}. ${CONFLICT_REASON} ${dontWrite} ${choices(holder, sealed)}`;
+    return `${subject} ${plural ? "are" : "is"} claimed by ${who(holder)}${untilTime}. ${guidance} ${choices(holder, sealed)}${where(holder)}`;
   if (code === "path_changed_unsealed")
-    return `${subject} ${plural ? "were" : "was"} changed by ${who(holder)}${where(holder)}, and that change is not sealed yet. ${CONFLICT_REASON} ${dontWrite} ${choices(holder, sealed)}`;
+    return `${subject} ${plural ? "were" : "was"} changed by ${who(holder)}, and that change is not sealed yet. ${guidance} ${choices(holder, sealed)}${where(holder)}`;
   if (code === "path_awaiting_integration")
-    return `${subject} ${plural ? "are" : "is"} part of a sealed change by ${who(holder)}${where(holder)} that has not integrated yet. ${CONFLICT_REASON} ${dontWrite} ${choices(holder, "try again once that change integrates")}`;
+    return `${subject} ${plural ? "are" : "is"} part of a sealed change by ${who(holder)} that has not integrated yet. ${guidance} ${choices(holder, "try again once that change integrates")}${where(holder)}`;
   return null;
 }
 
