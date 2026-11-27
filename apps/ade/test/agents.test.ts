@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { hireAgent, showProjectAgents } from "../src/features/agents/model/controller";
 import {
   agentActivity,
+  chosenParticipants,
   defaultParticipants,
   firstSentence,
   toggleParticipant,
@@ -118,6 +119,16 @@ describe("the sidebar's agents", () => {
     // A team without a Product Owner is offered one that Lervo hires (ADR-0646).
     expect(defaultParticipants([ciel])).toEqual(["hire:product-owner"]);
     expect(defaultParticipants([])).toEqual(["hire:product-owner"]);
+    // A choice made in another project never reaches this project's start.
+    expect(chosenParticipants([ciel.agentId], [ciel, elio])).toEqual([ciel.agentId]);
+    expect(chosenParticipants(["agt_elsewhere"], [ciel, elio])).toEqual([elio.agentId]);
+    expect(chosenParticipants(["agt_elsewhere", ciel.agentId], [ciel, elio])).toEqual([
+      ciel.agentId,
+    ]);
+    expect(chosenParticipants(undefined, [ciel])).toEqual(["hire:product-owner"]);
+    // The proposed hire stands only where the team has no Product Owner.
+    expect(chosenParticipants(["hire:product-owner"], [ciel])).toEqual(["hire:product-owner"]);
+    expect(chosenParticipants(["hire:product-owner"], [ciel, elio])).toEqual([elio.agentId]);
     expect(toggleParticipant([elio.agentId], ciel.agentId)).toEqual([elio.agentId, ciel.agentId]);
     expect(toggleParticipant([elio.agentId, ciel.agentId], elio.agentId)).toEqual([ciel.agentId]);
     // The last participant stays.

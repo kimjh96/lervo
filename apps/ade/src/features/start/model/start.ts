@@ -153,11 +153,18 @@ export async function startWork(
         returnedImages: images,
         returnedFiles: files,
         error: {
-          code: failure instanceof RequestFailure ? failure.code : "workspace_start_failed",
+          code: startFailureCode(failure),
           stage: typeof stage === "string" ? stage : null,
         },
       }));
   }
+}
+
+/** The core's code for a start it refused, else the session host's own code. */
+function startFailureCode(failure: unknown): string {
+  if (!(failure instanceof RequestFailure)) return "workspace_start_failed";
+  const core = failure.parameters.coreCode;
+  return typeof core === "string" ? core : failure.code;
 }
 
 /** Forgets the pending start, when the user turns to something else. */
