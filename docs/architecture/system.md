@@ -1,7 +1,7 @@
 # Lervo System Architecture
 
 Status: `active`
-As of: 2026-09-16
+As of: 2026-11-27
 
 ## System shape
 
@@ -34,7 +34,7 @@ The local project is the execution authority. The Hub coordinates but cannot wea
 
 ## Package direction
 
-Contracts and schemas do not depend on provider adapters or applications. Domain packages depend on contracts; storage and provider packages implement ports; applications compose them. `scripts/quality/check-package-boundaries.mjs` enforces this graph.
+Contracts and schemas do not depend on provider adapters or applications. Domain packages depend on contracts; storage and provider packages implement ports; applications compose them. Next to the applications, `@lervo/repository-knowledge-runtime` is the shared composition seam for provider strategies: its background knowledge work picks a provider at run time, so it maps that provider to the adapter's no-capability JSON invocation strategy for the knowledge compiler. Only applications and that runtime may have production dependencies on the Claude and Codex provider adapters. `scripts/quality/check-package-boundaries.mjs` enforces this graph.
 
 The schemas package compiles its validators during the build and exposes the same provider-neutral runtime validation facade. [ADR-0503](../decisions/execution/verification/0503-compile-schema-validators-at-build-time.md) defines generated artifact ownership and exact error compatibility; compiler and filesystem work stay outside runtime validation.
 
