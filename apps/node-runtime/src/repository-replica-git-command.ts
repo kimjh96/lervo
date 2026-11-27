@@ -31,6 +31,8 @@ export async function git(
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
     let byteCount = 0;
+    // Git that exits before reading all of its input, such as a patch, acted on part of it.
+    let inputError: Error | null = null;
     const collect = (target: Buffer[]) => (chunk: Buffer) => {
       byteCount += chunk.byteLength;
       if (byteCount > MAXIMUM_GIT_OUTPUT_BYTES) {
@@ -54,7 +56,18 @@ export async function git(
         reject(new GitCommandError(args[0] ?? "command", code, result.stderr.toString("utf8")));
         return;
       }
+      if (inputError !== null) {
+        reject(
+          new Error(`Git ${args[0] ?? "command"} did not read its whole input.`, {
+            cause: inputError,
+          }),
+        );
+        return;
+      }
       resolve(result);
+    });
+    child.stdin.on("error", (error) => {
+      inputError = error;
     });
     if (options.input === undefined) child.stdin.end();
     else child.stdin.end(options.input);

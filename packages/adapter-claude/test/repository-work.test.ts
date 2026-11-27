@@ -200,6 +200,23 @@ describe("ClaudeRepositoryWorkTurnExecutor", () => {
     ).rejects.toMatchObject({ code: "provider_turn_timeout" });
   });
 
+  it("rejects a turn whose prompt Claude closed before reading in full, without an uncaught EPIPE", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-claude-unread-root-"));
+    roots.push(root);
+    // The fake answers and exits without reading stdin; a prompt larger than any pipe buffer
+    // cannot all be written before it exits.
+    const executor = new ClaudeRepositoryWorkTurnExecutor(await executable());
+
+    await expect(
+      executor.execute({
+        repositoryRoot: root,
+        instructions: "work ".repeat(2 * 1024 * 1024),
+        providerSessionId: null,
+        timeoutMs: 30_000,
+      }),
+    ).rejects.toMatchObject({ code: "provider_turn_failed" });
+  });
+
   it("rejects malformed output before the terminal result", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-claude-invalid-root-"));
     roots.push(root);

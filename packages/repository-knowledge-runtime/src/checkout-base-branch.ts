@@ -79,6 +79,9 @@ export async function gitVisiblePaths(root: string, paths: readonly string[]): P
           ),
         ),
     );
+    // Git that exits before reading every path reports only some ignored paths. A failed check
+    // above already keeps every path visible, so a cut-short one errs the same way.
+    child.stdin?.on("error", () => undefined);
     child.stdin?.end(`${paths.join("\0")}\0`);
   });
   return paths.filter((path) => !ignored.has(path));

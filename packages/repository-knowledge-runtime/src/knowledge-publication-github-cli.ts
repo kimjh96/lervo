@@ -38,6 +38,9 @@ export function ghRunner(
         (error, stdout, stderr) =>
           error === null ? resolveRun(stdout) : reject(Object.assign(error, { stderr })),
       );
+      // `gh` that exits before reading all of its input, such as a body, acted on part of it at
+      // most, so the run fails even when `gh` exits 0.
+      child.stdin?.on("error", (error) => reject(Object.assign(error, { stderr: "" })));
       if (input !== undefined) child.stdin?.end(input);
     });
   };

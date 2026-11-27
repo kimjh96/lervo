@@ -92,6 +92,8 @@ function runClaudeProcess(input: {
     let bytes = 0;
     let settled = false;
     let timedOut = false;
+    // A turn whose prompt the provider closed before reading in full answered another request.
+    let promptCutShort = false;
     let forcedTermination: ReturnType<typeof setTimeout> | undefined;
     const progressDecoder = new StringDecoder("utf8");
     let pendingProgressLine = "";
@@ -166,7 +168,7 @@ function runClaudeProcess(input: {
           );
           return;
         }
-        if (bytes > MAXIMUM_OUTPUT_BYTES || code !== 0) {
+        if (bytes > MAXIMUM_OUTPUT_BYTES || code !== 0 || promptCutShort) {
           reject(
             new RepositoryWorkExecutionError(
               code === null ? "provider_process_failed" : "provider_turn_failed",
@@ -182,6 +184,9 @@ function runClaudeProcess(input: {
         });
       }),
     );
+    child.stdin.on("error", () => {
+      promptCutShort = true;
+    });
     child.stdin.end(input.stdin);
   });
 }

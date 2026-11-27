@@ -26,6 +26,8 @@ export async function readRevisionFiles(
       { encoding: "buffer", maxBuffer: MAXIMUM_BUFFER, timeout: 120_000 },
       (error, stdout) => (error === null ? resolveRead(stdout) : reject(error)),
     );
+    // Git that exits before reading every lookup leaves the batch output short; fail the read.
+    child.stdin?.on("error", reject);
     child.stdin?.end(requested.map((path) => `${revision}:${path}\n`).join(""));
   });
   let offset = 0;

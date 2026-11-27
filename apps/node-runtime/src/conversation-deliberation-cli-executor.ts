@@ -54,6 +54,8 @@ export const systemConversationDeliberationCliProcess: ConversationDeliberationC
       const stderr: Buffer[] = [];
       let byteCount = 0;
       let settled = false;
+      // A process that closed its request before reading it in full answered another request.
+      let requestCutShort = false;
       const timeout = setTimeout(() => child.kill("SIGKILL"), request.timeoutMs);
       const collect = (target: Buffer[], chunk: Buffer) => {
         byteCount += chunk.byteLength;
@@ -76,11 +78,18 @@ export const systemConversationDeliberationCliProcess: ConversationDeliberationC
           reject(new Error("The assigned deliberation process did not finish within its bounds."));
           return;
         }
+        if (requestCutShort) {
+          reject(new Error("The assigned deliberation process did not read its whole request."));
+          return;
+        }
         resolve({
           exitCode,
           stdout: Buffer.concat(stdout).toString("utf8"),
           stderr: Buffer.concat(stderr).toString("utf8"),
         });
+      });
+      child.stdin.on("error", () => {
+        requestCutShort = true;
       });
       child.stdin.end(request.stdin);
     });

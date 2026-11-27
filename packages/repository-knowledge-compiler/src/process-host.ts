@@ -52,6 +52,8 @@ export async function runProcess(input: {
     let outputBytes = 0;
     let forced: ProcessResult["status"] | null = null;
     let spawnFailed = false;
+    // A process that closed its input before reading it in full acted on part of it.
+    let inputCutShort = false;
     let settled = false;
     const capture = (target: Buffer[], chunk: Buffer): void => {
       if (forced === "output_limit_exceeded") return;
@@ -90,13 +92,18 @@ export async function runProcess(input: {
       settled = true;
       clearTimeout(timeout);
       input.signal?.removeEventListener("abort", abort);
-      const status = forced ?? (spawnFailed ? "spawn_failed" : code === 0 ? "completed" : "failed");
+      const status =
+        forced ??
+        (spawnFailed ? "spawn_failed" : code === 0 && !inputCutShort ? "completed" : "failed");
       finish({
         status,
         exitCode: code,
         stdout: Buffer.concat(stdout).toString("utf8"),
         stderr: Buffer.concat(stderr).toString("utf8"),
       });
+    });
+    child.stdin?.on("error", () => {
+      inputCutShort = true;
     });
     if (input.stdin !== undefined) child.stdin?.end(input.stdin);
   });

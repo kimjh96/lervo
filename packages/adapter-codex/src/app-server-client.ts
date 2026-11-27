@@ -98,6 +98,8 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
     process.stderr.resume();
     const lines = createInterface({ input: process.stdout, crlfDelay: Infinity });
     lines.on("line", (line) => this.receiveLine(line));
+    // A message written after the app-server stopped reading never arrives: the process is lost.
+    process.stdin.on("error", () => this.failProcess(false));
     process.once("error", () => this.failProcess(false));
     process.once("exit", () => this.failProcess(true));
   }

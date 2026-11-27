@@ -48,6 +48,8 @@ async function previousMarkdown(
       { encoding: "buffer", timeout: 30_000, maxBuffer: 256 * 1024 * 1024 },
       (error, stdout) => (error === null ? resolveOutput(stdout) : reject(error)),
     );
+    // Git that exits before reading every lookup leaves the batch output short; fail the read.
+    child.stdin?.on("error", reject);
     child.stdin?.end(markdown.map((path) => `${revision}:${path}\n`).join(""));
   });
   let offset = 0;

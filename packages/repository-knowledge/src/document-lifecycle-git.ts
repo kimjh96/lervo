@@ -69,6 +69,8 @@ function readBatch(root: string, lookups: readonly string[]): Promise<Map<string
     });
     const chunks: Buffer[] = [];
     let size = 0;
+    // Git that exits before reading every lookup answered only some of them.
+    let lookupsCutShort = false;
     // A blob read is bounded like every other lifecycle Git call; a killed reader fails closed.
     const timer = setTimeout(() => child.kill(), GIT_CALL_MILLISECONDS);
     child.stdout.on("data", (chunk: Buffer) => {
@@ -81,7 +83,7 @@ function readBatch(root: string, lookups: readonly string[]): Promise<Map<string
     );
     child.on("close", (code) => {
       clearTimeout(timer);
-      if (code !== 0 || size > MAXIMUM_OUTPUT_BYTES) {
+      if (code !== 0 || size > MAXIMUM_OUTPUT_BYTES || lookupsCutShort) {
         reject(new DocumentStalenessGitUnavailable("Git object read failed."));
         return;
       }
@@ -116,6 +118,9 @@ function readBatch(root: string, lookups: readonly string[]): Promise<Map<string
         offset += length + 1;
       }
       resolvePromise(result);
+    });
+    child.stdin.on("error", () => {
+      lookupsCutShort = true;
     });
     child.stdin.end(lookups.map((lookup) => `${lookup}\n`).join(""));
   });
