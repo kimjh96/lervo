@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_55e2bd6a8e3df380d7cef5fe"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Return knowledge query rules when recorded verification evidence cannot be verified, and report what was left out."

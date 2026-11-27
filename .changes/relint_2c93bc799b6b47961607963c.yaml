@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2c93bc799b6b47961607963c"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "An agent's context accepts a conversation note that its own delivery receipt attests (ADR-0648), instead of refusing the agent's whole context."
