@@ -38,6 +38,10 @@ export function withAnswers(
   window: ConversationWindow,
   answers: readonly ConversationItem[],
 ): ConversationWindow {
+  // Lines join a timeline that has loaded. Before the conversation's own items arrive, a line
+  // alone would place the list, which hides until its first layout settles, and the history would
+  // then load and settle in view.
+  if (window.items.length === 0) return window;
   const first = window.items[0]?.createdAtMs;
   const last = window.items.at(-1)?.createdAtMs;
   const placed = answers.filter(

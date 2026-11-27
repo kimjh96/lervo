@@ -35,12 +35,13 @@ function host(stop: "ends" | "not_found" | "hangs") {
     async post(message) {
       posted.push(message.kind);
       if (stop === "not_found") throw new RequestFailure("session_not_found");
+      const stopped = message.kind === "session.stop" ? message.sessionId : "session-a";
       if (stop === "ends")
         queueMicrotask(() => {
           for (const listener of listeners)
             listener({
               kind: "session.status",
-              sessionId: "session-a",
+              sessionId: stopped,
               sequence: 9,
               status: "ended",
             });
@@ -103,6 +104,26 @@ describe("retiring a workspace from the interface", () => {
     expect(core.ran).toEqual(["workspace.retire", "workspace.list", "repository.list"]);
     expect(useWorkspaceStore.getState()).toMatchObject({ selected: null, workspaces: [] });
     expect(session.listeners.size).toBe(0);
+  });
+
+  it("stops every agent's session in the conversation, not only the lead's", async () => {
+    useWorkspaceStore.setState({
+      workspaces: [
+        {
+          ...workspace,
+          sessions: [
+            { agentId: "agt_lead", sessionId: "session-a", access: "write" },
+            { agentId: "agt_joined", sessionId: "session-b", access: "read" },
+          ],
+        },
+      ],
+      statuses: { "session-a": "idle", "session-b": "working" },
+    });
+    const session = host("ends");
+    const core = commands(async () => ({ workspaceId: "wsp_a", worktree: "removed" }));
+    await retireWorkspace({ host: session.fake, commands: core, lists, workspaceId: "wsp_a" });
+    expect(session.posted).toEqual(["session.stop", "session.stop"]);
+    expect(core.ran[0]).toBe("workspace.retire");
   });
 
   it("removes at once when no session runs, or the session host no longer has it", async () => {

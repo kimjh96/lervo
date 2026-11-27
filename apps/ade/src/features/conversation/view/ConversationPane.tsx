@@ -65,9 +65,15 @@ export function ConversationPane(props: {
   const readImage = useCallback((imageId: string) => source.readImage(imageId), [source]);
   return (
     <div className={styles.pane}>
-      <Presence className={styles.opening}>
-        {opening ? <Waiting label={intl.formatMessage({ id: "conversation.opening" })} /> : null}
-      </Presence>
+      {/* The wait's place covers the pane and centers it; Presence keeps its layers at the start
+          of their own place, so the centering stays outside it. */}
+      <div className={styles.opening}>
+        <Presence>
+          {opening ? (
+            <Waiting label={intl.formatMessage({ id: "conversation.opening" })} justify="center" />
+          ) : null}
+        </Presence>
+      </div>
       <Presence className={styles.error}>
         {error === null ? null : (
           <InlineAlert size="meta">

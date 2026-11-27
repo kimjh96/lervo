@@ -37,6 +37,12 @@
   justify-self: end;
 }
 
+/* In the middle of a view, layers keep their center, so words stand still while their space
+   opens around them. */
+.presence[data-justify="center"] > .layer {
+  justify-self: center;
+}
+
 .layer[data-enter]:not([data-leaving]) {
   animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
 }
