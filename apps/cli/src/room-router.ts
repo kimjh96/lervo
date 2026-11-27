@@ -1,7 +1,9 @@
 // Routing between a conversation's agents inside the resident core (Lervo ADE rooms, "Routing").
 import type { HostedDecodedContent, HostedDecodedEvent } from "@lervo/adapter-contract";
 
+import { providerSessionDigest } from "./hosted-session-events.js";
 import { envelopeText, readEnvelope, type RoomTurn } from "./room-envelope.js";
+import { mentionIdOf, type RoomEvent } from "./room-events.js";
 import { mentionedAgents } from "./room-mentions.js";
 import type { PendingStart } from "./room-starts.js";
 import type { TeamAgent } from "./workspace-participants.js";
@@ -11,6 +13,10 @@ export interface RoomContext {
   readonly workspaceId: string;
   /** The project the conversation belongs to, which a conversation the agent starts shares. */
   readonly projectId: string;
+  /** The registered repository, where the room's records go, when the core resolved it. */
+  readonly repositoryRoot?: string;
+  /** The session's provider, which a session's digest in the room's records names. */
+  readonly provider?: string;
   /** The session's own agent. */
   readonly agentId: string;
   readonly team: readonly TeamAgent[];
@@ -47,6 +53,25 @@ interface Room {
   owed: Map<string, Set<string>>;
 }
 
+/**
+ * A turn the router handed the session host. A mention's delivery keeps what its records need,
+ * from the conversation it came from, since the receiving session's own context may load later.
+ */
+interface Delivery {
+  depth: number;
+  from: string;
+  startedIn?: string;
+  mention?: {
+    readonly repositoryRoot: string;
+    readonly provider: string;
+    readonly workspaceId: string;
+    readonly fromAgentId: string;
+    readonly toAgentId: string;
+    /** Whether the delivery brings its agent into the conversation for the first time. */
+    readonly joins: boolean;
+  };
+}
+
 interface SessionTurn {
   depth: number;
   /** The agent message the turn ended with: the last one it published. */
@@ -63,14 +88,14 @@ export class RoomRouter {
   private readonly contexts = new Map<string, RoomContext>();
   private readonly rooms = new Map<string, Room>();
   private readonly turns = new Map<string, SessionTurn>();
-  private readonly deliveries = new Map<
-    string,
-    { depth: number; from: string; startedIn?: string }
-  >();
+  private readonly deliveries = new Map<string, Delivery>();
 
   constructor(
     private readonly now: () => number = Date.now,
     private readonly newId: () => string = () => crypto.randomUUID(),
+    /** Keeps the room's records; nothing reads them back here, and a failure is the caller's. */
+    private readonly record: (repositoryRoot: string, events: RoomEvent[]) => void = () =>
+      undefined,
   ) {}
 
   /** Records what the core loaded about a session's conversation. */
@@ -169,6 +194,8 @@ export class RoomRouter {
     const context = this.contexts.get(sessionId);
     const delivery = deliveryId === undefined ? undefined : this.deliveries.get(deliveryId);
     if (deliveryId !== undefined) this.deliveries.delete(deliveryId);
+    if (deliveryId !== undefined && delivery?.mention !== undefined)
+      this.recordDelivered(sessionId, deliveryId, delivery.mention);
     this.turns.set(sessionId, { depth: delivery?.depth ?? 0, last: null, streaming: null });
     return events.flatMap((event): HostedDecodedEvent[] => {
       if (event.kind !== "item" || event.content.kind !== "user_message") return [event];
@@ -274,6 +301,19 @@ export class RoomRouter {
       events.push(
         this.notice("room_paused", { turns: room.deliveredAt.length, limit: EXCHANGE_LIMIT }),
       );
+      if (context.repositoryRoot !== undefined)
+        this.record(context.repositoryRoot, [
+          {
+            type: "room.exchange.paused",
+            payload: {
+              workspaceId: context.workspaceId,
+              agentTurnCount: Math.min(room.deliveredAt.length, 1000),
+              limit: EXCHANGE_LIMIT,
+              openerAgentId: room.opener,
+              occurredAt: new Date(now).toISOString(),
+            },
+          },
+        ]);
       const opener = context.team.find((agent) => agent.agentId === room.opener);
       if (opener !== undefined)
         deliveries.push(
@@ -281,7 +321,7 @@ export class RoomRouter {
             context,
             opener.agentId,
             turn.depth,
-            self.displayName,
+            self,
             [
               "[Lervo room] Agents paused after reaching the exchange budget.",
               "Summarize the exchange for the owner. Hand whatever is still open to the product owner as a decision; never wait on the owner.",
@@ -306,7 +346,7 @@ export class RoomRouter {
           context,
           agent.agentId,
           turn.depth + 1,
-          self.displayName,
+          self,
           envelopeText({
             from: self.displayName,
             role: self.roleName,
@@ -324,11 +364,41 @@ export class RoomRouter {
     context: RoomContext,
     agentId: string,
     depth: number,
-    from: string,
+    from: TeamAgent,
     text: string,
   ): RoomDelivery {
     const deliveryId = this.newId();
-    this.deliveries.set(deliveryId, { depth, from });
+    const { repositoryRoot, provider } = context;
+    const mention =
+      repositoryRoot === undefined
+        ? undefined
+        : {
+            repositoryRoot,
+            provider: provider ?? "claude",
+            workspaceId: context.workspaceId,
+            fromAgentId: from.agentId,
+            toAgentId: agentId,
+            joins: !context.sessions.has(agentId),
+          };
+    this.deliveries.set(deliveryId, {
+      depth,
+      from: from.displayName,
+      ...(mention === undefined ? {} : { mention }),
+    });
+    if (mention !== undefined)
+      this.record(mention.repositoryRoot, [
+        {
+          type: "room.mention.recorded",
+          payload: {
+            workspaceId: context.workspaceId,
+            mentionId: mentionIdOf(deliveryId),
+            fromAgentId: from.agentId,
+            toAgentId: agentId,
+            depth: Math.min(depth, EXCHANGE_DEPTH),
+            occurredAt: new Date(this.now()).toISOString(),
+          },
+        },
+      ]);
     if (this.deliveries.size > PENDING_DELIVERIES)
       this.deliveries.delete(this.deliveries.keys().next().value as string);
     return {
@@ -338,6 +408,34 @@ export class RoomRouter {
       sessionId: context.sessions.get(agentId) ?? null,
       text,
     };
+  }
+
+  /** A mention's delivered turn: its receipt, and the agent's joining when it brought it in. */
+  private recordDelivered(
+    sessionId: string,
+    deliveryId: string,
+    mention: NonNullable<Delivery["mention"]>,
+  ): void {
+    const occurredAt = new Date(this.now()).toISOString();
+    const digest = providerSessionDigest(mention.provider, sessionId);
+    const events: RoomEvent[] = [
+      {
+        type: "room.mention.delivered",
+        payload: { mentionId: mentionIdOf(deliveryId), providerSessionDigest: digest, occurredAt },
+      },
+    ];
+    if (mention.joins)
+      events.unshift({
+        type: "room.participant.joined",
+        payload: {
+          workspaceId: mention.workspaceId,
+          agentId: mention.toAgentId,
+          providerSessionDigest: digest,
+          mentionedBy: mention.fromAgentId,
+          occurredAt,
+        },
+      });
+    this.record(mention.repositoryRoot, events);
   }
 
   private notice(code: string, parameters: Record<string, string | number>): HostedDecodedEvent {

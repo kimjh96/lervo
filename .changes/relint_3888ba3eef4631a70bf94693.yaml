@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3888ba3eef4631a70bf94693"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Rooms record who mentioned whom, each delivery, an agent's joining, and a paused exchange as schema-15 events in the conversation's repository, once its writer selects schema 15."

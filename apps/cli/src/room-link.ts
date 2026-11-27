@@ -3,6 +3,7 @@ import type { HostedDecodedContent, HostedDecodedEvent } from "@lervo/adapter-co
 
 import { ClaimLines } from "./claim-lines.js";
 import { readEnvelope } from "./room-envelope.js";
+import type { RoomEvent } from "./room-events.js";
 import { RoomRouter, type RoomContext, type RoomDelivery } from "./room-router.js";
 import type { PendingStart } from "./room-starts.js";
 
@@ -15,7 +16,7 @@ const OPENED_KEPT = 64;
  * session host never receives a field it does not know.
  */
 export class RoomLink {
-  private readonly router = new RoomRouter();
+  private readonly router: RoomRouter;
   private readonly delivering = new Set<string>();
   private readonly sessions = new Map<string, string>();
   /** Each agent's pending starts, as last read: the file is read off the decoder's path. */
@@ -28,7 +29,20 @@ export class RoomLink {
     private readonly track: (task: Promise<void>) => void,
     private readonly loadStarts?: (agentId: string) => Promise<readonly PendingStart[]>,
     private readonly claims: ClaimLines = new ClaimLines(),
-  ) {}
+    /** Keeps the room's records in its repository; absent, the room records nothing. */
+    recordEvents?: (repositoryRoot: string, events: readonly RoomEvent[]) => Promise<unknown>,
+  ) {
+    this.router = new RoomRouter(undefined, undefined, (root, events) => {
+      // Records go out off the decoder's path, and a failed one changes nothing here.
+      if (recordEvents !== undefined)
+        this.track(
+          recordEvents(root, events).then(
+            () => undefined,
+            () => undefined,
+          ),
+        );
+    });
+  }
 
   /** A decoder the session host opened or named; it routes when the host performs deliveries. */
   opened(decoderId: string, sessionId: string | undefined, deliveries: boolean): void {

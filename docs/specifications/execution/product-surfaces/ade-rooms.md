@@ -121,6 +121,12 @@ A start that fails after the command returned shows in the source conversation a
   - `room.mention.delivered`: `mentionId`, `providerSessionDigest`, `occurredAt`.
   - `room.mention.failed`: `mentionId`, `code`, `occurredAt`.
   - `room.exchange.paused`: `workspaceId`, `agentTurnCount` (0 to 1,000), `limit` (1 to 1,000), `openerAgentId` (or null when the core saw no owner turn open the exchange), `occurredAt`. The chain stopped and nothing was lost.
+- **Who records them.** The resident's room router records the events off the decoder's path, in the conversation's registered repository, only while its writer selects schema 15 or later.
+  - `room.mention.recorded`: when a turn's mention becomes a delivery.
+  - `room.mention.delivered`: when the session host writes the delivered turn, preceded by `room.participant.joined` when the delivery brought its agent into the conversation.
+  - `room.exchange.paused`: at the exchange budget.
+  - Each event's ID derives from its content, so recording one twice keeps one. A store that cannot take them changes nothing in the room.
+  - `room.mention.failed` has no writer yet: the session host shows a failed delivery in the conversation, but does not report it to the core.
 - **Failures.** A mention that cannot be delivered shows as a room line and as attention, and is never retried silently.
 
 | Code                         | Meaning                                                                                |

@@ -65,6 +65,8 @@ export class CoreLinkServer {
         void task.finally(() => this.pending.delete(task));
       },
       handlers.pendingStarts,
+      undefined,
+      handlers.recordRoomEvents,
     );
   }
 

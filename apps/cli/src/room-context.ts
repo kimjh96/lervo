@@ -31,6 +31,8 @@ export async function loadRoomContext(sessionId: string): Promise<RoomContext | 
   return {
     workspaceId: record.workspaceId,
     projectId: record.projectId,
+    repositoryRoot: repository.repositoryRoot,
+    provider: record.provider,
     agentId: record.agentId,
     team: await teamAgents(repository.repositoryRoot),
     sessions,
