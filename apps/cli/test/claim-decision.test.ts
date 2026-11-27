@@ -270,6 +270,20 @@ describe("claims at first write in a conversation's worktree", () => {
     expect((await conversationAssignment(first.leadAgentId)).expectedPaths).toEqual(["notes.md"]);
   });
 
+  it("claims nothing for a command that only redirects to a descriptor", async () => {
+    const { first } = app;
+    const answer = await answerClaimHook(
+      preToolUse(first.sessionId, first.worktree, "Bash", { command: "pnpm test 2>&1 | tail" }),
+      "claude",
+      first.worktree,
+    );
+    expect(answer).toBe("{}\n");
+    expect(widening.calls).toBe(0);
+    expect(claimLogEntries(first.sessionId)).toEqual([]);
+    expect(await eventsOf(app.repository, "assignment.claim.refused")).toEqual([]);
+    expect((await conversationAssignment(first.leadAgentId)).expectedPaths).toEqual([]);
+  });
+
   it("claims under the conversation's assignment from a session without a launch record", async () => {
     const { first } = app;
     expect(await write("owner-terminal", first.worktree, `${first.worktree}/src/owner.ts`)).toBe(

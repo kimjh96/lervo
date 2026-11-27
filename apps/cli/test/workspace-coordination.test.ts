@@ -1,10 +1,7 @@
 import { workspaceStartCoordinationSchema } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
-import {
-  COORDINATION_STAGE_ENABLED,
-  coordinationStageEnabled,
-} from "../src/coordination-gate.js";
+import { COORDINATION_STAGE_ENABLED, coordinationStageEnabled } from "../src/coordination-gate.js";
 import {
   coordinateConversationWorkspace,
   type WorkspaceCoordinationPorts,
