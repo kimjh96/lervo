@@ -359,7 +359,29 @@ The page now bundles both modules with the main script and checks the permission
 - **Scrolling.** The longest frames passed 50 ms in two runs at a load of 10.5 to 12, which an idle run must confirm.
 - **An idle run is still needed** for the first paint and scrolling. While the owner's sessions run, the Mac does not go idle, so the run needs a time when they are closed.
 
-**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. Under load, first paint now has a median near 100 ms, one of two warm cold starts measured 539 ms against 500, and every other interface budget meets its target. What is left is a run of first paint and cold start on an idle Mac. There the open no longer waits for the session.
+**Eighth run (2026-11-28, early morning).** Five runs of cold start and first paint on the same build as the seventh, at load averages of 5.5 to 6.6.
+
+| Scenario                                         | Result                                                                   | Target |
+| ------------------------------------------------ | ------------------------------------------------------------------------ | ------ |
+| Cold start to the start screen, four warm starts | 365, 372, 418, and 429 ms; the first launch of the morning took 3,018 ms | 500 ms |
+| Launch to the shell's `main`                     | 3–6 ms                                                                   |        |
+| `main` to navigation                             | 200–212 ms                                                               |        |
+| Navigation to the start screen                   | 150–214 ms                                                               |        |
+| First paint of the 100,000-item conversation     | 66, 75, 86, and 196 ms; 134 ms on the first launch                       | 100 ms |
+| Scrolling it: longest frame                      | 21–83 ms; 8 of 3,000 frames over 50 ms in three runs                     | 50 ms  |
+
+Scrolling had met its target in every run through the fifth, so the frames over 50 ms could be a regression. To tell, the conversation scenario ran the fifth run's interface (`f1268e3fc`) and ADE 0.13.0's in turn, six times each, with the same shell build and scripted core, at load averages of 4.7 to 5.5:
+
+| Interface                    | First paint | Longest frame | Frames over 50 ms         |
+| ---------------------------- | ----------- | ------------- | ------------------------- |
+| The fifth run's, `f1268e3fc` | 63–177 ms   | 20–189 ms     | 6 of 3,600, in three runs |
+| ADE 0.13.0, `e3e3731c3`      | 54–138 ms   | 37–113 ms     | 9 of 3,600, in five runs  |
+
+- **No regression.** The fifth run's interface missed the scrolling target as well, by more at its worst, and its first paint was slower. The changes since then did not cause the misses.
+- **The Mac's state.** `fseventsd`, running since 2026-11-12, held a memory footprint of 51 GB and 100–170% of a core. 41 GB of swap was in use, and 91 MB of memory was free. The scroll briefly takes about 1 GB of graphics memory for WebKit's tiles, so under this pressure its frames can wait on memory. These figures cannot separate that wait from the interface's work.
+- **First paint.** Across the ten warm opens of ADE 0.13.0 that morning, in both tables, the median was 84 ms, and seven of ten met the target.
+
+**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. Cold start meets its target: all eight warm starts of the seventh and eighth runs did, under load. Every other interface budget except first paint and scrolling met its target in earlier runs. What is left is a run of first paint and scrolling after `fseventsd` restarts, such as after a restart of the Mac, so that memory pressure does not decide the result.
 
 ### S1.6c measurements
 
