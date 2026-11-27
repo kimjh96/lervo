@@ -1,7 +1,11 @@
 import { nextAssignmentLeaseGeneration } from "./assignment-lease-generation.js";
 import { assignmentAccessMode } from "./assignment-access-mode.js";
 import { type WorkResponsibilityV1 } from "@lervo/application-contract";
-import { type WorkforceEventRecorder, type WorkforceAssignment } from "./types.js";
+import {
+  type WorkforceAgent,
+  type WorkforceEventRecorder,
+  type WorkforceAssignment,
+} from "./types.js";
 import {
   AGENT_ID,
   SESSION_ID,
@@ -14,6 +18,7 @@ import {
 } from "./workforce-state-validation.js";
 import { listAgents } from "./agent-registry.js";
 import { judgeAssignmentPathConflicts } from "./assignment-path-conflict.js";
+import { readAssignmentClaimPathHolders } from "./conversation-path-holders.js";
 import { assignmentPath, readAssignmentState, listAssignments } from "./assignment-state.js";
 import { acquireLock, atomicWrite, retryConcurrent } from "./workforce-state-io.js";
 import {
@@ -70,27 +75,7 @@ export async function claimAssignmentOnce(input: {
         fail("assignment_lease_conflict", "The responsibility does not bind the resulting claim.");
     }
     const all = await listAssignments(input.repositoryRoot);
-    if (assignment.roleId !== agent.roleId)
-      fail("assignment_lease_conflict", "The agent role does not match the assignment role.");
-    if (
-      (assignment.knowledgeJob != null && assignment.knowledgeJob.agentId !== agent.agentId) ||
-      (assignment.convergence != null && assignment.convergence.agentId !== agent.agentId)
-    )
-      fail("assignment_lease_conflict", "The knowledge job is bound to another agent.");
-    if (
-      assignment.roleVersion !== agent.roleVersion ||
-      assignment.roleContractHash !== agent.roleContractHash
-    )
-      fail("assignment_lease_conflict", "The agent and assignment role contracts differ.");
-    if (
-      assignment.requiredCapabilityHash !== undefined &&
-      assignment.requiredCapabilityHash !== null &&
-      assignment.requiredCapabilityHash !== agent.capabilityHash
-    )
-      fail(
-        "assignment_lease_conflict",
-        "The agent capability binding differs from the assignment.",
-      );
+    assertAgentBinding(assignment, agent);
     if (
       !assignment.expectedPaths.every((path) =>
         agent.responsibilityPaths.some((scope) => repositoryPathWithinScope(path, scope)),
@@ -112,12 +97,19 @@ export async function claimAssignmentOnce(input: {
         : ["queued", "leased"];
     if (currentLeaseActive || !claimableStatuses.includes(assignment.status))
       fail("assignment_lease_conflict", "The assignment is not claimable.");
+    // Other conversations' changed and sealed paths hold too (Lervo ADE coordination, "Conflicts").
+    const conversations = await readAssignmentClaimPathHolders(
+      input.repositoryRoot,
+      assignment.assignmentId,
+    );
+    const paths = assignment.expectedPaths;
     if (
       judgeAssignmentPathConflicts({
         claimant: assignment,
-        paths: assignment.expectedPaths,
+        paths,
         assignments: all,
         now,
+        ...conversations,
       }).length !== 0
     )
       fail(
@@ -175,6 +167,28 @@ export async function claimAssignmentOnce(input: {
   } finally {
     await release();
   }
+}
+
+/** The agent's role, knowledge binding, role contract, and capabilities fit the assignment. */
+function assertAgentBinding(assignment: WorkforceAssignment, agent: WorkforceAgent): void {
+  if (assignment.roleId !== agent.roleId)
+    fail("assignment_lease_conflict", "The agent role does not match the assignment role.");
+  if (
+    (assignment.knowledgeJob != null && assignment.knowledgeJob.agentId !== agent.agentId) ||
+    (assignment.convergence != null && assignment.convergence.agentId !== agent.agentId)
+  )
+    fail("assignment_lease_conflict", "The knowledge job is bound to another agent.");
+  if (
+    assignment.roleVersion !== agent.roleVersion ||
+    assignment.roleContractHash !== agent.roleContractHash
+  )
+    fail("assignment_lease_conflict", "The agent and assignment role contracts differ.");
+  if (
+    assignment.requiredCapabilityHash !== undefined &&
+    assignment.requiredCapabilityHash !== null &&
+    assignment.requiredCapabilityHash !== agent.capabilityHash
+  )
+    fail("assignment_lease_conflict", "The agent capability binding differs from the assignment.");
 }
 
 export function claimAssignment(input: {

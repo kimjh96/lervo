@@ -1,6 +1,12 @@
 import type { ChangedPathHolder } from "./assignment-path-conflict.js";
 import { validChangedPathHolder } from "./conversation-claim-input.js";
+import {
+  CHECKOUT_HOLDER_PATH as CHECKOUT,
+  listConversationChangedPaths,
+  type ConversationChangedPaths,
+} from "./conversation-changed-paths.js";
 import { isConversationWorkspace } from "./conversation-workspace.js";
+import { listWorkspaces } from "./workspace-store.js";
 import type { AgentWorkspace, WorkspaceState } from "./workspace-types.js";
 
 /** States whose changed paths hold until the generation seals (`path_changed_unsealed`). */
@@ -13,43 +19,55 @@ const AWAITING_INTEGRATION: ReadonlySet<WorkspaceState> = new Set([
   "integration_conflict",
 ]);
 
-/**
- * The paths an unsealed generation changed since its base, as its latest reconciliation recorded
- * them. The turn's reconciliation records them, and it has not landed: until it does, no record
- * holds any, and an unsealed change holds its paths only through its lease.
- */
-function unsealedChangedPaths(_workspace: AgentWorkspace): readonly string[] {
-  return [];
+/** The paths a recorded reconciliation holds for `workspace`, or none when it is not current. */
+function unsealedChangedPaths(
+  workspace: AgentWorkspace,
+  changes: ReadonlyMap<string, ConversationChangedPaths>,
+): readonly string[] {
+  const recorded = changes.get(workspace.workspaceId);
+  if (
+    recorded === undefined ||
+    recorded.generation !== workspace.generation ||
+    recorded.baseCommit !== workspace.baseCommit
+  )
+    return [];
+  // A generation whose changes fit no bound holds its whole checkout.
+  return recorded.overflow ? [CHECKOUT] : recorded.paths;
 }
 
 /** What a generation's change holds in its state, or null once it holds nothing. */
 function heldPaths(
   workspace: AgentWorkspace,
+  changes: ReadonlyMap<string, ConversationChangedPaths>,
 ): { code: ChangedPathHolder["code"]; paths: readonly string[] } | null {
   if (UNSEALED.has(workspace.state))
-    return { code: "path_changed_unsealed", paths: unsealedChangedPaths(workspace) };
+    return { code: "path_changed_unsealed", paths: unsealedChangedPaths(workspace, changes) };
   if (AWAITING_INTEGRATION.has(workspace.state))
     return {
       code: "path_awaiting_integration",
-      paths: workspace.sealedResult?.changedPaths ?? [],
+      // A sealed result never names the checkout as a whole.
+      paths: (workspace.sealedResult?.changedPaths ?? []).filter((path) => path !== CHECKOUT),
     };
   return null;
 }
 
 /**
  * Other conversations' changed and sealed paths as holders of a claim (Lervo ADE coordination,
- * "Conflicts"). The claimant's own generations never count. A path a record holds that the claim
- * policy would not name, such as `.`, is left out rather than failing every claim.
+ * "Conflicts"): their sealed results' paths, and the paths each unsealed generation's latest
+ * reconciliation recorded in `changes`. The claimant's own generations never count; a claim of
+ * Lervo's own agents has no conversation. A path a record holds that the claim policy would not
+ * name is left out rather than failing every claim.
  */
 export function conversationChangedPathHolders(
   workspaces: readonly AgentWorkspace[],
-  claimantConversationId: string,
+  claimantConversationId: string | null,
+  changes: ReadonlyMap<string, ConversationChangedPaths> = new Map(),
 ): ChangedPathHolder[] {
   const holders: ChangedPathHolder[] = [];
   for (const workspace of workspaces) {
     if (!isConversationWorkspace(workspace) || workspace.conversationId === claimantConversationId)
       continue;
-    const held = heldPaths(workspace);
+    const held = heldPaths(workspace, changes);
     if (held === null) continue;
     const { code, paths } = held;
     for (const path of paths) {
@@ -78,4 +96,40 @@ export function conversationLeaseHolderWorkspaceIds(
     if (isConversationWorkspace(workspace) && workspace.state !== "removed")
       owners.set(workspace.assignmentId, workspace.conversationId!);
   return owners;
+}
+
+/**
+ * Other conversations' changed and sealed paths as holders, read at the moment of a claim: every
+ * workspace record and every generation's recorded changes.
+ */
+export async function readConversationPathHolders(
+  repositoryRoot: string,
+  claimantConversationId: string | null,
+): Promise<ChangedPathHolder[]> {
+  const [workspaces, changes] = await Promise.all([
+    listWorkspaces(repositoryRoot),
+    listConversationChangedPaths(repositoryRoot),
+  ]);
+  return conversationChangedPathHolders(workspaces, claimantConversationId, changes);
+}
+
+/**
+ * The holders `claimAssignment` judges besides live leases: other conversations' changed and
+ * sealed paths, so Lervo's own agents never take a path a conversation's change holds. A
+ * conversation's own assignment skips its own generations.
+ */
+export async function readAssignmentClaimPathHolders(
+  repositoryRoot: string,
+  claimantAssignmentId: string,
+): Promise<{ changedPathHolders: ChangedPathHolder[]; claimantWorkspaceId: string | null }> {
+  const [workspaces, changes] = await Promise.all([
+    listWorkspaces(repositoryRoot),
+    listConversationChangedPaths(repositoryRoot),
+  ]);
+  const claimantWorkspaceId =
+    conversationLeaseHolderWorkspaceIds(workspaces).get(claimantAssignmentId) ?? null;
+  return {
+    changedPathHolders: conversationChangedPathHolders(workspaces, claimantWorkspaceId, changes),
+    claimantWorkspaceId,
+  };
 }

@@ -8,7 +8,7 @@ import type { ClaimHolder } from "./claim-contract.js";
 const LISTED_PATHS = 3;
 /** The most characters of one path the message shows; a longer path keeps its start and end. */
 const MAXIMUM_SHOWN_PATH_CHARACTERS = 200;
-const CONFLICT_REASON =
+export const CONFLICT_REASON =
   "Two agents changing one path in parallel conflict when their work integrates.";
 
 /** The host's local `HH:MM` of an instant. */
@@ -23,7 +23,8 @@ function shownPath(path: string): string {
   return `${path.slice(0, Math.floor(half))}…${path.slice(-Math.ceil(half))}`;
 }
 
-function listed(paths: readonly string[]): string {
+/** Up to three paths in backquotes, and how many more. */
+export function listedPaths(paths: readonly string[]): string {
   const shown = paths.slice(0, LISTED_PATHS).map((path) => `\`${shownPath(path)}\``);
   const more = paths.length - shown.length;
   if (more > 0) return `${shown.join(", ")}, and ${more} more ${more === 1 ? "path" : "paths"}`;
@@ -31,7 +32,8 @@ function listed(paths: readonly string[]): string {
   return `${shown.slice(0, -1).join(", ")}, and ${shown.at(-1)}`;
 }
 
-function who(holder: ClaimHolder): string {
+/** The holder's name with its role. */
+export function holderLabel(holder: ClaimHolder): string {
   return holder.roleName === "" ? holder.displayName : `${holder.displayName} (${holder.roleName})`;
 }
 
@@ -71,11 +73,11 @@ function heldMessage(
       ? `try again after ${holder.displayName}'s change is sealed`
       : "try again after that change is sealed";
   if (code === "path_leased")
-    return `${subject} ${plural ? "are" : "is"} claimed by ${who(holder)}${untilTime}. ${guidance} ${choices(holder, sealed)}${where(holder)}`;
+    return `${subject} ${plural ? "are" : "is"} claimed by ${holderLabel(holder)}${untilTime}. ${guidance} ${choices(holder, sealed)}${where(holder)}`;
   if (code === "path_changed_unsealed")
-    return `${subject} ${plural ? "were" : "was"} changed by ${who(holder)}, and that change is not sealed yet. ${guidance} ${choices(holder, sealed)}${where(holder)}`;
+    return `${subject} ${plural ? "were" : "was"} changed by ${holderLabel(holder)}, and that change is not sealed yet. ${guidance} ${choices(holder, sealed)}${where(holder)}`;
   if (code === "path_awaiting_integration")
-    return `${subject} ${plural ? "are" : "is"} part of a sealed change by ${who(holder)} that has not integrated yet. ${guidance} ${choices(holder, "try again once that change integrates")}${where(holder)}`;
+    return `${subject} ${plural ? "are" : "is"} part of a sealed change by ${holderLabel(holder)} that has not integrated yet. ${guidance} ${choices(holder, "try again once that change integrates")}${where(holder)}`;
   return null;
 }
 
@@ -102,7 +104,7 @@ export function claimRefusalMessage(input: {
   readonly holder: ClaimHolder | null;
   readonly clockTime?: (instant: string) => string;
 }): string {
-  const subject = listed(input.paths);
+  const subject = listedPaths(input.paths);
   const plural = input.paths.length > 1;
   const holder = input.holder;
   const until =

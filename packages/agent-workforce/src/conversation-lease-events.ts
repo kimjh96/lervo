@@ -8,12 +8,26 @@ import type { WorkforceAssignment } from "./types.js";
 import { digest, stableJson } from "./workforce-state-validation.js";
 
 /**
- * Event schema 16's coordination events (Lervo ADE coordination), and the existing renewal a claim
- * makes when its lease runs low. They are kept apart from `WorkforceEvent`, whose recorders write
+ * Event schema 16's coordination events (Lervo ADE coordination), and the existing events a claim
+ * reuses: the renewal it makes when its lease runs low, and the claim of a regenerated lease. They are kept apart from `WorkforceEvent`, whose recorders write
  * schema 1 envelopes: a recorder of these writes a schema 16 envelope, and a writer below 16 never
  * widens a lease.
  */
 export type ConversationLeaseEvent =
+  | {
+      type: "assignment.claimed";
+      occurredAt: string;
+      actorAgentId: string;
+      payload: {
+        assignmentId: string;
+        agentId: string;
+        leaseId: string;
+        generation: number;
+        expiresAt: string;
+        expectedPathDigest: string;
+        accessMode: "write";
+      };
+    }
   | {
       type: "assignment.lease.renewed";
       occurredAt: string;
@@ -42,6 +56,25 @@ export type ConversationLeaseEvent =
 export type ConversationLeaseEventRecorder = (
   event: ConversationLeaseEvent,
 ) => void | Promise<void>;
+
+/** `assignment.claimed`, unchanged: a conversation reacquired its lease with the next generation. */
+export function leaseClaimedEvent(next: WorkforceAssignment): ConversationLeaseEvent {
+  const lease = next.lease!;
+  return {
+    type: "assignment.claimed",
+    occurredAt: next.updatedAt,
+    actorAgentId: lease.agentId,
+    payload: {
+      assignmentId: next.assignmentId,
+      agentId: lease.agentId,
+      leaseId: lease.leaseId,
+      generation: lease.generation,
+      expiresAt: lease.expiresAt,
+      expectedPathDigest: digest(stableJson(next.expectedPaths)),
+      accessMode: "write",
+    },
+  };
+}
 
 /** `assignment.lease.renewed`, unchanged: a claim of held paths moved the expiry only. */
 export function leaseRenewedEvent(next: WorkforceAssignment): ConversationLeaseEvent {

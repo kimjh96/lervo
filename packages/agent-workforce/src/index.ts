@@ -83,6 +83,13 @@ export {
   conversationLeaseHolderWorkspaceIds,
 } from "./conversation-path-holders.js";
 export {
+  listConversationChangedPaths,
+  readConversationChangedPaths,
+  READ_CHANGED_PATHS_LIMIT,
+  recordConversationChangedPaths,
+  type ConversationChangedPaths,
+} from "./conversation-changed-paths.js";
+export {
   conversationWorkspaceRecordId,
   isConversationWorkspace,
   isSupersededCheckoutGeneration,

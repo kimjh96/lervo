@@ -12,6 +12,7 @@ import {
 } from "./workspace-launch-service.js";
 import { WorkspaceTranscripts } from "./workspace-transcript-service.js";
 import { recordHostedTurnUsage } from "./hosted-turn-usage-events.js";
+import { reconcileExitedSession } from "./conversation-turn-reconciliation.js";
 import { recordHostedSessionExit } from "./hosted-session-exit.js";
 import { retireHostedWorkspace } from "./hosted-workspace-retire.js";
 import { hostedWorkspaceRetireEffects } from "./hosted-workspace-retire-effects.js";
@@ -67,7 +68,14 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   readTranscript: (workspaceId, offset, limit) => transcripts.read(workspaceId, offset, limit),
   retireWorkspace: (workspaceId) =>
     retireHostedWorkspace(workspaceId, hostedWorkspaceRetireEffects()),
-  recordSessionExit: (sessionId, exitCode) => recordHostedSessionExit(sessionId, exitCode),
+  recordSessionExit: async (sessionId, exitCode) => {
+    try {
+      return await recordHostedSessionExit(sessionId, exitCode);
+    } finally {
+      // A crash runs no `Stop`, so the lead's exit reconciles its conversation's claims.
+      await reconcileExitedSession(sessionId);
+    }
+  },
   summarizeTurns: (arguments_) => summarizeWorkspaceTurns(arguments_),
   recordTurnUsage: (sessionId, accounting, usage) =>
     recordHostedTurnUsage(sessionId, accounting, usage),
