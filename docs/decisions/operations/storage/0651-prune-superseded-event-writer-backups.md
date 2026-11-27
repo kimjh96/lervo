@@ -25,11 +25,18 @@ On 2026-11-27 the Mac lervo checkout held nine backups, `schema-5` through `sche
 
 4. **`lervo upgrade` prunes, as a Lervo-managed stage.** The `event_writer_backup_retention` stage runs after the event writer stage and before `runtime_retention`, under the same resident exclusion. The plan lists each directory it would remove, with its bytes and the date it was superseded. It also lists each superseded backup it keeps, with the reason and, for the grace period, the date it becomes removable. A repository hold (ADR-0561) holds the stage as `owner_hold`.
 5. **The apply removes only what a fresh plan still names.** Each candidate must match the device and inode the plan bound. The apply checks the backup directory again before each removal. It renames the candidate to `.retired-schema-<n>-<uuid>`, then removes it. An interrupted removal never leaves a damaged `schema-<n>`. The next plan lists the `.retired-*` directory, and its apply removes it. Removal unlinks links and never follows them. Entries that are neither `schema-<n>` nor `.retired-schema-<n>-<uuid>`, such as an activation's `.preparing-*` directory, are never touched. Nothing outside the backup directory is touched.
-6. **The receipt reports what went.** When the stage removes anything, `appliedStages` names `event_writer_backup_retention`. `eventWriterBackupRetention` in the receipt lists the removed directories and the bytes reclaimed.
+6. **A failed removal never fails the upgrade.** Retention is housekeeping, and the fleet's upgrade loop must still settle. The first removal that fails stops the stage, and nothing is thrown. A directory already renamed aside stays as a `.retired-*` leftover for the next run. Every other stage proceeds, including `runtime_retention`. The receipt records the failure in three places:
+   - `skippedStages` names the stage with reason `event_writer_backup_retention_failed`;
+   - `eventWriterBackupRetention.failure` gives the directory and the error code;
+   - `pending` holds the stage as `lervo_debt` with the same reason.
+
+   The final plan holds the stage the same way, so the receipt's status is not `ready` and the follower does not loop on it. The next upgrade plans the removal again.
+
+7. **The receipt reports what went.** When the stage removes anything, `appliedStages` names `event_writer_backup_retention`. `eventWriterBackupRetention` in the receipt lists the removed directories and the bytes reclaimed.
 
 ### Event and state
 
-The stage records no event. Its plan state, `stages.eventWriterBackupRetention`, has these fields: `disposition`, `reason`, `selectedSchemaVersion`, `rollbackPoint`, `candidates` (`name`, `identity`, `bytes`, `supersededAt`), `retained` (`name`, `reason`, `until`), `reclaimableBytes`, and `gracePeriodDays`. It holds repository-relative names, sizes, dates and inode numbers, never event content. `deferred` means every backup stays and the stage does not count toward the upgrade's status. `current` means nothing is removable now.
+The stage records no event. Its plan state, `stages.eventWriterBackupRetention`, has these fields: `disposition`, `reason`, `selectedSchemaVersion`, `rollbackPoint`, `candidates` (`name`, `identity`, `bytes`, `supersededAt`), `retained` (`name`, `reason`, `until`), `reclaimableBytes`, and `gracePeriodDays`. It holds repository-relative names, sizes, dates and inode numbers, never event content. `deferred` means every backup stays and the stage does not count toward the upgrade's status. `current` means nothing is removable now. `lervo_debt` with `event_writer_backup_retention_failed` appears only in the final plan of an apply whose removal failed; `owner_hold` appears under a repository hold.
 
 ## Consequences
 

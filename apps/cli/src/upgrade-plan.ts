@@ -10,6 +10,7 @@ import { readRepositoryHold } from "@lervo/repository-registry";
 
 import {
   planEventWriterBackupRetention,
+  type EventWriterBackupRetentionOutcome,
   type EventWriterBackupRetentionPlan,
 } from "./event-writer-backup-retention.js";
 import {
@@ -161,6 +162,30 @@ async function eventWriterStage(
     observationHash: null,
     blockers: [],
   };
+}
+
+/**
+ * ADR-0651: after a removal failed in this apply, the final plan holds the stage as Lervo debt
+ * instead of `safe_apply`, so the receipt settles and the next pass retries the removal.
+ */
+export function holdFailedBackupRetention(
+  plan: RepositoryUpgradePlan,
+  outcome: EventWriterBackupRetentionOutcome | null,
+): RepositoryUpgradePlan {
+  if (outcome?.failure === undefined) return plan;
+  const stages: RepositoryUpgradePlan["stages"] = {
+    ...plan.stages,
+    eventWriterBackupRetention: {
+      ...plan.stages.eventWriterBackupRetention,
+      disposition: "lervo_debt",
+      reason: outcome.failure.code,
+    },
+  };
+  const status = overallUpgradeStatus(Object.values(stages).map((stage) => stage.disposition));
+  const applicableStages = plan.applicableStages.filter(
+    (stage) => stage !== "event_writer_backup_retention",
+  );
+  return { ...plan, stages, status, applicableStages };
 }
 
 /**

@@ -27,6 +27,7 @@ import type { UpgradeHost } from "./upgrade-host.js";
 import { applyRegisteredNodeUpgrade, inspectRegisteredNodeUpgrade } from "./upgrade-node.js";
 import {
   createRepositoryUpgradePlan,
+  holdFailedBackupRetention,
   knowledgeStageRefusedByMarker,
   type RepositoryUpgradePlan,
 } from "./upgrade-plan.js";
@@ -81,21 +82,31 @@ export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pend
 
 /**
  * ADR-0651 and ADR-0534: the retention stages run last, after every stage that could write a new
- * backup or runtime, and each removes only what a fresh plan still names.
+ * backup or runtime, and each removes only what a fresh plan still names. A failed backup removal
+ * is skipped and held as Lervo debt; it never fails the upgrade or stops runtime retention.
  */
 async function applyRetentionStages(
   approved: RepositoryUpgradePlan,
   host: UpgradeHost,
-  confirmExclusion: (nextStage: UpgradeStageName | null) => Promise<void>,
-  clock: UpgradeStageClock,
-  appliedStages: string[],
+  run: {
+    confirmExclusion: (nextStage: UpgradeStageName | null) => Promise<void>;
+    clock: UpgradeStageClock;
+    appliedStages: string[];
+    skippedStages: UpgradeReceipt["skippedStages"];
+  },
 ): Promise<EventWriterBackupRetentionOutcome | null> {
+  const { confirmExclusion, clock, appliedStages } = run;
   await confirmExclusion("event_writer_backup_retention");
   const backups = await applyEventWriterBackupRetention(
     approved.repositoryRoot,
     approved.stages.eventWriterBackupRetention,
   );
   if (backups.removed.length) appliedStages.push("event_writer_backup_retention");
+  if (backups.failure !== undefined)
+    run.skippedStages.push({
+      stage: "event_writer_backup_retention",
+      reason: backups.failure.code,
+    });
   clock.lap("event_writer_backup_retention");
   await confirmExclusion("runtime_retention");
   if (await applyNodeRuntimeRetention(approved.stages.runtimeRetention, host.runtimeRetention))
@@ -103,7 +114,7 @@ async function applyRetentionStages(
   // A holder that still holds was never replaced, so every stage ran under the exclusion.
   await confirmExclusion(null);
   clock.lap("runtime_retention");
-  return backups.removed.length ? backups : null;
+  return backups.removed.length || backups.failure !== undefined ? backups : null;
 }
 
 /**
@@ -349,18 +360,17 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("replica_service");
 
-  const backups = await applyRetentionStages(
-    approved,
-    host,
+  const backups = await applyRetentionStages(approved, host, {
     confirmExclusion,
     clock,
     appliedStages,
-  );
+    skippedStages,
+  });
 
   await journalUnrecordedNotices(approved, notices);
 
   const final = await materialization.run(
-    () => createRepositoryUpgradePlan(root, host),
+    async () => holdFailedBackupRetention(await createRepositoryUpgradePlan(root, host), backups),
     knowledgeStageRefusedByMarker,
   );
   clock.lap("final_plan");

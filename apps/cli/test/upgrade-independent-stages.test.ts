@@ -1,10 +1,12 @@
 import { mkdtempSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { activateLocalEventWriter } from "../src/event-writer-activation-stage.js";
+import { collectEventReaderActivationEvidence } from "../src/event-reader-inventory.js";
 import { runCli as runUnisolatedCli } from "../src/main.js";
 import {
   applyTerminalIntegrationStage,
@@ -25,10 +27,13 @@ const isolatedAdmission = {
 };
 
 const roots: string[] = [];
+const lockedDirectories: string[] = [];
 const runtimePath = ".lervo/generated/terminal-hooks/runtime-v2.mjs";
 
 afterEach(async () => {
   vi.restoreAllMocks();
+  for (const directory of lockedDirectories.splice(0))
+    await chmod(directory, 0o700).catch(() => undefined);
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -222,4 +227,95 @@ describe("lervo upgrade with a blocked stage", () => {
     });
     expect(knowledge.issues.map((issue) => issue.code)).not.toContain("repository_layout_blocked");
   }, 30_000);
+});
+
+/** A backup laid out as `createEventWriterActivationBackup` writes it, `daysAgo` days old. */
+async function eventWriterBackup(root: string, version: number, daysAgo: number): Promise<string> {
+  const directory = resolve(root, ".lervo/data/event-writer-backups", `schema-${version}`);
+  await mkdir(directory, { recursive: true });
+  await writeFile(
+    resolve(directory, "events.sqlite"),
+    Buffer.concat([Buffer.from("SQLite format 3\0", "latin1"), Buffer.alloc(64)]),
+  );
+  await writeFile(resolve(directory, "event-contract.json"), "{}\n");
+  await writeFile(
+    resolve(directory, "backup.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      kind: "event_writer_activation_backup",
+      createdAt: new Date(Date.now() - daysAgo * 86_400_000).toISOString(),
+      planId: `ewa_${version}`,
+      targetEventSchemaVersion: version,
+      eventDatabase: "copied",
+      coordinate: "copied",
+    }),
+  );
+  return directory;
+}
+
+describe("lervo upgrade when event writer backup retention fails (ADR-0651)", () => {
+  it("applies every other stage and holds the failed removal as Lervo debt", async () => {
+    const root = await repositoryWithInstalledTerminalHooks();
+    await writeFile(resolve(root, runtimePath), "#!/usr/bin/env node\n// stale runtime\n");
+    vi.spyOn(terminalRuntime, "hostTerminalHookReaderCurrent").mockResolvedValue(true);
+    // The activation writes the rollback point, schema-16, and selects 16.
+    expect(
+      await activateLocalEventWriter(root, {
+        collectEvidence: collectEventReaderActivationEvidence,
+        hookReader: async () => "current",
+        now: () => new Date(),
+      }),
+    ).toMatchObject({ status: "activated" });
+    // schema-8 superseded schema-5 30 days ago; schema-16 superseded schema-8 just now.
+    const superseded = await eventWriterBackup(root, 5, 60);
+    await eventWriterBackup(root, 8, 30);
+    // Without write permission inside it, the rename aside succeeds and the removal fails.
+    await chmod(superseded, 0o500);
+    lockedDirectories.push(superseded);
+
+    const output: string[] = [];
+    const errors: string[] = [];
+    await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission);
+    expect(errors).toEqual([]);
+    const receipt = JSON.parse(output.join("")) as {
+      status: string;
+      appliedStages: string[];
+      skippedStages: Array<{ stage: string; reason: string }>;
+      eventWriterBackupRetention: { removed: string[]; failure: { code: string; name: string } };
+      pending: Array<{ stage: string; disposition: string; reason: string }>;
+    };
+    expect(receipt.appliedStages).toContain("terminal_integration");
+    expect(receipt.appliedStages).not.toContain("event_writer_backup_retention");
+    expect(receipt.skippedStages).toContainEqual({
+      stage: "event_writer_backup_retention",
+      reason: "event_writer_backup_retention_failed",
+    });
+    expect(receipt.eventWriterBackupRetention).toMatchObject({
+      removed: [],
+      failure: { code: "event_writer_backup_retention_failed" },
+    });
+    expect(receipt.pending).toContainEqual(
+      expect.objectContaining({
+        stage: "event_writer_backup_retention",
+        disposition: "lervo_debt",
+        reason: "event_writer_backup_retention_failed",
+      }),
+    );
+    expect(receipt.status).not.toBe("ready");
+    const leftovers = (await readdir(resolve(root, ".lervo/data/event-writer-backups"))).filter(
+      (name) => name.startsWith(".retired-"),
+    );
+    expect(leftovers).toHaveLength(1);
+    const leftover = resolve(root, ".lervo/data/event-writer-backups", leftovers[0]!);
+    lockedDirectories.push(leftover);
+
+    // Once the removal can proceed, the next upgrade finishes the leftover.
+    await chmod(leftover, 0o700);
+    output.length = 0;
+    await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission);
+    expect(JSON.parse(output.join(""))).toMatchObject({
+      appliedStages: expect.arrayContaining(["event_writer_backup_retention"]),
+      eventWriterBackupRetention: { removed: [leftovers[0]] },
+    });
+  }, 60_000);
 });

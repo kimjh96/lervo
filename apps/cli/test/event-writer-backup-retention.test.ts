@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -9,7 +9,10 @@ import {
   planEventWriterBackupRetention,
   type EventWriterBackupRetentionPorts,
 } from "../src/event-writer-backup-retention.js";
-import { eventWriterBackupRetentionLines } from "../src/event-writer-backup-retention-format.js";
+import {
+  eventWriterBackupRetentionLines,
+  eventWriterBackupRetentionReceiptLines,
+} from "../src/event-writer-backup-retention-format.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -233,5 +236,47 @@ describe("event writer backup retention (ADR-0651)", () => {
     ]);
     await applyEventWriterBackupRetention(root, resumed, ports(16));
     expect(await names(root)).toEqual([".preparing-activation", "schema-16"]);
+  });
+
+  it("returns a failed removal instead of throwing, and leaves the leftover for the next run", async () => {
+    const root = await repository();
+    await backup(root, 5, 60);
+    await backup(root, 8, 30);
+    await backup(root, 16, 1);
+    await chmod(backups(root, "schema-5"), 0o500);
+    try {
+      const plan = await planEventWriterBackupRetention(root, ports(16));
+      expect(await applyEventWriterBackupRetention(root, plan, ports(16))).toEqual({
+        removed: [],
+        reclaimedBytes: 0,
+        failure: {
+          code: "event_writer_backup_retention_failed",
+          name: "schema-5",
+          errorCode: "EACCES",
+        },
+      });
+    } finally {
+      for (const name of await names(root)) await chmod(backups(root, name), 0o700);
+    }
+    const leftover = (await names(root)).find((name) => name.startsWith(".retired-schema-5-"));
+    expect(leftover).toBeDefined();
+    expect(
+      eventWriterBackupRetentionReceiptLines({
+        removed: [],
+        reclaimedBytes: 0,
+        failure: {
+          code: "event_writer_backup_retention_failed",
+          name: "schema-5",
+          errorCode: "EACCES",
+        },
+      }),
+    ).toEqual([
+      "event writer backup removal failed: schema-5 (EACCES); held as Lervo debt (event_writer_backup_retention_failed) and retried by the next upgrade",
+    ]);
+    const resumed = await planEventWriterBackupRetention(root, ports(16));
+    expect(resumed.candidates.map((item) => item.name)).toEqual([leftover]);
+    expect((await applyEventWriterBackupRetention(root, resumed, ports(16))).removed).toEqual([
+      leftover,
+    ]);
   });
 });

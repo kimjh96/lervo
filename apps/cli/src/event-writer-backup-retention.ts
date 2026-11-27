@@ -34,6 +34,7 @@ export interface EventWriterBackupRetentionPlan {
     | "event_writer_backup_root_unsafe"
     | "event_writer_backup_rollback_observed"
     | "event_writer_backup_rollback_point_unverified"
+    | "event_writer_backup_retention_failed"
     | "owner_hold";
   selectedSchemaVersion: number | null;
   /** Repository-relative directory of the selected version's backup, which always stays. */
@@ -58,6 +59,15 @@ export const defaultEventWriterBackupRetentionPorts: EventWriterBackupRetentionP
 export interface EventWriterBackupRetentionOutcome {
   removed: string[];
   reclaimedBytes: number;
+  /**
+   * The first removal that failed; the apply stops there. A partly removed directory stays as a
+   * `.retired-*` leftover that the next plan names, and the upgrade holds the stage as Lervo debt.
+   */
+  failure?: {
+    code: "event_writer_backup_retention_failed";
+    name: string;
+    errorCode: string | null;
+  };
 }
 
 function keepAll(
@@ -136,7 +146,8 @@ export async function planEventWriterBackupRetention(
  * Removes only the approved candidates that a fresh plan still names with the same identity. A
  * candidate is renamed aside before its files go, so an interrupted removal leaves a
  * `.retired-*` directory the next pass removes instead of a damaged `schema-<n>`. `rm` unlinks a
- * link it meets and never follows it.
+ * link it meets and never follows it. A failed removal stops the apply and is returned, never
+ * thrown: retention is housekeeping and must not fail the upgrade.
  */
 export async function applyEventWriterBackupRetention(
   repositoryRoot: string,
@@ -147,29 +158,50 @@ export async function applyEventWriterBackupRetention(
   if (approved.disposition !== "safe_apply") return outcome;
   const current = await planEventWriterBackupRetention(repositoryRoot, ports);
   if (current.disposition !== "safe_apply") return outcome;
-  const directory = resolve(repositoryRoot, EVENT_WRITER_BACKUP_DIRECTORY);
   for (const item of approved.candidates) {
-    const confirmed = current.candidates.find(
-      (candidate) => candidate.name === item.name && candidate.identity === item.identity,
-    );
-    if (confirmed === undefined) continue;
-    if ((await eventWriterBackupRoot(repositoryRoot)) !== "directory") break;
-    const path = resolve(directory, item.name);
-    const info = await lstat(path).catch(() => null);
-    if (
-      info === null ||
-      info.isSymbolicLink() ||
-      !info.isDirectory() ||
-      `${info.dev}:${info.ino}` !== item.identity
-    )
-      continue;
-    const retired = item.name.startsWith(".retired-")
-      ? path
-      : resolve(directory, `.retired-${item.name}-${randomUUID()}`);
-    if (retired !== path) await rename(path, retired);
-    await rm(retired, { recursive: true, force: true });
-    outcome.removed.push(item.name);
-    outcome.reclaimedBytes += confirmed.bytes;
+    try {
+      const bytes = await removeConfirmedCandidate(repositoryRoot, item, current);
+      if (bytes === null) continue;
+      outcome.removed.push(item.name);
+      outcome.reclaimedBytes += bytes;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException | null)?.code;
+      outcome.failure = {
+        code: "event_writer_backup_retention_failed",
+        name: item.name,
+        errorCode: typeof code === "string" ? code : null,
+      };
+      break;
+    }
   }
   return outcome;
+}
+
+/** Removes one approved candidate the fresh plan still names; null when it no longer applies. */
+async function removeConfirmedCandidate(
+  repositoryRoot: string,
+  item: EventWriterBackupRetentionCandidate,
+  current: EventWriterBackupRetentionPlan,
+): Promise<number | null> {
+  const confirmed = current.candidates.find(
+    (candidate) => candidate.name === item.name && candidate.identity === item.identity,
+  );
+  if (confirmed === undefined) return null;
+  if ((await eventWriterBackupRoot(repositoryRoot)) !== "directory") return null;
+  const directory = resolve(repositoryRoot, EVENT_WRITER_BACKUP_DIRECTORY);
+  const path = resolve(directory, item.name);
+  const info = await lstat(path).catch(() => null);
+  if (
+    info === null ||
+    info.isSymbolicLink() ||
+    !info.isDirectory() ||
+    `${info.dev}:${info.ino}` !== item.identity
+  )
+    return null;
+  const retired = item.name.startsWith(".retired-")
+    ? path
+    : resolve(directory, `.retired-${item.name}-${randomUUID()}`);
+  if (retired !== path) await rename(path, retired);
+  await rm(retired, { recursive: true, force: true });
+  return confirmed.bytes;
 }
