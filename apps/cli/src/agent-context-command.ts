@@ -1,19 +1,19 @@
-import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import {
-  organizationIdentityHash,
-  agentContextReviewAttests,
-  projectAgentContextFromEventSource,
-} from "@lervo/agent-organization";
-import { listAgents, type WorkforceAgent } from "@lervo/agent-workforce";
-import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
-import type {
-  AgentContextHandoffRecordedEventPayload,
-  AgentContextPromotedEventPayload,
-} from "@lervo/schemas";
+import { listAgents } from "@lervo/agent-workforce";
+import { openProjectStorage } from "@lervo/project-storage";
+import type { AgentContextHandoffRecordedEventPayload } from "@lervo/schemas";
 
+import {
+  activeAgent,
+  type AgentContextPromotion,
+  appendContextEvent,
+  artifactId,
+  contextCoordinate,
+  contextProjection,
+  promoteAgentContext,
+} from "./agent-context-promotion.js";
 import { mutateAgentOrganization } from "./agent-organization-mutation.js";
 import type { CliIo } from "./types.js";
 
@@ -22,56 +22,6 @@ export const agentContextUsage = [
   "  lervo agent context promote --agent <agent-id> --layer <work|relationship|expertise> --kind <memory-kind> --subject <key> --retrieval-term <term> --source-kind <event|artifact> --source-id <id> --source-hash <sha256> --review-event <event-id> --summary-stdin [--confidence <medium|high>] [--sensitivity <internal|restricted>] [--observed-at <time>] [--expires-at <time>] [--supersedes <entry-id>] --write [--root <path>] [--json]",
   "  lervo agent context handoff --from-agent <id> --to-agent <id> --entry <context-entry-id> --write [--root <path>] [--json]",
 ].join("\n");
-
-function artifactId(contentHash: string): string {
-  return `art_${contentHash.slice("sha256:".length)}`;
-}
-
-function coordinate(prefix: "actx" | "ach", value: unknown): string {
-  const start = "sha256:".length;
-  return `${prefix}_${organizationIdentityHash(value).slice(start, start + 24)}`;
-}
-
-function appendContextEvent(
-  storage: ProjectStorage,
-  type: "agent.context.promoted" | "agent.context.handoff.recorded",
-  payload: AgentContextPromotedEventPayload | AgentContextHandoffRecordedEventPayload,
-): void {
-  const identity = organizationIdentityHash({ type, payload }).slice("sha256:".length, 40);
-  const draft = {
-    eventId: `evt_${identity}`,
-    projectId: storage.manifest.projectId,
-    runId: `run_${identity}`,
-    sessionId: `ses_${identity}`,
-    type,
-    occurredAt: "promotedAt" in payload ? payload.promotedAt : payload.recordedAt,
-    actor: { kind: "system" as const },
-    policyVersion: organizationIdentityHash({ contract: "agent-context", version: 1 }),
-    payload,
-  };
-  storage.events.append(
-    (storage.writableEventSchemaVersion ?? 1) >= 2
-      ? { ...draft, schemaVersion: 2 }
-      : { ...draft, schemaVersion: 1 },
-  );
-}
-
-function activeAgent(agents: readonly WorkforceAgent[], agentId: string): WorkforceAgent {
-  const agent = agents.find((candidate) => candidate.agentId === agentId);
-  if (agent === undefined || agent.status !== "active") {
-    throw new Error("Agent context mutation requires an active hired agent.");
-  }
-  return agent;
-}
-
-function projection(storage: ProjectStorage, agents: readonly WorkforceAgent[], agentId: string) {
-  return projectAgentContextFromEventSource({
-    projectId: storage.manifest.projectId,
-    agentId,
-    agents,
-    events: storage.events,
-  });
-}
 
 function output(io: CliIo, value: unknown, json: boolean | undefined, message: string): void {
   io.stdout(json ? `${JSON.stringify(value, null, 2)}\n` : `${message}\n`);
@@ -120,7 +70,7 @@ export async function runAgentContextCommand(args: string[], io: CliIo): Promise
     }
     const storage = await openProjectStorage(root);
     try {
-      const current = projection(storage, await listAgents(root), parsed.values.agent);
+      const current = contextProjection(storage, await listAgents(root), parsed.values.agent);
       output(
         io,
         current,
@@ -174,113 +124,28 @@ export async function runAgentContextCommand(args: string[], io: CliIo): Promise
       );
     }
     if (io.stdin === undefined) throw new Error("Agent context promotion requires stdin support.");
-    const summary = await io.stdin();
-    if (summary.trim().length === 0 || Buffer.byteLength(summary) > 32_768) {
-      throw new Error("The agent context summary is empty or exceeds 32 KiB.");
-    }
-    const result = await mutateAgentOrganization(root, async (storage) => {
-      const agents = await listAgents(root);
-      activeAgent(agents, parsed.values.agent!);
-      const current = projection(storage, agents, parsed.values.agent!);
-      const review = storage.events.get(reviewEventId);
-      if (sourceKind === "event") {
-        const source = storage.events.get(sourceId);
-        if (source === null || source.eventHash !== sourceHash) {
-          throw new Error("The context source event and hash do not match.");
-        }
-      } else {
-        if (sourceId !== artifactId(sourceHash!)) {
-          throw new Error("The context source artifact ID and hash do not match.");
-        }
-        if (!(await storage.artifacts.has(`lervo-cas://sha256/${sourceHash!.slice(7)}`))) {
-          throw new Error("The context source artifact does not exist.");
-        }
-      }
-      const summaryContentHash = `sha256:${createHash("sha256").update(summary).digest("hex")}`;
-      if (
-        review === null ||
-        !agentContextReviewAttests({
-          review,
-          summaryContentHash,
-          agentId: parsed.values.agent!,
-        })
-      ) {
-        throw new Error("The review does not attest the exact context summary and agent.");
-      }
-      const promotedAt = new Date().toISOString();
-      const observedAt = parsed.values["observed-at"] ?? promotedAt;
-      const expiresAt = parsed.values["expires-at"] ?? null;
-      if (
-        !Number.isFinite(Date.parse(observedAt)) ||
-        Date.parse(observedAt) > Date.parse(promotedAt) ||
-        (expiresAt !== null &&
-          (!Number.isFinite(Date.parse(expiresAt)) ||
-            Date.parse(expiresAt) <= Date.parse(observedAt)))
-      ) {
-        throw new Error("The context observation, expiry, and promotion times are inconsistent.");
-      }
-      const superseded =
-        parsed.values.supersedes === undefined
-          ? undefined
-          : current.entries.find(
-              (entry) =>
-                entry.contextEntryId === parsed.values.supersedes && entry.status === "active",
-            );
-      if (
-        (parsed.values.supersedes !== undefined &&
-          (superseded === undefined || superseded.layer !== layer)) ||
-        current.entries.some(
-          (entry) =>
-            entry.status === "active" &&
-            entry.layer === layer &&
-            entry.subjectKey === subjectKey &&
-            entry.contextEntryId !== parsed.values.supersedes,
-        )
-      ) {
-        throw new Error("The context subject requires one exact same-layer supersession.");
-      }
-      const retrievalDigests = [
-        ...new Set(
-          retrievalTerms.map(
-            (term) =>
-              `sha256:${createHash("sha256")
-                .update(term.normalize("NFKC").toLocaleLowerCase("en-US"))
-                .digest("hex")}`,
-          ),
-        ),
-      ].sort();
-      const artifact = await storage.artifacts.put(summary);
-      const content = {
-        agentId: parsed.values.agent!,
-        layer: layer as AgentContextPromotedEventPayload["layer"],
-        memoryKind: memoryKind as NonNullable<AgentContextPromotedEventPayload["memoryKind"]>,
-        subjectKey,
-        audience: "agent" as const,
-        sensitivity: sensitivity as NonNullable<AgentContextPromotedEventPayload["sensitivity"]>,
-        confidence: confidence as NonNullable<AgentContextPromotedEventPayload["confidence"]>,
-        retrievalDigests,
-        observedAt,
-        expiresAt,
-        reviewBindingVersion: 2 as const,
-        source: {
-          kind: sourceKind as AgentContextPromotedEventPayload["source"]["kind"],
-          sourceId,
-          contentHash: sourceHash!,
-        },
-        summaryArtifactId: artifactId(artifact.contentHash),
-        summaryContentHash: artifact.contentHash,
-        summaryByteCount: artifact.byteCount,
-        reviewEventId,
-        reviewEventHash: review.eventHash,
-        supersedesContextEntryId: parsed.values.supersedes ?? null,
-        promotedAt,
-      };
-      const payload: AgentContextPromotedEventPayload = {
-        contextEntryId: coordinate("actx", content),
-        ...content,
-      };
-      appendContextEvent(storage, "agent.context.promoted", payload);
-      return projection(storage, agents, parsed.values.agent!);
+    const result = await promoteAgentContext(root, {
+      agentId: parsed.values.agent,
+      layer: layer as AgentContextPromotion["layer"],
+      memoryKind: memoryKind as AgentContextPromotion["memoryKind"],
+      subjectKey,
+      retrievalTerms,
+      confidence: confidence as AgentContextPromotion["confidence"],
+      sensitivity: sensitivity as AgentContextPromotion["sensitivity"],
+      source: {
+        kind: sourceKind as AgentContextPromotion["source"]["kind"],
+        sourceId,
+        contentHash: sourceHash!,
+      },
+      reviewEventId,
+      summary: await io.stdin(),
+      ...(parsed.values["observed-at"] === undefined
+        ? {}
+        : { observedAt: parsed.values["observed-at"] }),
+      ...(parsed.values["expires-at"] === undefined
+        ? {}
+        : { expiresAt: parsed.values["expires-at"] }),
+      ...(parsed.values.supersedes === undefined ? {} : { supersedes: parsed.values.supersedes }),
     });
     output(io, result, parsed.values.json, `Promoted context for ${parsed.values.agent}.`);
     return 0;
@@ -302,7 +167,7 @@ export async function runAgentContextCommand(args: string[], io: CliIo): Promise
     const result = await mutateAgentOrganization(root, async (storage) => {
       const agents = await listAgents(root);
       activeAgent(agents, toAgentId);
-      const source = projection(storage, agents, fromAgentId);
+      const source = contextProjection(storage, agents, fromAgentId);
       if (
         contextEntryIds.some(
           (entryId) => !source.entries.some((entry) => entry.contextEntryId === entryId),
@@ -323,11 +188,11 @@ export async function runAgentContextCommand(args: string[], io: CliIo): Promise
         recordedAt,
       };
       const payload: AgentContextHandoffRecordedEventPayload = {
-        contextHandoffId: coordinate("ach", content),
+        contextHandoffId: contextCoordinate("ach", content),
         ...content,
       };
-      appendContextEvent(storage, "agent.context.handoff.recorded", payload);
-      return projection(storage, agents, toAgentId);
+      appendContextEvent(storage, "agent.context.handoff.recorded", payload, recordedAt);
+      return contextProjection(storage, agents, toAgentId);
     });
     output(io, result, parsed.values.json, `Handed context to ${toAgentId}.`);
     return 0;
