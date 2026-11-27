@@ -99,12 +99,11 @@ async function receipt(root: string, ciel: string, elio: string) {
 const note = (
   ciel: string,
   receiptOf: { eventId: string; eventHash: string },
-  topic = "retries",
 ): AgentContextPromotion => ({
   agentId: ciel,
   layer: "work",
   memoryKind: "conversation_note",
-  subjectKey: conversationNoteSubject(WORKSPACE, topic),
+  subjectKey: conversationNoteSubject(WORKSPACE, mentionIdOf("dlv_1")),
   retrievalTerms: ["retries"],
   confidence: "medium",
   sensitivity: "internal",
@@ -122,13 +121,34 @@ describe("promoting a conversation note", () => {
     expect(context.entries).toEqual([
       expect.objectContaining({ memoryKind: "conversation_note", confidence: "medium" }),
     ]);
-    await expect(promoteAgentContext(root, note(ciel, attested, "budget"))).rejects.toThrow(
-      "A delivery's receipt attests one conversation note.",
-    );
+    // Superseding the first note does not let its receipt attest a second one.
+    await expect(
+      promoteAgentContext(root, {
+        ...note(ciel, attested),
+        supersedes: context.entries[0]!.contextEntryId,
+      }),
+    ).rejects.toThrow("A delivery's receipt attests one conversation note.");
     // The receipt names Ciel, so it attests no note of Elio's.
-    await expect(promoteAgentContext(root, note(elio, attested, "other"))).rejects.toThrow(
+    await expect(promoteAgentContext(root, note(elio, attested))).rejects.toThrow(
       "The review does not attest the exact context summary and agent.",
     );
+  });
+
+  it("appends nothing the agent's projection would refuse", async () => {
+    const { root, ciel, elio } = await project(16);
+    const attested = await receipt(root, ciel, elio);
+    // The receipt attests it, but a note longer than 2,048 bytes is not self-reported memory.
+    await expect(
+      promoteAgentContext(root, { ...note(ciel, attested), summary: "word ".repeat(600) }),
+    ).rejects.toThrow("The review does not attest the exact context summary and agent.");
+    const storage = await openProjectStorage(root);
+    try {
+      expect(storage.events.list().some((event) => event.type === "agent.context.promoted")).toBe(
+        false,
+      );
+    } finally {
+      await storage.close();
+    }
   });
 
   it("records no note below event schema 16", async () => {

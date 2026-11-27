@@ -82,10 +82,7 @@ export async function writeConversationNote(
         agentId: note.agentId,
         layer: "work",
         memoryKind: "conversation_note",
-        subjectKey: conversationNoteSubject(
-          note.workspaceId,
-          note.mentionId.slice("mnt_".length, "mnt_".length + 12),
-        ),
+        subjectKey: conversationNoteSubject(note.workspaceId, note.mentionId),
         retrievalTerms: ["conversation note"],
         confidence: "medium",
         sensitivity: "internal",

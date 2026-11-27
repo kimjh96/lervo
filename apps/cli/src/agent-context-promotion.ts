@@ -8,7 +8,9 @@ import {
   agentContextReviewAttests,
   conversationNoteAttested,
   organizationIdentityHash,
+  projectAgentContext,
   projectAgentContextFromEventSource,
+  readAgentContextEventSource,
 } from "@lervo/agent-organization";
 import { listAgents, type WorkforceAgent } from "@lervo/agent-workforce";
 import { coordinationEventSchemaVersion } from "@lervo/event-contract";
@@ -222,13 +224,17 @@ export async function promoteAgentContext(root: string, input: AgentContextPromo
       contextEntryId: contextCoordinate("actx", content),
       ...content,
     };
+    // The promotion as it would be recorded next, so the projection's own rules judge it.
+    const source = readAgentContextEventSource(storage.events);
+    const pending = {
+      projectId: storage.manifest.projectId,
+      seq: source.throughSeq + 1,
+      type: "agent.context.promoted",
+      payload,
+    };
     const attested =
       input.memoryKind === "conversation_note"
-        ? conversationNoteAttested(
-            payload,
-            review,
-            (eventId) => storage.events.get(eventId) ?? undefined,
-          )
+        ? conversationNoteAttested(payload, pending, review, source.lookupEvent)
         : agentContextReviewAttests({
             review,
             summaryContentHash: artifact.contentHash,
@@ -236,6 +242,16 @@ export async function promoteAgentContext(root: string, input: AgentContextPromo
           });
     if (!attested)
       throw new Error("The review does not attest the exact context summary and agent.");
+    // ADR-0648: append only what the agent's projection accepts, with nothing awaited between the
+    // check and the append, under the organization's mutation lock. A refused entry would
+    // otherwise fail the agent's whole context.
+    projectAgentContext({
+      projectId: storage.manifest.projectId,
+      agentId: input.agentId,
+      agents,
+      events: [...source.events, pending],
+      lookupEvent: source.lookupEvent,
+    });
     appendContextEvent(storage, "agent.context.promoted", payload, promotedAt);
     return contextProjection(storage, agents, input.agentId);
   });
