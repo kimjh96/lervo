@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_79b76d884d5afe9ebfd49130"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "The first run greets with the Lervo mark and Welcome to Lervo on the whole window, offers Open Folder, Clone Repository, and New Project as one group, and folds the empty sidebar away; it no longer shows the usual start screen first when the projects were removed outside the ADE."

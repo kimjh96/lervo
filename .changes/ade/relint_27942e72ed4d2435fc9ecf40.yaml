@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_27942e72ed4d2435fc9ecf40"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Removing a conversation's workspace also stops the sessions of agents that joined it, which made the core refuse with a process still running in the workspace."
