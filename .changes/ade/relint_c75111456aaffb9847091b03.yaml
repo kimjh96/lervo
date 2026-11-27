@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c75111456aaffb9847091b03"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "An agent's question shows its options on a card in the conversation: choose one, or several where allowed, and the answer goes to the agent, or reply in your own words instead."

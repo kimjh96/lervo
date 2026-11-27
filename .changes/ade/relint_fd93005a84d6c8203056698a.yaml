@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fd93005a84d6c8203056698a"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "The reply card's @ offers the conversation's agents, then the rest of the team, above the card; mentions in the field show as pills; the working line names each working agent in a conversation of several."

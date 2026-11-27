@@ -1,8 +1,8 @@
 {
   "name": "@lervo/ade",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "engines": {
-    "lervo": ">=0.43.0"
+    "lervo": ">=0.63.0"
   },
   "private": true,
   "type": "module",

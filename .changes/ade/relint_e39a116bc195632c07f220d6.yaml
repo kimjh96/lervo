@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e39a116bc195632c07f220d6"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Give an agent an image from its profile: press its mark to choose one; the image shows in the sidebar, the conversation's header, speaker lines, and mention suggestions."

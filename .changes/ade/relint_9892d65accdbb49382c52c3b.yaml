@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9892d65accdbb49382c52c3b"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Conversations nobody has open stop their agent's process after ten idle minutes, saving about 150 MB each, and resume where they were when opened again."

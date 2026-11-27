@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6c08a2a0de31683071ee3ac8"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "New work whose coordination the core could not set up says so in one Lervo line, with the failed step's code."
