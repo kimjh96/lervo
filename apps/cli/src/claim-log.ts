@@ -206,6 +206,22 @@ export class ClaimLog {
     return this.since(sessionId, "refused", since);
   }
 
+  /**
+   * A conversation's claims that reconciliation left `unresolved`, oldest first, so the next
+   * reconciliation can try each again and move it to `resolved`. At most the conversation's kept
+   * entries, so the answer is bounded.
+   */
+  unresolvedOf(workspaceId: string): ClaimLogEntry[] {
+    return (
+      this.database
+        .prepare(
+          `SELECT * FROM claims WHERE workspace_id = ? AND state = 'unresolved'
+           ORDER BY created_at, rowid`,
+        )
+        .all(workspaceId) as unknown as Row[]
+    ).map(entryOf);
+  }
+
   private since(sessionId: string, state: ClaimLogState, since: string): ClaimLogEntry[] {
     return (
       this.database
