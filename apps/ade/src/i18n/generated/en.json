@@ -73,6 +73,12 @@
       "value": "Hired when the work starts"
     }
   ],
+  "agents.profile.changed": [
+    {
+      "type": 0,
+      "value": "Changed, not yet sealed"
+    }
+  ],
   "agents.profile.conversations": [
     {
       "type": 0,

@@ -123,6 +123,17 @@ export async function latestHostedLaunchOfAgent(
   return (await readRecords(path)).findLast((record) => record.agentId === agentId) ?? null;
 }
 
+/**
+ * The conversations `agentId` leads, by workspace ID, newest first: those whose launch records name
+ * it with write access. A joined agent's read-access records are not its own conversations.
+ */
+export async function conversationsLedBy(path: string, agentId: string): Promise<string[]> {
+  const led = (await readRecords(path)).filter(
+    (record) => record.agentId === agentId && record.access === undefined,
+  );
+  return [...new Set(led.map((record) => record.workspaceId).reverse())];
+}
+
 /** The kept records of conversations `agentId` started (Lervo ADE rooms, slice 2). */
 export async function conversationsStartedBy(
   path: string,

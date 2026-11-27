@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ddcac8a81ee03cfd77b4b4e7"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "agent.context also answers the paths the conversations an agent leads changed and have not sealed yet, sorted, at most 100 with their total."

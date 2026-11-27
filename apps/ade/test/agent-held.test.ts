@@ -29,16 +29,25 @@ afterEach(() => useAgentStore.setState({ learned: null }));
 
 describe("the paths an agent holds, in its profile", () => {
   it("keeps the core's held paths and says how many more it holds", async () => {
-    await loadLearned(answer({ paths: ["docs", "src/net"], pathsTotal: 5 }), "prj_1", "agt_elio");
-    expect(useAgentStore.getState().learned?.held).toEqual({
-      paths: ["docs", "src/net"],
-      total: 5,
+    await loadLearned(
+      answer({
+        paths: ["docs", "src/net"],
+        pathsTotal: 5,
+        changedPaths: ["src/net/retry.ts"],
+        changedPathsTotal: 1,
+      }),
+      "prj_1",
+      "agt_elio",
+    );
+    expect(useAgentStore.getState().learned).toMatchObject({
+      held: { paths: ["docs", "src/net"], total: 5 },
+      changed: { paths: ["src/net/retry.ts"], total: 1 },
     });
   });
 
   it("holds nothing from a core that does not read leases, and shows no section", async () => {
     await loadLearned(answer({}), "prj_1", "agt_elio");
-    expect(useAgentStore.getState().learned?.held).toBeNull();
+    expect(useAgentStore.getState().learned).toMatchObject({ held: null, changed: null });
     expect(rendered()).toBe("");
   });
 });

@@ -1451,6 +1451,19 @@
         "pathsTotal": {
           "type": "integer",
           "minimum": 0
+        },
+        "changedPaths": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        },
+        "changedPathsTotal": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },

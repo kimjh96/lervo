@@ -22,3 +22,23 @@
   font-size: var(--type-meta-size);
   line-height: var(--type-meta-line-height);
 }
+
+.lists {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.changed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.label {
+  margin: 0;
+  padding-inline: var(--space-10);
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}

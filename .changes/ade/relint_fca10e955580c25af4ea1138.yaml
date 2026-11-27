@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fca10e955580c25af4ea1138"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "An agent's profile lists, under the paths it holds, the paths its conversations changed and have not sealed yet."

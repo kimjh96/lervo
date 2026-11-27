@@ -5,7 +5,8 @@ import { resolve } from "node:path";
 import { inspectRepositoryCoordinationHome, openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { heldPaths, learnedEntries } from "../src/core-link-agent-context.js";
+import { changedPaths, heldPaths, learnedEntries } from "../src/core-link-agent-context.js";
+import { recordHostedLaunch } from "../src/hosted-launch-records.js";
 import { runCli } from "../src/main.js";
 
 const roots: string[] = [];
@@ -206,5 +207,41 @@ describe("what an agent has learned, for its profile", () => {
     expect(await inspectRepositoryCoordinationHome(root)).toBeNull();
     expect(await heldPaths(root, "agt_none")).toEqual({ paths: [], total: 0 });
     expect(await inspectRepositoryCoordinationHome(root)).toBeNull();
+  });
+
+  it("unions the changed paths of the conversations an agent leads, never a joined one's", async () => {
+    const folder = await mkdtemp(resolve(tmpdir(), "lervo-agent-changed-"));
+    roots.push(folder);
+    const launches = resolve(folder, "launches.json");
+    const record = (workspaceId: string, agentId: string, access?: "read") => ({
+      schemaVersion: 1 as const,
+      workspaceId,
+      sessionId: `ses-${workspaceId}`,
+      provider: "claude",
+      projectId: "prj_1",
+      branch: `lervo/${workspaceId}`,
+      conversationMode: "native" as const,
+      argumentDigest: hash("a"),
+      settingsDigest: null,
+      mcpConfigDigest: null,
+      preparedAt: "2026-11-27T00:00:00.000Z",
+      agentId,
+      ...(access === undefined ? {} : { access }),
+    });
+    await recordHostedLaunch(launches, record("wsp_a", "agt_ciel"));
+    await recordHostedLaunch(launches, record("wsp_b", "agt_ciel"));
+    await recordHostedLaunch(launches, record("wsp_c", "agt_ciel", "read"));
+    const read = async (_root: string, conversationId: string) =>
+      ({
+        wsp_a: { paths: ["src/b.ts", "src/a.ts"], total: 4 },
+        wsp_b: { paths: ["src/a.ts", "docs/x.md"], total: 2 },
+        wsp_c: { paths: ["joined.ts"], total: 1 },
+      })[conversationId] as never;
+    // wsp_a holds two paths beyond the two it lists; wsp_c is a conversation Ciel only joined.
+    expect(await changedPaths(folder, "agt_ciel", launches, read)).toEqual({
+      paths: ["docs/x.md", "src/a.ts", "src/b.ts"],
+      total: 5,
+    });
+    expect(await changedPaths(folder, "agt_arin", launches, read)).toEqual({ paths: [], total: 0 });
   });
 });

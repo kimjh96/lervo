@@ -57,6 +57,7 @@ Agents work together by mentioning each other directly, by role and by what each
 - **Paths it holds.** The repository paths the agent holds under a live write lease, sorted and shown whole, as its conversations' claims and its other assignments widened them ([Lervo ADE coordination](ade-coordination.md)).
   - `agent.context` answers them with what the agent has learned, at most 100, with `pathsTotal` counting them all. Beyond the 100 shown, a line says how many more it holds.
   - A lease that expired, and a read lease, hold nothing.
+  - Under them, "Changed, not yet sealed" lists the paths the conversations the agent leads changed and have not sealed yet, as their latest reconciliation recorded them. Those paths also keep other conversations off them, though they are not leased. `agent.context` answers them as `changedPaths` with `changedPathsTotal`, read from each led conversation's newest open generation without writing anything.
   - An agent that holds nothing says that the paths it writes in a conversation are leased to it and show there. A core that does not read leases answers no paths, and the section stays out.
 - **Failure.** A failed rename or model change shows one line under the profile: "Lervo could not change the agent (<code>)."
 
