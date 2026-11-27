@@ -33,6 +33,8 @@ const failureMessages: Readonly<Record<string, MessageDescriptor>> = {
   workspace_in_use: { id: "workspace.retire.failed.workspace_in_use" },
   workspace_has_changes: { id: "workspace.retire.failed.workspace_has_changes" },
   session_stop_timeout: { id: "workspace.retire.failed.session_stop_timeout" },
+  workspace_integration_pending: { id: "workspace.retire.failed.workspace_integration_pending" },
+  workspace_worktree_unresolved: { id: "workspace.retire.failed.workspace_worktree_unresolved" },
 };
 
 /** The core's code for a refusal the session host passed on, or the session host's own code. */

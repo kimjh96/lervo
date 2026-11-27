@@ -44,6 +44,14 @@
   min-height: 0;
 }
 
+/* A view taller than the window scrolls on its own; the frame's content hides overflow. */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .view[data-background="native"] {
   background: var(--color-surface-workspace);
 }

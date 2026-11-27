@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_dcc744f2990b8dd37fcd3095"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Removing a workspace explains two new refusals: a change still waiting to be integrated, and a checkout that was moved or switched to another branch."
