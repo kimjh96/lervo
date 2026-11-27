@@ -23,6 +23,14 @@ export const roomMentionFailureCodes = [
   "exchange_paused",
 ] as const;
 
+/**
+ * The ID of the event that records mention `mentionId`: one per mention, derived from it, so a
+ * reader such as a conversation note's attestation finds it by ID without a scan.
+ */
+export function roomMentionRecordedEventId(mentionId: string): string {
+  return `evt_mention_${mentionId.slice("mnt_".length)}`;
+}
+
 const workspaceId = { type: "string", pattern: "^wsp_[a-f0-9]{24}$" } as const;
 const mentionId = { type: "string", pattern: "^mnt_[a-f0-9]{24}$" } as const;
 

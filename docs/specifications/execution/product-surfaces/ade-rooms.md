@@ -102,6 +102,8 @@ A start that fails after the command returned shows in the source conversation a
 
   Event schema 16 adds this kind to `agent.context.promoted` before any writer emits it; older envelope versions refuse it ([event envelope compatibility](../events-and-privacy/event-envelope-compatibility.md)).
 
+- A note is attested by its delivery's receipt rather than by a review of its words ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)). In v1 only a turn delivered to the agent by another agent's mention writes a note. An owner's direct turn to the lead has no receipt and writes none. A note stays with its own agent and reads as its own.
+
 - Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both.
 
 ## State, events, privacy, and failure meaning
