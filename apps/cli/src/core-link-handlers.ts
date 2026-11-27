@@ -13,6 +13,7 @@ import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 import type { RoomJoinResult } from "./workspace-room.js";
 import type { RoomContext } from "./room-router.js";
+import type { ConversationNote } from "./conversation-notes.js";
 import type { RoomEvent } from "./room-events.js";
 import type { PendingStart } from "./room-starts.js";
 
@@ -43,6 +44,8 @@ export interface CoreLinkHandlers {
   pendingStarts?(agentId: string): Promise<readonly PendingStart[]>;
   /** Keeps a room's records in its repository (schema 15); it never throws. */
   recordRoomEvents?(repositoryRoot: string, events: readonly RoomEvent[]): Promise<unknown>;
+  /** Writes an agent's note after a turn a mention delivered (schema 16); it never throws. */
+  writeConversationNote?(note: ConversationNote): Promise<unknown>;
   /** The agents an owner's turn goes to (Lervo ADE rooms, "Routing"). */
   routeRoom?(arguments_: Record<string, unknown>): Promise<{ agents: string[] }>;
   /** What the core recorded about turns of a workspace's hosted session. */

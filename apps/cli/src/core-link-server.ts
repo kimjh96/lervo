@@ -67,6 +67,7 @@ export class CoreLinkServer {
       handlers.pendingStarts,
       undefined,
       handlers.recordRoomEvents,
+      handlers.writeConversationNote,
     );
   }
 

@@ -8,7 +8,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { providerSessionDigest } from "../src/hosted-session-events.js";
 import { runCli } from "../src/main.js";
-import { mentionIdOf, recordRoomEvents, type RoomEvent } from "../src/room-events.js";
+import type { ConversationNote } from "../src/conversation-notes.js";
+import { mentionIdOf, recordRoomEvents, roomEventId, type RoomEvent } from "../src/room-events.js";
 import { RoomRouter, type RoomContext } from "../src/room-router.js";
 
 const roots: string[] = [];
@@ -133,6 +134,47 @@ describe("the room's records", () => {
       ],
     ]);
     expect(JSON.stringify(recorded)).not.toContain("Retry-After");
+  });
+
+  it("hands one note per delivered turn, with its receipt, and none for an owner's turn", () => {
+    let id = 0;
+    const notes: ConversationNote[] = [];
+    const room = new RoomRouter(
+      () => Date.parse("2026-11-27T03:00:00Z"),
+      () => `dlv_${++id}`,
+      () => undefined,
+      (note) => notes.push(note),
+    );
+    const sessions = { [AGENT.elio]: "s-elio", [AGENT.ciel]: "s-ciel" };
+    room.know("s-elio", context(AGENT.elio, sessions));
+    room.know("s-ciel", context(AGENT.ciel, sessions));
+    // The owner's own turn to Elio has no receipt, so Elio writes no note.
+    room.sent("s-elio", undefined, delivered("Implement retries."));
+    const elio = room.observe("s-elio", said("@Ciel please implement retries."));
+    expect(notes).toEqual([]);
+    room.sent("s-ciel", "dlv_1", delivered(elio.deliveries[0]?.text ?? ""));
+    room.observe("s-ciel", said("Done: retries with a 2 s default."));
+    expect(notes).toEqual([
+      {
+        repositoryRoot: "/repo",
+        agentId: AGENT.ciel,
+        workspaceId: WORKSPACE,
+        mentionId: mentionIdOf("dlv_1"),
+        receiptEventId: roomEventId({
+          type: "room.mention.delivered",
+          payload: {
+            mentionId: mentionIdOf("dlv_1"),
+            providerSessionDigest: providerSessionDigest("claude", "s-ciel"),
+            occurredAt: "2026-11-27T03:00:00.000Z",
+          },
+        }),
+        text: "Done: retries with a 2 s default.",
+      },
+    ]);
+    // The next turn of the same session, without a delivery, writes no second note.
+    room.sent("s-ciel", undefined, delivered("Thanks."));
+    room.observe("s-ciel", said("You are welcome."));
+    expect(notes).toHaveLength(1);
   });
 
   it("records nothing for a conversation whose repository the core did not resolve", () => {

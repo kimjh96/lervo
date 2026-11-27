@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_63564840841d3f8cbc53652c"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "After a turn another agent's mention delivered, the agent keeps a conversation note of what it said, attested by the delivery's receipt, once the writer selects event schema 16."

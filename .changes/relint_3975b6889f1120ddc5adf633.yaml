@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3975b6889f1120ddc5adf633"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "An agent's session starts with its own three newest conversation notes, labeled as notes it wrote itself."

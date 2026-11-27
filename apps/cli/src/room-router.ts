@@ -3,7 +3,8 @@ import type { HostedDecodedContent, HostedDecodedEvent } from "@lervo/adapter-co
 
 import { envelopeText, readEnvelope, type RoomTurn } from "./room-envelope.js";
 import type { RoomEvent } from "./room-events.js";
-import { RoomLedger, type RoomMention } from "./room-ledger.js";
+import type { ConversationNote } from "./conversation-notes.js";
+import { RoomLedger, type RoomMention, type RoomReceipt } from "./room-ledger.js";
 import { mentionedAgents, turnTargets } from "./room-mentions.js";
 import type { PendingStart } from "./room-starts.js";
 import type { TeamAgent } from "./workspace-participants.js";
@@ -66,6 +67,8 @@ interface Delivery {
 
 interface SessionTurn {
   depth: number;
+  /** The receipt of the mention that delivered this turn, which attests the agent's note. */
+  receipt?: RoomReceipt | undefined;
   /** The agent message the turn ended with: the last one it published. */
   last: string | null;
   streaming: string | null;
@@ -88,8 +91,10 @@ export class RoomRouter {
     private readonly newId: () => string = () => crypto.randomUUID(),
     /** Keeps the room's records; nothing reads them back here, and a failure is the caller's. */
     record: (repositoryRoot: string, events: RoomEvent[]) => void = () => undefined,
+    /** Writes an agent's note after a turn a mention delivered (ADR-0648). */
+    note: (note: ConversationNote) => void = () => undefined,
   ) {
-    this.ledger = new RoomLedger(now, record);
+    this.ledger = new RoomLedger(now, record, note);
   }
 
   /** Records what the core loaded about a session's conversation. */
@@ -188,9 +193,16 @@ export class RoomRouter {
     const context = this.contexts.get(sessionId);
     const delivery = deliveryId === undefined ? undefined : this.deliveries.get(deliveryId);
     if (deliveryId !== undefined) this.deliveries.delete(deliveryId);
-    if (deliveryId !== undefined && delivery?.mention !== undefined)
-      this.ledger.delivered(sessionId, deliveryId, delivery.mention);
-    this.turns.set(sessionId, { depth: delivery?.depth ?? 0, last: null, streaming: null });
+    const receipt =
+      deliveryId !== undefined && delivery?.mention !== undefined
+        ? this.ledger.delivered(sessionId, deliveryId, delivery.mention)
+        : undefined;
+    this.turns.set(sessionId, {
+      depth: delivery?.depth ?? 0,
+      last: null,
+      streaming: null,
+      receipt,
+    });
     return events.flatMap((event): HostedDecodedEvent[] => {
       if (event.kind !== "item" || event.content.kind !== "user_message") return [event];
       if (deliveryId !== undefined) {
@@ -264,6 +276,10 @@ export class RoomRouter {
     const deliveries: RoomDelivery[] = [];
     const text = turn.last;
     turn.last = null;
+    const receipt = turn.receipt;
+    delete turn.receipt;
+    // One note per delivered turn, from the last message the agent published in it.
+    if (receipt !== undefined && text !== null) this.ledger.answered(receipt, text);
     const self = context.team.find((agent) => agent.agentId === context.agentId);
     if (text === null || self === undefined) return { events, deliveries };
     const room = this.room(context.workspaceId);

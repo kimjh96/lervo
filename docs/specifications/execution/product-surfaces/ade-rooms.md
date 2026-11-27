@@ -104,7 +104,13 @@ A start that fails after the command returned shows in the source conversation a
 
 - A note is attested by its delivery's receipt rather than by a review of its words ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)). In v1 only a turn delivered to the agent by another agent's mention writes a note. An owner's direct turn to the lead has no receipt and writes none. A note stays with its own agent and reads as its own.
 
-- Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both.
+- **The writer.** When a delivered turn ends, the resident's room router hands the turn's last published message to the note writer, off the turn's answer path.
+  - The message is the agent's own final text, never tool output. The writer drops its fenced code blocks and quoted lines, so a note never repeats another agent's words verbatim. It then collapses the whitespace and cuts the text at a word within 512 characters. A message with nothing left writes no note.
+  - It promotes the result as the agent's `conversation_note` through the same path `lervo agent context promote` takes.
+  - The note's subject is `conversation/<conversation>/<mention>`, and its source and review are the delivery's `room.mention.delivered`. It expires after 30 days.
+  - The writer records nothing below event schema 16. It gives up after 10 seconds, and a note its receipt cannot attest yet is not written. None of these changes the turn.
+
+- Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both. A session's block recalls its own agent's three newest notes, labeled as notes it wrote itself and no one reviewed. The recalled notes take at most 2,048 bytes, and the block waits at most one second for them before the session starts without them. A note reaches only its own agent: its profile, its block, and its materialized context. The repository's compact context, which every session receives, never reads agent context.
 
 ## State, events, privacy, and failure meaning
 
