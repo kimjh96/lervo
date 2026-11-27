@@ -1,6 +1,4 @@
 // `workspace.list` and `repository.list`: what the ADE's start screen and workspace list show.
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
 
 import { readProjectProfile } from "@lervo/project";
 import {
@@ -16,11 +14,11 @@ import {
 } from "./hosted-launch-records.js";
 import { hostedProviderModes } from "./hosted-session-adapters.js";
 import { worktreesByBranch } from "./workspace-start-effects.js";
+import { workstreamTitle } from "./workstream-title.js";
 
 /** Workspaces in one answer, newest first. */
 export const MAX_LISTED_WORKSPACES = 100;
 const MAX_RECORD_FILE_BYTES = 1024 * 1024;
-const MAX_WORKSTREAM_BYTES = 64 * 1024;
 
 export interface RepositorySummary {
   projectId: string;
@@ -127,19 +125,6 @@ function roomOf(workspace: ListedWorkspace): Pick<WorkspaceSummary, "participant
     ...(participants.length === 0 ? {} : { participants }),
     ...(sessions.length === 0 ? {} : { sessions }),
   };
-}
-
-/** The workstream title in a worktree, or null when its state is unreadable. */
-async function workstreamTitle(worktree: string): Promise<string | null> {
-  try {
-    const path = resolve(worktree, ".lervo/state/workstreams/current.json");
-    const content = await readFile(path, "utf8");
-    if (content.length > MAX_WORKSTREAM_BYTES) return null;
-    const title = (JSON.parse(content) as { title?: unknown }).title;
-    return typeof title === "string" ? title : null;
-  } catch {
-    return null;
-  }
 }
 
 /**

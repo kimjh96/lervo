@@ -9,12 +9,16 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   claimAssignment,
+  conversationChangedPathHolders,
+  conversationLeaseCovers,
+  conversationLeaseHolderWorkspaceIds,
   CONVERSATION_TASK_TYPE,
   createAssignment,
   createPinnedAssignment,
   listAssignments,
   registerAgent,
   widenConversationLease,
+  type AgentWorkspace,
   type ConversationLeaseEvent,
   type WidenConversationLeaseInput,
   type WorkforceAgent,
@@ -644,5 +648,102 @@ describe("a conversation lease at its bounds", () => {
     expect(result.addedPaths).toHaveLength(10_000);
     // Five lock holds of 2,000 paths each; the quadratic judgment took 27 to 74 seconds here.
     expect(elapsed).toBeLessThan(5_000);
+  });
+});
+
+describe("naming holders and recording refusals once per turn", () => {
+  it("names a lease holder's conversation workspace in the refusal and its event", async () => {
+    const root = await repository();
+    const held = await holder(root, ["src/a.ts"]);
+    const { lead, assignment } = await conversation(root);
+    const events: ConversationLeaseEvent[] = [];
+    const result = await widen(root, lead, assignment, events, {
+      leaseHolderWorkspaceIds: new Map([[held.assignment.assignmentId, OTHER_WORKSPACE]]),
+    });
+    expect(result.refusals).toMatchObject([
+      { code: "path_leased", holderWorkspaceId: OTHER_WORKSPACE },
+    ]);
+    expect(events[0]!.payload).toMatchObject({ holderWorkspaceId: OTHER_WORKSPACE });
+    await expect(
+      widen(root, lead, assignment, [], {
+        leaseHolderWorkspaceIds: new Map([[held.assignment.assignmentId, "elsewhere"]]),
+      }),
+    ).rejects.toMatchObject({ code: "assignment_invalid" });
+  });
+
+  it("records no event for a path and holder the turn already recorded", async () => {
+    const root = await repository();
+    const held = await holder(root, ["src/a.ts", "src/b.ts"]);
+    const { lead, assignment } = await conversation(root);
+    const events: ConversationLeaseEvent[] = [];
+    const result = await widen(root, lead, assignment, events, {
+      paths: ["src/a.ts", "src/b.ts"],
+      recordedRefusals: [{ path: "src/a.ts", holderAgentId: held.agent.agentId }],
+    });
+    // Both refusals stand; only the new one records an event.
+    expect(result.refusals.map((refusal) => refusal.path)).toEqual(["src/a.ts", "src/b.ts"]);
+    expect(events.map((event) => event.payload)).toMatchObject([
+      { pathDigest: pathDigest("src/b.ts") },
+    ]);
+    expect(result).toMatchObject({ refusalsRecorded: true, omittedRefusalEvents: 0 });
+  });
+
+  it("answers a claim inside its own lease only while more than 30 seconds remain", async () => {
+    const root = await repository();
+    const { lead, assignment } = await conversation(root);
+    const widened = (await widen(root, lead, assignment, [], { paths: ["src/net"] })).assignment;
+    const expiry = Date.parse(widened.lease!.expiresAt);
+    const covers = (paths: string[], now: number, sessionId = LEAD_SESSION) =>
+      conversationLeaseCovers(widened, {
+        agentId: lead.agentId,
+        sessionId,
+        paths,
+        now: new Date(now),
+      });
+    expect(covers(["src/net/retry.ts"], expiry - 31_000)).toBe(true);
+    expect(covers(["src/net/retry.ts"], expiry - 30_000)).toBe(false);
+    expect(covers(["src/net/retry.ts", "src/b.ts"], expiry - 60_000)).toBe(false);
+    expect(covers(["src/net/retry.ts"], expiry - 60_000, "ses_other_session_01")).toBe(false);
+    expect(covers([], expiry - 60_000)).toBe(false);
+  });
+});
+
+describe("conversations' changed paths as holders", () => {
+  const generation = (extra: Partial<AgentWorkspace>): AgentWorkspace =>
+    ({
+      workspaceId: `wsp_${"9".repeat(24)}`,
+      kind: "conversation",
+      conversationId: OTHER_WORKSPACE,
+      generation: 1,
+      assignmentId: `asn_${"b".repeat(24)}`,
+      agentId: `agt_${"c".repeat(24)}`,
+      state: "active",
+      sealedResult: null,
+      ...extra,
+    }) as AgentWorkspace;
+
+  it("holds a sealed change's paths until it integrates, and never the claimant's own", () => {
+    const sealed = generation({
+      state: "integration_pending",
+      sealedResult: { changedPaths: ["src/a.ts", "."] } as AgentWorkspace["sealedResult"],
+    });
+    expect(conversationChangedPathHolders([sealed], OWN_WORKSPACE)).toEqual([
+      {
+        path: "src/a.ts",
+        holderAgentId: sealed.agentId,
+        holderWorkspaceId: OTHER_WORKSPACE,
+        holderAssignmentId: sealed.assignmentId,
+        code: "path_awaiting_integration",
+      },
+    ]);
+    expect(conversationChangedPathHolders([sealed], OTHER_WORKSPACE)).toEqual([]);
+    expect(
+      conversationChangedPathHolders([{ ...sealed, state: "integrated" }], OWN_WORKSPACE),
+    ).toEqual([]);
+    // Unsealed generations record no changed paths until the turn's reconciliation lands.
+    expect(conversationChangedPathHolders([generation({})], OWN_WORKSPACE)).toEqual([]);
+    expect(conversationLeaseHolderWorkspaceIds([sealed, generation({ state: "removed" })])).toEqual(
+      new Map([[sealed.assignmentId, OTHER_WORKSPACE]]),
+    );
   });
 });

@@ -13,7 +13,8 @@ import {
 } from "../src/claim-log.js";
 import { withoutShellOutput } from "../src/lervo-command-detail.js";
 import { parseTerminalHookIngress } from "../src/terminal-hook-input.js";
-import { answerPreToolUse, type ClaimDecision, claimReading } from "../src/write-claims.js";
+import type { ClaimDecision } from "../src/claim-contract.js";
+import { answerPreToolUse, claimReading } from "../src/write-claims.js";
 
 const folders: string[] = [];
 afterEach(async () => {

@@ -56,3 +56,34 @@ export function validChangedPathHolder(value: unknown): value is ChangedPathHold
     (holder.code === "path_changed_unsealed" || holder.code === "path_awaiting_integration")
   );
 }
+
+/** Each conversation assignment's workspace, keyed by assignment ID, as a refusal names it. */
+export function validLeaseHolderWorkspaceIds(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!(value instanceof Map)) return false;
+  for (const [assignmentId, workspaceId] of value as Map<unknown, unknown>)
+    if (
+      typeof assignmentId !== "string" ||
+      !ASSIGNMENT_ID.test(assignmentId) ||
+      typeof workspaceId !== "string" ||
+      !WORKSPACE_ID.test(workspaceId)
+    )
+      return false;
+  return true;
+}
+
+/** Refusals a turn already recorded: a path and its holder's agent, or null for none. */
+export function validRecordedRefusals(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (Array.isArray(value) &&
+      value.every(
+        (item: unknown) =>
+          item !== null &&
+          typeof item === "object" &&
+          typeof (item as { path?: unknown }).path === "string" &&
+          ((item as { holderAgentId?: unknown }).holderAgentId === null ||
+            typeof (item as { holderAgentId?: unknown }).holderAgentId === "string"),
+      ))
+  );
+}

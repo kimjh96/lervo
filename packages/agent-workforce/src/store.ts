@@ -3,7 +3,7 @@ export { registerAgent } from "./agent-registration.js";
 export { changeAgentStatus } from "./agent-status-transition.js";
 export { changeAgentDisplayName } from "./agent-identity-transition.js";
 export { changeAgentRole } from "./agent-role-transition.js";
-export { listAssignments } from "./assignment-state.js";
+export { listAssignments, readAssignment } from "./assignment-state.js";
 export {
   createAssignment,
   createRoutineAssignment,

@@ -70,10 +70,24 @@ export {
   type WidenConversationLeaseResult,
 } from "./conversation-lease-widening.js";
 export {
+  MAXIMUM_REFUSAL_EVENTS_PER_CALL,
+  recordConversationClaimRefusals,
+  type RecordedClaimRefusal,
+} from "./conversation-claim-refusals.js";
+export {
+  CONVERSATION_CLAIM_FAST_PATH_MARGIN_MS,
+  conversationLeaseCovers,
+} from "./conversation-lease-coverage.js";
+export {
+  conversationChangedPathHolders,
+  conversationLeaseHolderWorkspaceIds,
+} from "./conversation-path-holders.js";
+export {
   conversationWorkspaceRecordId,
   isConversationWorkspace,
   isSupersededCheckoutGeneration,
   newestCheckoutWorkspace,
+  newestConversationWorkspace,
 } from "./conversation-workspace.js";
 export {
   listConversationWorkspaceGenerations,

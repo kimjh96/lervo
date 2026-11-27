@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d141f60b5eb41de8cd981b0f"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Claim a conversation's paths before the first write and refuse conflicts with the holder named, behind the coordination gate"
