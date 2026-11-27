@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e6cfbd07d92df312a1bcc481"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Claim gate Git queries no longer crash with an uncaught EPIPE when Git exits before reading its input."
