@@ -23,7 +23,11 @@ import {
   type TerminalRuntimeAsset,
 } from "@lervo/repository-knowledge";
 
-import { ensureHostTerminalRuntime } from "../src/terminal-runtime.js";
+import {
+  CONVERSATION_WORKSPACE_RUNTIME_CAPABILITY,
+  ensureHostTerminalRuntime,
+  hostTerminalHookRuntimeDeclares,
+} from "../src/terminal-runtime.js";
 
 const roots: string[] = [];
 const source = fileURLToPath(new URL("../src/terminal-hook-launcher.mjs", import.meta.url));
@@ -363,6 +367,28 @@ it.each([true, false])(
       );
   },
 );
+
+it("runs a runtime whose pointer declares capabilities, which the CLI's publication writes", async () => {
+  const f = await fixture();
+  expect(
+    await hostTerminalHookRuntimeDeclares(CONVERSATION_WORKSPACE_RUNTIME_CAPABILITY, f.store),
+  ).toBe(false);
+  await ensureHostTerminalRuntime({ store: f.store });
+  const pointer = JSON.parse(await readFile(resolve(f.store, "current.json"), "utf8"));
+  expect(pointer.capabilities).toEqual([CONVERSATION_WORKSPACE_RUNTIME_CAPABILITY]);
+  expect(
+    await hostTerminalHookRuntimeDeclares(CONVERSATION_WORKSPACE_RUNTIME_CAPABILITY, f.store),
+  ).toBe(true);
+  // Released launchers read the pointer's coordinates only, so the added field never fails them.
+  const run = launch(f);
+  run.child.stdin.end();
+  const result = await run.result;
+  // The launcher verified and ran the published runtime: the test fixture's only output.
+  expect(result).toMatchObject({
+    code: 0,
+    stderr: "terminal runtime fixture must not execute",
+  });
+});
 
 it.each(["publish", "repair"] as const)(
   "repairs an integrity failure through the default %s CLI path",

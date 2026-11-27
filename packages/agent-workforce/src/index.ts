@@ -57,6 +57,7 @@ export {
   type AssignmentPathRefusalCode,
   type ChangedPathHolder,
 } from "./assignment-path-conflict.js";
+export { readAssignmentClaimRefusals } from "./assignment-claim-refusals.js";
 export { claimPathDigest } from "./claim-path-digest.js";
 export type { ConversationClaimMode } from "./conversation-lease-widening-plan.js";
 export type {
@@ -87,6 +88,7 @@ export {
   listConversationChangedPaths,
   readConversationChangedPaths,
   READ_CHANGED_PATHS_LIMIT,
+  pruneConversationChangedPaths,
   recordConversationChangedPaths,
   type ConversationChangedPaths,
   type ConversationChangedPathsSummary,
@@ -94,6 +96,7 @@ export {
 export {
   conversationWorkspaceRecordId,
   isConversationWorkspace,
+  isWorkerWorkspace,
   isSupersededCheckoutGeneration,
   newestCheckoutWorkspace,
   newestConversationWorkspace,
@@ -105,4 +108,11 @@ export {
   recordConversationWorkspaceGeneration,
   type ConversationWorkspaceGenerationInput,
 } from "./conversation-workspace-store.js";
+export {
+  assertConversationRetirable,
+  CONVERSATION_RETIRED,
+  retireConversation,
+  type ConversationCheckoutRemoval,
+  type ConversationRetirement,
+} from "./conversation-retirement.js";
 export { CLAIM_PATH_KEY_FILE, readOrCreateClaimPathKey } from "./claim-path-key-store.js";

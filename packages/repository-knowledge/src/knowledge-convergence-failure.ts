@@ -1,3 +1,7 @@
+import type { KnowledgeConvergenceStage } from "@lervo/schemas";
+
+import type { KnowledgeConvergenceInput } from "./knowledge-convergence-contract.js";
+
 /** Typed transient failures retry with backoff until the logical sixteen-attempt budget. */
 export const MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS = 16;
 /**
@@ -83,6 +87,7 @@ export function normalizedConvergenceFailure(error: unknown): string {
     "normalization_budget_exceeded",
     "knowledge_capacity_unavailable",
     "assignment_path_conflict",
+    "assignment_path_outside_responsibility",
     "knowledge_semantic_review_invalid",
     "knowledge_usage_unavailable",
     "knowledge_job_source_invalid",
@@ -154,4 +159,45 @@ export function unclassifiedFailureCause(error: unknown): {
       ? value.name
       : null;
   return { code, name };
+}
+
+/**
+ * The record a settled stage failure stores as its dependency, which the host's
+ * `dependencyCurrent` reads to decide whether the stage still waits.
+ */
+export function convergenceStageFailureRecord(input: {
+  code: string;
+  error: unknown;
+  /** The host's evaluation contract; the stage failure contract when the host names none. */
+  evaluationContract: string | undefined;
+  state: Pick<KnowledgeConvergenceInput, "snapshotHash" | "obligationId" | "baseline">;
+  stage: KnowledgeConvergenceStage;
+  now: Date;
+}): Record<string, unknown> {
+  const { code, error, state } = input;
+  const evidence = (error as { dependencyHash?: unknown } | null)?.dependencyHash;
+  return {
+    schemaVersion: 1,
+    kind: "stage_failure",
+    code,
+    evaluationContract: input.evaluationContract ?? KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
+    snapshotHash: state.snapshotHash,
+    delegationHash: state.baseline.delegationHash,
+    evidenceHash: /^sha256:[a-f0-9]{64}$/u.test(String(evidence)) ? (evidence as string) : null,
+    // A failure that may have been the host's own holds only until its reevaluation time.
+    ...(reevaluatedConvergenceFailure(code)
+      ? {
+          reevaluateAt: new Date(
+            input.now.getTime() + UNCLASSIFIED_STAGE_REEVALUATION_MS,
+          ).toISOString(),
+        }
+      : {}),
+    ...(code === "knowledge_stage_failure_unclassified"
+      ? { cause: unclassifiedFailureCause(error) }
+      : {}),
+    // A refused claim waits only while a holder overlaps this stage's own paths.
+    ...(code === "assignment_path_conflict"
+      ? { obligationId: state.obligationId, stage: input.stage }
+      : {}),
+  };
 }

@@ -4,7 +4,6 @@ import {
   assertConvergenceSettlementAuthority,
 } from "./settlement-fence.js";
 import { assertCanonicalReviewContextCurrent } from "@lervo/repository-context";
-import { listAssignments } from "@lervo/agent-workforce";
 import {
   sha256,
   canonicalJson,
@@ -16,6 +15,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { cycleScopedConvergenceDiscovery } from "./baseline.js";
 import { knowledgeProviderAdmissionState } from "./provider-admission.js";
+import { convergencePathConflictHolds } from "./convergence-path-hold.js";
 import type { ConvergenceSourceCapture } from "./source-capture.js";
 import {
   convergenceSourceObservation,
@@ -170,6 +170,8 @@ export function createConvergenceRuntimeHost(
         evidenceHash?: string;
         reevaluateAt?: string;
         evaluationContract?: string;
+        obligationId?: string;
+        stage?: string;
       };
       const baseline = await discover();
       if (
@@ -300,13 +302,9 @@ export function createConvergenceRuntimeHost(
       if (reevaluatedConvergenceFailure(dependency.code ?? ""))
         return Date.parse(dependency.reevaluateAt ?? "") > Date.now();
       // Semantic refusals and unknown provider resets remain content-bound until explicit reviewed change.
+      // A claim refusal waits only while a holder overlaps the stage's paths.
       if (dependency.code === "assignment_path_conflict")
-        return (await listAssignments(root)).some(
-          (assignment) =>
-            assignment.status === "leased" &&
-            assignment.accessMode !== "read_only" &&
-            Date.parse(assignment.lease?.expiresAt ?? "") > Date.now(),
-        );
+        return convergencePathConflictHolds(root, dependency);
       return true;
     },
     runStage: async (stage, state, assertLease): Promise<KnowledgeConvergenceStageResult> => {

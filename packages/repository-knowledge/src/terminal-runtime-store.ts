@@ -32,6 +32,8 @@ import { acquireTerminalRuntimeStoreLock } from "./terminal-runtime-store-lock.j
 import {
   readTerminalRuntimePointer,
   type TerminalRuntimePointer,
+  sameTerminalRuntimeCapabilities,
+  validTerminalRuntimeCapabilities,
 } from "./terminal-runtime-store-paths.js";
 
 async function privateDirectory(path: string): Promise<void> {
@@ -61,6 +63,8 @@ export async function materializeHostTerminalRuntime(input: {
   runtimeContent: string;
   assets: readonly TerminalRuntimeAsset[];
   publisher?: string;
+  /** What the runtime can do, recorded in the pointer that names it; none when omitted. */
+  capabilities?: readonly string[];
   authority?: TerminalRuntimePublicationAuthority;
   failureInjector?: (checkpoint: "staged" | "published" | "pointed") => void | Promise<void>;
 }): Promise<"current" | "materialized" | "busy"> {
@@ -71,6 +75,9 @@ export async function materializeHostTerminalRuntime(input: {
   )
     throw new Error("Invalid host terminal runtime.");
   terminalRuntimeAssetBindings(input.assets);
+  const capabilities = [...(input.capabilities ?? [])];
+  if (!validTerminalRuntimeCapabilities(capabilities))
+    throw new Error("Invalid host terminal runtime capabilities.");
   await assertHostTerminalRuntimeParents(input.store);
   await privateDirectory(input.store);
   await assertHostTerminalRuntimeParents(input.store);
@@ -86,6 +93,7 @@ export async function materializeHostTerminalRuntime(input: {
         contentHash,
         "pointer",
         "repair",
+        capabilities,
       ))
     )
       return "current";
@@ -145,7 +153,12 @@ export async function materializeHostTerminalRuntime(input: {
       () => true,
       () => false,
     );
-    if (previous?.directory !== directory || previous?.publisher !== publisher || !pointerTrusted) {
+    if (
+      previous?.directory !== directory ||
+      previous?.publisher !== publisher ||
+      !sameTerminalRuntimeCapabilities(previous?.capabilities, capabilities) ||
+      !pointerTrusted
+    ) {
       const pointer: TerminalRuntimePointer = {
         schemaVersion: 1,
         directory,
@@ -157,6 +170,7 @@ export async function materializeHostTerminalRuntime(input: {
             : previous.directory === directory
               ? previous.predecessor
               : { directory: previous.directory, contentHash: previous.contentHash },
+        ...(capabilities.length === 0 ? {} : { capabilities }),
       };
       pointerStage = resolve(input.store, `.current-${process.pid}.tmp`);
       await writeFile(pointerStage, `${JSON.stringify(pointer)}\n`, { mode: 0o600, flag: "wx" });

@@ -5,6 +5,7 @@
 import type { WorkspaceRetireResult } from "@lervo/session-host-contract";
 
 import { CommandFailure } from "./command-error-output.js";
+import type { ConversationRetirementEffects } from "./conversation-retirement-effects.js";
 import type { HostedLaunchRecord } from "./hosted-launch-records.js";
 
 /** Branches Lervo creates for hosted workspaces; retiring never deletes any other branch. */
@@ -29,6 +30,8 @@ export interface WorkspaceRetireEffects {
   branchMerged(root: string, branch: string): Promise<boolean>;
   deleteBranch(root: string, branch: string): Promise<void>;
   removeSessionSettings(sessionIds: readonly string[]): Promise<void>;
+  /** The conversation's coordination: its lease, generation records, and changed paths. */
+  conversation: ConversationRetirementEffects;
 }
 
 export async function retireHostedWorkspace(
@@ -43,7 +46,11 @@ export async function retireHostedWorkspace(
       "No hosted workspace with that ID was prepared in a registered repository on this host.",
       { workspaceId },
     );
-  const worktree = await effects.worktreeOf(root, launch.branch);
+  await effects.conversation.assertRetirable(root, workspaceId);
+  // A conversation's worktree is found by its record's path when its branch moved.
+  const worktree =
+    (await effects.worktreeOf(root, launch.branch)) ??
+    (await effects.conversation.worktreeOf(root, workspaceId));
   if (worktree !== null) {
     if (await effects.inUse(worktree))
       throw new CommandFailure(
@@ -59,6 +66,7 @@ export async function retireHostedWorkspace(
       );
     await effects.removeWorktree(root, worktree);
   }
+  await effects.conversation.retire(root, workspaceId);
   let branch: WorkspaceRetireResult["branch"] = "absent";
   if (await effects.branchExists(root, launch.branch)) {
     const removable =

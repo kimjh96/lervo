@@ -18,6 +18,18 @@ export interface AssignmentCancellationPlan {
   reason: AssignmentCancellationStep["reason"];
   cancelledDependencyIds: string[];
   blockedReason: "active_lease" | "terminal" | "dependency_not_cancelled" | null;
+  /**
+   * The live lease the cancellation ends, when its caller names the holder's exact agent and
+   * lease: a holder-bound cancellation, such as retiring a conversation. Absent otherwise, so
+   * every other plan keeps its ID.
+   */
+  holder?: AssignmentCancellationHolder;
+}
+
+/** The exact holder of a live lease that a holder-bound cancellation ends. */
+export interface AssignmentCancellationHolder {
+  agentId: string;
+  leaseId: string;
 }
 
 function cancellationPlanId(content: Omit<AssignmentCancellationPlan, "planId">): string {
@@ -30,6 +42,8 @@ export function createAssignmentCancellationPlan(input: {
   assignmentId: string;
   reason: AssignmentCancellationStep["reason"];
   now?: Date;
+  /** Ends a live lease only while it is still exactly this holder's. */
+  holder?: AssignmentCancellationHolder;
 }): AssignmentCancellationPlan {
   if (
     input.assignments.length > workforceLimits.maximumAssignments ||
@@ -49,12 +63,19 @@ export function createAssignmentCancellationPlan(input: {
     .filter((dependencyId) => byId.get(dependencyId)?.status === "cancelled")
     .sort();
   const terminal = ["completed", "failed", "cancelled"].includes(assignment.status);
+  const lease = assignment.lease;
+  const heldByNamedHolder =
+    input.holder !== undefined &&
+    lease != null &&
+    lease.agentId === input.holder.agentId &&
+    lease.leaseId === input.holder.leaseId;
   const blockedReason = terminal
     ? ("terminal" as const)
-    : // An expired lease cannot commit a result; only a live holder blocks cancellation.
+    : // An expired lease cannot commit a result; only a live holder blocks cancellation, unless
+      // the caller names that holder's exact lease.
       assignment.status === "leased" &&
-        (!assignment.lease ||
-          Date.parse(assignment.lease.expiresAt) > (input.now ?? new Date()).getTime())
+        !heldByNamedHolder &&
+        (!lease || Date.parse(lease.expiresAt) > (input.now ?? new Date()).getTime())
       ? ("active_lease" as const)
       : input.reason === "dependency_cancelled" && cancelledDependencyIds.length === 0
         ? ("dependency_not_cancelled" as const)
@@ -68,6 +89,9 @@ export function createAssignmentCancellationPlan(input: {
     reason: input.reason,
     cancelledDependencyIds,
     blockedReason,
+    ...(input.holder === undefined
+      ? {}
+      : { holder: { agentId: input.holder.agentId, leaseId: input.holder.leaseId } }),
   };
   return { ...content, planId: cancellationPlanId(content) };
 }

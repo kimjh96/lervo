@@ -11,6 +11,7 @@ import {
 } from "@lervo/repository-registry";
 
 import { CommandFailure } from "./command-error-output.js";
+import { conversationRetirementEffects } from "./conversation-retirement-effects.js";
 import {
   hostedLaunchRecordsPath,
   hostedSessionsOfWorkspace,
@@ -112,6 +113,7 @@ export function hostedWorkspaceRetireEffects(): WorkspaceRetireEffects {
     async deleteBranch(root, branch) {
       await git(root, ["branch", "-D", branch]);
     },
+    conversation: conversationRetirementEffects(),
     async removeSessionSettings(sessionIds) {
       const directory = hostedSessionSettingsDirectory();
       await Promise.all(

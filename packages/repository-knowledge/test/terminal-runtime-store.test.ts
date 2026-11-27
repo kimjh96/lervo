@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import {
+  hostTerminalRuntimeDeclares,
   hostTerminalRuntimeNeedsMaterialization,
   inspectHostTerminalRuntime,
   materializeHostTerminalRuntime,
@@ -282,3 +283,57 @@ it.skipIf(process.platform === "win32")(
     expect(await inspectHostTerminalRuntime(root)).toBe("current");
   },
 );
+it("declares the runtime's capabilities in its pointer and republishes a pointer that lost them", async () => {
+  const root = await store();
+  const capabilities = ["conversation-workspace-v1"];
+  const hash = sha256(runtime(0));
+  expect(await hostTerminalRuntimeDeclares(root, "conversation-workspace-v1")).toBe(false);
+  await materializeHostTerminalRuntime({
+    store: root,
+    runtimeContent: runtime(0),
+    assets: [],
+    capabilities,
+  });
+  expect((await readTerminalRuntimePointer(root))!.capabilities).toEqual(capabilities);
+  expect(await hostTerminalRuntimeDeclares(root, "conversation-workspace-v1")).toBe(true);
+  expect(await hostTerminalRuntimeDeclares(root, "conversation-workspace-v2")).toBe(false);
+  expect(
+    await hostTerminalRuntimeNeedsMaterialization(root, hash, "pointer", "publish", capabilities),
+  ).toBe(false);
+
+  // An older publisher of the same bytes writes a pointer that declares nothing.
+  await materializeHostTerminalRuntime({ store: root, runtimeContent: runtime(0), assets: [] });
+  expect((await readTerminalRuntimePointer(root))!.capabilities).toBeUndefined();
+  expect(await hostTerminalRuntimeDeclares(root, "conversation-workspace-v1")).toBe(false);
+  expect(
+    await hostTerminalRuntimeNeedsMaterialization(root, hash, "pointer", "publish", capabilities),
+  ).toBe(true);
+  // A caller that names no capabilities keeps the earlier judgment.
+  expect(await hostTerminalRuntimeNeedsMaterialization(root, hash)).toBe(false);
+  await materializeHostTerminalRuntime({
+    store: root,
+    runtimeContent: runtime(0),
+    assets: [],
+    capabilities,
+    authority: "repair",
+  });
+  expect(await hostTerminalRuntimeDeclares(root, "conversation-workspace-v1")).toBe(true);
+
+  await expect(
+    materializeHostTerminalRuntime({
+      store: root,
+      runtimeContent: runtime(0),
+      assets: [],
+      capabilities: ["Not A Capability"],
+    }),
+  ).rejects.toThrow("Invalid host terminal runtime capabilities.");
+  // A pointer whose capabilities are malformed is invalid, and declares nothing.
+  const pointer = JSON.parse(await readFile(resolve(root, "current.json"), "utf8"));
+  await writeFile(
+    resolve(root, "current.json"),
+    `${JSON.stringify({ ...pointer, capabilities: "conversation-workspace-v1" })}\n`,
+    { mode: 0o600 },
+  );
+  await expect(readTerminalRuntimePointer(root)).rejects.toThrow();
+  expect(await hostTerminalRuntimeDeclares(root, "conversation-workspace-v1")).toBe(false);
+});

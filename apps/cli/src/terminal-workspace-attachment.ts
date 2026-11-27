@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import {
-  isConversationWorkspace,
+  isWorkerWorkspace,
   listWorkspaces,
   newestCheckoutWorkspace,
   readWorkspace,
@@ -32,9 +32,10 @@ export async function attachTerminalWorkspace(input: {
   const pathDigest = repositoryCoordinateDigest(input.root);
   const workspaces = await listWorkspaces(input.root);
   const newest = newestCheckoutWorkspace(workspaces, await checkoutPathDigests(input.root));
-  // A conversation's generation is not a worker attachment: its session keeps the linked
-  // worktree's hooks until conversation claims and their Stop land (Lervo ADE coordination).
-  if (newest === null || isConversationWorkspace(newest)) return null;
+  // Only a worker's record is a worker attachment. A conversation's generation keeps the linked
+  // worktree's hooks and claims instead (Lervo ADE coordination), and a record of a kind this
+  // runtime does not know is not its own, so it never blocks the session's prompt.
+  if (newest === null || !isWorkerWorkspace(newest)) return null;
   const matches = workspaces.filter(
     (workspace) => workspace.pathDigest === pathDigest && workspace.state !== "removed",
   );

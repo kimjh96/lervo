@@ -4,6 +4,7 @@ import {
   loadTerminalHookNativeAssets,
   TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES,
   type TerminalRuntimeAsset,
+  hostTerminalRuntimeDeclares,
   hostTerminalRuntimeNeedsMaterialization,
   materializeHostTerminalRuntime,
   terminalHookRuntimeStorePath,
@@ -15,6 +16,19 @@ import { activeCliEntry, newerRuntimePublisher } from "./installed-cli-version.j
 import { isInstalledTerminalRuntimeCli } from "./terminal-runtime-installation.js";
 import { STARTUP_EFFECTS_VARIABLE } from "./startup-effects.js";
 import { readCliPackageVersion } from "./version-command.js";
+
+/**
+ * What this CLI's terminal hook runtime can do, declared in the host pointer that names it, so a
+ * command run by another CLI on the host can tell whether the hooks sessions run understand what
+ * it is about to record. `conversation-workspace-v1`: the runtime reads a conversation's
+ * workspace records as no worker attachment, answers claims, and reconciles them at `Stop`
+ * (Lervo ADE coordination, "The conversation's assignment and workspace").
+ */
+export const CONVERSATION_WORKSPACE_RUNTIME_CAPABILITY = "conversation-workspace-v1";
+
+export const TERMINAL_HOOK_RUNTIME_CAPABILITIES: readonly string[] = [
+  CONVERSATION_WORKSPACE_RUNTIME_CAPABILITY,
+];
 
 const testRuntime =
   "#!/usr/bin/env node\nprocess.stderr.write('terminal runtime fixture must not execute');\n";
@@ -48,7 +62,21 @@ export async function hostTerminalHookReaderCurrent(
     await installedRuntimeHash(),
     "artifact",
     "repair",
+    TERMINAL_HOOK_RUNTIME_CAPABILITIES,
   ));
+}
+
+/**
+ * Whether the host's installed terminal hook runtime declares `capability`: one read of the
+ * runtime pointer. Tests never read the host's store unless they name one, as
+ * `ensureHostTerminalRuntime` never writes it.
+ */
+export async function hostTerminalHookRuntimeDeclares(
+  capability: string,
+  store?: string,
+): Promise<boolean> {
+  if (process.env.NODE_ENV === "test" && store === undefined) return true;
+  return hostTerminalRuntimeDeclares(store ?? terminalHookRuntimeStorePath(), capability);
 }
 
 export async function loadTerminalHookLauncher(): Promise<string> {
@@ -140,6 +168,7 @@ export async function ensureHostTerminalRuntime(
       contentHash,
       input.verification,
       input.authority,
+      TERMINAL_HOOK_RUNTIME_CAPABILITIES,
     ))
   ) {
     await ensureHostTerminalLauncher(store).catch(() => undefined);
@@ -152,6 +181,7 @@ export async function ensureHostTerminalRuntime(
     store,
     runtimeContent,
     assets: await loadTerminalHookRuntimeAssets(),
+    capabilities: TERMINAL_HOOK_RUNTIME_CAPABILITIES,
     publisher: await realpath(
       process.env.LERVO_CLI_ENTRY ?? process.argv[1] ?? fileURLToPath(import.meta.url),
     ),

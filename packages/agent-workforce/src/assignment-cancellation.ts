@@ -1,4 +1,5 @@
 import {
+  type AssignmentCancellationHolder,
   type AssignmentCancellationStep,
   createAssignmentCancellationPlan,
 } from "./assignment-graph.js";
@@ -12,6 +13,8 @@ export async function cancelAssignmentOnce(input: {
   assignmentId: string;
   reason: AssignmentCancellationStep["reason"];
   expectedPlanId: string;
+  /** A holder-bound cancellation: ends the live lease only while it is exactly this one. */
+  holder?: AssignmentCancellationHolder;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
   /** Revalidate caller authority while the exact assignment transition is locked. */
@@ -33,6 +36,7 @@ export async function cancelAssignmentOnce(input: {
     assignmentId: input.assignmentId,
     reason: input.reason,
     now,
+    ...(input.holder === undefined ? {} : { holder: input.holder }),
   });
   if (plan.planId !== input.expectedPlanId) {
     fail("agent_state_conflict", "The assignment cancellation plan is stale.");

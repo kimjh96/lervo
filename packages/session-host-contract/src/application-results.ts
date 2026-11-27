@@ -223,7 +223,8 @@ export const workspaceStartBaseSchema = {
  * Whether a started conversation claims its paths (Lervo ADE coordination): `active`, `inactive`,
  * or `unavailable`, each but the first with a code. Open, like the base's notice, so a newer
  * CLI's status or code never fails an older ADE's start. The CLI documents the known codes:
- * coordination_inactive, hub_coordinated_unsupported, and coordination_unavailable.
+ * coordination_inactive, hook_runtime_stale, hub_coordinated_unsupported, and
+ * coordination_unavailable.
  */
 export const workspaceStartCoordinationSchema = {
   title: "WorkspaceStartCoordination",

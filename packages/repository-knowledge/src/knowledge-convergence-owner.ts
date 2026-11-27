@@ -2,12 +2,9 @@ import { convergenceStatus } from "./knowledge-convergence-status.js";
 import { assertKnowledgeConvergenceInput } from "./knowledge-convergence-input.js";
 import {
   convergenceRetryLimit,
-  KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
+  convergenceStageFailureRecord,
   MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS,
   normalizedConvergenceFailure,
-  UNCLASSIFIED_STAGE_REEVALUATION_MS,
-  reevaluatedConvergenceFailure,
-  unclassifiedFailureCause,
 } from "./knowledge-convergence-failure.js";
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
@@ -250,31 +247,16 @@ export async function processKnowledgeConvergence(
         break;
       }
       const dependency = await input.artifacts.put(
-        canonicalJson({
-          schemaVersion: 1,
-          kind: "stage_failure",
-          code,
-          evaluationContract:
-            input.host.evaluationContract ?? KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
-          snapshotHash: state.snapshotHash,
-          delegationHash: state.baseline.delegationHash,
-          evidenceHash: /^sha256:[a-f0-9]{64}$/u.test(
-            String((error as { dependencyHash?: unknown })?.dependencyHash),
-          )
-            ? (error as { dependencyHash: string }).dependencyHash
-            : null,
-          // A failure that may have been the host's own holds only until its reevaluation time.
-          ...(reevaluatedConvergenceFailure(code)
-            ? {
-                reevaluateAt: new Date(
-                  now().getTime() + UNCLASSIFIED_STAGE_REEVALUATION_MS,
-                ).toISOString(),
-              }
-            : {}),
-          ...(code === "knowledge_stage_failure_unclassified"
-            ? { cause: unclassifiedFailureCause(error) }
-            : {}),
-        }),
+        canonicalJson(
+          convergenceStageFailureRecord({
+            code,
+            error,
+            evaluationContract: input.host.evaluationContract,
+            state,
+            stage,
+            now: now(),
+          }),
+        ),
       );
       const exhausted = attempts >= MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS;
       result = {
