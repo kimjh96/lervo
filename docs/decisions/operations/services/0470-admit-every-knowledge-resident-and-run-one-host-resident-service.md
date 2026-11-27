@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0214](0214-bounded-repository-upgrade-orchestration.md) (event writer and host service stages), [ADR-0164](0164-user-runtime-service-management-boundary.md) (knowledge host target), [ADR-0469](../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (resident admission, doctor)
 Related: [ADR-0471](../../coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md), [Event writer activation](../../../foundation/event-writer-rollout/activation.md), [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
-Amended by: [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (replica service stage, current runtime pointer); [ADR-0536](../../execution/providers/admission/0536-admit-provider-clis-by-contract.md) (runtime provider CLI admission; host resident service tool directories)
+Amended by: [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (replica service stage, current runtime pointer); [ADR-0536](../../execution/providers/admission/0536-admit-provider-clis-by-contract.md) (runtime provider CLI admission; host resident service tool directories); [ADR-0650](../../distribution/0650-raise-the-event-writer-target-to-schema-16-after-its-readers.md) (target schema 16; a published hook runtime counts as a reader only from an install at least as new as the activating CLI)
 
 ## Context
 
@@ -25,10 +25,10 @@ Add an `eventWriter` repository upgrade stage targeting schema 4, which the know
 
 Local-reader preflight checks the generated terminal hook runtime's embedded event reader. If the runtime would change (`update` or `blocked`), report `terminal_hook_reader_stale`. Under [ADR-0539](../../execution/providers/hooks/0539-keep-the-terminal-hook-runtime-host-local-behind-a-tracked-launcher.md), preflight verifies the currently published host runtime. It accepts a valid compatible runtime from another live publisher without requiring the resident's embedded hash. Missing, invalid, or marked state still blocks readiness. The resident has repair authority and cannot revert a newer published runtime while its publisher entry exists.
 
-| Stage | Requires |
-| --- | --- |
+| Stage          | Requires                                        |
+| -------------- | ----------------------------------------------- |
 | `event_writer` | `terminal_integration` and `node` applied first |
-| `host_service` | Nothing |
+| `host_service` | Nothing                                         |
 
 The outer plan binds the reader observation hash, excluding observation time, and current coordinate hash. Apply re-observes both; a change to either fails with `event_writer_plan_stale`. A stage deferred behind the hook runtime or Node applies only if ready in the same run; otherwise skip it with its blockers.
 
@@ -89,10 +89,10 @@ Directories belong to the rendered definition and are bound by the reviewed plan
 
 The doctor reads host resident status, the Node fleet, and each checkout's resident health:
 
-| Code | Severity | Meaning |
-| --- | --- | --- |
-| `event_schema_outdated` | attention | Resident held; detail names the activation blocker |
-| `continuity_pending` | info | Host resident serves this checkout but has not reconciled yet |
+| Code                                            | Severity  | Meaning                                                                                                                             |
+| ----------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `event_schema_outdated`                         | attention | Resident held; detail names the activation blocker                                                                                  |
+| `continuity_pending`                            | info      | Host resident serves this checkout but has not reconciled yet                                                                       |
 | `continuity_unobserved`, `resident_not_running` | attention | Detail `node_served` points to the Node; `host_resident_absent` points to `lervo upgrade`, which installs the host resident service |
 
 Never advise a held or unserved checkout to "register a Node or run worker --watch" while a host resident serves it.

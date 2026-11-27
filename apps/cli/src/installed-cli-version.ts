@@ -58,3 +58,29 @@ export async function newerRuntimePublisher(
     return null;
   }
 }
+
+/**
+ * Whether the host runtime's embedded event reader reads every schema a writer of `version`
+ * selects: the runtime is `contentHash`, this CLI's own, or an install at least as new as
+ * `version` published it (ADR-0650). Repair authority accepts another live publisher's runtime,
+ * so without this an older install's runtime would pass the event writer's hook reader preflight.
+ * A publisher whose version cannot be read counts as older.
+ */
+export async function runtimeReadsWriterOf(
+  store: string,
+  contentHash: string,
+  version: string,
+): Promise<boolean> {
+  try {
+    const pointer = JSON.parse(await readFile(resolve(store, "current.json"), "utf8")) as {
+      contentHash?: unknown;
+      publisher?: unknown;
+    };
+    if (pointer.contentHash === contentHash) return true;
+    if (typeof pointer.publisher !== "string" || !isAbsolute(pointer.publisher)) return false;
+    const publisher = await installedCliVersion(pointer.publisher);
+    return publisher !== null && compareVersions(publisher, version) >= 0;
+  } catch {
+    return false;
+  }
+}

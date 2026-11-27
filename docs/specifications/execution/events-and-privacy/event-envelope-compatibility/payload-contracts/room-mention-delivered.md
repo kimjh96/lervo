@@ -17,7 +17,7 @@ The resident core records the event when the session host answers, never the ADE
 - `schemaVersion: 15` and `actor.kind: system`;
 - `runId` `run_room_<key>` and `sessionId` `ses_room_<key>`, where `<key>` is the first 24 hex digits of the SHA-256 of the `workspaceId` of the mention's conversation. Every room event of one conversation shares this run and session, so the envelope names the conversation that the payload leaves out.
 
-It carries no message text or provider session UUID. Readers ship first: no release records the event yet.
+It carries no message text or provider session UUID. Readers shipped first. [ADR-0650](../../../../../decisions/distribution/0650-raise-the-event-writer-target-to-schema-16-after-its-readers.md) raises the automatic writer target to 16, so a room writer records the event once the repository's writer selects 15 or later.
 
 ## Failure meaning
 

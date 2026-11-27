@@ -67,7 +67,7 @@ async function repository(): Promise<string> {
 }
 
 describe("lervo upgrade event writer and host service stages", () => {
-  it("activates schema 14 with a backup and installs the host resident service in one apply", async () => {
+  it("activates schema 16 with a backup and installs the host resident service in one apply", async () => {
     const root = await repository();
     ports.inspect.mockResolvedValue(hostService);
     ports.apply.mockResolvedValue({ change: "installed", configCreated: true });
@@ -86,7 +86,7 @@ describe("lervo upgrade event writer and host service stages", () => {
       disposition: "deferred",
       reason: "terminal_integration_must_apply_first",
       currentSchemaVersion: 1,
-      targetSchemaVersion: 14,
+      targetSchemaVersion: 16,
     });
     expect(plan.stages.hostService).toMatchObject({ disposition: "safe_apply" });
     expect(plan.applicableStages).toEqual(
@@ -101,9 +101,9 @@ describe("lervo upgrade event writer and host service stages", () => {
     const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
     expect(receipt.appliedStages).toEqual(expect.arrayContaining(["event_writer", "host_service"]));
     expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
-      14,
+      16,
     );
-    await stat(resolve(root, ".lervo/data/event-writer-backups/schema-14/backup.json"));
+    await stat(resolve(root, ".lervo/data/event-writer-backups/schema-16/backup.json"));
     expect(ports.apply.mock.calls.map((call) => call[0])).toEqual([hostService]);
   }, 30_000);
 

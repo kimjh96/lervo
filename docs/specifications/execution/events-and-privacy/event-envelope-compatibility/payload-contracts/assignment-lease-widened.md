@@ -22,7 +22,7 @@ All nine fields are required, and no other key is kept: the payload screen drops
 
 The workforce transition that widens the lease records the event in the repository's store, as it records `assignment.claimed`, and the transition does not commit without it ([ADR-0205](../../../../../decisions/execution/orchestration/0205-conflict-safe-repository-agent-workforce.md)). The envelope has `schemaVersion: 16`.
 
-It carries no path, tool input, command text, or file content: the path set appears only as its digest and its counts. Readers ship first: no release records the event yet, and the writer target stays below 16.
+It carries no path, tool input, command text, or file content: the path set appears only as its digest and its counts. Readers shipped first. [ADR-0650](../../../../../decisions/distribution/0650-raise-the-event-writer-target-to-schema-16-after-its-readers.md) raises the automatic writer target to 16, and the CLI records the event only behind the coordination gate, which stays closed.
 
 ## Failure meaning
 

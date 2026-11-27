@@ -11,7 +11,7 @@ const NODE_REGISTRATION =
  */
 const remedies = (target: number): Record<string, string> => ({
   terminal_hook_reader_stale:
-    "The terminal hook reader is not ready. The host resident restores the installed host runtime automatically. A legacy repository bundle must first migrate to the tracked launcher through the generated-only terminal_integration stage; provider changes retain their exact approval.",
+    "The terminal hook reader is not ready. The host resident restores the installed host runtime automatically. When an older Lervo install published it, run this release's installed `lervo` once, which publishes its own runtime, then rerun `lervo upgrade`. A legacy repository bundle must first migrate to the tracked launcher through the generated-only terminal_integration stage; provider changes retain their exact approval.",
   reader_inventory_node_health_unavailable: nodeHealth(target),
   reader_inventory_node_health_stale: nodeHealth(target),
   reader_inventory_node_identity_mismatch: NODE_REGISTRATION,
