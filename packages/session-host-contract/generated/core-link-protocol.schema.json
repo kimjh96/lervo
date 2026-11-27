@@ -1493,6 +1493,44 @@
         }
       }
     },
+    "RoomAnswersResult": {
+      "title": "RoomAnswersResult",
+      "type": "object",
+      "required": [
+        "answers"
+      ],
+      "properties": {
+        "answers": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "required": [
+              "mentionId",
+              "workspaceId",
+              "fromAgentId",
+              "deliveredAt"
+            ],
+            "properties": {
+              "mentionId": {
+                "$ref": "#/$defs/Identifier"
+              },
+              "workspaceId": {
+                "$ref": "#/$defs/Identifier"
+              },
+              "fromAgentId": {
+                "$ref": "#/$defs/Identifier"
+              },
+              "deliveredAt": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              }
+            }
+          }
+        }
+      }
+    },
     "RoomRouteResult": {
       "title": "RoomRouteResult",
       "type": "object",
@@ -1556,7 +1594,8 @@
             "agent.mark.read",
             "agent.context",
             "room.join",
-            "room.route"
+            "room.route",
+            "room.answers"
           ]
         },
         "arguments": {

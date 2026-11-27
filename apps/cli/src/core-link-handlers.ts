@@ -13,6 +13,8 @@ import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 import type { RoomJoinResult } from "./workspace-room.js";
 import type { RoomContext } from "./room-router.js";
+import type { RoomAnswersResult } from "@lervo/session-host-contract";
+
 import type { ConversationNote } from "./conversation-notes.js";
 import type { RoomEvent } from "./room-events.js";
 import type { PendingStart } from "./room-starts.js";
@@ -48,6 +50,8 @@ export interface CoreLinkHandlers {
   writeConversationNote?(note: ConversationNote): Promise<unknown>;
   /** The agents an owner's turn goes to (Lervo ADE rooms, "Routing"). */
   routeRoom?(arguments_: Record<string, unknown>): Promise<{ agents: string[] }>;
+  /** What a conversation's lead answered in other conversations (Lervo ADE rooms). */
+  roomAnswers?(arguments_: Record<string, unknown>): Promise<RoomAnswersResult>;
   /** What the core recorded about turns of a workspace's hosted session. */
   summarizeTurns?(arguments_: Record<string, unknown>): Promise<object>;
   /** Records a hosted session's process exit unless its own hook recorded the end. */

@@ -1,3 +1,4 @@
+import type { ConversationItem } from "@lervo/session-host-contract";
 import { create } from "zustand";
 
 import type { MemberLane } from "./room";
@@ -12,6 +13,8 @@ interface RoomStore {
    * conversation's lead received the turn instead. Null once a turn routes, or for a new room.
    */
   readonly unrouted: string | null;
+  /** What the lead answered in other conversations, as quiet lines (`room.answers`). */
+  readonly answers: readonly ConversationItem[];
 }
 
 /** The open conversation's agents beyond its lead (Lervo ADE rooms, "The ADE"). */
@@ -19,4 +22,5 @@ export const useRoomStore = create<RoomStore>(() => ({
   leadAgentId: null,
   members: {},
   unrouted: null,
+  answers: [],
 }));

@@ -52,6 +52,39 @@ export const roomRouteResultSchema = {
   },
 } as const;
 
+/** The most answers `room.answers` lists, newest first. */
+export const MAXIMUM_ROOM_ANSWERS = 50;
+
+/**
+ * `room.answers`: the turns a conversation's lead answered in other conversations, each a mention
+ * delivered to it there, newest first (Lervo ADE rooms, "Mentioning across conversations"). The
+ * core reads them from the rooms' schema-15 records; a repository without them answers none.
+ */
+export const roomAnswersResultSchema = {
+  title: "RoomAnswersResult",
+  type: "object",
+  required: ["answers"],
+  properties: {
+    answers: {
+      type: "array",
+      maxItems: MAXIMUM_ROOM_ANSWERS,
+      items: {
+        type: "object",
+        required: ["mentionId", "workspaceId", "fromAgentId", "deliveredAt"],
+        properties: {
+          mentionId: identifierSchema,
+          /** The conversation the answer is in. */
+          workspaceId: identifierSchema,
+          /** The agent whose mention the lead answered there. */
+          fromAgentId: identifierSchema,
+          deliveredAt: { type: "string", minLength: 1, maxLength: 64 },
+        },
+      },
+    },
+  },
+} as const;
+
 export type RoomSession = FromSchema<typeof roomSessionSchema>;
 export type RoomJoinResult = FromSchema<typeof roomJoinResultSchema>;
 export type RoomRouteResult = FromSchema<typeof roomRouteResultSchema>;
+export type RoomAnswersResult = FromSchema<typeof roomAnswersResultSchema>;

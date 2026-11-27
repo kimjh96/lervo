@@ -1407,6 +1407,14 @@
     "defaultMessage": "New Project",
     "description": "Title of the window that creates a new project."
   },
+  "room.answeredElsewhere": {
+    "defaultMessage": "{agent} answered {from} in <link>{title}</link>",
+    "description": "A room line in a conversation for a turn its lead took in another conversation, answering an agent that mentioned it there; the title opens that conversation."
+  },
+  "room.answeredElsewhereUnlisted": {
+    "defaultMessage": "{agent} answered {from} in another conversation",
+    "description": "A room line for a turn the lead took in another conversation that is not listed here."
+  },
   "room.claimConflict": {
     "defaultMessage": "{agent} was stopped at <code>{path}</code> · {holder} holds it in <link>{title}</link>",
     "description": "A room line after a tool call Lervo stopped: another conversation's agent holds the path; the title opens that conversation."

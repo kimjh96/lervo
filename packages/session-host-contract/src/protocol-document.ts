@@ -23,6 +23,7 @@ import {
 } from "./application-agent-results.js";
 import {
   roomJoinResultSchema,
+  roomAnswersResultSchema,
   roomRouteResultSchema,
   roomSessionSchema,
 } from "./application-room-results.js";
@@ -37,7 +38,7 @@ import {
   workspaceRetireResultSchema,
   workspaceStartResultSchema,
   workspaceSummarySchema,
-} from "./application-results.js";
+} from "./application-workspace-results.js";
 import { conversationItemSchema, conversationItemSchemas } from "./conversation.js";
 import {
   coreLaunchSchema,
@@ -134,6 +135,7 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     agentContextResultSchema,
     roomSessionSchema,
     roomJoinResultSchema,
+    roomAnswersResultSchema,
     roomRouteResultSchema,
   ].map((schema) => [schema.title, schema] as const),
   ...[

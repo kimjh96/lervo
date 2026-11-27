@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d0f996d2ec03350a31f65215"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "A conversation shows a quiet line when its lead answered another agent in a different conversation, naming both agents and opening that conversation."

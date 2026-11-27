@@ -21,6 +21,7 @@ import { summarizeWorkspaceTurns } from "./turn-summary-service.js";
 import { joinWorkspaceRoom, routeRoomTurn } from "./workspace-room.js";
 import { loadRoomContext } from "./room-context.js";
 import { writeConversationNote } from "./conversation-notes.js";
+import { roomAnswers } from "./room-answers.js";
 import { recordRoomEvents } from "./room-events.js";
 import { pendingStartsOf, pendingStartsPath } from "./room-starts.js";
 
@@ -67,6 +68,7 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   recordRoomEvents,
   writeConversationNote: (note) => writeConversationNote(note),
   routeRoom: routeRoomTurn,
+  roomAnswers,
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,
   readTranscript: (workspaceId, offset, limit) => transcripts.read(workspaceId, offset, limit),

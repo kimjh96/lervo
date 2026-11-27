@@ -5,7 +5,8 @@
  */
 import type { FromSchema } from "json-schema-to-ts";
 
-import { applicationCommandNames, providerIdSchema } from "./application-results.js";
+import { applicationCommandNames } from "./application-results.js";
+import { providerIdSchema } from "./application-workspace-results.js";
 import { codeSchema, epochMillisecondsSchema, identifierSchema } from "./primitives.js";
 import { decodedContentSchema, decodedEventSchema } from "./core-link-decoded.js";
 import { sentImagesSchema } from "./image.js";

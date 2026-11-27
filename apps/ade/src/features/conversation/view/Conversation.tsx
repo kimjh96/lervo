@@ -12,6 +12,7 @@ import { FloatingButton } from "../../../ui/FloatingButton";
 import { Presence } from "../../../ui/Presence";
 import { openQuestions } from "../model/questions";
 import { roomView } from "../model/room";
+import { withAnswers } from "../model/room-answers";
 import { useRoomStore } from "../model/room-store";
 import { useConversationStore } from "../model/store";
 import styles from "./Conversation.module.css";
@@ -55,10 +56,12 @@ export function Conversation(props: {
   const lead = useConversationStore((store) => store.window);
   const leadAgentId = useRoomStore((store) => store.leadAgentId);
   const members = useRoomStore((store) => store.members);
-  const room = useMemo(
-    () => roomView(lead, leadAgentId, Object.values(members)),
-    [lead, leadAgentId, members],
-  );
+  const answers = useRoomStore((store) => store.answers);
+  const room = useMemo(() => {
+    const view = roomView(lead, leadAgentId, Object.values(members));
+    // What the lead answered in other conversations joins the timeline at its times.
+    return { ...view, window: withAnswers(view.window, answers) };
+  }, [lead, leadAgentId, members, answers]);
   const window = room.window;
   // The questions whose choices still wait for the person (Lervo ADE sessions, "Questions").
   const openNow = useMemo(() => openQuestions(window.items, !window.hasLater), [window]);
