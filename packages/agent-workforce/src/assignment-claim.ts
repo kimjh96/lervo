@@ -101,6 +101,7 @@ export async function claimAssignmentOnce(input: {
     const paths = assignment.expectedPaths;
     const changedPathHolders = await readAssignmentClaimPathHolders({
       repositoryRoot: input.repositoryRoot,
+      workforceDirectory: target.workforceDirectory,
       paths,
       assignments: all,
       now,

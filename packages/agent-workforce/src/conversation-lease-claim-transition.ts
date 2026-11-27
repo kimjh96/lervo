@@ -104,6 +104,7 @@ export async function claimConversationChunk(
         input.changedPathHolders ??
         (await readConversationPathHolders({
           repositoryRoot: input.repositoryRoot,
+          workforceDirectory: target.workforceDirectory,
           claimantConversationId: input.claimantWorkspaceId ?? null,
           assignments,
           now: input.now,

@@ -228,17 +228,37 @@ describe("recording a generation's changed paths", () => {
     ]);
   });
 
+  it("reads a conversation's changes without writing anything", async () => {
+    const fixture = await repository();
+    const { stdout } = await execute("git", ["-C", fixture.root, "rev-parse", "--git-common-dir"]);
+    const home = resolve(fixture.root, stdout.trim(), "lervo-coordination-v1");
+    const before = await readdir(resolve(fixture.root, stdout.trim()));
+    expect(await readConversationChangedPaths(fixture.root, HOLDER_CONVERSATION)).toBeNull();
+    expect(await readdir(resolve(fixture.root, stdout.trim()))).toEqual(before);
+    expect(before).not.toContain("lervo-coordination-v1");
+
+    // With a home and a generation but no changes yet, it still creates no directory.
+    await holderGeneration(fixture);
+    const workforce = (await RepositoryCoordinationRecords.open(fixture.root)).home.workforce;
+    expect(workforce.startsWith(home)).toBe(true);
+    const listed = await readdir(workforce);
+    expect(await readConversationChangedPaths(fixture.root, HOLDER_CONVERSATION)).toBeNull();
+    expect(await readdir(workforce)).toEqual(listed);
+    expect(listed).not.toContain("conversation-changes");
+  });
+
   it("holds the recorded paths only while the generation is current, present, and recent", async () => {
     const fixture = await repository();
     const { holder, workspace, assignment, worktree } = await holderGeneration(fixture);
     await record(fixture.root, workspace, ["src/a.ts"]);
-    const read = (
+    const read = async (
       claimantConversationId: string | null,
       assignments: readonly WorkforceAssignment[] = [assignment],
       now = NOW,
     ) =>
       readUnsealedChangedPathHolders({
         repositoryRoot: fixture.root,
+        workforceDirectory: (await RepositoryCoordinationRecords.open(fixture.root)).home.workforce,
         claimantConversationId,
         assignments,
         now,

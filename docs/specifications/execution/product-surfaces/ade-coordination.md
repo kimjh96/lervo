@@ -271,7 +271,7 @@ Reconciliation lists the paths the generation changed since its base: committed,
 
 How slice 1 reconciles:
 
-- **The changed paths.** Git lists them in the worktree from where the branch last met its integration target: the merge base of `HEAD` with the local branch whose ref the target digest names and with that branch's upstream. A merge from upstream, or a rebase onto it, therefore adds nothing. When no local branch is the target, the merge base with the generation's base stands in.
+- **The changed paths.** Git lists them in the worktree from where the branch last met its integration target: the merge base of `HEAD` with the generation's base, the local branch whose ref the target digest names, and that branch's upstream, so it never falls before the base. A merge from upstream, or a rebase onto it, therefore adds nothing. An upstream that is configured but gone is left out, and when no local branch is the target, the merge base with the generation's base stands in.
   - The listing is `git diff --name-only --no-renames`, so a rename counts as its source and its target, and `git ls-files --others --exclude-standard --directory`, so an untracked directory counts once.
   - Git runs without optional locks and without the variables that would redirect it to another directory, index, or object store.
   - Lervo's runtime paths hold nothing. A name with a glob character holds the deepest directory before it, as a glob operand claims; a root-level one holds nothing.
@@ -289,7 +289,7 @@ How slice 1 reconciles:
 - **The bound.** At most 10,000 entries and 2 MiB.
   - Past either bound, the set coalesces as a lease does, deepest directory first, with nothing else held against it, until it fits both.
   - A set that still does not fit holds its top-level entries, as many as the bounds allow, and overflows. Such a generation claims nothing and cannot seal until it shrinks. It never holds the whole checkout.
-  - `readConversationChangedPaths` reads a conversation's open set for the ADE: at most 100 held entries, the number of changed paths, the number of entries held, whether it coalesced or overflowed, and the time.
+  - `readConversationChangedPaths` reads a conversation's open set for the ADE, writing nothing and answering null while the coordination home does not exist: at most 100 held entries, the number of changed paths, the number of entries held, whether it coalesced or overflowed, and the time.
 - **The order.** The set is recorded first and then claimed, in chunks of 2,000 under the scheduler lock. A reconciliation that finds nothing to claim still renews a lease with less than 5 minutes left. A lead whose lease expired reacquires it first (under "Lease lifetime").
 - **At `Stop`.** Reconciliation runs before the turn is observed and the workspace inspected.
   - Its 3 seconds count from the `Stop`'s start. Each Git call is bounded by the time left, and no lock is taken in the last 500 ms. Once it holds the lock, it finishes before the answer.

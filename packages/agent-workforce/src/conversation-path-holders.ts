@@ -67,6 +67,7 @@ export function conversationLeaseHolderWorkspaceIds(
  */
 export async function readConversationPathHolders(input: {
   repositoryRoot: string;
+  workforceDirectory: string;
   claimantConversationId: string | null;
   assignments: readonly WorkforceAssignment[];
   now: Date;
@@ -87,6 +88,7 @@ export async function readConversationPathHolders(input: {
  */
 export async function readAssignmentClaimPathHolders(input: {
   repositoryRoot: string;
+  workforceDirectory: string;
   paths: readonly string[];
   assignments: readonly WorkforceAssignment[];
   now: Date;

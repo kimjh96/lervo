@@ -316,6 +316,22 @@ describe("conflicts that persist, and changes that are not the conversation's", 
     expect(await changedPathsOf(second.workspaceId)).toEqual(["src/b.ts"]);
   });
 
+  it("measures past an upstream that is configured but gone, never before the generation's base", async () => {
+    const { second } = app;
+    await git(app.repository, "remote", "add", "origin", resolve(app.root, "gone.git"));
+    await git(app.repository, "config", "branch.main.remote", "origin");
+    await git(app.repository, "config", "branch.main.merge", "refs/heads/main");
+    await writeFile(resolve(second.worktree, "src/b.ts"), "export const b = 1;\n");
+    await git(second.worktree, "add", "-A");
+    await git(second.worktree, "commit", "-m", "b");
+    await writeFile(resolve(app.repository, "src/up.ts"), "export const up = 1;\n");
+    await git(app.repository, "add", "src/up.ts");
+    await git(app.repository, "commit", "-m", "upstream");
+    await git(second.worktree, "merge", "--no-edit", "main");
+    expect(await stop(second.sessionId, second.worktree)).toEqual({});
+    expect(await changedPathsOf(second.workspaceId)).toEqual(["src/b.ts"]);
+  });
+
   it("settles nothing against a reconciliation that overflowed, and reports the overflow", async () => {
     const { first } = app;
     widening.failure = new AgentWorkforceError("workforce_busy", "busy");

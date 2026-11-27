@@ -51,15 +51,14 @@ function fields(output: string): string[] {
 }
 
 /**
- * The commits the branch is measured against: the local branch whose ref the generation's
- * integration target digest names, and its upstream, or the generation's base alone when no
- * branch matches.
+ * The integration target the generation's digest names, as `refs/heads/<branch>`, and its
+ * configured upstream, if any; null when no local branch is the target.
  */
-async function targetCommits(
+async function targetRefs(
   worktree: string,
   input: ChangedPathsInput,
   timeoutMs: number,
-): Promise<string[]> {
+): Promise<{ ref: string; upstream: string | null } | null> {
   const listed = await git(
     worktree,
     ["for-each-ref", "--format=%(refname)%00%(upstream)", "refs/heads"],
@@ -68,9 +67,37 @@ async function targetCommits(
   for (const line of (listed ?? "").split("\n")) {
     const [ref, upstream] = line.split("\0");
     if (ref !== undefined && repositoryCoordinateDigest(ref) === input.integrationTargetDigest)
-      return upstream === undefined || upstream === "" ? [ref] : [ref, upstream];
+      return { ref, upstream: upstream === undefined || upstream === "" ? null : upstream };
   }
-  return [input.baseCommit];
+  return null;
+}
+
+/**
+ * Where the branch last met its target: the merge base of `HEAD` with the generation's base, the
+ * target, and its upstream, so it never falls before the base. An upstream that is configured but
+ * gone fails the merge base, which then runs without it; when that fails too, the base stands.
+ * Without a target branch it is the merge base with the base alone.
+ */
+async function measuredFrom(
+  worktree: string,
+  input: ChangedPathsInput,
+  remaining: () => number,
+): Promise<string> {
+  const target = await targetRefs(worktree, input, remaining());
+  const attempts =
+    target === null
+      ? [[]]
+      : target.upstream === null
+        ? [[target.ref]]
+        : [[target.ref, target.upstream], [target.ref]];
+  for (const refs of attempts) {
+    if (remaining() <= 0) break;
+    const base = (
+      await git(worktree, ["merge-base", "HEAD", input.baseCommit, ...refs], remaining())
+    )?.trim();
+    if (base !== undefined && COMMIT.test(base)) return base;
+  }
+  return input.baseCommit;
 }
 
 export interface ChangedPathsInput {
@@ -84,9 +111,10 @@ export interface ChangedPathsInput {
 
 /**
  * The repository-relative paths `worktree` changed, sorted, and the commit they are measured
- * from, or null when Git could not list them in time. The commit is the merge base of `HEAD` and
- * the integration target with its upstream, so a merge or rebase onto upstream adds nothing; it
- * is the merge base with the generation's base when no local branch is the target. Renames count
+ * from, or null when Git could not list them in time. The commit is the merge base of `HEAD` with
+ * the generation's base and the integration target with its upstream, so a merge or rebase onto
+ * upstream adds nothing. With no local branch as the target, it is the merge base with the base,
+ * which is the base itself unless a rebase left it behind. Renames count
  * as their source and their target. An untracked directory counts once, as the directory.
  */
 export async function listCheckoutChangedPaths(
@@ -95,12 +123,10 @@ export async function listCheckoutChangedPaths(
 ): Promise<{ paths: string[]; measuredFrom: string } | null> {
   const remaining = () => Math.min(GIT_TIMEOUT_MS, Math.floor(input.deadline - performance.now()));
   if (!COMMIT.test(input.baseCommit) || remaining() <= 0) return null;
-  const targets = await targetCommits(worktree, input, remaining());
-  const base = (await git(worktree, ["merge-base", "HEAD", ...targets], remaining()))?.trim();
-  const measuredFrom = base !== undefined && COMMIT.test(base) ? base : input.baseCommit;
+  const from = await measuredFrom(worktree, input, remaining);
   if (remaining() <= 0) return null;
   const [tracked, untracked] = await Promise.all([
-    git(worktree, ["diff", "--name-only", "--no-renames", "-z", measuredFrom, "--"], remaining()),
+    git(worktree, ["diff", "--name-only", "--no-renames", "-z", from, "--"], remaining()),
     git(
       worktree,
       ["ls-files", "--others", "--exclude-standard", "--directory", "--no-empty-directory", "-z"],
@@ -109,5 +135,5 @@ export async function listCheckoutChangedPaths(
   ]);
   if (tracked === null || untracked === null) return null;
   const paths = [...fields(tracked), ...fields(untracked).map((path) => path.replace(/\/+$/u, ""))];
-  return { paths: [...new Set(paths)].sort(), measuredFrom };
+  return { paths: [...new Set(paths)].sort(), measuredFrom: from };
 }

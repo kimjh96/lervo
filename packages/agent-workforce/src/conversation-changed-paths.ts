@@ -1,15 +1,22 @@
 import { lstat, mkdir, readdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { inspectRepositoryCoordinationHome } from "@lervo/project-storage";
+
 import { MAXIMUM_CONVERSATION_EXPECTED_PATHS } from "./assignment-path-bounds.js";
 import type { ChangedPathHolder } from "./assignment-path-conflict.js";
 import { normalizeClaimPath } from "./conversation-claim-input.js";
 import { heldChangedPaths } from "./conversation-changed-path-bounds.js";
-import { isConversationWorkspace, newestConversationWorkspace } from "./conversation-workspace.js";
+import {
+  conversationWorkspaceRecordId,
+  isConversationWorkspace,
+  newestConversationWorkspace,
+} from "./conversation-workspace.js";
 import type { WorkforceAssignment } from "./types.js";
 import { atomicWrite, readBounded, state, workforceStateFits } from "./workforce-state-io.js";
 import { fail, validTime } from "./workforce-state-validation.js";
-import { listWorkspaces, readWorkspace } from "./workspace-store.js";
+import { isAgentWorkspace } from "./workspace-lifecycle.js";
+import { readWorkspace } from "./workspace-store.js";
 import type { AgentWorkspace, WorkspaceState } from "./workspace-types.js";
 
 /**
@@ -62,8 +69,20 @@ function serialized(record: ConversationChangedPaths): string {
   return `${JSON.stringify(record, null, 2)}\n`;
 }
 
-function folderOf(repositoryRoot: string): Promise<string> {
-  return state(repositoryRoot).then(({ base }) => resolve(base, DIRECTORY));
+/** The changes directory of a workforce directory. */
+function changesFolder(workforceDirectory: string): string {
+  return resolve(workforceDirectory, DIRECTORY);
+}
+
+/** The changes directory for a write, resolving and preparing the coordination home. */
+async function writableFolder(repositoryRoot: string): Promise<string> {
+  return changesFolder((await state(repositoryRoot)).base);
+}
+
+/** The changes directory for a read, or null when the coordination home does not exist yet. */
+async function readableFolder(repositoryRoot: string): Promise<string | null> {
+  const home = await inspectRepositoryCoordinationHome(repositoryRoot).catch(() => null);
+  return home === null ? null : changesFolder(home.workforce);
 }
 
 function validRecord(value: unknown, workspaceId: string): value is ConversationChangedPaths {
@@ -125,7 +144,7 @@ export async function recordConversationChangedPaths(input: {
   };
   if (!workforceStateFits(serialized(record)))
     fail("workforce_write_failed", "The conversation's changed paths exceed the state bound.");
-  const folder = await folderOf(input.repositoryRoot);
+  const folder = await writableFolder(input.repositoryRoot);
   await mkdir(folder, { recursive: true, mode: 0o700 });
   await atomicWrite(resolve(folder, `${record.workspaceId}.json`), serialized(record));
   await pruneChangedPaths(input.repositoryRoot, folder, input.workspaces);
@@ -216,13 +235,15 @@ async function holds(
  */
 export async function readUnsealedChangedPathHolders(input: {
   repositoryRoot: string;
+  /** The workforce directory the claim already resolved; reading it prepares nothing. */
+  workforceDirectory: string;
   /** The claimant's conversation, whose own generations never hold against it. */
   claimantConversationId: string | null;
   /** Every assignment, as the claim read them under the scheduler lock. */
   assignments: readonly WorkforceAssignment[];
   now: Date;
 }): Promise<ChangedPathHolder[]> {
-  const folder = await folderOf(input.repositoryRoot);
+  const folder = changesFolder(input.workforceDirectory);
   const holders: ChangedPathHolder[] = [];
   for (const workspaceId of await recordIds(folder)) {
     const workspace = (await readWorkspace(input.repositoryRoot, workspaceId).catch(() => null))
@@ -254,8 +275,9 @@ export async function readUnsealedChangedPathHolders(input: {
 export async function listConversationChangedPaths(
   repositoryRoot: string,
 ): Promise<Map<string, ConversationChangedPaths>> {
-  const folder = await folderOf(repositoryRoot);
+  const folder = await readableFolder(repositoryRoot);
   const records = new Map<string, ConversationChangedPaths>();
+  if (folder === null) return records;
   for (const workspaceId of await recordIds(folder)) {
     const record = await readRecord(folder, workspaceId);
     if (record !== null) records.set(workspaceId, record);
@@ -280,22 +302,47 @@ export interface ConversationChangedPathsSummary {
   recordedAt: string;
 }
 
+/** Generations a reader looks up one by one before it stops. */
+const MAXIMUM_READ_GENERATIONS = 1_000;
+
+/** A workspace record read straight from its file, or null when it is absent or unusable. */
+async function readRecordFile(
+  directory: string,
+  workspaceId: string,
+): Promise<AgentWorkspace | null> {
+  try {
+    const content = await readBounded(resolve(directory, `${workspaceId}.json`));
+    if (content === null) return null;
+    const value: unknown = JSON.parse(content);
+    return isAgentWorkspace(value as AgentWorkspace) ? (value as AgentWorkspace) : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * A conversation's changed paths that are not sealed yet, as its newest open generation's latest
- * reconciliation recorded them, or null when that generation has no current record. It reads
- * only and writes nothing.
+ * reconciliation recorded them, or null when that generation has no current record or the
+ * coordination home does not exist. It reads each generation's record by its derived ID and
+ * writes nothing, not even a directory.
  */
 export async function readConversationChangedPaths(
   repositoryRoot: string,
   conversationId: string,
 ): Promise<ConversationChangedPathsSummary | null> {
   if (!WORKSPACE_ID.test(conversationId)) return null;
-  const generation = newestConversationWorkspace(
-    await listWorkspaces(repositoryRoot),
-    conversationId,
-  );
+  const home = await inspectRepositoryCoordinationHome(repositoryRoot).catch(() => null);
+  if (home === null) return null;
+  const generations: AgentWorkspace[] = [];
+  for (let generation = 1; generation <= MAXIMUM_READ_GENERATIONS; generation += 1) {
+    const workspaceId = conversationWorkspaceRecordId(conversationId, generation);
+    const workspace = await readRecordFile(home.workspaces, workspaceId);
+    if (workspace === null) break;
+    generations.push(workspace);
+  }
+  const generation = newestConversationWorkspace(generations, conversationId);
   if (generation === null || !UNSEALED.has(generation.state)) return null;
-  const record = await readRecord(await folderOf(repositoryRoot), generation.workspaceId);
+  const record = await readRecord(changesFolder(home.workforce), generation.workspaceId);
   if (
     record === null ||
     record.generation !== generation.generation ||
