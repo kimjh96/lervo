@@ -1,513 +1,79 @@
-import { constants } from "node:fs";
-import { lstat, open, readFile } from "node:fs/promises";
-import { posix, resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
-import { fromMarkdown } from "mdast-util-from-markdown";
-import { stringify } from "yaml";
-import { loadDecisionTaxonomy } from "@lervo/project";
+import { loadDecisionTaxonomy, type DecisionTaxonomy } from "@lervo/project";
 
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
   scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
-import { planDecisionTaxonomyRefresh } from "./decision-taxonomy-refresh.js";
-import { createKnowledgeInstructionBridgePlan } from "./instruction-bridge.js";
-import {
-  applyDurableKnowledgeOperations,
-  type DurableKnowledgeMoveOperation,
-  type DurableKnowledgeMoveUpdateOperation,
-  type DurableKnowledgeUserFileOperation,
-  type KnowledgeMaterializationCheckpoint,
-} from "./durable-apply.js";
-import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
-import { canonicalJson, sha256, stableId } from "./integrity.js";
-import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
-import {
-  relocateRepositoryKnowledgeScanSources,
-  repositoryPathCanRemainIncluded,
-  upsertRepositoryKnowledgeScanSources,
-} from "./scanner.js";
-import { createDocumentMoveLineage } from "./source-lineage.js";
-import { loadStoredConcepts } from "./store-reader.js";
 import type { ConceptSidecarCache } from "./concept-sidecar-cache.js";
-import { legacyNormalizationRecord } from "./normalization-record-version.js";
-import { inspectGroupedDecisionPaths, type DecisionLayoutBlockerCode } from "./decision-layout.js";
-import {
-  bytePreservedDocumentCollection,
-  repositoryInstructionPaths,
-  type DocumentLayoutBlockerCode,
-} from "./document-layout.js";
-import type {
-  DocumentRouteBasis,
-  SemanticRouteEvidence,
-  DocumentRouteResolutionContext,
-} from "./document-route-resolution.js";
+import { planDecisionTaxonomyRefresh } from "./decision-taxonomy-refresh.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import type { DocumentRouteResolutionContext } from "./document-route-resolution.js";
+import type { DurableKnowledgeUserFileOperation } from "./durable-apply.js";
+import { canonicalJson, sha256, stableId } from "./integrity.js";
+import { accountRepositoryLayoutCandidates } from "./repository-layout-accounting.js";
 import {
   classifyRepositoryLayoutCandidates,
-  type RepositoryLayoutCandidate,
-  type RepositoryLayoutClassification,
-  type RepositoryLayoutDeferredDocument,
-  type RepositoryLayoutReason,
-  type RepositoryLayoutRetainedDocument,
+  type RepositoryLayoutCandidates,
 } from "./repository-layout-candidates.js";
-import {
-  RepositoryKnowledgeError,
-  type RepositoryKnowledgePreparedScanOptions,
-  type KnowledgeFileOperation,
-  type RepositoryKnowledgeScanOptions,
-  type RepositorySource,
-} from "./types.js";
-import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
-import { accountRepositoryLayoutCandidates } from "./repository-layout-accounting.js";
 import {
   holdRepositoryLayoutMovesOverCapacity,
   type RepositoryLayoutCapacityFinding,
 } from "./repository-layout-capacity.js";
-import { projectRebuildableKnowledgeIgnore } from "./projection-ignore.js";
-import { isWithinPublicationRoot } from "./repository-publication-files.js";
-import { observedOnlySource } from "./scan-retention.js";
-import { readObservedSourceText } from "./scanner-file-source.js";
+import { inspectRepositoryLayoutDestinations } from "./repository-layout-destinations.js";
+import { planRepositoryLayoutDocumentMoves } from "./repository-layout-document-moves.js";
+import {
+  planInstructionBridgeRecordOperations,
+  planRepositoryInstructionRouteRefresh,
+} from "./repository-layout-instruction-surfaces.js";
+import {
+  normalizationOwnershipUpgradeOperations,
+  planRepositoryLayoutMachineMoves,
+  repositoryLayoutRegistryDigest,
+} from "./repository-layout-machine-artifacts.js";
+import {
+  withoutContent,
+  type RepositoryLayoutMachineMove,
+  type RepositoryLayoutMigrationPlan,
+  type RepositoryLayoutMove,
+  type RepositoryLayoutReferenceUpdate,
+  type RepositoryLayoutUserUpdate,
+} from "./repository-layout-plan.js";
+import {
+  planRepositoryLayoutReferenceRewrites,
+  repositoryLayoutReferenceUpdates,
+} from "./repository-layout-references.js";
+import {
+  planRepositoryLayoutPublicationIgnore,
+  planRepositoryLayoutReferenceUpdates,
+} from "./repository-layout-user-updates.js";
+import { loadStoredConcepts } from "./store-reader.js";
+import {
+  RepositoryKnowledgeError,
+  type KnowledgeFileOperation,
+  type KnowledgeMigrationPlan,
+  type RepositoryKnowledgePolicy,
+  type RepositoryKnowledgePreparedScanOptions,
+  type RepositoryKnowledgeScan,
+  type RepositoryKnowledgeScanOptions,
+} from "./types.js";
 
-const HASH = /^sha256:[a-f0-9]{64}$/;
+export {
+  serializableRepositoryLayoutMigrationPlan,
+  type RepositoryLayoutMachineMove,
+  type RepositoryLayoutMigrationPlan,
+  type RepositoryLayoutMove,
+  type RepositoryLayoutReferenceUpdate,
+  type RepositoryLayoutUserUpdate,
+} from "./repository-layout-plan.js";
 
-export interface RepositoryLayoutMove {
-  operationId: string;
-  approvalHash: string;
-  fromPath: string;
-  toPath: string;
-  contentHash: string;
-  destinationContentHash: string;
-  byteCount: number;
-  preservedConceptIds: string[];
-  lineageId: string;
-  classification: RepositoryLayoutClassification;
-  group?: string;
-  subgroup?: string;
-  routeId?: string;
-  /** ADR-0476: the declaration or recorded semantic evidence the route rests on. */
-  classificationBasis?: DocumentRouteBasis;
-  semanticClassification?: SemanticRouteEvidence;
-  reason: RepositoryLayoutReason;
-}
+type RepositoryLayoutPlanRequest = Parameters<typeof createRepositoryLayoutMigrationPlan>[0];
 
-export interface RepositoryLayoutReferenceUpdate {
-  path: string;
-  beforeHash: string;
-  afterHash: string;
-  replacementCount: number;
-}
-
-export interface RepositoryLayoutUserUpdate {
-  operationId: string;
-  approvalHash: string;
-  path: string;
-  beforeHash: string | null;
-  afterHash: string;
-  reason:
-    | "refresh_instruction_routes"
-    | "normalize_agent_surface_references"
-    | "reconcile_document_rewriters"
-    | "exclude_rebuildable_publications";
-}
-
-export interface RepositoryLayoutMachineMove {
-  fromPath: string;
-  toPath: string;
-  contentHash: string;
-  byteCount: number;
-  registry:
-    | "bundles"
-    | "concepts"
-    | "claims"
-    | "relations"
-    | "source_lineage"
-    | "instruction_bridges"
-    | "document_normalizations"
-    | "semantic_manifests"
-    | "inventory"
-    | "source_units"
-    | "impacts"
-    | "candidates";
-}
-
-export interface RepositoryLayoutMigrationPlan {
-  schemaVersion: 1;
-  planKind: "repository_layout";
-  planId: string;
-  status: "current" | "ready" | "review_required" | "blocked";
-  projectId: string;
-  repositoryRoot: string;
-  sourceSnapshotId: string;
-  afterSourceSnapshotId: string;
-  policyHash: string;
-  taxonomyHash: string;
-  coverage: {
-    included: number;
-    excluded: number;
-    unsupported: number;
-    includedBytes: number;
-    complete: boolean;
-  };
-  registryDigest: string;
-  moves: RepositoryLayoutMove[];
-  userUpdates: RepositoryLayoutUserUpdate[];
-  machineMoves: RepositoryLayoutMachineMove[];
-  referenceUpdates: RepositoryLayoutReferenceUpdate[];
-  documentRouteContext?: DocumentRouteResolutionContext;
-  /**
-   * Documents awaiting a semantic route. They never block: the background resident classifies
-   * them, and each one is a precise attention entry until then (ADR-0476).
-   */
-  deferredDocuments: RepositoryLayoutDeferredDocument[];
-  deferredDocumentCount: number;
-  /** Markdown kept in place, with the application-content, tool, or semantic evidence why. */
-  retainedDocuments: RepositoryLayoutRetainedDocument[];
-  retainedDocumentCount: number;
-  /** Recorded classifications this plan relies on or waits for; any other record is stale. */
-  semanticClassificationIds: string[];
-  /** ADR-0583: directories over capacity, with the moves held for them or left as user debt. */
-  layoutCapacity?: RepositoryLayoutCapacityFinding[];
-  blockers: Array<{
-    code:
-      | "destination_exists"
-      | "destination_in_publication_root"
-      | "ambiguous_destination"
-      | "invalid_markdown_reference"
-      | DecisionLayoutBlockerCode
-      | DocumentLayoutBlockerCode;
-    pathDigest: string;
-    path?: string;
-    candidateRouteIds?: string[];
-    configuredMaximum?: number;
-    observedCount?: number;
-  }>;
-  operations: Array<
-    | KnowledgeFileOperation
-    | DurableKnowledgeMoveOperation
-    | DurableKnowledgeMoveUpdateOperation
-    | DurableKnowledgeUserFileOperation
-  >;
-}
-
-export interface RepositoryLayoutMigrationReceipt {
-  schemaVersion: 1;
-  type: "knowledge.materialization.applied";
-  operation: "migrate";
-  planId: string;
-  projectId: string;
-  sourceSnapshotId: string;
-  afterSourceSnapshotId: string;
-  approvalDigest: string;
-  movedCount: number;
-  machineMovedCount: number;
-  referenceUpdatedCount: number;
-  pathDigests: Array<{ from: string; to: string }>;
-  /** The basis of each move's route, by destination digest; semantic ones cite their record. */
-  classificationBases: Array<{ to: string; basis: DocumentRouteBasis; recordDigest?: string }>;
-  created: string[];
-  updated: string[];
-  unchanged: string[];
-  appliedAt: string;
-}
-
-function mediaTypeFor(source: RepositorySource): DurableKnowledgeUserFileOperation["mediaType"] {
-  if (/\.mdx?$/iu.test(source.path)) return "text/markdown";
-  if (/\.json$/iu.test(source.path)) return "application/json";
-  if (/\.ya?ml$/iu.test(source.path)) return "application/yaml";
-  if (/\.[cm]?js$/iu.test(source.path)) return "text/javascript";
-  if (/\.[cm]?tsx?$/iu.test(source.path)) return "text/typescript";
-  return "text/plain";
-}
-
-async function safeFile(
-  path: string,
-  maximumBytes = 256 * 1024,
-): Promise<{ contentHash: string; byteCount: number }> {
-  let handle;
-  try {
-    handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-    const before = await handle.stat();
-    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes)
-      throw new Error("unsafe registry item");
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeMs !== after.mtimeMs ||
-      bytes.byteLength !== before.size
-    )
-      throw new Error("registry changed");
-    return { contentHash: sha256(bytes), byteCount: bytes.byteLength };
-  } catch (error) {
-    throw new RepositoryKnowledgeError(
-      "knowledge_reconciliation_conflict",
-      "The knowledge registry cannot be read safely.",
-      undefined,
-      { cause: error },
-    );
-  } finally {
-    await handle?.close();
-  }
-}
-
-async function machineArtifactMoves(root: string): Promise<RepositoryLayoutMachineMove[]> {
-  const registries = [
-    {
-      directory: ".lervo/knowledge/bundles",
-      extension: "yaml" as const,
-      registry: "bundles" as const,
-      maximumBytes: 1024 * 1024,
-    },
-    {
-      directory: ".lervo/knowledge/concepts",
-      extension: "yaml" as const,
-      registry: "concepts" as const,
-      maximumBytes: 1024 * 1024,
-    },
-    {
-      directory: ".lervo/knowledge/claims",
-      extension: "yaml" as const,
-      registry: "claims" as const,
-      maximumBytes: 1024 * 1024,
-    },
-    {
-      directory: ".lervo/knowledge/relations",
-      extension: "yaml" as const,
-      registry: "relations" as const,
-      maximumBytes: 1024 * 1024,
-    },
-    {
-      directory: ".lervo/knowledge/source-lineage",
-      extension: "yaml" as const,
-      registry: "source_lineage" as const,
-      maximumBytes: 1024 * 1024,
-    },
-    {
-      directory: ".lervo/knowledge/instruction-bridges",
-      extension: "yaml" as const,
-      registry: "instruction_bridges" as const,
-      maximumBytes: 1024 * 1024,
-    },
-    {
-      directory: ".lervo/knowledge/document-normalizations",
-      extension: "yaml" as const,
-      registry: "document_normalizations" as const,
-      maximumBytes: 1024 * 1024,
-    },
-    {
-      directory: ".lervo/generated/semantic-manifests",
-      extension: "json" as const,
-      registry: "semantic_manifests" as const,
-      maximumBytes: 16 * 1024 * 1024,
-    },
-    {
-      directory: ".lervo/state/knowledge/candidates",
-      extension: "json" as const,
-      registry: "candidates" as const,
-      maximumBytes: 32 * 1024 * 1024,
-    },
-  ];
-  const moves: RepositoryLayoutMachineMove[] = [];
-  for (const item of registries) {
-    const paths = await listKnowledgeArtifactPaths({
-      root,
-      directory: item.directory,
-      extension: item.extension,
-      maximumFiles: 20_000,
-    });
-    for (const fromPath of paths.filter(
-      (path) => !path.slice(item.directory.length + 1).includes("/"),
-    )) {
-      const name = fromPath.split("/").at(-1)!;
-      const id = name.slice(0, -(item.extension.length + 1));
-      const toPath = shardedKnowledgeArtifactPath(item.directory, id, item.extension);
-      const file = await safeFile(resolve(root, fromPath), item.maximumBytes);
-      moves.push({ fromPath, toPath, ...file, registry: item.registry });
-    }
-  }
-  return moves.sort((left, right) => left.fromPath.localeCompare(right.fromPath));
-}
-
-async function normalizationOwnershipUpgradeOperations(
-  root: string,
-): Promise<KnowledgeFileOperation[]> {
-  const operations: KnowledgeFileOperation[] = [];
-  const paths = await listKnowledgeArtifactPaths({
-    root,
-    directory: ".lervo/knowledge/document-normalizations",
-    extension: "yaml",
-    maximumFiles: 20_000,
-  });
-  for (const path of paths) {
-    const source = await readFile(resolve(root, path), "utf8");
-    const value = legacyNormalizationRecord(source);
-    if (value === null) continue;
-    const content = stringify(
-      {
-        ...value,
-        schemaVersion: 2,
-        byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" },
-      },
-      { lineWidth: 0, sortMapEntries: true },
-    );
-    operations.push({
-      path,
-      action: "update",
-      ownership: "lervo_generated",
-      mediaType: "application/yaml",
-      content,
-      expectedCurrentHash: sha256(source),
-      desiredHash: sha256(content),
-      reason: "upgrade_document_rewrite_ownership",
-    });
-  }
-  return operations;
-}
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await lstat(path);
-    return true;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-    throw error;
-  }
-}
-
-function replaceAllLiteral(
-  content: string,
-  from: string,
-  to: string,
-): { content: string; count: number } {
-  if (from.length === 0 || from === to) return { content, count: 0 };
-  const parts = content.split(from);
-  return parts.length === 1
-    ? { content, count: 0 }
-    : { content: parts.join(to), count: parts.length - 1 };
-}
-
-function rewriteReferences(
-  sourcePath: string,
-  content: string,
-  moves: Array<{ fromPath: string; toPath: string }>,
-): { content: string; count: number } {
-  let output = content;
-  let count = 0;
-  const sourceDirectory = posix.dirname(sourcePath);
-  for (const move of moves) {
-    const fromRelative = posix.relative(sourceDirectory, move.fromPath);
-    const toRelative = posix.relative(sourceDirectory, move.toPath);
-    const variants: string[][] = [
-      ...(fromRelative.startsWith(".")
-        ? [[fromRelative, toRelative]]
-        : [
-            [`./${fromRelative}`, `./${toRelative}`],
-            [fromRelative, toRelative],
-          ]),
-    ];
-    if (move.fromPath !== fromRelative) variants.push([move.fromPath, move.toPath]);
-    for (const [from, to] of variants) {
-      const replaced = replaceAllLiteral(output, from!, to!);
-      output = replaced.content;
-      count += replaced.count;
-    }
-  }
-  return { content: output, count };
-}
-
-interface PositionedMarkdownNode {
-  type?: string;
-  url?: string;
-  position?: { start?: { offset?: number }; end?: { offset?: number } };
-  children?: PositionedMarkdownNode[];
-}
-
-function rebaseMarkdownLinks(
-  content: string,
-  fromPath: string,
-  toPath: string,
-): { content: string; count: number } {
-  const tree = fromMarkdown(content) as PositionedMarkdownNode;
-  const replacements: Array<{ start: number; end: number; value: string }> = [];
-  const visit = (node: PositionedMarkdownNode): void => {
-    if (
-      (node.type === "link" || node.type === "image" || node.type === "definition") &&
-      typeof node.url === "string" &&
-      node.url.length > 0 &&
-      !/^(?:[a-z][a-z0-9+.-]*:|\/|#)/iu.test(node.url)
-    ) {
-      const match = /^([^?#]*)([?#].*)?$/u.exec(node.url);
-      const relativeTarget = match?.[1] ?? "";
-      if (relativeTarget.length > 0) {
-        const absoluteTarget = posix.normalize(posix.join(posix.dirname(fromPath), relativeTarget));
-        let rebased = posix.relative(posix.dirname(toPath), absoluteTarget);
-        if (!rebased.startsWith(".")) rebased = `./${rebased}`;
-        rebased += match?.[2] ?? "";
-        if (rebased !== node.url) {
-          const start = node.position?.start?.offset;
-          const end = node.position?.end?.offset;
-          if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end))
-            throw new RepositoryKnowledgeError(
-              "knowledge_unit_extraction_failed",
-              "The Markdown reference coordinates cannot be determined.",
-            );
-          const slice = content.slice(start, end);
-          const destinationMarker = node.type === "definition" ? "]:" : "](";
-          const marker = slice.indexOf(destinationMarker);
-          const local =
-            marker < 0 ? -1 : slice.indexOf(node.url, marker + destinationMarker.length);
-          if (local < 0)
-            throw new RepositoryKnowledgeError(
-              "knowledge_unit_extraction_failed",
-              "The Markdown reference destination cannot be determined.",
-            );
-          replacements.push({
-            start: start! + local,
-            end: start! + local + node.url.length,
-            value: rebased,
-          });
-        }
-      }
-    }
-    for (const child of node.children ?? []) visit(child);
-  };
-  visit(tree);
-  let output = content;
-  for (const replacement of replacements.sort((left, right) => right.start - left.start))
-    output = `${output.slice(0, replacement.start)}${replacement.value}${output.slice(replacement.end)}`;
-  return { content: output, count: replacements.length };
-}
-
-function withoutContent(
-  operation:
-    | KnowledgeFileOperation
-    | DurableKnowledgeMoveOperation
-    | DurableKnowledgeMoveUpdateOperation
-    | DurableKnowledgeUserFileOperation,
-): unknown {
-  return operation.action === "move"
-    ? operation
-    : (({ content: _content, ...item }) => item)(operation);
-}
-
-export function serializableRepositoryLayoutMigrationPlan(
-  plan: RepositoryLayoutMigrationPlan,
-): Omit<RepositoryLayoutMigrationPlan, "operations"> & { operations: unknown[] } {
-  return { ...plan, operations: plan.operations.map(withoutContent) };
-}
-
-export async function createRepositoryLayoutMigrationPlan(input: {
-  repositoryRoot: string;
-  supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
-  preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
-  documentRouteContext?: DocumentRouteResolutionContext;
-  /** ADR-0601: a long-lived reader reuses concept decoding across plans; bytes are always read. */
-  conceptCache?: ConceptSidecarCache;
-}): Promise<RepositoryLayoutMigrationPlan> {
-  const root = resolve(input.repositoryRoot);
+/** The scan, taxonomy, and registries one plan reads; an incomplete concept registry fails. */
+async function loadRepositoryLayoutInputs(root: string, input: RepositoryLayoutPlanRequest) {
   const taxonomyPath = resolve(root, ".lervo/knowledge/document-layout.yaml");
   const taxonomySource = await readFile(taxonomyPath, "utf8");
   const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
@@ -530,581 +96,89 @@ export async function createRepositoryLayoutMigrationPlan(input: {
         message: "The knowledge concept registry is incomplete.",
       },
     );
-  const classified = await classifyRepositoryLayoutCandidates({
-    root,
-    scan,
-    taxonomy,
-    ...(input.documentRouteContext === undefined
-      ? {}
-      : { documentRouteContext: input.documentRouteContext }),
-  });
-  const candidates: RepositoryLayoutCandidate[] = classified.candidates;
-  const repairableDecisionPaths = classified.repairableDecisionPaths;
-  const destinationCounts = new Map<string, number>();
-  for (const item of candidates)
-    destinationCounts.set(item.toPath, (destinationCounts.get(item.toPath) ?? 0) + 1);
-  const blockers: RepositoryLayoutMigrationPlan["blockers"] = [
-    ...classified.blockers,
-    ...inspectGroupedDecisionPaths(
-      scan.sources.map((source) => source.path),
-      taxonomy,
-    )
-      .filter(
-        (blocker) =>
-          blocker.code !== "unknown_decision_route" || !repairableDecisionPaths.has(blocker.path),
-      )
-      .map((blocker) => ({ ...blocker, pathDigest: sha256(blocker.path) })),
-  ];
-  const blockedDestinations = new Set<string>();
-  for (const item of candidates) {
-    if ((destinationCounts.get(item.toPath) ?? 0) > 1) {
-      blockers.push({ code: "ambiguous_destination", pathDigest: sha256(item.toPath) });
-      blockedDestinations.add(item.toPath);
-    } else if (
-      scan.sources.some((source) => source.path === item.toPath) ||
-      generatedPaths.has(item.toPath) ||
-      (await exists(resolve(root, item.toPath)))
-    ) {
-      blockers.push({ code: "destination_exists", pathDigest: sha256(item.toPath) });
-      blockedDestinations.add(item.toPath);
-    } else if (!repositoryPathCanRemainIncluded(item.toPath, policy)) {
-      blockers.push({ code: "destination_exists", pathDigest: sha256(item.toPath) });
-      blockedDestinations.add(item.toPath);
-    } else if (isWithinPublicationRoot(item.toPath, policy.publicationRoot)) {
-      // Git ignores the publication root, so a user document moved there leaves version control.
-      blockers.push({
-        code: "destination_in_publication_root",
-        pathDigest: sha256(item.toPath),
-        path: item.source.path,
-      });
-      blockedDestinations.add(item.toPath);
-    }
-  }
-  // Blocked candidates remain represented by their blockers but must never be
-  // projected into the virtual post-migration scan. In particular, two source
-  // documents that select the same destination would otherwise make the
-  // second projection throw instead of returning a reviewable blocked plan.
-  const capacity = holdRepositoryLayoutMovesOverCapacity({
-    scan,
-    taxonomy,
-    candidates: candidates.filter((item) => !blockedDestinations.has(item.toPath)),
-  });
-  const { executableCandidates, deferredDocuments } = accountRepositoryLayoutCandidates({
-    classified,
-    blockedDestinations,
-    heldDestinations: capacity.heldDestinations,
-  });
-  const movePaths = executableCandidates.map(({ source, toPath }) => ({
-    fromPath: source.path,
-    toPath,
-  }));
-  const referenceChanges = new Map<
-    string,
-    {
-      source: RepositorySource & { content: string; contentHash: string };
-      content: string;
-      count: number;
-    }
-  >();
-  const movedContentChanges = new Map<string, { content: string; count: number }>();
-  for (const scanned of scan.sources) {
-    if (
-      scanned.status !== "included" ||
-      scanned.contentHash === null ||
-      generatedPaths.has(scanned.path) ||
-      bytePreservedDocumentCollection(scanned.path, taxonomy) ||
-      scanned.path.startsWith(".lervo/") ||
-      scanned.path.startsWith("knowledge/")
-    )
-      continue;
-    // An observed-only file (ADR-0544) may still name a moved document, so it is reread once here;
-    // only the rewritten text of a changed file stays in memory.
-    const content =
-      scanned.content ??
-      (observedOnlySource(scanned) && movePaths.length > 0 && !scanned.path.startsWith("@")
-        ? await readObservedSourceText(root, scanned)
-        : undefined);
-    if (content === undefined) continue;
-    const source = { ...scanned, content };
-    const move = movePaths.find((item) => item.fromPath === source.path);
-    const rebased =
-      move === undefined
-        ? { content: source.content, count: 0 }
-        : rebaseMarkdownLinks(source.content, source.path, move.toPath);
-    const rewritten = rewriteReferences(move?.toPath ?? source.path, rebased.content, movePaths);
-    rewritten.count += rebased.count;
-    if (rewritten.count === 0) continue;
-    if (move !== undefined) movedContentChanges.set(source.path, rewritten);
-    else
-      referenceChanges.set(source.path, {
-        source: { ...source, contentHash: scanned.contentHash },
-        content: rewritten.content,
-        count: rewritten.count,
-      });
-  }
-  const instructionCandidates = executableCandidates.filter(
-    (item) => item.classification === "instruction",
+  return { taxonomySource, policy, scan, storedConcepts, generatedPaths, taxonomy };
+}
+
+/**
+ * Registry upgrades and the structural recompilation of the post-migration scan. A plan with
+ * nothing to write, or one that only adds the publication ignore rule, skips recompilation.
+ */
+async function planStructuralRefresh(input: {
+  root: string;
+  scan: RepositoryKnowledgeScan;
+  virtualScan: RepositoryKnowledgeScan;
+  taxonomySource: string;
+  taxonomy: DecisionTaxonomy;
+  moves: RepositoryLayoutMove[];
+  userUpdates: RepositoryLayoutUserUpdate[];
+  publicationIgnoreOperationCount: number;
+}): Promise<{
+  normalizationOwnershipOperations: KnowledgeFileOperation[];
+  taxonomyUpgradeOperation: KnowledgeFileOperation[];
+  structural: KnowledgeMigrationPlan | null;
+}> {
+  const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(
+    input.root,
   );
-  const existingInstructions = scan.sources.flatMap((source) =>
-    source.status === "included" &&
-    source.content !== undefined &&
-    source.contentHash !== null &&
-    source.path.startsWith("docs/instructions/") &&
-    source.path.endsWith(".md")
-      ? [{ toPath: source.path, instructionPaths: repositoryInstructionPaths(source.content) }]
-      : [],
-  );
-  const skillCandidates = executableCandidates.filter(
-    (item) => item.classification === "skill" && item.toPath.endsWith("/SKILL.md"),
-  );
-  const existingSkills = scan.sources.flatMap((source) =>
-    source.status === "included" &&
-    source.path.startsWith(".agents/skills/") &&
-    source.path.endsWith("/SKILL.md")
-      ? [{ toPath: source.path }]
-      : [],
-  );
-  const routedInstructions =
-    instructionCandidates.length > 0 ? instructionCandidates : existingInstructions;
-  const routedSkills = skillCandidates.length > 0 ? skillCandidates : existingSkills;
-  let managedAgentRouteOperation: KnowledgeFileOperation | null = null;
-  const agents = scan.sources.find(
-    (source): source is RepositorySource & { content: string; contentHash: string } =>
-      source.path === "AGENTS.md" &&
-      source.status === "included" &&
-      source.content !== undefined &&
-      source.contentHash !== null,
-  );
-  // A generated AGENTS.md is outside the scan; the structural compiler regenerates its routes.
-  if (
-    agents === undefined &&
-    !generatedPaths.has("AGENTS.md") &&
-    (routedInstructions.length > 0 || routedSkills.length > 0)
-  ) {
-    throw new RepositoryKnowledgeError(
-      "knowledge_reconciliation_conflict",
-      "Provider instruction normalization requires a canonical AGENTS.md source.",
-    );
-  }
-  if (agents !== undefined) {
-    const block = repositoryInstructionRouteBlock({
-      instructions: routedInstructions.map((item) => ({
-        path: item.toPath,
-        instructionPaths: item.instructionPaths ?? [],
-      })),
-      skills: routedSkills.map((item) => ({ path: item.toPath })),
-    });
-    const blockPattern =
-      /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/gu;
-    const existing = referenceChanges.get("AGENTS.md");
-    const baseContent = existing?.content ?? agents.content;
-    const existingBlocks = baseContent.match(blockPattern) ?? [];
-    let replacedBlock = false;
-    const combined =
-      existingBlocks.length > 0
-        ? baseContent.replace(blockPattern, () => {
-            if (replacedBlock) return "";
-            replacedBlock = true;
-            return block;
-          })
-        : `${baseContent}${baseContent.endsWith("\n\n") ? "" : baseContent.endsWith("\n") ? "\n" : "\n\n"}${block}`;
-    if (combined !== agents.content) {
-      if (existing === undefined && (agents.content.match(blockPattern)?.length ?? 0) > 0) {
-        managedAgentRouteOperation = {
-          path: "AGENTS.md",
-          action: "update",
-          ownership: "managed_blocks",
-          mediaType: "text/markdown",
-          content: combined,
-          expectedCurrentHash: agents.contentHash,
-          desiredHash: sha256(combined),
-          reason: "refresh_instruction_registry_bootstrap",
-        };
-      } else {
-        referenceChanges.set("AGENTS.md", {
-          source: agents,
-          content: combined,
-          count: (existing?.count ?? 0) + 1,
-        });
-      }
-    }
-  }
-  const registryMaterials = await Promise.all(
-    storedConcepts.map(async (item) => ({
-      file: item.file,
-      contentHash: (await safeFile(resolve(root, item.file))).contentHash,
-    })),
-  );
-  registryMaterials.sort((left, right) => left.file.localeCompare(right.file));
-  const registryDigest = sha256(canonicalJson(registryMaterials));
-  // One batch, so the scan's snapshot is digested once instead of once per changed document.
-  let virtualScan = upsertRepositoryKnowledgeScanSources(scan, [
-    ...[...movedContentChanges]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([path, change]) => ({ path, content: change.content })),
-    ...[...referenceChanges.values()]
-      .sort((left, right) => left.source.path.localeCompare(right.source.path))
-      .map((change) => ({ path: change.source.path, content: change.content })),
-    ...(managedAgentRouteOperation?.content === undefined
-      ? []
-      : [{ path: "AGENTS.md", content: managedAgentRouteOperation.content }]),
-  ]);
-  const relocations: Array<{ fromPath: string; toPath: string }> = [];
-  const moves: RepositoryLayoutMove[] = [];
-  const lineageOperations: KnowledgeFileOperation[] = [];
-  const moveOperations: Array<DurableKnowledgeMoveOperation | DurableKnowledgeMoveUpdateOperation> =
-    [];
-  const referenceApprovalBindings = [...referenceChanges.values()]
-    .sort((left, right) => left.source.path.localeCompare(right.source.path))
-    .map((change) => ({
-      path: change.source.path,
-      beforeHash: change.source.contentHash,
-      afterHash: sha256(change.content),
-      replacementCount: change.count,
-    }));
-  for (const item of executableCandidates) {
-    const changedContent = movedContentChanges.get(item.source.path);
-    const destinationContentHash =
-      changedContent === undefined ? item.source.contentHash! : sha256(changedContent.content);
-    const sourceUnits = virtualScan.units.filter((unit) => unit.sourceId === item.source.sourceId);
-    const preservedConceptIds = storedConcepts
-      .filter(
-        (stored) =>
-          stored.value?.path === item.source.path &&
-          stored.value.ownership === "user" &&
-          stored.value.publicationStatus !== "deprecated",
-      )
-      .map((stored) => stored.value!.conceptId)
-      .sort();
-    if (preservedConceptIds.length > 1 || sourceUnits.length < 1 || sourceUnits.length > 16384)
-      throw new RepositoryKnowledgeError(
-        "knowledge_reconciliation_conflict",
-        "The layout migration source identity is ambiguous.",
-      );
-    const operationId = stableId("kdocop", {
-      projectId: scan.projectId,
-      action: "layout_move",
-      sourceId: item.source.sourceId,
-      fromPath: item.source.path,
-      toPath: item.toPath,
-      contentHash: item.source.contentHash,
-      destinationContentHash,
-      sourceUnitIds: sourceUnits.map((unit) => unit.unitId).sort(),
-    });
-    const lineage = createDocumentMoveLineage({
-      projectId: scan.projectId,
-      operationId,
-      fromPath: item.source.path,
-      toPath: item.toPath,
-      identityPath: item.source.identityPath ?? item.source.path,
-      sourceId: item.source.sourceId,
-      sourceContentHash: destinationContentHash,
-      sourceUnitIds: sourceUnits.map((unit) => unit.unitId),
-    });
-    const approvalHash = sha256(
-      canonicalJson({
-        operationId,
-        action: "move_user_document",
-        source: {
-          path: item.source.path,
-          contentHash: item.source.contentHash,
-          byteCount: item.source.byteCount,
-        },
-        destination: { path: item.toPath, contentHash: destinationContentHash },
-        lineageId: lineage.value.lineageId,
-        referenceUpdates: referenceApprovalBindings,
-      }),
-    );
-    moves.push({
-      operationId,
-      approvalHash,
-      fromPath: item.source.path,
-      toPath: item.toPath,
-      contentHash: item.source.contentHash!,
-      destinationContentHash,
-      byteCount: item.source.byteCount,
-      preservedConceptIds,
-      lineageId: lineage.value.lineageId,
-      classification: item.classification,
-      ...(item.group === undefined ? {} : { group: item.group }),
-      ...(item.subgroup === undefined ? {} : { subgroup: item.subgroup }),
-      ...(item.routeId === undefined ? {} : { routeId: item.routeId }),
-      ...(item.classificationBasis === undefined
-        ? {}
-        : { classificationBasis: item.classificationBasis }),
-      ...(item.semanticClassification === undefined
-        ? {}
-        : { semanticClassification: item.semanticClassification }),
-      reason: item.reason,
-    });
-    lineageOperations.push({
-      path: lineage.file,
-      action: "create",
-      ownership: "lervo_generated",
-      mediaType: "application/yaml",
-      content: lineage.content,
-      desiredHash: sha256(lineage.content),
-    });
-    moveOperations.push(
-      changedContent === undefined
-        ? {
-            path: item.source.path,
-            destinationPath: item.toPath,
-            action: "move",
-            expectedCurrentHash: item.source.contentHash!,
-          }
-        : {
-            path: item.source.path,
-            destinationPath: item.toPath,
-            action: "move_update",
-            ownership: "user",
-            mediaType: "text/markdown",
-            expectedCurrentHash: item.source.contentHash!,
-            desiredHash: destinationContentHash,
-            content: changedContent.content,
-          },
-    );
-    // Moving a source keeps its units' source IDs, so the unit lookup above reads the same units
-    // before or after the earlier moves; the moves are projected together after the loop.
-    relocations.push({ fromPath: item.source.path, toPath: item.toPath });
-  }
-  virtualScan = relocateRepositoryKnowledgeScanSources(virtualScan, relocations);
-  const referenceOperations: DurableKnowledgeUserFileOperation[] = [...referenceChanges.values()]
-    .sort((left, right) => left.source.path.localeCompare(right.source.path))
-    .map((change) => ({
-      path: change.source.path,
-      action: "update",
-      ownership: "user",
-      mediaType: mediaTypeFor(change.source),
-      content: change.content,
-      expectedCurrentHash: change.source.contentHash,
-      desiredHash: sha256(change.content),
-    }));
-  const referenceUserUpdates: RepositoryLayoutUserUpdate[] =
-    moves.length === 0
-      ? referenceOperations.map((operation) => {
-          const operationId = stableId("kdocop", {
-            projectId: scan.projectId,
-            action: "refresh_instruction_routes",
-            path: operation.path,
-            beforeHash: operation.expectedCurrentHash,
-            afterHash: operation.desiredHash,
-          });
-          return {
-            operationId,
-            approvalHash: sha256(
-              canonicalJson({
-                operationId,
-                action: "update_user_document",
-                path: operation.path,
-                beforeHash: operation.expectedCurrentHash,
-                afterHash: operation.desiredHash,
-              }),
-            ),
-            path: operation.path,
-            beforeHash: operation.expectedCurrentHash!,
-            afterHash: operation.desiredHash,
-            reason:
-              operation.path === "AGENTS.md"
-                ? ("refresh_instruction_routes" as const)
-                : ("normalize_agent_surface_references" as const),
-          };
-        })
-      : [];
-  const publicationIgnore = await projectRebuildableKnowledgeIgnore({
-    repositoryRoot: root,
-    publicationRoot: policy.publicationRoot,
-  });
-  const publicationIgnoreOperations: DurableKnowledgeUserFileOperation[] = publicationIgnore.changed
-    ? [
-        {
-          path: publicationIgnore.path,
-          action: publicationIgnore.beforeContent === null ? "create" : "update",
-          ownership: "user",
-          mediaType: "text/plain",
-          content: publicationIgnore.afterContent,
-          ...(publicationIgnore.beforeHash === null
-            ? {}
-            : { expectedCurrentHash: publicationIgnore.beforeHash }),
-          desiredHash: publicationIgnore.afterHash,
-        },
-      ]
-    : [];
-  const publicationIgnoreUserUpdates: RepositoryLayoutUserUpdate[] = publicationIgnore.changed
-    ? (() => {
-        const operationId = stableId("kdocop", {
-          projectId: scan.projectId,
-          action: "exclude_rebuildable_publications",
-          path: publicationIgnore.path,
-          beforeHash: publicationIgnore.beforeHash,
-          afterHash: publicationIgnore.afterHash,
-        });
-        return [
-          {
-            operationId,
-            approvalHash: sha256(
-              canonicalJson({
-                operationId,
-                action: "write_user_configuration",
-                path: publicationIgnore.path,
-                beforeHash: publicationIgnore.beforeHash,
-                afterHash: publicationIgnore.afterHash,
-              }),
-            ),
-            path: publicationIgnore.path,
-            beforeHash: publicationIgnore.beforeHash,
-            afterHash: publicationIgnore.afterHash,
-            reason: "exclude_rebuildable_publications" as const,
-          },
-        ];
-      })()
-    : [];
-  const userUpdates = [...referenceUserUpdates, ...publicationIgnoreUserUpdates];
-  const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root);
-  const scannedPaths = new Set(scan.sources.map((source) => source.path));
+  const scannedPaths = new Set(input.scan.sources.map((source) => source.path));
   const taxonomyUpgradeOperation = planDecisionTaxonomyRefresh({
-    taxonomySource,
-    taxonomy,
+    taxonomySource: input.taxonomySource,
+    taxonomy: input.taxonomy,
     pathExists: (path) => scannedPaths.has(path),
-    placedPaths: new Set(moves.map((move) => move.toPath)),
+    placedPaths: new Set(input.moves.map((move) => move.toPath)),
   });
   const structural =
-    publicationIgnoreOperations.length > 0 ||
-    (moves.length === 0 &&
-      userUpdates.length === 0 &&
+    input.publicationIgnoreOperationCount > 0 ||
+    (input.moves.length === 0 &&
+      input.userUpdates.length === 0 &&
       normalizationOwnershipOperations.length === 0 &&
       taxonomyUpgradeOperation.length === 0)
       ? null
       : await createKnowledgeMigrationPlanForScan({
-          repositoryRoot: root,
-          scan: virtualScan,
+          repositoryRoot: input.root,
+          scan: input.virtualScan,
           mode: "migrate",
         });
-  if (structural?.operations.some((operation) => operation.action === "conflict"))
-    blockers.push({ code: "destination_exists", pathDigest: sha256("structural-output-conflict") });
-  const bridgeOperations: KnowledgeFileOperation[] = [];
-  const canonicalInstructionChange =
-    referenceChanges.get("AGENTS.md") ??
-    (managedAgentRouteOperation?.content === undefined
-      ? undefined
-      : { content: managedAgentRouteOperation.content });
-  const existingInstructionBridgeRecords = await listKnowledgeArtifactPaths({
-    root,
-    directory: ".lervo/knowledge/instruction-bridges",
-    extension: "yaml",
-    maximumFiles: 64,
-  });
-  if (
-    canonicalInstructionChange !== undefined &&
-    existingInstructionBridgeRecords.length > 0 &&
-    (await exists(resolve(root, "CLAUDE.md")))
-  ) {
-    const bridge = await createKnowledgeInstructionBridgePlan({
-      repositoryRoot: root,
-      provider: "claude",
-      ...(input.supplementalSources === undefined
-        ? {}
-        : { supplementalSources: input.supplementalSources }),
-    });
-    if (bridge.target.action !== "unchanged")
-      throw new RepositoryKnowledgeError(
-        "knowledge_reconciliation_conflict",
-        "The instruction bridge target must be current before repository layout migration.",
-      );
-    const currentRecord = bridge.operations.find(
-      (operation): operation is KnowledgeFileOperation =>
-        operation.path === bridge.bridgeRecordPath && operation.ownership !== "user",
-    );
-    if (currentRecord === undefined || currentRecord.action === "conflict")
-      throw new RepositoryKnowledgeError(
-        "knowledge_reconciliation_conflict",
-        "The instruction bridge record cannot be bound to the layout migration.",
-      );
-    const content = stringify(
-      {
-        schemaVersion: 1,
-        bridgeId: bridge.bridgeId,
-        profile: {
-          id: bridge.profile.profileId,
-          version: bridge.profile.profileVersion,
-          provider: bridge.profile.provider,
-          discoveryContract: bridge.profile.discoveryContract,
-        },
-        canonical: {
-          path: bridge.profile.canonicalPath,
-          contentHash: sha256(canonicalInstructionChange.content),
-        },
-        target: {
-          path: bridge.profile.targetPath,
-          contentHash:
-            referenceChanges.get(bridge.profile.targetPath) === undefined
-              ? bridge.target.afterHash
-              : sha256(referenceChanges.get(bridge.profile.targetPath)!.content),
-          blockId: bridge.profile.blockId,
-          managedContentHash: bridge.target.managedContentHash,
-        },
-      },
-      { lineWidth: 0, sortMapEntries: true },
-    );
-    const desiredHash = sha256(content);
-    bridgeOperations.push(
-      currentRecord.action === "create"
-        ? { ...currentRecord, content, desiredHash }
-        : currentRecord.desiredHash === desiredHash
-          ? { ...currentRecord, action: "unchanged", desiredHash }
-          : {
-              path: bridge.bridgeRecordPath,
-              action: "update",
-              ownership: "lervo_generated",
-              mediaType: "application/yaml",
-              content,
-              expectedCurrentHash:
-                currentRecord.action === "unchanged"
-                  ? currentRecord.desiredHash
-                  : currentRecord.expectedCurrentHash!,
-              desiredHash,
-            },
-    );
-  }
-  const structuralPaths = new Set(
-    (structural?.operations ?? []).map((operation) => operation.path),
-  );
-  const machineMoves = (await machineArtifactMoves(root)).filter(
-    (move) => !structuralPaths.has(move.fromPath) && !structuralPaths.has(move.toPath),
-  );
-  for (const move of machineMoves) {
-    if (await exists(resolve(root, move.toPath)))
-      blockers.push({ code: "destination_exists", pathDigest: sha256(move.toPath) });
-  }
-  const machineMoveOperations: DurableKnowledgeMoveOperation[] = machineMoves.map((move) => ({
-    path: move.fromPath,
-    destinationPath: move.toPath,
-    action: "move",
-    expectedCurrentHash: move.contentHash,
-  }));
-  const operations: RepositoryLayoutMigrationPlan["operations"] = [
-    ...taxonomyUpgradeOperation,
-    ...normalizationOwnershipOperations,
-    ...(structural?.operations ?? []),
-    ...publicationIgnoreOperations,
-    ...(managedAgentRouteOperation === null ? [] : [managedAgentRouteOperation]),
-    ...referenceOperations,
-    ...bridgeOperations,
-    ...lineageOperations,
-    ...moveOperations,
-    ...machineMoveOperations,
-  ];
+  return { normalizationOwnershipOperations, taxonomyUpgradeOperation, structural };
+}
+
+/** Assembles the plan from its phases and derives its status and content-bound plan ID. */
+function assembleRepositoryLayoutPlan(input: {
+  root: string;
+  request: RepositoryLayoutPlanRequest;
+  scan: RepositoryKnowledgeScan;
+  virtualScan: RepositoryKnowledgeScan;
+  policy: RepositoryKnowledgePolicy;
+  taxonomy: DecisionTaxonomy;
+  classified: RepositoryLayoutCandidates;
+  deferredDocuments: RepositoryLayoutMigrationPlan["deferredDocuments"];
+  capacityFindings: RepositoryLayoutCapacityFinding[];
+  registryDigest: string;
+  moves: RepositoryLayoutMove[];
+  userUpdates: RepositoryLayoutUserUpdate[];
+  machineMoves: RepositoryLayoutMachineMove[];
+  referenceOperations: DurableKnowledgeUserFileOperation[];
+  referenceUpdates: RepositoryLayoutReferenceUpdate[];
+  managedAgentRouteOperation: KnowledgeFileOperation | null;
+  taxonomyUpgradeOperation: KnowledgeFileOperation[];
+  normalizationOwnershipOperations: KnowledgeFileOperation[];
+  blockers: RepositoryLayoutMigrationPlan["blockers"];
+  operations: RepositoryLayoutMigrationPlan["operations"];
+}): RepositoryLayoutMigrationPlan {
+  const { scan, virtualScan, taxonomy, classified, deferredDocuments, blockers } = input;
+  const { moves, userUpdates, machineMoves, operations } = input;
+  const documentRouteContext = input.request.documentRouteContext;
   const taxonomyHash = sha256(canonicalJson(taxonomy));
-  const policyHash = sha256(canonicalJson({ knowledge: policy, decisionTaxonomy: taxonomy }));
+  const policyHash = sha256(canonicalJson({ knowledge: input.policy, decisionTaxonomy: taxonomy }));
   const status =
     blockers.length > 0
       ? "blocked"
       : moves.length > 0 || userUpdates.length > 0
         ? "review_required"
         : machineMoves.length > 0 ||
-            managedAgentRouteOperation !== null ||
-            taxonomyUpgradeOperation.length > 0 ||
-            normalizationOwnershipOperations.length > 0
+            input.managedAgentRouteOperation !== null ||
+            input.taxonomyUpgradeOperation.length > 0 ||
+            input.normalizationOwnershipOperations.length > 0
           ? "ready"
           : "current";
   const materials = {
@@ -1113,52 +187,27 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
     taxonomyHash,
-    registryDigest,
+    registryDigest: input.registryDigest,
     moves,
     userUpdates,
     machineMoves,
-    referenceUpdates: referenceOperations.map(withoutContent),
+    referenceUpdates: input.referenceOperations.map(withoutContent),
     operations: operations.map(withoutContent),
     blockers,
-    ...(input.documentRouteContext === undefined
-      ? {}
-      : { documentRouteContext: input.documentRouteContext }),
+    ...(documentRouteContext === undefined ? {} : { documentRouteContext }),
     deferredDocuments,
     deferredDocumentCount: deferredDocuments.length,
     retainedDocuments: classified.retainedDocuments,
     retainedDocumentCount: classified.retainedDocumentCount,
     semanticClassificationIds: [...classified.liveClassificationIds].sort(),
   };
-  const referenceUpdates: RepositoryLayoutReferenceUpdate[] = [
-    ...[...referenceChanges.values()].map((change) => ({
-      path: change.source.path,
-      beforeHash: change.source.contentHash,
-      afterHash: sha256(change.content),
-      replacementCount: change.count,
-    })),
-    ...executableCandidates.flatMap((item) => {
-      const change = movedContentChanges.get(item.source.path);
-      return change === undefined
-        ? []
-        : [
-            {
-              path: item.toPath,
-              beforeHash: item.source.contentHash!,
-              afterHash: sha256(change.content),
-              replacementCount: change.count,
-            },
-          ];
-    }),
-  ].sort((left, right) => left.path.localeCompare(right.path));
-  if (blockers.length === 0)
-    await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
   return {
     schemaVersion: 1,
     planKind: "repository_layout",
     planId: stableId("klayout", materials),
     status,
     projectId: scan.projectId,
-    repositoryRoot: root,
+    repositoryRoot: input.root,
     sourceSnapshotId: scan.snapshotId,
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
@@ -1167,142 +216,167 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       ...scan.inventoryCoverage,
       complete: scan.inventoryCoverage.complete && deferredDocuments.length === 0,
     },
-    registryDigest,
+    registryDigest: input.registryDigest,
     moves,
     userUpdates,
     machineMoves,
-    referenceUpdates,
-    ...(input.documentRouteContext === undefined
-      ? {}
-      : { documentRouteContext: input.documentRouteContext }),
+    referenceUpdates: input.referenceUpdates,
+    ...(documentRouteContext === undefined ? {} : { documentRouteContext }),
     deferredDocuments,
     deferredDocumentCount: deferredDocuments.length,
     retainedDocuments: classified.retainedDocuments,
     retainedDocumentCount: classified.retainedDocumentCount,
     semanticClassificationIds: [...classified.liveClassificationIds].sort(),
-    layoutCapacity: capacity.findings,
+    layoutCapacity: input.capacityFindings,
     blockers,
     operations,
   };
 }
 
-/**
- * The exact content binding of every user-document move and update in a plan. ADR-0561: Lervo
- * supplies these itself once an independent cross-check agreed with the exact plan; they bind the
- * apply to the reviewed bytes and never stand for an owner approval.
- */
-export function repositoryLayoutItemBindings(
-  plan: Pick<RepositoryLayoutMigrationPlan, "moves" | "userUpdates">,
-): Array<{ operationId: string; approvalHash: string }> {
-  return [...plan.moves, ...plan.userUpdates].map(({ operationId, approvalHash }) => ({
-    operationId,
-    approvalHash,
-  }));
-}
-
-export async function applyRepositoryLayoutMigrationPlan(input: {
-  plan: RepositoryLayoutMigrationPlan;
-  itemBindings: Array<{ operationId: string; approvalHash: string }>;
-  now: Date;
-  recordApplied: (receipt: RepositoryLayoutMigrationReceipt) => void | Promise<void>;
+export async function createRepositoryLayoutMigrationPlan(input: {
+  repositoryRoot: string;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
-  failureInjector?: (
-    checkpoint: KnowledgeMaterializationCheckpoint,
-  ) => "interrupt" | void | Promise<"interrupt" | void>;
-}): Promise<RepositoryLayoutMigrationReceipt> {
-  if (input.plan.status !== "review_required" && input.plan.status !== "ready")
-    throw new RepositoryKnowledgeError(
-      "knowledge_reconciliation_conflict",
-      "The repository layout migration plan is not applicable.",
-    );
-  const items = [...input.plan.moves, ...input.plan.userUpdates];
-  const bindings = new Map(input.itemBindings.map((item) => [item.operationId, item.approvalHash]));
-  if (
-    bindings.size !== items.length ||
-    items.some(
-      (item) =>
-        !HASH.test(bindings.get(item.operationId) ?? "") ||
-        bindings.get(item.operationId) !== item.approvalHash,
-    )
-  ) {
-    throw new RepositoryKnowledgeError(
-      "knowledge_approval_required",
-      "Repository layout migration binds every user-document move or update to its exact content hash.",
-    );
-  }
-  const current = await createRepositoryLayoutMigrationPlan({
-    repositoryRoot: input.plan.repositoryRoot,
-    ...(input.plan.documentRouteContext === undefined
+  preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
+  documentRouteContext?: DocumentRouteResolutionContext;
+  /** ADR-0601: a long-lived reader reuses concept decoding across plans; bytes are always read. */
+  conceptCache?: ConceptSidecarCache;
+}): Promise<RepositoryLayoutMigrationPlan> {
+  const root = resolve(input.repositoryRoot);
+  const { taxonomySource, policy, scan, storedConcepts, generatedPaths, taxonomy } =
+    await loadRepositoryLayoutInputs(root, input);
+  const classified = await classifyRepositoryLayoutCandidates({
+    root,
+    scan,
+    taxonomy,
+    ...(input.documentRouteContext === undefined
       ? {}
-      : { documentRouteContext: input.plan.documentRouteContext }),
+      : { documentRouteContext: input.documentRouteContext }),
+  });
+  const { blockers, blockedDestinations } = await inspectRepositoryLayoutDestinations({
+    root,
+    scan,
+    policy,
+    taxonomy,
+    generatedPaths,
+    classified,
+  });
+  // Blocked candidates remain represented by their blockers but must never be
+  // projected into the virtual post-migration scan. In particular, two source
+  // documents that select the same destination would otherwise make the
+  // second projection throw instead of returning a reviewable blocked plan.
+  const capacity = holdRepositoryLayoutMovesOverCapacity({
+    scan,
+    taxonomy,
+    candidates: classified.candidates.filter((item) => !blockedDestinations.has(item.toPath)),
+  });
+  const { executableCandidates, deferredDocuments } = accountRepositoryLayoutCandidates({
+    classified,
+    blockedDestinations,
+    heldDestinations: capacity.heldDestinations,
+  });
+  const rewrites = await planRepositoryLayoutReferenceRewrites({
+    root,
+    scan,
+    taxonomy,
+    generatedPaths,
+    movePaths: executableCandidates.map(({ source, toPath }) => ({
+      fromPath: source.path,
+      toPath,
+    })),
+  });
+  const { movedContentChanges } = rewrites;
+  const { referenceChanges, managedAgentRouteOperation } = planRepositoryInstructionRouteRefresh({
+    scan,
+    generatedPaths,
+    executableCandidates,
+    referenceChanges: rewrites.referenceChanges,
+  });
+  const registryDigest = await repositoryLayoutRegistryDigest(root, storedConcepts);
+  const { virtualScan, moves, lineageOperations, moveOperations } =
+    planRepositoryLayoutDocumentMoves({
+      scan,
+      storedConcepts,
+      executableCandidates,
+      movedContentChanges,
+      referenceChanges,
+      managedAgentRouteOperation,
+    });
+  const { referenceOperations, referenceUserUpdates } = planRepositoryLayoutReferenceUpdates({
+    projectId: scan.projectId,
+    referenceChanges,
+    documentMoveCount: moves.length,
+  });
+  const publicationIgnore = await planRepositoryLayoutPublicationIgnore({
+    root,
+    projectId: scan.projectId,
+    publicationRoot: policy.publicationRoot,
+  });
+  const userUpdates = [...referenceUserUpdates, ...publicationIgnore.userUpdates];
+  const { normalizationOwnershipOperations, taxonomyUpgradeOperation, structural } =
+    await planStructuralRefresh({
+      root,
+      scan,
+      virtualScan,
+      taxonomySource,
+      taxonomy,
+      moves,
+      userUpdates,
+      publicationIgnoreOperationCount: publicationIgnore.operations.length,
+    });
+  if (structural?.operations.some((operation) => operation.action === "conflict"))
+    blockers.push({ code: "destination_exists", pathDigest: sha256("structural-output-conflict") });
+  const bridgeOperations = await planInstructionBridgeRecordOperations({
+    root,
     ...(input.supplementalSources === undefined
       ? {}
       : { supplementalSources: input.supplementalSources }),
+    referenceChanges,
+    managedAgentRouteOperation,
   });
-  if (current.planId !== input.plan.planId)
-    throw new RepositoryKnowledgeError(
-      "knowledge_plan_stale",
-      "A source, destination, reference, or policy changed after repository layout migration was planned.",
-    );
-  const approvalDigest = sha256(
-    canonicalJson(
-      [...current.moves, ...current.userUpdates].map((item) => ({
-        operationId: item.operationId,
-        approvalHash: item.approvalHash,
-      })),
-    ),
+  const machine = await planRepositoryLayoutMachineMoves(
+    root,
+    new Set((structural?.operations ?? []).map((operation) => operation.path)),
   );
-  const receipt: RepositoryLayoutMigrationReceipt = {
-    schemaVersion: 1,
-    type: "knowledge.materialization.applied",
-    operation: "migrate",
-    planId: current.planId,
-    projectId: current.projectId,
-    sourceSnapshotId: current.sourceSnapshotId,
-    afterSourceSnapshotId: current.afterSourceSnapshotId,
-    approvalDigest,
-    movedCount: current.moves.length,
-    machineMovedCount: current.machineMoves.length,
-    referenceUpdatedCount: current.referenceUpdates.length,
-    pathDigests: current.moves.map((move) => ({
-      from: sha256(move.fromPath),
-      to: sha256(move.toPath),
-    })),
-    classificationBases: current.moves.flatMap((move) =>
-      move.classificationBasis === undefined
-        ? []
-        : [
-            {
-              to: sha256(move.toPath),
-              basis: move.classificationBasis,
-              ...(move.semanticClassification === undefined
-                ? {}
-                : { recordDigest: move.semanticClassification.recordDigest }),
-            },
-          ],
-    ),
-    created: current.operations
-      .filter((operation) => operation.action === "create")
-      .map((operation) => operation.path),
-    updated: current.operations
-      .filter((operation) => operation.action === "update")
-      .map((operation) => operation.path),
-    unchanged: current.operations
-      .filter((operation) => operation.action === "unchanged")
-      .map((operation) => operation.path),
-    appliedAt: input.now.toISOString(),
-  };
-  return applyDurableKnowledgeOperations({
-    repositoryRoot: current.repositoryRoot,
-    projectId: current.projectId,
-    planId: current.planId,
-    operations: current.operations,
-    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
-      repositoryRoot: current.repositoryRoot,
-      operations: current.operations,
+  blockers.push(...machine.blockers);
+  const operations: RepositoryLayoutMigrationPlan["operations"] = [
+    ...taxonomyUpgradeOperation,
+    ...normalizationOwnershipOperations,
+    ...(structural?.operations ?? []),
+    ...publicationIgnore.operations,
+    ...(managedAgentRouteOperation === null ? [] : [managedAgentRouteOperation]),
+    ...referenceOperations,
+    ...bridgeOperations,
+    ...lineageOperations,
+    ...moveOperations,
+    ...machine.machineMoveOperations,
+  ];
+  const plan = assembleRepositoryLayoutPlan({
+    root,
+    request: input,
+    scan,
+    virtualScan,
+    policy,
+    taxonomy,
+    classified,
+    deferredDocuments,
+    capacityFindings: capacity.findings,
+    registryDigest,
+    moves,
+    userUpdates,
+    machineMoves: machine.machineMoves,
+    referenceOperations,
+    referenceUpdates: repositoryLayoutReferenceUpdates({
+      referenceChanges,
+      movedContentChanges,
+      executableCandidates,
     }),
-    receipt,
-    recordApplied: input.recordApplied,
-    ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),
+    managedAgentRouteOperation,
+    taxonomyUpgradeOperation,
+    normalizationOwnershipOperations,
+    blockers,
+    operations,
   });
+  if (blockers.length === 0)
+    await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
+  return plan;
 }
