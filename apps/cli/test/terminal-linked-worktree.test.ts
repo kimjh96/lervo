@@ -247,8 +247,8 @@ describe("a linked worktree of a registered repository", () => {
     ).toHaveLength(0);
   }, 60_000);
 
-  it("names the registry when this process records the worktree into its own store", async () => {
-    const { worktree } = await linkedWorktree(false);
+  it("finds the repository by its store when this process's registry lacks it", async () => {
+    const { main, worktree } = await linkedWorktree(false);
     await cli(
       worktree,
       ["workstream", "start", "--stdin", "--apply-now", "--json"],
@@ -265,18 +265,16 @@ describe("a linked worktree of a registered repository", () => {
         pendingDecisions: [],
       }),
     );
-    // A process whose registry lacks the repository, as a session that did not get the
-    // starter's state directory, resolves the worktree as its own single root.
+    // A process whose registry lacks the repository, such as a command run by hand beside an ADE
+    // that keeps its own state directory, still reads and records the repository's store.
     vi.stubEnv("LERVO_USER_STATE_DIRECTORY", resolve(worktree, "..", "other-state"));
-    const errors: string[] = [];
-    const code = await runCli(["workstream", "current"], {
-      cwd: worktree,
-      stdout: () => undefined,
-      stderr: (message) => errors.push(message),
-    });
-    expect(code).not.toBe(0);
-    expect(errors.join("")).toContain("this linked worktree records into its own");
-    expect(errors.join("")).toContain("LERVO_USER_STATE_DIRECTORY");
+    const current = JSON.parse(await cli(worktree, ["workstream", "current", "--json"])) as {
+      workstream: { title: string };
+    };
+    expect(current.workstream.title).toBe("Fix the login form");
+    await cli(worktree, ["plan", "add", "--title", "Check long passwords", "--json"]);
+    expect(await events(main, ["plan.item.captured"])).toHaveLength(1);
+    expect(await exists(resolve(worktree, ".lervo/data/events.sqlite"))).toBe(false);
   });
 
   it("reads the repository's evidence in status commands and never unbinds the checkout", async () => {
