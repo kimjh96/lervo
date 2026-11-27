@@ -3,6 +3,7 @@ export * from "./application-project-results.js";
 export * from "./application-agent-results.js";
 export * from "./application-room-results.js";
 export * from "./application-turn-results.js";
+export * from "./application-workspace-results.js";
 export * from "./application-results.js";
 export * from "./conversation.js";
 export * from "./core-link.js";

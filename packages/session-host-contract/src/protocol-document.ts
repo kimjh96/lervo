@@ -38,7 +38,7 @@ import {
   workspaceRetireResultSchema,
   workspaceStartResultSchema,
   workspaceSummarySchema,
-} from "./application-results.js";
+} from "./application-workspace-results.js";
 import { conversationItemSchema, conversationItemSchemas } from "./conversation.js";
 import {
   coreLaunchSchema,
