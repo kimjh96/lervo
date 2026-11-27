@@ -580,16 +580,16 @@
     "description": "The turn summary card's section of what the agent's searches found and its answer cited."
   },
   "conversation.turn.card.rules": {
-    "defaultMessage": "Owner rules",
-    "description": "The turn summary card's row of the owner rules Lervo prepared for the agent; it never says they were applied."
+    "defaultMessage": "Rules",
+    "description": "The turn summary card's row of the owner rules Lervo gave the agent for the turn, beside Documents and Workstream; it never says they were applied."
   },
   "conversation.turn.card.rulesCut": {
-    "defaultMessage": "{prepared} of {total} prepared",
-    "description": "Owner rules Lervo prepared for the turn when some did not fit its context, such as 2 of 14 prepared."
+    "defaultMessage": "{prepared} of {total}",
+    "description": "How many rules Lervo gave the agent for the turn when some did not fit its context, such as 2 of 14."
   },
   "conversation.turn.card.rulesPrepared": {
-    "defaultMessage": "{prepared} prepared",
-    "description": "Owner rules Lervo prepared for the turn, all that applied, such as 2 prepared."
+    "defaultMessage": "{prepared}",
+    "description": "How many rules Lervo gave the agent for the turn, when all of them fit, such as 2."
   },
   "conversation.turn.card.workstream": {
     "defaultMessage": "Workstream",
@@ -904,19 +904,19 @@
     "description": "What Lervo did when the agent ran `lervo knowledge instruction bridge`, as a quiet line in the conversation."
   },
   "lervo.command.knowledge.instruction.capture": {
-    "defaultMessage": "Captured owner rules from the conversation",
+    "defaultMessage": "Captured rules from the conversation",
     "description": "What Lervo did when the agent ran `lervo knowledge instruction capture`, as a quiet line in the conversation."
   },
   "lervo.command.knowledge.instruction.intake": {
-    "defaultMessage": "Recorded an owner rule",
+    "defaultMessage": "Recorded a rule",
     "description": "What Lervo did when the agent ran `lervo knowledge instruction intake`, as a quiet line in the conversation."
   },
   "lervo.command.knowledge.instruction.retire": {
-    "defaultMessage": "Retired an owner rule",
+    "defaultMessage": "Retired a rule",
     "description": "What Lervo did when the agent ran `lervo knowledge instruction retire`, as a quiet line in the conversation."
   },
   "lervo.command.knowledge.instruction.status": {
-    "defaultMessage": "Checked the owner rules",
+    "defaultMessage": "Checked the rules",
     "description": "What Lervo did when the agent ran `lervo knowledge instruction status`, as a quiet line in the conversation."
   },
   "lervo.command.knowledge.lint": {
