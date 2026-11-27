@@ -1,4 +1,5 @@
 import { agentContextEvent } from "./agent-context-event-validation.js";
+import { conversationNoteAttested } from "./agent-context-note.js";
 import {
   agentContextReviewAttests,
   hasCompleteGovernedAgentContextMetadata,
@@ -11,6 +12,10 @@ import {
   type AgentContextWorkforceIdentity,
   type ProjectedAgentContextEntry,
 } from "./agent-context-types.js";
+
+type ContextEvent = NonNullable<ReturnType<typeof agentContextEvent>>;
+type PromotionPayload = Extract<ContextEvent, { type: "agent.context.promoted" }>["payload"];
+type HandoffPayload = Extract<ContextEvent, { type: "agent.context.handoff.recorded" }>["payload"];
 
 function conflict(message: string): never {
   throw new AgentContextError("agent_context_state_conflict", message);
@@ -47,6 +52,17 @@ function assertSourceAndReview(
   const review = eventById(payload.reviewEventId);
   const metadata = payload as Record<string, unknown>;
   const governed = hasCompleteGovernedAgentContextMetadata(metadata);
+  // A conversation note is attested by its delivery's receipt, never by a review of its words.
+  if (payload.memoryKind === "conversation_note") {
+    if (
+      !governed ||
+      review === undefined ||
+      review.eventHash !== payload.reviewEventHash ||
+      !conversationNoteAttested(payload, envelope, review, eventById)
+    )
+      conflict("A conversation note requires its own delivery's receipt.");
+    return;
+  }
   if (
     (hasGovernedAgentContextMetadata(metadata) && !governed) ||
     review === undefined ||
@@ -69,6 +85,107 @@ function assertSourceAndReview(
   } else if (payload.source.sourceId !== artifactId(payload.source.contentHash)) {
     conflict("The context promotion source artifact coordinate is invalid.");
   }
+}
+
+/** Applies one promotion to `entries`, refusing any that the context's rules forbid. */
+function applyPromotion(
+  entries: ProjectedAgentContextEntry[],
+  envelope: AgentContextEventEnvelope,
+  payload: PromotionPayload,
+  eventById: (eventId: string) => AgentContextEventEnvelope | undefined,
+): void {
+  assertSourceAndReview(envelope, eventById);
+  if (
+    payload.reviewBindingVersion === 2 &&
+    (Date.parse(payload.observedAt!) > Date.parse(payload.promotedAt) ||
+      (payload.expiresAt !== null &&
+        Date.parse(payload.expiresAt!) <= Date.parse(payload.observedAt!)))
+  ) {
+    conflict("The context observation, expiry, and promotion times are inconsistent.");
+  }
+  if (entries.some((entry) => entry.contextEntryId === payload.contextEntryId)) {
+    conflict("An agent context entry ID cannot be reused.");
+  }
+  if (
+    payload.memoryKind === "conversation_note" &&
+    entries.some(
+      (entry) =>
+        entry.memoryKind === "conversation_note" && entry.reviewEventId === payload.reviewEventId,
+    )
+  ) {
+    conflict("A delivery's receipt attests one conversation note.");
+  }
+  if (payload.supersedesContextEntryId !== null) {
+    const prior = entries.find(
+      (entry) => entry.contextEntryId === payload.supersedesContextEntryId,
+    );
+    if (
+      prior === undefined ||
+      prior.agentId !== payload.agentId ||
+      prior.layer !== payload.layer ||
+      prior.status !== "active"
+    ) {
+      conflict("A context promotion can supersede only one active entry in the same namespace.");
+    }
+    // Self-reported words never replace reviewed memory.
+    if (payload.memoryKind === "conversation_note" && prior.memoryKind !== "conversation_note") {
+      conflict("A conversation note can supersede only another conversation note.");
+    }
+    prior.status = "superseded";
+  }
+  const sameSubject = entries.find(
+    (entry) =>
+      entry.agentId === payload.agentId &&
+      entry.layer === payload.layer &&
+      payload.subjectKey !== undefined &&
+      entry.subjectKey === payload.subjectKey &&
+      entry.status === "active",
+  );
+  if (sameSubject !== undefined) {
+    conflict("An active context subject must be explicitly superseded before replacement.");
+  }
+  entries.push({ ...structuredClone(payload), status: "active" });
+}
+
+/** Applies one handoff, refusing one that moves entries it may not. */
+function applyHandoff(
+  entries: readonly ProjectedAgentContextEntry[],
+  handoffs: AgentContextProjection["incomingHandoffs"],
+  agents: readonly AgentContextWorkforceIdentity[],
+  payload: HandoffPayload,
+): void {
+  if (
+    payload.fromAgentId === payload.toAgentId ||
+    !agents.some((candidate) => candidate.agentId === payload.fromAgentId) ||
+    !agents.some(
+      (candidate) => candidate.agentId === payload.toAgentId && candidate.status === "active",
+    ) ||
+    handoffs.some((handoff) => handoff.contextHandoffId === payload.contextHandoffId) ||
+    payload.manifestArtifactId !== artifactId(payload.manifestContentHash)
+  ) {
+    conflict("The context handoff identity, successor, or manifest is invalid.");
+  }
+  if (
+    payload.contextEntryIds.some(
+      (entryId) =>
+        !entries.some(
+          (entry) => entry.contextEntryId === entryId && entry.agentId === payload.fromAgentId,
+        ),
+    )
+  ) {
+    conflict("A context handoff can include only entries owned by its source agent.");
+  }
+  // A conversation note is its agent's own, self-reported: it never reaches another agent.
+  if (
+    payload.contextEntryIds.some((entryId) =>
+      entries.some(
+        (entry) => entry.contextEntryId === entryId && entry.memoryKind === "conversation_note",
+      ),
+    )
+  ) {
+    conflict("A conversation note stays with its own agent.");
+  }
+  handoffs.push(structuredClone(payload));
 }
 
 export function projectAgentContext(input: {
@@ -123,73 +240,9 @@ export function projectAgentContext(input: {
     lastSequence = envelope.seq;
     const event = agentContextEvent(envelope);
     if (event === null) continue;
-    if (event.type === "agent.context.promoted") {
-      assertSourceAndReview(envelope, eventById);
-      const payload = event.payload;
-      if (
-        payload.reviewBindingVersion === 2 &&
-        (Date.parse(payload.observedAt!) > Date.parse(payload.promotedAt) ||
-          (payload.expiresAt !== null &&
-            Date.parse(payload.expiresAt!) <= Date.parse(payload.observedAt!)))
-      ) {
-        conflict("The context observation, expiry, and promotion times are inconsistent.");
-      }
-      if (entries.some((entry) => entry.contextEntryId === payload.contextEntryId)) {
-        conflict("An agent context entry ID cannot be reused.");
-      }
-      if (payload.supersedesContextEntryId !== null) {
-        const prior = entries.find(
-          (entry) => entry.contextEntryId === payload.supersedesContextEntryId,
-        );
-        if (
-          prior === undefined ||
-          prior.agentId !== payload.agentId ||
-          prior.layer !== payload.layer ||
-          prior.status !== "active"
-        ) {
-          conflict(
-            "A context promotion can supersede only one active entry in the same namespace.",
-          );
-        }
-        prior.status = "superseded";
-      }
-      const sameSubject = entries.find(
-        (entry) =>
-          entry.agentId === payload.agentId &&
-          entry.layer === payload.layer &&
-          payload.subjectKey !== undefined &&
-          entry.subjectKey === payload.subjectKey &&
-          entry.status === "active",
-      );
-      if (sameSubject !== undefined) {
-        conflict("An active context subject must be explicitly superseded before replacement.");
-      }
-      entries.push({ ...structuredClone(payload), status: "active" });
-      continue;
-    }
-    const payload = event.payload;
-    if (
-      payload.fromAgentId === payload.toAgentId ||
-      !input.agents.some((candidate) => candidate.agentId === payload.fromAgentId) ||
-      !input.agents.some(
-        (candidate) => candidate.agentId === payload.toAgentId && candidate.status === "active",
-      ) ||
-      handoffs.some((handoff) => handoff.contextHandoffId === payload.contextHandoffId) ||
-      payload.manifestArtifactId !== artifactId(payload.manifestContentHash)
-    ) {
-      conflict("The context handoff identity, successor, or manifest is invalid.");
-    }
-    if (
-      payload.contextEntryIds.some(
-        (entryId) =>
-          !entries.some(
-            (entry) => entry.contextEntryId === entryId && entry.agentId === payload.fromAgentId,
-          ),
-      )
-    ) {
-      conflict("A context handoff can include only entries owned by its source agent.");
-    }
-    handoffs.push(structuredClone(payload));
+    if (event.type === "agent.context.promoted")
+      applyPromotion(entries, envelope, event.payload, eventById);
+    else applyHandoff(entries, handoffs, input.agents, event.payload);
   }
   return {
     schemaVersion: 1,

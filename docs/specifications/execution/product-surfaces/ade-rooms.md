@@ -41,7 +41,7 @@ Agents mention each other directly, choosing by role and by what each has learne
   - the conversation's participants;
   - the project's team agents with their roles;
   - how a mention works: write `@Name` when the work needs that agent's role or knowledge, and its answer comes back as a turn.
-- From slice 3, the block also says what each agent knows, from its notes and expertise, so an agent can pick "the researcher who studied this API last week" by name.
+- From slice 3, the block also says what each other agent knows from its reviewed expertise, so an agent can pick "the researcher who studied this API last week" by name. It never carries another agent's conversation notes: a session's block recalls only its own agent's notes ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)).
 
 ## The core link and the session host
 
@@ -101,6 +101,8 @@ A start that fails after the command returned shows in the source conversation a
   - expires after 30 days.
 
   Event schema 16 adds this kind to `agent.context.promoted` before any writer emits it; older envelope versions refuse it ([event envelope compatibility](../events-and-privacy/event-envelope-compatibility.md)).
+
+- A note is attested by its delivery's receipt rather than by a review of its words ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)). In v1 only a turn delivered to the agent by another agent's mention writes a note. An owner's direct turn to the lead has no receipt and writes none. A note stays with its own agent and reads as its own.
 
 - Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both.
 
