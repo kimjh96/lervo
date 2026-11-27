@@ -214,16 +214,18 @@ describe("a conversation note's provenance", () => {
     ]);
     expect(kept.entries.map((entry) => entry.status)).toEqual(["superseded", "active"]);
     // The same records without the pointer stand, so only superseding reviewed memory is refused.
+    const unpointed = replacing("");
+    const standing = {
+      ...unpointed,
+      seq: 7,
+      payload: { ...unpointed.payload, supersedesContextEntryId: null },
+    };
     const reviewed = project([
       verified,
       outcome(4),
       { ...secondRecorded, seq: 5 },
       { ...secondDelivered, seq: 6 },
-      {
-        ...replacing(`actx_${"6".repeat(24)}`),
-        seq: 7,
-        payload: { ...replacing("").payload, supersedesContextEntryId: null },
-      },
+      standing,
     ]);
     expect(reviewed.entries.map((entry) => entry.memoryKind)).toEqual([
       "work_outcome",
