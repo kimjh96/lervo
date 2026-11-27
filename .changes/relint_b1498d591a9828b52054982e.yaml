@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b1498d591a9828b52054982e"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "lervo upgrade activates event schema 16 once every reader reads it, and holds a host whose hook runtime an older Lervo install published"

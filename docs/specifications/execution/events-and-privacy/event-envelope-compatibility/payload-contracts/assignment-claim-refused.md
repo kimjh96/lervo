@@ -29,7 +29,7 @@ All ten fields are required, and no other key is kept: the payload screen drops 
 
 The coordination stage records the event in the repository's store, as the workforce records `assignment.claimed`. The envelope has `schemaVersion: 16`. Lervo records at most one event per session, holder, and path digest in a turn.
 
-It carries no path, tool input, command text, file content, conversation title, the refusal's message, provider session ID, or tool use ID. Readers ship first: no release records the event yet, and the writer target stays below 16.
+It carries no path, tool input, command text, file content, conversation title, the refusal's message, provider session ID, or tool use ID. Readers shipped first. [ADR-0650](../../../../../decisions/distribution/0650-raise-the-event-writer-target-to-schema-16-after-its-readers.md) raises the automatic writer target to 16, and the CLI records the event only behind the coordination gate, which stays closed.
 
 ## Failure meaning
 

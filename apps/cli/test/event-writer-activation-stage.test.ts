@@ -56,14 +56,14 @@ function ports(overrides: Partial<EventWriterStagePorts> = {}): EventWriterStage
 }
 
 describe("event writer activation stage", () => {
-  it("plans a local-only activation, backs the store up, and applies schema 14", async () => {
+  it("plans a local-only activation, backs the store up, and applies schema 16", async () => {
     const root = await repository();
     const stage = await inspectEventWriterStage(root, ports());
     expect(stage).toMatchObject({
       disposition: "safe_apply",
       reason: "event_writer_activation_ready",
       currentSchemaVersion: 1,
-      targetSchemaVersion: 14,
+      targetSchemaVersion: 16,
       authority: "local",
       blockers: [],
     });
@@ -72,17 +72,17 @@ describe("event writer activation stage", () => {
     const outcome = await applyEventWriterStage(root, stage, ports());
     expect(outcome).toMatchObject({
       status: "activated",
-      receipt: { selectedEventSchemaVersion: 14 },
+      receipt: { selectedEventSchemaVersion: 16 },
       backup: {
-        path: ".lervo/data/event-writer-backups/schema-14",
+        path: ".lervo/data/event-writer-backups/schema-16",
         eventDatabase: "copied",
         coordinate: "absent",
       },
     });
     expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
-      14,
+      16,
     );
-    const backup = resolve(root, ".lervo/data/event-writer-backups/schema-14");
+    const backup = resolve(root, ".lervo/data/event-writer-backups/schema-16");
     expect((await stat(resolve(backup, "events.sqlite"))).mode & 0o777).toBe(0o600);
     const copy = new DatabaseSync(resolve(backup, "events.sqlite"), { readOnly: true });
     try {
@@ -94,11 +94,11 @@ describe("event writer activation stage", () => {
     }
     expect(JSON.parse(await readFile(resolve(backup, "backup.json"), "utf8"))).toMatchObject({
       kind: "event_writer_activation_backup",
-      targetEventSchemaVersion: 14,
+      targetEventSchemaVersion: 16,
     });
     expect(await inspectEventWriterStage(root, ports())).toMatchObject({
       disposition: "current",
-      currentSchemaVersion: 14,
+      currentSchemaVersion: 16,
     });
   });
 
@@ -117,6 +117,55 @@ describe("event writer activation stage", () => {
       }),
     ]);
     expect(collectEvidence).not.toHaveBeenCalled();
+    expect(
+      await activateLocalEventWriter(root, ports({ hookReader: async () => "stale" })),
+    ).toEqual({ status: "held", code: "terminal_hook_reader_stale" });
+    expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
+      1,
+    );
+    await expect(stat(resolve(root, ".lervo/data/event-writer-backups"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  it("holds a reader that cannot read schema 16 without a backup or a write", async () => {
+    const root = await repository();
+    // A reader of an older release, such as a Node or Hub that reads 1 through 15.
+    const older = ports({
+      collectEvidence: async (input) => {
+        const evidence = await collectEventReaderActivationEvidence(input);
+        return {
+          ...evidence,
+          readers: evidence.readers.map((reader) => ({
+            ...reader,
+            capabilities: {
+              ...reader.capabilities,
+              readableEventSchemaVersions: reader.capabilities.readableEventSchemaVersions.filter(
+                (version) => version <= 15,
+              ),
+            },
+          })),
+        } as never;
+      },
+    });
+    const stage = await inspectEventWriterStage(root, older);
+    expect(stage).toMatchObject({ disposition: "blocked", targetSchemaVersion: 16 });
+    expect(stage.blockers).toEqual([
+      expect.objectContaining({
+        code: "event_writer_activation_blocked",
+        message: expect.stringContaining("event schema 16"),
+      }),
+    ]);
+    expect(await activateLocalEventWriter(root, older)).toEqual({
+      status: "held",
+      code: "event_writer_activation_blocked",
+    });
+    expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
+      1,
+    );
+    await expect(stat(resolve(root, ".lervo/data/event-writer-backups"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("reports an unreachable Hub reader with its exact remedy and never activates", async () => {

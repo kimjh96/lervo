@@ -19,7 +19,7 @@ The resident core records the event, never the ADE, in the registered repository
 - `schemaVersion: 15` and `actor.kind: system`;
 - `runId` `run_room_<key>` and `sessionId` `ses_room_<key>`, where `<key>` is the first 24 hex digits of the SHA-256 of the `workspaceId`. Every room event of one conversation shares this run and session; the joined agent's own session appears only in the payload.
 
-It carries no message text, display name, path, or provider session UUID. Readers ship first: no release records the event yet, and a later release adds the writer and raises the automatic writer target.
+It carries no message text, display name, path, or provider session UUID. Readers shipped first. [ADR-0650](../../../../../decisions/distribution/0650-raise-the-event-writer-target-to-schema-16-after-its-readers.md) raises the automatic writer target to 16, so a room writer records the event once the repository's writer selects 15 or later.
 
 ## Failure meaning
 

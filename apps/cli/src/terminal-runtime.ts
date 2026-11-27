@@ -12,7 +12,11 @@ import {
 } from "@lervo/repository-knowledge";
 import { lstat, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { activeCliEntry, newerRuntimePublisher } from "./installed-cli-version.js";
+import {
+  activeCliEntry,
+  newerRuntimePublisher,
+  runtimeReadsWriterOf,
+} from "./installed-cli-version.js";
 import { isInstalledTerminalRuntimeCli } from "./terminal-runtime-installation.js";
 import { STARTUP_EFFECTS_VARIABLE } from "./startup-effects.js";
 import { readCliPackageVersion } from "./version-command.js";
@@ -54,16 +58,24 @@ async function installedRuntimeHash(): Promise<string> {
     : sha256(await loadTerminalHookRuntime());
 }
 
+/**
+ * Whether the host's hook runtime is a verified reader of every schema this CLI's writer target
+ * selects: a valid, unmarked runtime that is this CLI's own or an install at least as new as this
+ * one published (ADR-0470, ADR-0650). Anything else is `terminal_hook_reader_stale`.
+ */
 export async function hostTerminalHookReaderCurrent(
   store: string = terminalHookRuntimeStorePath(),
 ): Promise<boolean> {
-  return !(await hostTerminalRuntimeNeedsMaterialization(
-    store,
-    await installedRuntimeHash(),
-    "artifact",
-    "repair",
-    TERMINAL_HOOK_RUNTIME_CAPABILITIES,
-  ));
+  const contentHash = await installedRuntimeHash();
+  return (
+    !(await hostTerminalRuntimeNeedsMaterialization(
+      store,
+      contentHash,
+      "artifact",
+      "repair",
+      TERMINAL_HOOK_RUNTIME_CAPABILITIES,
+    )) && (await runtimeReadsWriterOf(store, contentHash, readCliPackageVersion()))
+  );
 }
 
 /**

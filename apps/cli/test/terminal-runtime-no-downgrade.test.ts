@@ -9,7 +9,10 @@ import {
 } from "@lervo/repository-knowledge";
 
 import { newerRuntimePublisher } from "../src/installed-cli-version.js";
-import { ensureHostTerminalRuntime } from "../src/terminal-runtime.js";
+import {
+  ensureHostTerminalRuntime,
+  hostTerminalHookReaderCurrent,
+} from "../src/terminal-runtime.js";
 import { readCliPackageVersion } from "../src/version-command.js";
 
 const roots: string[] = [];
@@ -88,4 +91,21 @@ it("publishes and repairs again once the newer install is no longer active, as a
   ).toBe("materialized");
   expect(await inspectHostTerminalRuntime(newer.store)).toBe("current");
   expect(readCliPackageVersion()).toMatch(/^\d+\.\d+\.\d+$/u);
+});
+
+it("counts only a runtime an install at least as new published as the writer's hook reader", async () => {
+  // ADR-0650: repair authority keeps another live publisher's runtime, so the event writer's
+  // preflight also asks that the publisher is not older than the CLI that activates the writer.
+  const older = await hostPublishedBy("0.1.0");
+  expect(await hostTerminalHookReaderCurrent(older.store)).toBe(false);
+  const newer = await hostPublishedBy("99.0.0");
+  expect(await hostTerminalHookReaderCurrent(newer.store)).toBe(true);
+  const unknown = await hostPublishedBy("99.0.0", "other");
+  expect(await hostTerminalHookReaderCurrent(unknown.store)).toBe(false);
+  // This CLI's own runtime passes whoever published it.
+  const own = await hostPublishedBy("0.1.0");
+  expect(await ensureHostTerminalRuntime({ store: own.store, activeEntry: null })).toBe(
+    "materialized",
+  );
+  expect(await hostTerminalHookReaderCurrent(own.store)).toBe(true);
 });
