@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import { lstat } from "node:fs/promises";
+import { resolve } from "node:path";
+
+import { inspectRepositoryCoordinationHome } from "@lervo/project-storage";
 
 import {
   conversationWorkspaceGenerations,
@@ -14,6 +18,8 @@ import {
   updateWorkspace,
 } from "./workspace-store.js";
 import type { AgentWorkspace } from "./workspace-types.js";
+
+const CONVERSATION_ID = /^wsp_[a-f0-9]{24}$/u;
 
 /** The newest record of the checkout named by `pathDigests` that is not `removed`, or null. */
 export async function readNewestCheckoutWorkspace(
@@ -37,6 +43,29 @@ export async function listConversationWorkspaceGenerations(
   conversationId: string,
 ): Promise<AgentWorkspace[]> {
   return conversationWorkspaceGenerations(await listWorkspaces(repositoryRoot), conversationId);
+}
+
+/**
+ * Whether the conversation ever recorded a workspace generation, `removed` ones included. It
+ * looks for generation 1's record by its derived ID and writes nothing, not even the coordination
+ * home, so a repository where no conversation coordinated pays one read-only inspection. An ID
+ * that names no conversation, or a coordination home it cannot inspect, has none.
+ */
+export async function hasConversationWorkspaceRecords(
+  repositoryRoot: string,
+  conversationId: string,
+): Promise<boolean> {
+  if (!CONVERSATION_ID.test(conversationId)) return false;
+  const home = await inspectRepositoryCoordinationHome(repositoryRoot).catch(() => null);
+  if (home === null) return false;
+  const recordId = conversationWorkspaceRecordId(conversationId, 1);
+  return lstat(resolve(home.workspaces, `${recordId}.json`)).then(
+    (info) => info.isFile(),
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return false;
+      throw error;
+    },
+  );
 }
 
 /** One generation of a conversation's checkout, bound to its assignment's lease and its marker. */

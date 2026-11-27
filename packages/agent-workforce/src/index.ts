@@ -102,6 +102,7 @@ export {
   newestConversationWorkspace,
 } from "./conversation-workspace.js";
 export {
+  hasConversationWorkspaceRecords,
   listConversationWorkspaceGenerations,
   readNewestCheckoutWorkspace,
   readNewestConversationWorkspace,
@@ -111,8 +112,15 @@ export {
 export {
   assertConversationRetirable,
   CONVERSATION_RETIRED,
+  CONVERSATION_WORKTREE_GONE,
   retireConversation,
   type ConversationCheckoutRemoval,
   type ConversationRetirement,
+  type ConversationRetirementReason,
 } from "./conversation-retirement.js";
+export {
+  sweepGoneConversations,
+  type ConversationCheckoutProof,
+  type GoneConversationSweep,
+} from "./conversation-worktree-sweep.js";
 export { CLAIM_PATH_KEY_FILE, readOrCreateClaimPathKey } from "./claim-path-key-store.js";

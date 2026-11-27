@@ -47,7 +47,7 @@ import {
 import type { UpgradeStageClock } from "./upgrade-stage-timing.js";
 import type { CliServices } from "./types.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
-import { recordPendingAgentOrigins } from "./agent-origin-stage.js";
+import { applyWorkforceUpkeep } from "./upgrade-workforce-upkeep.js";
 
 export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pending"] {
   const stages: Array<{
@@ -201,10 +201,10 @@ export async function applyRepositoryUpgrade(
         });
     }
   }
-  // ADR-0643: each agent records whether it is the team's or Lervo's own, once.
+  // ADR-0643 origins, and the end of what conversations whose worktree vanished still hold.
   if (!held && workforce?.disposition !== "blocked") {
     await confirmExclusion("workforce");
-    if ((await recordPendingAgentOrigins(root)) > 0) appliedStages.push("workforce_origins");
+    await applyWorkforceUpkeep(root, { appliedStages, skippedStages });
   }
   clock.lap("workforce");
 
