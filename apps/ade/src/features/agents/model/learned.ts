@@ -14,13 +14,15 @@ export interface Held {
 }
 
 /**
- * One agent's learned entries and held paths: null while the core reads them, or the failure's
- * code. `held` stays null from a core that does not read leases.
+ * One agent's learned entries and paths: null while the core reads them, or the failure's code.
+ * `held` stays null from a core that does not read leases, and `changed`, the paths its
+ * conversations changed and have not sealed, from one that does not record them.
  */
 export interface Learned {
   readonly agentId: string;
   readonly entries: readonly LearnedEntry[] | null;
   readonly held: Held | null;
+  readonly changed: Held | null;
   readonly failure: string | null;
 }
 
@@ -41,6 +43,7 @@ export async function loadLearned(
       agentId,
       entries: same ? shown.entries : null,
       held: same ? shown.held : null,
+      changed: same ? shown.changed : null,
       failure: null,
     },
   });
@@ -51,14 +54,27 @@ export async function loadLearned(
       answer.paths === undefined
         ? null
         : { paths: answer.paths, total: answer.pathsTotal ?? answer.paths.length };
+    const changed =
+      answer.changedPaths === undefined
+        ? null
+        : {
+            paths: answer.changedPaths,
+            total: answer.changedPathsTotal ?? answer.changedPaths.length,
+          };
     if (current())
       useAgentStore.setState({
-        learned: { agentId, entries: answer.entries, held, failure: null },
+        learned: { agentId, entries: answer.entries, held, changed, failure: null },
       });
   } catch (failure) {
     if (current())
       useAgentStore.setState({
-        learned: { agentId, entries: null, held: null, failure: failureCode(failure) },
+        learned: {
+          agentId,
+          entries: null,
+          held: null,
+          changed: null,
+          failure: failureCode(failure),
+        },
       });
   }
 }

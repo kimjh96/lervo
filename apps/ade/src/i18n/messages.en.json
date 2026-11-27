@@ -83,6 +83,10 @@
     "defaultMessage": "Choose an image for {name}",
     "description": "The title of the image panel that chooses an agent's image."
   },
+  "agents.profile.changed": {
+    "defaultMessage": "Changed, not yet sealed",
+    "description": "Under Paths it holds, over the paths the agent's conversations changed and have not sealed yet, which other conversations cannot claim meanwhile."
+  },
   "agents.profile.held": {
     "defaultMessage": "Paths it holds",
     "description": "The heading over the repository paths an agent holds under a live lease, in its profile."

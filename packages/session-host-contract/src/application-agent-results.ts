@@ -208,6 +208,17 @@ export const agentContextResultSchema = {
       items: { type: "string", minLength: 1, maxLength: 1024 },
     },
     pathsTotal: { type: "integer", minimum: 0 },
+    /**
+     * The paths the conversations the agent leads changed and have not sealed yet, sorted, as
+     * their latest reconciliation recorded them; held for conflicts, though not leased. Absent
+     * from a core that does not record changed paths.
+     */
+    changedPaths: {
+      type: "array",
+      maxItems: MAXIMUM_HELD_PATHS,
+      items: { type: "string", minLength: 1, maxLength: 1024 },
+    },
+    changedPathsTotal: { type: "integer", minimum: 0 },
   },
 } as const;
 
