@@ -52,7 +52,8 @@ fn main() -> ExitCode {
             files::pasted_files,
             files::describe_files,
             files::read_image_file,
-            files::reveal_file
+            files::reveal_file,
+            files::open_folder
         ])
         .run(tauri::generate_context!());
     match result {

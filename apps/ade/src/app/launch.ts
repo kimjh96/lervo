@@ -14,7 +14,11 @@ export const launchLimitMs = 500;
 
 export interface LaunchProgress {
   readonly connection: ConnectionState;
-  /** Whether the first lists loaded or failed, or the lists kept from the last launch show. */
+  /**
+   * Whether the core's first lists loaded or failed. The lists kept from the last launch stand in
+   * only once the budget passes, so a kept list the core no longer holds, such as projects
+   * removed outside the ADE, never shows and is then replaced.
+   */
   readonly listsSettled: boolean;
   /** Whether the cold-start budget has passed since the window's navigation start. */
   readonly budgetPassed: boolean;
@@ -34,9 +38,7 @@ export function launchReady(progress: LaunchProgress): boolean {
  */
 export function useLaunched(): boolean {
   const connection = useConnectionStore((store) => store.state);
-  const listsSettled = useWorkspaceStore(
-    (store) => store.loaded || store.cached || store.listFailure !== null,
-  );
+  const listsSettled = useWorkspaceStore((store) => store.loaded || store.listFailure !== null);
   const [budgetPassed, setBudgetPassed] = useState(() => performance.now() >= launchLimitMs);
   // The first screen never goes back to the launch view, even if the connection changes again.
   const [launched, setLaunched] = useState(false);

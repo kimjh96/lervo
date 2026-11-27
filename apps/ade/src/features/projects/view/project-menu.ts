@@ -45,7 +45,8 @@ export function showProjectMenu(context: ProjectMenuContext, project: Repository
     if (items.length > 0) items.push("separator");
     items.push({
       text: intl.formatMessage({ id: "projects.menu.reveal" }),
-      run: () => context.files.reveal(root),
+      // The project's own folder opens, never its parent with the folder selected.
+      run: () => context.files.openFolder(root),
     });
   }
   if (managed)

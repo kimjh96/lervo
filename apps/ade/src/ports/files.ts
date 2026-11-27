@@ -26,8 +26,10 @@ export interface Files {
   describe(paths: readonly string[]): Promise<AttachedFile[]>;
   /** The bytes of a dropped image file; rejects when it cannot be read or is too large. */
   readImage(path: string): Promise<Blob>;
-  /** Shows a file in Finder. */
+  /** Shows a file in Finder, selected in its folder. */
   reveal(path: string): void;
+  /** Opens a folder itself in Finder, such as a project's, rather than its parent. */
+  openFolder(path: string): void;
   /** Calls `listener` for each drag of files over the window until the returned function runs. */
   watchDrags(listener: (drag: FileDrag) => void): () => void;
 }

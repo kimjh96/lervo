@@ -1531,10 +1531,6 @@
     "defaultMessage": "Drop the folder to add it as a project",
     "description": "Shown under the first run's cards while files are dragged over the window."
   },
-  "start.firstRun.dropHint": {
-    "defaultMessage": "or drop a folder here",
-    "description": "The line under the first run's cards."
-  },
   "start.firstRun.failed": {
     "defaultMessage": "Lervo could not add the project ({code}).",
     "description": "Adding the first project failed; {code} is the protocol code."
@@ -1556,11 +1552,11 @@
     "description": "First run card: create a new, empty project."
   },
   "start.firstRun.subtitle": {
-    "defaultMessage": "Lervo works in a project: a folder with Git.",
+    "defaultMessage": "Add a project to start, or drop its folder on this window.",
     "description": "The line under the first run's heading."
   },
   "start.firstRun.title": {
-    "defaultMessage": "Add your first project",
+    "defaultMessage": "Welcome to Lervo",
     "description": "The start screen's heading with no project yet."
   },
   "start.instruction.label": {
