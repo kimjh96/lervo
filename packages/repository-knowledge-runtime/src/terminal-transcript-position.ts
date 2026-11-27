@@ -39,10 +39,19 @@ function within(root: string, path: string): boolean {
   return part !== "" && !isAbsolute(part) && part !== ".." && !part.startsWith("../");
 }
 
-function providerTranscriptBase(provider: "claude" | "codex"): string {
-  return provider === "claude"
-    ? resolve(homedir(), ".claude/projects")
-    : resolve(process.env.CODEX_HOME ?? resolve(homedir(), ".codex"), "sessions");
+/**
+ * The configuration directory the person chose for the provider, as its CLI reads it:
+ * `CLAUDE_CONFIG_DIR` for Claude Code and `CODEX_HOME` for Codex. Undefined for the default.
+ */
+function configuredHome(provider: "claude" | "codex"): string | undefined {
+  const chosen = provider === "claude" ? process.env.CLAUDE_CONFIG_DIR : process.env.CODEX_HOME;
+  return chosen === undefined || chosen === "" ? undefined : resolve(chosen);
+}
+
+/** Where the provider keeps its transcripts under `home`, or under its chosen directory. */
+function providerTranscriptBase(provider: "claude" | "codex", home: string): string {
+  const configured = configuredHome(provider) ?? resolve(home, `.${provider}`);
+  return resolve(configured, provider === "claude" ? "projects" : "sessions");
 }
 
 /** Both ingress and the resident enforce the provider's own host-local transcript boundary. */
@@ -52,12 +61,13 @@ export async function openProviderTranscript(
 ): Promise<FileHandle> {
   if (!isAbsolute(path) || path.length > 4096 || path.includes("\0"))
     throw new Error("Invalid transcript path.");
-  const home = await realpath(homedir());
-  const logicalBase = providerTranscriptBase(provider);
+  const logicalBase = providerTranscriptBase(provider, homedir());
+  // The default directory must really lie in the home; a directory the person chose is trusted
+  // where it really is.
   const base =
-    provider === "claude"
-      ? resolve(home, ".claude/projects")
-      : resolve(process.env.CODEX_HOME ?? resolve(home, ".codex"), "sessions");
+    configuredHome(provider) === undefined
+      ? providerTranscriptBase(provider, await realpath(homedir()))
+      : await realpath(logicalBase);
   const actual = await realpath(path);
   if (
     (!within(logicalBase, resolve(path)) && !within(base, resolve(path))) ||
@@ -127,7 +137,7 @@ export async function absentTerminalTranscript(
 ): Promise<string | null> {
   if (!path || !isAbsolute(path) || path.length > 4096 || path.includes("\0")) return null;
   const logical = resolve(path);
-  if (!within(providerTranscriptBase(provider), logical)) return null;
+  if (!within(providerTranscriptBase(provider, homedir()), logical)) return null;
   try {
     await lstat(logical);
     return null;
