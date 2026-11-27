@@ -3726,6 +3726,18 @@
       "value": "A process still runs in this workspace. Stop it and try again."
     }
   ],
+  "workspace.retire.failed.workspace_integration_pending": [
+    {
+      "type": 0,
+      "value": "A change from this workspace is waiting to be integrated. Remove it after it integrates."
+    }
+  ],
+  "workspace.retire.failed.workspace_worktree_unresolved": [
+    {
+      "type": 0,
+      "value": "This workspace's folder was moved or switched to another branch. Remove that folder, then try again."
+    }
+  ],
   "workspace.retire.question": [
     {
       "type": 0,

@@ -1611,9 +1611,17 @@
     "defaultMessage": "This workspace has changes. Commit or remove them first.",
     "description": "Removing refused because the workspace holds uncommitted changes or new files."
   },
+  "workspace.retire.failed.workspace_integration_pending": {
+    "defaultMessage": "A change from this workspace is waiting to be integrated. Remove it after it integrates.",
+    "description": "Removing refused because a sealed change from the workspace's conversation still waits for integration; nothing changed."
+  },
   "workspace.retire.failed.workspace_in_use": {
     "defaultMessage": "A process still runs in this workspace. Stop it and try again.",
     "description": "Removing refused because a process works in the workspace's folder."
+  },
+  "workspace.retire.failed.workspace_worktree_unresolved": {
+    "defaultMessage": "This workspace's folder was moved or switched to another branch. Remove that folder, then try again.",
+    "description": "Removing refused because the conversation's checkout is still on disk or registered with Git but is no longer its worktree; nothing was released."
   },
   "workspace.retire.question": {
     "defaultMessage": "Remove this workspace?",
