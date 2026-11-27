@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_be9fea2e71d3335f9ebd69b2"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retiring an ADE conversation now releases its lease, records, and changed paths with the coordination gate closed, and lervo upgrade sweeps conversations whose worktree is gone."
