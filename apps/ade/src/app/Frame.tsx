@@ -17,7 +17,10 @@ function Main(props: { surface: Surface }) {
     return (
       <div className={styles.view} data-background={surface.background}>
         <div className={styles.titlebar} data-tauri-drag-region />
-        <AgentProfile agentId={surface.agentId} />
+        {/* A long profile scrolls under the title bar, which stays a drag region. */}
+        <div className={styles.scroll}>
+          <AgentProfile agentId={surface.agentId} />
+        </div>
       </div>
     );
   if (surface.kind === "start")
