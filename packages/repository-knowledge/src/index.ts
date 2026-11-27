@@ -248,7 +248,10 @@ export {
   VERIFICATION_FAILURE_CODES,
   VERIFICATION_TIMED_OUT,
 } from "./knowledge-convergence-failure.js";
-export { replayKnowledgeConvergence } from "./knowledge-convergence-replay.js";
+export {
+  replayKnowledgeConvergence,
+  type KnowledgeConvergenceProjection,
+} from "./knowledge-convergence-replay.js";
 export { createStoredDocumentNormalizationSubsetCandidate } from "./document-normalization-subset.js";
 export * from "./knowledge-stage-lint.js";
 

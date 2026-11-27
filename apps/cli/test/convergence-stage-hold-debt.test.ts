@@ -14,8 +14,15 @@ import { parseTerminalHookIngress } from "../src/terminal-hook-input.js";
 import { answerClaimHook } from "../src/write-claims.js";
 import { claimFixture, type ClaimFixture } from "./conversation-claim-fixture.js";
 
-/** Convergence stages the workforce lists beside the real assignments. */
-const stages = vi.hoisted(() => ({ extra: [] as WorkforceAssignment[] }));
+/**
+ * Convergence stages the workforce lists beside the real assignments, and the obligations the
+ * canonical convergence events replay to.
+ */
+const stages = vi.hoisted(() => ({ extra: [] as WorkforceAssignment[], rows: [] as unknown[] }));
+vi.mock("@lervo/repository-knowledge", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@lervo/repository-knowledge")>()),
+  replayKnowledgeConvergence: () => stages.rows,
+}));
 vi.mock("@lervo/agent-workforce", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@lervo/agent-workforce")>();
   return {
@@ -31,6 +38,7 @@ let app: ClaimFixture;
 
 beforeEach(async () => {
   stages.extra = [];
+  stages.rows = [];
   app = await claimFixture();
 }, 60_000);
 
@@ -56,6 +64,27 @@ function waitingStage(paths: string[], createdAt: Date): WorkforceAssignment {
   } as unknown as WorkforceAssignment;
 }
 
+/** An obligation whose latest stage record is `state` for `failureCode`, settled at `at`. */
+function obligation(
+  at: Date,
+  options: { state?: string; failureCode?: string | null; outcome?: boolean } = {},
+) {
+  return {
+    baseline: { payload: { obligationId: "kob_held" } },
+    latest: {
+      payload: {
+        obligationId: "kob_held",
+        stage: "normalization_apply",
+        state: options.state ?? "waiting_authority",
+        failureCode:
+          options.failureCode === undefined ? "assignment_path_conflict" : options.failureCode,
+        occurredAt: at.toISOString(),
+      },
+    },
+    outcome: options.outcome === true ? { payload: { terminalState: "superseded" } } : null,
+  };
+}
+
 /** The lead of `conversation` claims `path` in its worktree. */
 async function claim(conversation: ClaimFixture["first"], path: string): Promise<void> {
   const parsed = parseTerminalHookIngress(
@@ -77,7 +106,10 @@ describe("a convergence stage a conversation holds", () => {
     const { first, repository } = app;
     await claim(first, "src/a.ts");
     const now = new Date();
-    stages.extra = [waitingStage(["src/a.ts"], new Date(now.getTime() - DAY - 3_600_000))];
+    // The writer was created days ago; its current hold settled 25 hours ago.
+    stages.extra = [waitingStage(["src/a.ts"], new Date(now.getTime() - 3 * DAY))];
+    const settled = new Date(now.getTime() - DAY - 3_600_000);
+    stages.rows = [obligation(settled)];
 
     const items = await readConvergenceStageHoldDebt(repository, now);
     expect(items).toEqual([
@@ -87,7 +119,7 @@ describe("a convergence stage a conversation holds", () => {
         findingCode: "convergence_stage_held",
         severity: "lervo_debt",
         detail: first.workspaceId,
-        observedAt: stages.extra[0]!.createdAt,
+        observedAt: settled.toISOString(),
         actionOwner: "host resident",
         requiresUserAction: false,
         blocking: false,
@@ -105,17 +137,30 @@ describe("a convergence stage a conversation holds", () => {
     ).toHaveLength(1);
   }, 60_000);
 
-  it("is no debt within a day, when nothing overlaps, or while the gate is closed", async () => {
+  it("is no debt within a day of its hold, after its obligation ended, when nothing overlaps, or while the gate is closed", async () => {
     const { first, repository } = app;
     await claim(first, "src/a.ts");
     const now = new Date();
-    stages.extra = [waitingStage(["src/a.ts"], new Date(now.getTime() - DAY + 60_000))];
+    const old = new Date(now.getTime() - 2 * DAY);
+    stages.extra = [waitingStage(["src/a.ts"], new Date(now.getTime() - 3 * DAY))];
+    // The age counts from the hold's settlement, not the writer's creation.
+    stages.rows = [obligation(new Date(now.getTime() - DAY + 60_000))];
+    expect(await readConvergenceStageHoldDebt(repository, now)).toEqual([]);
+    // A superseded or archived obligation, or one no longer waiting on a claim, holds nothing.
+    for (const row of [
+      obligation(old, { outcome: true }),
+      obligation(old, { state: "queued", failureCode: null }),
+      obligation(old, { failureCode: "knowledge_provider_paused" }),
+    ]) {
+      stages.rows = [row];
+      expect(await readConvergenceStageHoldDebt(repository, now)).toEqual([]);
+    }
+
+    stages.rows = [obligation(old)];
+    stages.extra = [waitingStage(["docs/guide.md"], new Date(now.getTime() - 3 * DAY))];
     expect(await readConvergenceStageHoldDebt(repository, now)).toEqual([]);
 
-    stages.extra = [waitingStage(["docs/guide.md"], new Date(now.getTime() - 2 * DAY))];
-    expect(await readConvergenceStageHoldDebt(repository, now)).toEqual([]);
-
-    stages.extra = [waitingStage(["src/a.ts"], new Date(now.getTime() - 2 * DAY))];
+    stages.extra = [waitingStage(["src/a.ts"], new Date(now.getTime() - 3 * DAY))];
     expect(await readConvergenceStageHoldDebt(repository, now)).toHaveLength(1);
     expect(
       await readConvergenceStageHoldDebt(repository, now, { LERVO_COORDINATION: "0" }),
