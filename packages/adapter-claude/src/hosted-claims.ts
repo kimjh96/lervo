@@ -118,6 +118,9 @@ function written(words: readonly string[]): { operand: string; kind: "file" | "d
     case "touch":
       return operands.map((operand) => ({ operand, kind: "file" }));
     case "mkdir":
+      // A new directory changes no file, and a later write into it is claimed by its own target;
+      // claiming the directory would refuse every file another conversation holds below it.
+      return [];
     case "rmdir":
       return operands.map((operand) => ({ operand, kind: "directory" }));
     case "rm":

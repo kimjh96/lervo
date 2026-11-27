@@ -30,7 +30,7 @@ describe("what a Claude Code tool call writes", () => {
       { path: "/work/repo/out.txt", kind: "file" },
       { path: "/work/repo/log.txt", kind: "file" },
     ]);
-    expect(bash("rm -rf build; mkdir -p dist/a; touch b.txt").targets).toEqual([
+    expect(bash("rm -rf build; rmdir dist/a; touch b.txt").targets).toEqual([
       { path: "/work/repo/build", kind: "directory" },
       { path: "/work/repo/dist/a", kind: "directory" },
       { path: "/work/repo/b.txt", kind: "file" },
@@ -44,6 +44,21 @@ describe("what a Claude Code tool call writes", () => {
       { path: "/work/repo/src/my file.ts", kind: "file" },
     ]);
     expect(bash("git mv old.ts new.ts && git rm gone.ts").targets).toHaveLength(3);
+  });
+
+  it("claims the file written into a new directory, never the directory mkdir makes", () => {
+    // A directory claim would overlap every path another conversation holds below it.
+    expect(bash("mkdir -p docs/scratch && printf 'x' > docs/scratch/new.md")).toEqual({
+      toolClass: "shell",
+      targets: [{ path: "/work/repo/docs/scratch/new.md", kind: "file" }],
+      detection: "parsed",
+    });
+    expect(bash("mkdir -p a/b c").targets).toEqual([]);
+    expect(bash("rm -r docs/scratch; mv docs/old docs/new").targets).toEqual([
+      { path: "/work/repo/docs/scratch", kind: "directory" },
+      { path: "/work/repo/docs/old", kind: "file" },
+      { path: "/work/repo/docs/new", kind: "file" },
+    ]);
   });
 
   it("claims a redirection's file, never a descriptor it duplicates or closes", () => {
