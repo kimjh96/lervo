@@ -107,6 +107,7 @@ function dependencies(
       describe: async () => [],
       readImage: async (path) => new Blob([`image at ${path}`]),
       reveal: () => undefined,
+      openFolder: () => undefined,
       watchDrags: () => () => undefined,
     },
     choosers: {

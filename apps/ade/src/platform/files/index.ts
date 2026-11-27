@@ -15,6 +15,9 @@ export function shellFiles(): Files {
     reveal(path) {
       invoke("reveal_file", { path }).catch(() => undefined);
     },
+    openFolder(path) {
+      invoke("open_folder", { path }).catch(() => undefined);
+    },
     watchDrags(listener) {
       let stopped = false;
       let unlisten: (() => void) | undefined;

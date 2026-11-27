@@ -77,6 +77,23 @@ pub async fn read_image_file(path: String) -> Result<tauri::ipc::Response, Strin
     .map_err(|error| error.to_string())?
 }
 
+/// Opens a folder itself in Finder, such as a project's, rather than its parent with it selected;
+/// a path that is not a folder is left alone.
+#[tauri::command]
+pub fn open_folder(path: String) {
+    #[cfg(target_os = "macos")]
+    {
+        // `open` returns at once; Finder comes forward on its own.
+        if Path::new(&path).is_dir() {
+            let _ = std::process::Command::new("/usr/bin/open")
+                .arg(&path)
+                .spawn();
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    drop(path);
+}
+
 /// Shows a file in Finder, selected; a missing file is left alone.
 #[tauri::command]
 pub fn reveal_file(path: String) {
