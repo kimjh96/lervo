@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { openProjectStorage } from "@lervo/project-storage";
+import { inspectRepositoryCoordinationHome, openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { heldPaths, learnedEntries } from "../src/core-link-agent-context.js";
@@ -197,5 +197,14 @@ describe("what an agent has learned, for its profile", () => {
       paths: [],
       total: 0,
     });
+  });
+
+  it("reads held paths without creating the repository's workforce home", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-agent-held-fresh-"));
+    roots.push(root);
+    expect(await runCli(["init", "--root", root, "--name", "fresh"], io(root))).toBe(0);
+    expect(await inspectRepositoryCoordinationHome(root)).toBeNull();
+    expect(await heldPaths(root, "agt_none")).toEqual({ paths: [], total: 0 });
+    expect(await inspectRepositoryCoordinationHome(root)).toBeNull();
   });
 });
