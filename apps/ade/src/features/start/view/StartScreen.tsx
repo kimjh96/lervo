@@ -11,7 +11,7 @@ import { Select } from "../../../ui/Select";
 import { Presence } from "../../../ui/Presence";
 import { ViewPresence } from "../../../ui/ViewPresence";
 import {
-  defaultParticipants,
+  chosenParticipants,
   ParticipantsChip,
   proposesProductOwner,
   takesParticipants,
@@ -124,7 +124,7 @@ function StartForm() {
   const offers = takes && shownProject === repository && agentsKnown;
   const offeredTeam = offers ? team : [];
   const proposesOwner = offers && proposesProductOwner(team);
-  const participants = offers ? (draft.participants ?? defaultParticipants(offeredTeam)) : [];
+  const participants = offers ? chosenParticipants(draft.participants, offeredTeam) : [];
   const tray = attachments.tray(intl);
 
   // The input takes focus when the screen opens and on each "New work".

@@ -7,6 +7,7 @@ export { bindProfile, closeProfile, openProfile } from "./store";
 export {
   HIRE_PRODUCT_OWNER,
   PRODUCT_OWNER_ROLE,
+  chosenParticipants,
   defaultParticipants,
   proposesProductOwner,
   managesAgents,

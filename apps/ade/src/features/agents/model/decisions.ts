@@ -34,6 +34,23 @@ export function defaultParticipants(team: readonly AgentSummary[]): string[] {
 }
 
 /**
+ * The participants a new conversation in `team`'s project starts with: those the person chose that
+ * belong to this team, or the default when none do. A choice made in another project, which the
+ * draft keeps across a switch, never reaches this project's start.
+ */
+export function chosenParticipants(
+  chosen: readonly string[] | undefined,
+  team: readonly AgentSummary[],
+): string[] {
+  const here = (chosen ?? []).filter(
+    (id) =>
+      team.some((agent) => agent.agentId === id) ||
+      (id === HIRE_PRODUCT_OWNER && proposesProductOwner(team)),
+  );
+  return here.length > 0 ? here : defaultParticipants(team);
+}
+
+/**
  * The participant that stands for a Product Owner Lervo hires when the work starts, in a project
  * whose team has none (ADR-0646). It leads unless the person chooses others instead.
  */

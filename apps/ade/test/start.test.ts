@@ -118,6 +118,16 @@ describe("starting work", () => {
     expect(useStartStore.getState().error).toEqual({ code: "worktree_locked", stage: "worktree" });
   });
 
+  it("names the core's own code for a start it refused", async () => {
+    const host = commands();
+    const started = startWork(host.fake, draft, "web");
+    host
+      .finish()
+      ?.reject(new RequestFailure("application_failed", { coreCode: "participant_invalid" }));
+    await started;
+    expect(useStartStore.getState().error).toEqual({ code: "participant_invalid", stage: null });
+  });
+
   it("selects nothing when the user moved on before the workspace existed", async () => {
     const host = commands();
     const started = startWork(host.fake, draft, "web");
