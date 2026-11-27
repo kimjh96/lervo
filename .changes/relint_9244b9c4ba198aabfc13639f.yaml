@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9244b9c4ba198aabfc13639f"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "A prompt's recorded context counts the owner rules Lervo prepared for the turn once the repository's writer selects event schema 15, and turn.summary reports them."

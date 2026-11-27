@@ -18,5 +18,7 @@ export const hookDeliveryEventSchemaVersion = 13 as const;
 export const baseDeliveryEventSchemaVersion = 14 as const;
 /** The writer version that records agents mentioning each other in a conversation (ADR-0641). */
 export const roomEventSchemaVersion = 15 as const;
+/** The writer version whose `terminal.context.prepared` may count the turn's owner rules. */
+export const appliedInstructionsEventSchemaVersion = 15 as const;
 /** The writer version that records a conversation's claims, and an agent's conversation notes. */
 export const coordinationEventSchemaVersion = 16 as const;

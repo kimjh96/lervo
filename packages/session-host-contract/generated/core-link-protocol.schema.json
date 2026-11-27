@@ -723,6 +723,23 @@
             "workstreamRevision": {
               "type": "integer",
               "minimum": 0
+            },
+            "ownerRules": {
+              "type": "object",
+              "required": [
+                "prepared",
+                "omitted"
+              ],
+              "properties": {
+                "prepared": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "omitted": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
             }
           }
         },

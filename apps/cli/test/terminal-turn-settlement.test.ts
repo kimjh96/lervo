@@ -190,6 +190,28 @@ const prompt = (cwd: string, turn: string, text = "Raise the password limit.") =
     prompt: text,
   });
 
+describe("the owner rules a prompt's context counts", () => {
+  it("records the counts in a schema-15 envelope, and nothing below it", async () => {
+    const root = await repository(15);
+    await prompt(root, "turn-1");
+    const [counted] = await events(root, ["terminal.context.prepared"]);
+    expect(counted).toMatchObject({
+      schemaVersion: 15,
+      payload: {
+        appliedInstructions: {
+          status: expect.stringMatching(/^(complete|incomplete|unavailable)$/u),
+          preparedCount: expect.any(Number),
+        },
+      },
+    });
+    const older = await repository(14);
+    await prompt(older, "turn-1");
+    const [uncounted] = await events(older, ["terminal.context.prepared"]);
+    expect(uncounted?.schemaVersion).toBe(1);
+    expect(uncounted?.payload).not.toHaveProperty("appliedInstructions");
+  }, 60_000);
+});
+
 describe("turns that end without a Stop hook", () => {
   it("settles an interrupted turn at the next prompt, once, with its change and assessment", async () => {
     const root = await repository(12);

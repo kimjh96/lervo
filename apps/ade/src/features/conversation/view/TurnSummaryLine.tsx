@@ -94,6 +94,30 @@ const completionMessages = {
 /** A card part with its rows; a part with no row is left out. */
 type CardRow = readonly [label: MessageDescriptor, value: ReactNode];
 
+/**
+ * How many owner rules Lervo prepared for the turn, and of how many when some did not fit: never
+ * that the agent applied them, which Lervo cannot observe. A turn without rules has no row.
+ */
+function ownerRulesRow(rules: TurnSummary["given"]["ownerRules"]): CardRow | false {
+  if (rules === undefined || rules.prepared + rules.omitted === 0) return false;
+  return [
+    { id: "conversation.turn.card.rules" },
+    rules.omitted === 0 ? (
+      <FormattedMessage
+        key="rules"
+        id="conversation.turn.card.rulesPrepared"
+        values={{ prepared: rules.prepared }}
+      />
+    ) : (
+      <FormattedMessage
+        key="rules"
+        id="conversation.turn.card.rulesCut"
+        values={{ prepared: rules.prepared, total: rules.prepared + rules.omitted }}
+      />
+    ),
+  ];
+}
+
 function Section(props: { heading: MessageDescriptor; rows: readonly CardRow[] }) {
   if (props.rows.length === 0) return null;
   return (
@@ -141,6 +165,7 @@ function Card({ summary }: { summary: TurnSummary }) {
               values={{ revision: given.workstreamRevision }}
             />,
           ],
+          ownerRulesRow(given.ownerRules),
         )}
       />
       <Section

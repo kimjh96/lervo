@@ -16,11 +16,23 @@ export const turnSummarySchema = {
   type: "object",
   required: ["given", "searched", "cited", "outcome"],
   properties: {
-    /** Documents Lervo selected for the turn, and the workstream revision it gave. */
+    /**
+     * Documents Lervo selected for the turn, the workstream revision it gave, and, from event
+     * schema 15, how many owner rules it prepared and how many it left out for space. The counts
+     * say prepared, never applied: the provider's use of a rule stays unobserved.
+     */
     given: {
       type: "object",
       required: ["documents"],
-      properties: { documents: countSchema, workstreamRevision: countSchema },
+      properties: {
+        documents: countSchema,
+        workstreamRevision: countSchema,
+        ownerRules: {
+          type: "object",
+          required: ["prepared", "omitted"],
+          properties: { prepared: countSchema, omitted: countSchema },
+        },
+      },
     },
     /** Documents the agent's own Lervo searches found, with the first paths. */
     searched: {
