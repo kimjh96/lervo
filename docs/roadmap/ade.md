@@ -343,6 +343,22 @@ The page now bundles both modules with the main script and checks the permission
 - **First paint.** The stored page arrived 24–83 ms after the click, and placing took 6–30 ms after the rows committed, as in the previous runs. The slowest open, 184 ms, was the first after the build; the other four took 104–147 ms.
 - **An idle run is still needed.** These figures cannot tell how much of the time is load, so neither budget is revised.
 
+**Seventh run (2026-11-27, night).** Five runs of cold start and first paint, with the release shell and scripted core built from main at `e3e3731c3` (ADE 0.13.0). Since #628, launch waits for the core's lists within the budget. The owner was away, but the Mac still did not go idle: this conversation's Orca renderer, `fseventsd`, and other Claude sessions held about three cores. Load averages ran from 7.7 to 12.0.
+
+| Scenario                                         | Result                                                                    | Target |
+| ------------------------------------------------ | ------------------------------------------------------------------------- | ------ |
+| Cold start to the start screen, four warm starts | 335, 399, 449, and 473 ms; the first launch after the build took 3,629 ms | 500 ms |
+| Launch to the shell's `main`                     | 4–5 ms                                                                    |        |
+| `main` to navigation                             | 244–329 ms                                                                |        |
+| Navigation to the start screen                   | 87–139 ms                                                                 |        |
+| First paint of the 100,000-item conversation     | 64, 118, 132, and 141 ms; 184 ms on the first launch                      | 100 ms |
+| Scrolling it: longest frame                      | 34–74 ms; 6 of 3,000 frames over 50 ms in two runs                        | 50 ms  |
+
+- **Cold start.** All four warm starts met the target, including the wait for the core's lists that #628 added.
+- **First paint.** One warm open met the target. The stored page arrived 14–57 ms after the click, and placing ended 46–116 ms after it.
+- **Scrolling.** The longest frames passed 50 ms in two runs at a load of 10.5 to 12, which an idle run must confirm.
+- **An idle run is still needed** for the first paint and scrolling. While the owner's sessions run, the Mac does not go idle, so the run needs a time when they are closed.
+
 **Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. Under load, first paint now has a median near 100 ms, one of two warm cold starts measured 539 ms against 500, and every other interface budget meets its target. What is left is a run of first paint and cold start on an idle Mac. There the open no longer waits for the session.
 
 ### S1.6c measurements
