@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_699c23fe337bf76859f360b3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A command run in a linked worktree whose repository this process's registry lacks, such as one run by hand beside the ADE, now records into the main checkout when it keeps its event store, and otherwise warns that the worktree's own evidence is deleted with it."
