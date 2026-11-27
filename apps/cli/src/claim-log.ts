@@ -222,6 +222,21 @@ export class ClaimLog {
     ).map(entryOf);
   }
 
+  /**
+   * A session's claims that reconciliation moved to `unresolved` after `since`, oldest first, so
+   * the turn that ended shows them.
+   */
+  unresolvedSince(sessionId: string, since: string): ClaimLogEntry[] {
+    return (
+      this.database
+        .prepare(
+          `SELECT * FROM claims WHERE session_id = ? AND state = 'unresolved' AND updated_at > ?
+           ORDER BY updated_at, rowid`,
+        )
+        .all(sessionId, since) as unknown as Row[]
+    ).map(entryOf);
+  }
+
   private since(sessionId: string, state: ClaimLogState, since: string): ClaimLogEntry[] {
     return (
       this.database

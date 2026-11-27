@@ -264,6 +264,57 @@ describe("the claim lines in a conversation", () => {
     }
   });
 
+  it("names the paths a turn's reconciliation left unresolved, three by one and the rest by count", async () => {
+    const log = await ClaimLog.open(join(await folder(), "claim-log.sqlite"));
+    let now = new Date("2026-11-27T01:00:00Z");
+    const lines = new ClaimLines(
+      () => log,
+      () => now,
+    );
+    try {
+      lines.annotate("s1", "agt_ciel", [], names);
+      const held = log.record(
+        { ...refusal, paths: ["src/a.ts", "src/b.ts"] },
+        new Date("2026-11-27T01:00:01Z"),
+      );
+      const free = log.record(
+        { ...refusal, toolUseId: "toolu_2", paths: ["src/c.ts", "src/d.ts"], holder: null },
+        new Date("2026-11-27T01:00:02Z"),
+      );
+      // An entry left unresolved before this turn began is not this turn's.
+      const earlier = log.record(
+        { ...refusal, toolUseId: "toolu_0", paths: ["old.ts"] },
+        new Date("2026-11-27T00:00:00Z"),
+      );
+      log.updateState(earlier.claimId, "unresolved", new Date("2026-11-27T00:30:00Z"));
+      log.updateState(held.claimId, "unresolved", new Date("2026-11-27T01:00:03Z"));
+      log.updateState(free.claimId, "unresolved", new Date("2026-11-27T01:00:04Z"));
+      now = new Date("2026-11-27T01:00:05Z");
+      const shown = lines.annotate("s1", "agt_ciel", [finished], names);
+      expect(shown.map((event) => (event.kind === "item" ? event.content : event))).toEqual([
+        {
+          kind: "lervo_notice",
+          code: "claim_unresolved",
+          parameters: { path: "src/a.ts", code: "path_leased", holder: "Arin", workspace: "wsp_a" },
+        },
+        {
+          kind: "lervo_notice",
+          code: "claim_unresolved",
+          parameters: { path: "src/b.ts", code: "path_leased", holder: "Arin", workspace: "wsp_a" },
+        },
+        {
+          kind: "lervo_notice",
+          code: "claim_unresolved",
+          parameters: { path: "src/c.ts", code: "path_leased", holder: "", workspace: "" },
+        },
+        { kind: "lervo_notice", code: "claim_unresolved_more", parameters: { count: "1" } },
+        finished,
+      ]);
+    } finally {
+      log.close();
+    }
+  });
+
   it("adds nothing without a log, and the session host never receives a call's ID", () => {
     const lines = new ClaimLines(() => null);
     const events = [tool("failed", "toolu_1"), finished];

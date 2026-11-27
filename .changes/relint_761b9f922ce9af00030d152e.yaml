@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_761b9f922ce9af00030d152e"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A turn's end adds a quiet line for each path its claims reconciliation left unresolved, naming who holds it, and counts the rest past three."
