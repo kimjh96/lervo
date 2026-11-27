@@ -13,6 +13,7 @@ import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 import type { RoomJoinResult } from "./workspace-room.js";
 import type { RoomContext } from "./room-router.js";
+import type { RoomEvent } from "./room-events.js";
 import type { PendingStart } from "./room-starts.js";
 
 /** What the core link asks of the Lervo core. Failures are thrown with a stable `code`. */
@@ -40,6 +41,8 @@ export interface CoreLinkHandlers {
   loadRoomContext?(sessionId: string): Promise<RoomContext | null>;
   /** The conversations an agent started that have not opened (Lervo ADE rooms, slice 2). */
   pendingStarts?(agentId: string): Promise<readonly PendingStart[]>;
+  /** Keeps a room's records in its repository (schema 15); it never throws. */
+  recordRoomEvents?(repositoryRoot: string, events: readonly RoomEvent[]): Promise<unknown>;
   /** The agents an owner's turn goes to (Lervo ADE rooms, "Routing"). */
   routeRoom?(arguments_: Record<string, unknown>): Promise<{ agents: string[] }>;
   /** What the core recorded about turns of a workspace's hosted session. */

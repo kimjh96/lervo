@@ -35,3 +35,26 @@ export function mentionedAgents(
   }
   return found.sort((a, b) => a.at - b.at).map((item) => item.agentId);
 }
+
+/**
+ * Who an agent's finished turn reaches: the agents it mentioned, and the agents waiting for its
+ * answer. Naming an agent that asked is the answer to it, never a new question back. A turn that
+ * asks another agent first keeps the other answers owed; the turn that asks no one answers
+ * everyone still waiting. `settled` names the answers the turn gave.
+ */
+export function turnTargets(
+  mentioned: readonly string[],
+  owed: ReadonlySet<string>,
+): { targets: { agentId: string; reason: "mention" | "answer" }[]; settled: string[] } {
+  const answered = mentioned.filter((id) => owed.has(id));
+  const asked = mentioned.filter((id) => !owed.has(id));
+  const waiting = asked.length > 0 ? [] : [...owed].filter((id) => !answered.includes(id));
+  const settled = [...answered, ...waiting];
+  return {
+    targets: [
+      ...asked.map((agentId) => ({ agentId, reason: "mention" as const })),
+      ...settled.map((agentId) => ({ agentId, reason: "answer" as const })),
+    ],
+    settled,
+  };
+}
