@@ -2,7 +2,7 @@
 // staged, and unstaged changes, and untracked paths Git does not ignore, measured from where the
 // branch last met its integration target, so changes merged in from upstream never count as the
 // conversation's. The core decides which of them a claim may name.
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 
 import { repositoryCoordinateDigest } from "@lervo/project-storage";
 
@@ -10,6 +10,11 @@ const GIT_TIMEOUT_MS = 2_000;
 /** Enough for well past 10,000 paths of ordinary length; a larger listing fails as unavailable. */
 const MAXIMUM_GIT_OUTPUT_BYTES = 16 * 1024 * 1024;
 const COMMIT = /^[a-f0-9]{40,64}$/u;
+/**
+ * The most untracked files listed one by one: the bound of a generation's changed paths. Past it,
+ * the listing falls back to whole untracked directories, which the core's coalescing then fits.
+ */
+const MAXIMUM_UNTRACKED_FILES = 10_000;
 /** Variables that would point Git at another repository, index, or object store. */
 const REDIRECTING_VARIABLES = [
   "GIT_DIR",
@@ -48,6 +53,62 @@ function git(worktree: string, args: readonly string[], timeoutMs: number): Prom
 
 function fields(output: string): string[] {
   return output.split("\0").filter((path) => path !== "");
+}
+
+/**
+ * Each untracked file Git does not ignore, streamed from `git ls-files --others`, or `undefined`
+ * when the listing passes `MAXIMUM_UNTRACKED_FILES` or `timeoutMs` first, and null when Git fails.
+ * It stops Git as soon as it gives up, so a huge untracked tree costs at most its budget.
+ */
+function untrackedFiles(worktree: string, timeoutMs: number): Promise<string[] | undefined | null> {
+  return new Promise((resolve) => {
+    if (timeoutMs <= 0) {
+      resolve(undefined);
+      return;
+    }
+    const child = spawn(
+      "git",
+      ["--no-optional-locks", "-C", worktree, "ls-files", "--others", "--exclude-standard", "-z"],
+      { env: gitEnvironment(), stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const paths: string[] = [];
+    let pending = "";
+    let settled = false;
+    const finish = (value: string[] | undefined | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      child.kill();
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(undefined), timeoutMs);
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      const parts = (pending + chunk).split("\0");
+      pending = parts.pop() ?? "";
+      for (const path of parts) if (path !== "") paths.push(path);
+      if (paths.length > MAXIMUM_UNTRACKED_FILES) finish(undefined);
+    });
+    child.on("error", () => finish(null));
+    child.on("close", (code) => finish(code === 0 && pending === "" ? paths : null));
+  });
+}
+
+/**
+ * The untracked paths Git does not ignore: each file, so a new file in a new directory holds only
+ * itself. A listing past the file bound, or one that would spend more than half the time left,
+ * falls back to `--directory`, where an untracked directory counts once, as the directory.
+ */
+async function untrackedPaths(worktree: string, remaining: () => number): Promise<string[] | null> {
+  const files = await untrackedFiles(worktree, Math.floor(remaining() / 2));
+  if (files !== undefined) return files;
+  if (remaining() <= 0) return null;
+  const listed = await git(
+    worktree,
+    ["ls-files", "--others", "--exclude-standard", "--directory", "--no-empty-directory", "-z"],
+    remaining(),
+  );
+  return listed === null ? null : fields(listed).map((path) => path.replace(/\/+$/u, ""));
 }
 
 /**
@@ -115,7 +176,7 @@ export interface ChangedPathsInput {
  * the generation's base and the integration target with its upstream, so a merge or rebase onto
  * upstream adds nothing. With no local branch as the target, it is the merge base with the base,
  * which is the base itself unless a rebase left it behind. Renames count
- * as their source and their target. An untracked directory counts once, as the directory.
+ * as their source and their target. Untracked files count one by one, up to the file bound.
  */
 export async function listCheckoutChangedPaths(
   worktree: string,
@@ -127,13 +188,9 @@ export async function listCheckoutChangedPaths(
   if (remaining() <= 0) return null;
   const [tracked, untracked] = await Promise.all([
     git(worktree, ["diff", "--name-only", "--no-renames", "-z", from, "--"], remaining()),
-    git(
-      worktree,
-      ["ls-files", "--others", "--exclude-standard", "--directory", "--no-empty-directory", "-z"],
-      remaining(),
-    ),
+    untrackedPaths(worktree, remaining),
   ]);
   if (tracked === null || untracked === null) return null;
-  const paths = [...fields(tracked), ...fields(untracked).map((path) => path.replace(/\/+$/u, ""))];
+  const paths = [...fields(tracked), ...untracked];
   return { paths: [...new Set(paths)].sort(), measuredFrom: from };
 }

@@ -211,6 +211,19 @@ describe("reconciliation at the turn's end", () => {
     expect(await changedPathsOf(first.workspaceId)).toBeUndefined();
   });
 
+  it("records a new file in a new untracked directory as the file, so it holds no more", async () => {
+    const { first, second } = app;
+    await mkdir(resolve(second.worktree, "notes"));
+    await writeFile(resolve(second.worktree, "notes/canary.md"), "canary\n");
+    expect(await stop(second.sessionId, second.worktree)).toEqual({});
+    expect(await changedPathsOf(second.workspaceId)).toEqual(["notes/canary.md"]);
+    expect((await conversationAssignment(second.leadAgentId)).expectedPaths).toEqual([
+      "notes/canary.md",
+    ]);
+    // Another conversation still writes beside it.
+    expect(await write(first.sessionId, first.worktree, "notes/other.md")).toBe("{}\n");
+  });
+
   it("resolves a deferred claim once the turn's end claims its path", async () => {
     const { first } = app;
     widening.failure = new AgentWorkforceError("workforce_busy", "busy");
