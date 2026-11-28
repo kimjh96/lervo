@@ -26,6 +26,20 @@ import { SpeakerLine } from "./SpeakerLine";
 import { useFollowLatest } from "./follow-latest";
 
 /**
+ * An item's speaker line. It comes and goes with its space when agents join or a joined agent's
+ * item lands between others. A row that mounts with it shows it at once, since the row arrives or
+ * was already read, and so does a page of history that adds one: the place starts again with each
+ * earlier page (`history`), so only a change while the conversation runs moves (2026-11-28).
+ */
+function SpeakerPlace(props: { history: string | undefined; agentId: string | undefined }) {
+  return (
+    <Presence key={props.history} enterOnMount={false}>
+      {props.agentId === undefined ? null : <SpeakerLine agentId={props.agentId} />}
+    </Presence>
+  );
+}
+
+/**
  * The native conversation, virtualized: only items near the viewport mount, and their heights
  * are measured once per item. It follows the live end until the user scrolls up, by however
  * little, and then offers "Jump to latest" (ADE motion, "Following the stream"). Pages load at
@@ -146,14 +160,14 @@ export function Conversation(props: {
                   }
                   style={{ transform: `translateY(${row.start}px)` }}
                 >
-                  {/* A speaker line comes and goes with its space when agents join or a joined
-                      agent's item lands between others; a row that mounts with it shows it at
-                      once, since the row itself arrives or was already read. */}
-                  <Presence enterOnMount={false}>
-                    {room.changes.has(item.itemId) ? (
-                      <SpeakerLine agentId={room.speakers.get(item.itemId) ?? ""} />
-                    ) : null}
-                  </Presence>
+                  <SpeakerPlace
+                    history={window.items[0]?.itemId}
+                    agentId={
+                      room.changes.has(item.itemId)
+                        ? (room.speakers.get(item.itemId) ?? "")
+                        : undefined
+                    }
+                  />
                   <ConversationItemView item={item} />
                   <Presence className={styles.queued} enterOnMount={false}>
                     {queued.has(item.itemId) ? <FormattedMessage id="conversation.queued" /> : null}

@@ -1,6 +1,7 @@
 import type { ConversationItem } from "@lervo/session-host-contract";
 import { useVirtualizer, type Virtualizer } from "@tanstack/react-virtual";
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { estimatedRowHeight } from "./row-estimate";
 
 /** The key of the conversation's first row. */
 const FIRST_ROW = "first-row";
@@ -52,7 +53,7 @@ export function useFollowLatest(input: {
   const virtualizer = useVirtualizer({
     count: input.items.length,
     getScrollElement: () => scroller.current,
-    estimateSize: () => 72,
+    estimateSize: (index) => estimatedRowHeight(input.items[index]),
     // The conversation's first item keeps one key, so the session's copy of the first message
     // replaces the stand-in of work just sent in place instead of mounting its row again.
     getItemKey: (index) =>
@@ -77,8 +78,6 @@ export function useFollowLatest(input: {
   const last = input.items.at(-1);
   const lastLength = last !== undefined && "text" in last ? last.text.length : 0;
   const totalSize = virtualizer.getTotalSize();
-  const firstItemId = input.items[0]?.itemId;
-  const firstShown = useRef(firstItemId);
   /** The list's height when the user last opened or closed a tool line, until it is measured. */
   const toggledAt = useRef<number | null>(null);
 
@@ -142,20 +141,20 @@ export function useFollowLatest(input: {
     return () => cancelAnimationFrame(frame);
   }, [scroller, placed, hasItems, input.continues]);
 
-  // When items are added or dropped above the reader, the item they read stays where it was. Only
-  // a change of the first item moves items; leaving the live end must not move the view.
+  // When items are added, dropped, or moved above the reader, the item they read stays where it
+  // was: an earlier page, a joined agent's items that page brings, or a line of what the lead
+  // answered elsewhere, which can land anywhere above. A change below the reader leaves its item
+  // where it is, so nothing moves; leaving the live end must not move the view.
   useLayoutEffect(() => {
-    const previous = firstShown.current;
-    firstShown.current = firstItemId;
     const element = scroller.current;
     const reading = anchor.current;
-    if (previous === firstItemId || liveNow.current || element === null || reading === null) return;
-    const index = items.current.findIndex((item) => item.itemId === reading.itemId);
+    if (liveNow.current || element === null || reading === null) return;
+    const index = input.items.findIndex((item) => item.itemId === reading.itemId);
     const start = virtualizer.measurementsCache[index]?.start;
-    if (start === undefined) return;
+    if (start === undefined || Math.abs(element.scrollTop - (start + reading.offset)) < 1) return;
     element.scrollTop = start + reading.offset;
     selfScrolled.current = element.scrollTop;
-  }, [scroller, firstItemId, virtualizer]);
+  }, [scroller, input.items, virtualizer]);
 
   useUserScroll({ scroller, virtualizer, items, anchor, selfScrolled, loaders, setFollowing });
 
