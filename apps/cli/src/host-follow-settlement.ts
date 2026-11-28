@@ -27,6 +27,7 @@ import { reconcilePendingActivations } from "./host-link-activation.js";
 import { runRepositoryPass } from "./host-repository-pass.js";
 import { rollbackActivation } from "./host-upgrade-rollback.js";
 import type { RepositoryUpgradeFailureDetail } from "./host-follow-failure-detail.js";
+import { mergeRepositoryResults } from "./host-follow-due.js";
 
 /** Passes cut short by an outside signal, such as the OOM killer, before that counts as a host failure. */
 export const FOLLOW_INTERRUPTION_LIMIT = 3;
@@ -129,37 +130,27 @@ export interface NonReleasePassResult extends HostFollowStepResult {
   yielded: boolean;
 }
 
-/** Repositories whose retry is due with the CLI the last pass ran. */
-export function dueRepositories(state: HostFollowState, active: ActiveCli, now: Date): string[] {
-  const pass = state.lastPass;
-  if (pass === null || pass.cliTarget !== active.target) return [];
-  return pass.repositories
-    .filter(
-      (repository) =>
-        repository.nextAttemptAt !== null && repository.nextAttemptAt <= now.toISOString(),
-    )
-    .map((repository) => repository.repositoryRoot);
-}
-
 /**
- * Tries the due repositories again and merges their results into the last pass. A repository a
- * newer release stopped the pass before keeps its due entry.
+ * Runs the due repositories and merges their results into the last pass, which then holds only
+ * registered repositories. A repository a newer release stopped the pass before keeps its due
+ * entry, and a newly registered one it stopped stays unpassed.
  */
 export async function retryRepositories(
   dependencies: HostFollowCycleDependencies,
   state: HostFollowState,
   active: ActiveCli,
   roots: readonly string[],
+  registered: readonly string[],
   yieldToRelease?: () => Promise<boolean>,
 ): Promise<NonReleasePassResult> {
   const previous = state.lastPass as HostFollowPass;
   const ran = await runPassWithActiveCli(dependencies, roots, active, previous, yieldToRelease);
   if (ran === null) return { state, step: { outcome: "interrupted" }, yielded: false };
   const retried = ran.pass;
-  const repositories = previous.repositories.map(
-    (repository) =>
-      retried.repositories.find((item) => item.repositoryRoot === repository.repositoryRoot) ??
-      repository,
+  const repositories = mergeRepositoryResults(
+    previous.repositories,
+    retried.repositories,
+    registered,
   );
   const outcome = repositories.reduce<RepositoryUpgradeOutcome>(
     (worst, repository) =>

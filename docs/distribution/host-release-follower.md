@@ -30,7 +30,9 @@ The follower keeps running the CLI it started with until a release proves itself
 
 `host-follow-control.json` is written only by `--pause`, `--resume`, and `--pin`. It holds `schemaVersion` 1, `paused`, `pinnedTag`, and `changedAt`. `--resume` clears both the pause and the pin.
 
-Failed tags have a fixed bound, and repository entries are bounded by the host registry. The activation journal and the `lervo upgrade` receipts keep their own evidence, so the follower emits no runtime event.
+A poll that installs nothing runs, with the CLI the last pass ran, every registered repository whose retry is due and every repository registered since that pass, such as a project the owner just added, in pass order, and reports `repositories_retried`. The project thus gets every safe stage, host services included, at the next poll that installs nothing, instead of at the next release. A pass a host failure stopped owes the repositories after it nothing; they wait for another CLI. A new repository a newer release stops the pass before stays unrecorded, so a later pass runs it. An unreadable registry runs nothing until the next poll.
+
+Failed tags have a fixed bound. A retry pass drops entries for repositories no longer registered, so repository entries are bounded by the host registry. The activation journal and the `lervo upgrade` receipts keep their own evidence, so the follower emits no runtime event.
 
 ## Cycle outcomes
 

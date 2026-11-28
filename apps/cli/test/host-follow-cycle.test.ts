@@ -566,6 +566,30 @@ describe("runFollowCycle", () => {
     ).toHaveLength(0);
   });
 
+  it("upgrades a repository registered after the pass and forgets one no longer registered", async () => {
+    const harness = await settledHarness();
+    harness.dependencies.listRepositories = async () => [
+      "/repositories/two",
+      "/repositories/three",
+    ];
+    const added = await runFollowCycle(harness.dependencies);
+    expect(added.outcome).toBe("repositories_retried");
+    expect(harness.calls.map((call) => call.args[2])).toEqual(["/repositories/three"]);
+    expect(added.pass?.repositories.map((repository) => repository.repositoryRoot)).toEqual([
+      "/repositories/two",
+      "/repositories/three",
+    ]);
+    harness.calls.splice(0);
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({ outcome: "current" });
+    expect(harness.calls).toHaveLength(0);
+
+    harness.dependencies.listRepositories = async () => {
+      throw Object.assign(new Error("unreadable"), { code: "EACCES" });
+    };
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({ outcome: "current" });
+    expect(harness.calls).toHaveLength(0);
+  });
+
   it("stops a retry pass at a repository boundary and installs a newer release at once", async () => {
     // ADR-0589, Mac v0.25.5: a retry pass ran 9 more minutes after publication, and the release
     // then waited for the next poll.
