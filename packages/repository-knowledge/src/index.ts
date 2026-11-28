@@ -75,6 +75,8 @@ export * from "./document-size-split.js";
 export * from "./document-size-split-contract.js";
 export * from "./document-size-split-apply.js";
 export * from "./document-size-split-layout.js";
+export * from "./document-size-split-settle.js";
+export { brokenRewrites } from "./document-size-split-link-check.js";
 export * from "./document-size-split-links.js";
 export * from "./durable-apply.js";
 export {

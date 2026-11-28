@@ -15,6 +15,7 @@ import {
   runDocumentSizeSplitStage,
   verifyDocumentSizeSplit,
 } from "../src/document-size-split-stage.js";
+import { oversizedDocumentsLine } from "../src/normalization-provider-selection.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -95,3 +96,14 @@ it("plans the split of a document too large to normalize, and steps aside when n
     verdict: "disagree",
   });
 }, 60_000);
+
+it("names documents the split divides apart from those it keeps whole, with their next step", () => {
+  expect(oversizedDocumentsLine([])).toBe("");
+  const line = oversizedDocumentsLine([
+    { path: "docs/big.md", byteCount: 300_000, splittable: true },
+    { path: "docs/dump.md", byteCount: 400_000, splittable: false },
+  ]);
+  expect(line).toContain("split first: docs/big.md (300000 bytes)\n");
+  expect(line).toContain("kept whole: docs/dump.md (400000 bytes); split one by its headings");
+  expect(line).toContain("normalization.exclude in .lervo/knowledge/policy.yaml");
+});

@@ -63,7 +63,7 @@ export async function unreadDocuments(
     if (stats.size <= DOCUMENT_SIZE_SPLIT_MAXIMUM_BYTES) {
       const bytes = await readFile(absolute);
       try {
-        content = new TextDecoder("utf8", { fatal: true }).decode(bytes);
+        content = new TextDecoder("utf8", { fatal: true, ignoreBOM: true }).decode(bytes);
       } catch {
         // Bytes that are not UTF-8 cannot be split as text; they stay whole, as data.
       }
@@ -137,6 +137,18 @@ export async function registryChange(
   };
 }
 
+/**
+ * A scanned document's text exactly as its bytes hold it. The scanner's decoder drops a leading
+ * byte order mark, so it is restored when the bytes' hash says it was there; null when neither
+ * text matches the bytes.
+ */
+export function scannedText(source: RepositorySource): string | null {
+  if (source.content === undefined || source.contentHash === null) return null;
+  if (sha256(source.content) === source.contentHash) return source.content;
+  const marked = `\uFEFF${source.content}`;
+  return sha256(marked) === source.contentHash ? marked : null;
+}
+
 /** The requested documents the scan read whole and that exceed the single-pass bound. */
 export function requestedDocuments(
   scan: RepositoryKnowledgeScan,
@@ -145,16 +157,17 @@ export function requestedDocuments(
 ): SplitSource[] {
   return [...new Set(sourcePaths)].sort().flatMap((path): SplitSource[] => {
     const source = scan.sources.find((item) => item.path === path);
+    const content = source === undefined ? null : scannedText(source);
     return source?.status === "included" &&
       source.kind === "documentation" &&
-      source.content !== undefined &&
+      content !== null &&
       source.contentHash !== null &&
       path.endsWith(".md") &&
       source.byteCount > boundBytes
       ? [
           {
             ...source,
-            content: source.content,
+            content,
             contentHash: source.contentHash,
             unread: false,
             data: source.byteCount > DOCUMENT_SIZE_SPLIT_MAXIMUM_BYTES,

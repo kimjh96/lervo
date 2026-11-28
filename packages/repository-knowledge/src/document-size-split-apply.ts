@@ -4,28 +4,21 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
-import { restoreSplitPiece } from "./document-size-split-layout.js";
-import { restoreSplitLinks } from "./document-size-split-links.js";
 import type {
   DocumentSizeSplitPlan,
   DocumentSizeSplitReceipt,
 } from "./document-size-split-contract.js";
 import { createDocumentSizeSplitPlan } from "./document-size-split.js";
+import { referenceUpdateRestores, splitDocumentFailure } from "./document-size-split-verify.js";
 import { applyDurableKnowledgeOperations } from "./durable-apply.js";
-import { sha256 } from "./integrity.js";
 import { RepositoryKnowledgeError, type RepositoryKnowledgeScanOptions } from "./types.js";
-
-/** The character offset of a byte offset in `content`, or null when it splits a character. */
-function characterOffset(content: string, byteOffset: number): number | null {
-  const prefix = Buffer.from(content).subarray(0, byteOffset).toString("utf8");
-  return Buffer.byteLength(prefix) === byteOffset ? prefix.length : null;
-}
 
 /**
  * The deterministic check that stands in for a reviewer. It never plans again: for every file the
  * plan writes it undoes the recorded link rewrites, drops the copied definitions, the managed
  * block, and a repeated table header, and compares what remains with the original byte range;
  * the ranges must cover each document in order. A linking document must restore to its bytes.
+ * Files are read as bytes and decoded without dropping a byte order mark.
  */
 export async function verifyDocumentSizeSplitPlan(plan: DocumentSizeSplitPlan): Promise<{
   agreed: boolean;
@@ -40,51 +33,22 @@ export async function verifyDocumentSizeSplitPlan(plan: DocumentSizeSplitPlan): 
     agreed: false,
     rationale: `${path} does not restore to its original bytes: ${reason}.`,
   });
+  const read = async (path: string) =>
+    (await readFile(resolve(plan.repositoryRoot, path))).toString("utf8");
   for (const document of plan.documents) {
-    const original = await readFile(resolve(plan.repositoryRoot, document.path), "utf8");
-    if (sha256(original) !== document.beforeHash)
-      return disagree(document.path, "it changed after the split was planned");
-    const ranges = [
-      { ...document, startByte: 0, endByte: document.preambleByteCount },
-      ...document.parts,
-    ];
-    let expectedStart = 0;
-    for (const [index, range] of ranges.entries()) {
-      const start = characterOffset(original, range.startByte);
-      const end = characterOffset(original, range.endByte);
-      const written = contents.get(range.path);
-      if (
-        range.startByte !== expectedStart ||
-        start === null ||
-        end === null ||
-        written === undefined
-      )
-        return disagree(range.path, "its range does not continue the document");
-      const reason = restoreSplitPiece(original, written, {
-        start,
-        end,
-        prefix: range.definitionsBefore,
-        header: range.repeatedHeader,
-        appendix: range.definitionsAfter,
-        rewrites: range.linkRewrites,
-        ...(index === 0 ? { block: document.partsBlock } : {}),
-      });
-      if (reason !== null) return disagree(range.path, reason);
-      expectedStart = range.endByte;
-    }
-    if (expectedStart !== Buffer.byteLength(original))
-      return disagree(document.path, "its parts end before the document does");
+    const failure = splitDocumentFailure(await read(document.path), document, contents);
+    if (failure !== null) return disagree(failure.path, failure.reason);
   }
-  for (const reference of plan.referenceUpdates) {
-    const current = await readFile(resolve(plan.repositoryRoot, reference.path), "utf8");
-    const written = contents.get(reference.path);
+  for (const reference of plan.referenceUpdates)
     if (
-      sha256(current) !== reference.beforeHash ||
-      written === undefined ||
-      restoreSplitLinks(written, reference.linkRewrites) !== current
+      !referenceUpdateRestores(
+        await read(reference.path),
+        reference.beforeHash,
+        contents.get(reference.path),
+        reference.linkRewrites,
+      )
     )
       return disagree(reference.path, "its only changes must be the recorded link rewrites");
-  }
   const parts = plan.documents.reduce((sum, document) => sum + document.parts.length, 0);
   return {
     agreed: true,

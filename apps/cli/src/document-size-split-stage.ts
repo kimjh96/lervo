@@ -53,6 +53,13 @@ function keptWholeLines(plan: DocumentSizeSplitPlan): string[] {
           ".lervo/knowledge/policy.yaml to stop this notice.",
         ]),
     ...plan.failed.map((item) => `not split: ${item.path} (${item.reason})`),
+    ...(plan.failed.length === 0
+      ? []
+      : [
+          "Lervo leaves these whole this run and normalizes the rest. Fix the named cause, such as a",
+          "file already at a part path, and run lervo migrate knowledge again; or list the document",
+          "under normalization.exclude in .lervo/knowledge/policy.yaml to keep it whole.",
+        ]),
     ...plan.deferred.map(
       (item) => `waiting: ${item.path} (${item.byteCount} bytes, not_yet_registered)`,
     ),
@@ -109,6 +116,15 @@ export async function runDocumentSizeSplitStage(input: {
     // Nothing to split, but what stays whole is named on every run, never passed silently.
     const kept = keptWholeLines(plan);
     if (kept.length > 0) input.io.stderr(`${kept.join("\n")}\n`);
+    return null;
+  }
+  // The plan already left out every document that fails this check, so a disagreement means the
+  // files changed meanwhile: the split waits for the next run and normalization goes on.
+  const verdict = await verifyDocumentSizeSplitPlan(plan);
+  if (!verdict.agreed) {
+    input.io.stderr(
+      `${[...keptWholeLines(plan), `not split this run: ${verdict.rationale}`].join("\n")}\n`,
+    );
     return null;
   }
   if (input.applyPlanId === undefined) {

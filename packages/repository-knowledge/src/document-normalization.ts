@@ -1,4 +1,5 @@
 import { DOCUMENT_SINGLE_PASS_BYTES } from "./document-size-partition.js";
+import { documentSizeSplittable } from "./document-size-split-layout.js";
 import { requireCompleteRepositoryKnowledgeCoverage } from "./scan-completeness.js";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readFile } from "node:fs/promises";
@@ -1868,8 +1869,11 @@ export interface DocumentNormalizationLifecycleInspection {
   eligibleDocuments: number;
   currentDocuments: number;
   pendingDocuments: string[];
-  /** ADR-0653: documents over the single-pass bound, which a size split must divide first. */
-  oversizedDocuments: Array<{ path: string; byteCount: number }>;
+  /**
+   * ADR-0653: documents over the single-pass bound, which a size split must divide first;
+   * `splittable` is false for one the split keeps whole, which needs another next step.
+   */
+  oversizedDocuments: Array<{ path: string; byteCount: number; splittable: boolean }>;
   records: Array<{
     path: string;
     recordId: string | null;
@@ -1987,6 +1991,7 @@ export async function inspectConfiguredDocumentNormalization(input: {
     oversizedDocuments: normalizable.filter(oversized).map((document) => ({
       path: document.source.path,
       byteCount: Buffer.byteLength(document.source.content),
+      splittable: documentSizeSplittable(document.source.content),
     })),
     records,
   };

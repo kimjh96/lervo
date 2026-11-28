@@ -2,19 +2,34 @@
 // documents a size split must divide first (ADR-0653), so none is passed over silently.
 import type { inspectConfiguredDocumentNormalization } from "@lervo/repository-knowledge";
 
-/**
- * The line naming documents still too large to normalize, such as one block over the bound or a
- * document over the split maximum, so normalization never passes them silently; empty when none.
- */
-export function oversizedDocumentsLine(
-  documents: ReadonlyArray<{ path: string; byteCount: number }>,
-): string {
-  if (documents.length === 0) return "";
+function namedDocuments(documents: ReadonlyArray<{ path: string; byteCount: number }>): string {
   const named = documents
     .slice(0, 3)
     .map((document) => `${document.path} (${document.byteCount} bytes)`);
   const rest = documents.length - named.length;
-  return `too large to normalize, split first: ${named.join(", ")}${rest > 0 ? ` and ${rest} more` : ""}\n`;
+  return `${named.join(", ")}${rest > 0 ? ` and ${rest} more` : ""}`;
+}
+
+/**
+ * The lines naming documents still too large to normalize, so normalization never passes them
+ * silently: those a size split divides on the next run, and those it keeps whole, such as one
+ * block over the bound or a split's own index, with what brings them back. Empty when none.
+ */
+export function oversizedDocumentsLine(
+  documents: ReadonlyArray<{ path: string; byteCount: number; splittable?: boolean }>,
+): string {
+  const splittable = documents.filter((document) => document.splittable !== false);
+  const keptWhole = documents.filter((document) => document.splittable === false);
+  return [
+    ...(splittable.length === 0
+      ? []
+      : [`too large to normalize, split first: ${namedDocuments(splittable)}\n`]),
+    ...(keptWhole.length === 0
+      ? []
+      : [
+          `too large to normalize, kept whole: ${namedDocuments(keptWhole)}; split one by its headings or list it under normalization.exclude in .lervo/knowledge/policy.yaml\n`,
+        ]),
+  ].join("");
 }
 
 /**

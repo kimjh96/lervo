@@ -123,9 +123,17 @@ interface Layout {
 }
 
 /** What a document's split reads once, whatever its layout: its anchors and its definitions. */
-interface DocumentFacts {
+export interface DocumentFacts {
   headings: ReturnType<typeof documentHeadingAnchors>;
   links: ReturnType<typeof documentLinkFacts>;
+}
+
+const BYTE_ORDER_MARK = "\uFEFF";
+
+/** The facts of a document, read once; a leading byte order mark is not part of its text. */
+export function documentFacts(content: string): DocumentFacts {
+  const body = content.startsWith(BYTE_ORDER_MARK) ? content.slice(1) : content;
+  return { headings: documentHeadingAnchors(body), links: documentLinkFacts(body) };
 }
 
 function layout(
@@ -174,7 +182,8 @@ function render(
   const unkept: string[] = [];
   const piece = (path: string, start: number, end: number, header: string | null): SplitPiece => {
     const range = content.slice(start, end);
-    const copied = copiedReferenceDefinitions(linkFacts, { start, end });
+    const { text: copied, uncopied } = copiedReferenceDefinitions(linkFacts, { start, end });
+    unkept.push(...uncopied.map((label) => `${label} (its definition is not copied)`));
     // A part takes its copies first; the document's own file keeps its title first and takes
     // them after its preamble, which never holds a later duplicate of a part's definition.
     const own = path === documentPath;
@@ -190,10 +199,11 @@ function render(
       ...markdownDestinations(lead),
       ...linkFacts.destinations
         .filter((item) => item.start >= start && item.end <= end)
-        .map((item) => ({ start: item.start + shift, end: item.end + shift })),
+        .map((item) => ({ ...item, start: item.start + shift, end: item.end + shift })),
       ...(appendix.length === 0
         ? []
         : markdownDestinations(appendix).map((item) => ({
+            ...item,
             start: item.start + tail,
             end: item.end + tail,
           }))),
@@ -245,19 +255,52 @@ function render(
  * The deterministic split of one document, or why it stays whole: a document that already links
  * its parts is a split's index and is never split again, and one without a cut point that makes it
  * smaller is one indivisible block. Every written file stays within `boundBytes`, the index
- * included, unless a single block exceeds it; such a part is marked oversized.
+ * included, unless a single block exceeds it; such a part is marked oversized. A leading byte
+ * order mark stays at the start of the document's own file, outside every part.
  */
 export function splitOversizedDocument(
   documentPath: string,
   content: string,
   boundBytes = DOCUMENT_SINGLE_PASS_BYTES,
   foreignAnchors: SplitAnchorFiles = new Map(),
+  facts: DocumentFacts = documentFacts(content),
+): SplitDocument | UnsplittableReason {
+  if (!content.startsWith(BYTE_ORDER_MARK))
+    return splitText(documentPath, content, boundBytes, foreignAnchors, facts);
+  const bomBytes = Buffer.byteLength(BYTE_ORDER_MARK);
+  const split = splitText(
+    documentPath,
+    content.slice(1),
+    boundBytes - bomBytes,
+    foreignAnchors,
+    facts,
+  );
+  if (typeof split === "string") return split;
+  const move = (rewrite: SplitLinkRewrite) => ({
+    ...rewrite,
+    start: rewrite.start + 1,
+    end: rewrite.end + 1,
+  });
+  return {
+    ...split,
+    index: {
+      ...split.index,
+      end: split.index.end + 1,
+      rewrites: split.index.rewrites.map(move),
+      content: `${BYTE_ORDER_MARK}${split.index.content}`,
+    },
+    parts: split.parts.map((part) => ({ ...part, start: part.start + 1, end: part.end + 1 })),
+  };
+}
+
+function splitText(
+  documentPath: string,
+  content: string,
+  boundBytes: number,
+  foreignAnchors: SplitAnchorFiles,
+  facts: DocumentFacts,
 ): SplitDocument | UnsplittableReason {
   if (hasDocumentPartsBlock(content)) return "document_parts_index";
-  const facts: DocumentFacts = {
-    headings: documentHeadingAnchors(content),
-    links: documentLinkFacts(content),
-  };
   let partBytes = Math.max(1, boundBytes - partHeadroomBytes(boundBytes));
   let preambleBytes = partBytes;
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -282,49 +325,20 @@ export function splitOversizedDocument(
 }
 
 /**
- * Each document's split, its links following headings across every document split with it. A
- * document that names another's heading renders again with the others' layouts, until no layout
- * changes, so no link points to a part path an earlier layout planned. A document kept whole is
- * returned with its reason instead.
+ * Whether a split can divide `content` at all, judged from its partition alone, without rendering
+ * links: false for a split's own index, a document over the split maximum, and one without a cut
+ * point that leaves a part within the bound. Inspection uses it to name the right next step.
  */
-export function splitDocuments<Source extends { path: string; content: string }>(
-  sources: readonly Source[],
-  boundBytes: number,
-): Array<{ source: Source; split: SplitDocument | UnsplittableReason }> {
-  let splits = sources.map((source) => ({
-    source,
-    split: splitOversizedDocument(source.path, source.content, boundBytes),
-  }));
-  const anchorsOf = () =>
-    new Map(
-      splits.flatMap(({ source, split }) =>
-        typeof split === "string" ? [] : [[source.path, split.anchors] as const],
-      ),
-    );
-  const fingerprint = (anchors: ReturnType<typeof anchorsOf>) =>
-    JSON.stringify([...anchors].map(([path, map]) => [path, [...map]]));
-  let anchors = anchorsOf();
-  if (anchors.size < 2) return splits;
-  const names = [...anchors.keys()].map((path) => `${posix.basename(path)}#`);
-  for (let round = 0; round < 4; round += 1) {
-    const current = anchors;
-    splits = splits.map(({ source, split }) =>
-      typeof split === "string" || !names.some((name) => source.content.includes(name))
-        ? { source, split }
-        : {
-            source,
-            split: splitOversizedDocument(
-              source.path,
-              source.content,
-              boundBytes,
-              new Map([...current].filter(([path]) => path !== source.path)),
-            ),
-          },
-    );
-    anchors = anchorsOf();
-    if (fingerprint(anchors) === fingerprint(current)) break;
-  }
-  return splits;
+export function documentSizeSplittable(
+  content: string,
+  boundBytes = DOCUMENT_SINGLE_PASS_BYTES,
+): boolean {
+  const body = content.startsWith(BYTE_ORDER_MARK) ? content.slice(1) : content;
+  if (Buffer.byteLength(content) > DOCUMENT_SIZE_SPLIT_MAXIMUM_BYTES) return false;
+  if (hasDocumentPartsBlock(body)) return false;
+  const partBytes = Math.max(1, boundBytes - partHeadroomBytes(boundBytes));
+  const partition = partitionOversizedMarkdown(body, partBytes, partBytes);
+  return partition !== null && !partition.parts.every((part) => part.oversized);
 }
 
 /**

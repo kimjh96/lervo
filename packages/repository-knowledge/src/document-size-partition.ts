@@ -74,16 +74,29 @@ export function hasDocumentPartsBlock(content: string): boolean {
   return /^<!--\s*lervo:begin block=document-parts\b/mu.test(content);
 }
 
+const FRONT_MATTER =
+  /^(?:---[ \t]*\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)|\+\+\+[ \t]*\r?\n[\s\S]*?\r?\n\+\+\+)[ \t]*(?:\r?\n|$)/u;
+
+/**
+ * Where a leading YAML (`---`) or TOML (`+++`) front-matter block ends, or 0 when there is none.
+ * CommonMark reads it as a rule and a heading, so a split must treat it as one block.
+ */
+export function frontMatterEnd(content: string): number {
+  return FRONT_MATTER.exec(content)?.[0].length ?? 0;
+}
+
 /**
  * Every top-level block start a split may cut at, with its heading when the block is one. Blocks
- * inside a Lervo-managed region are not cut points, so a managed block always stays whole.
+ * inside a Lervo-managed region or a front-matter block are not cut points, so either stays whole.
  */
-function boundaries(root: PositionedNode): Boundary[] {
+function boundaries(root: PositionedNode, frontEnd: number): Boundary[] {
   const stack: Array<{ depth: number; title: string }> = [];
   let managed = false;
   return (root.children ?? []).flatMap((node): Boundary[] => {
     const position = node.position?.start?.offset;
     if (!Number.isSafeInteger(position)) return [];
+    if (position! > 0 && position! < frontEnd) return [];
+    if (position === 0 && frontEnd > 0) return [{ position: 0, heading: null }];
     const html = node.type === "html" ? (node.value ?? "").trim() : "";
     if (managed) {
       if (MANAGED_END.test(html)) managed = false;
@@ -148,8 +161,10 @@ const EXPLICIT_ANCHOR = /<[a-z][^>]*?\s(?:name|id)\s*=\s*["']([^"']+)["']/giu;
 export function documentHeadingAnchors(content: string): DocumentHeadingAnchor[] {
   const slug = githubHeadingSlugger();
   const anchors: DocumentHeadingAnchor[] = [];
+  const frontEnd = frontMatterEnd(content);
   const visit = (node: PositionedNode): void => {
     const position = node.position?.start?.offset;
+    if (Number.isSafeInteger(position) && position! < frontEnd && node.type !== "root") return;
     if (node.type === "heading" && Number.isSafeInteger(position)) {
       const title = headingText(node).replace(/\s+/gu, " ").trim();
       anchors.push({ position: position!, title, anchor: slug(title) });
@@ -247,7 +262,7 @@ export function partitionOversizedMarkdown(
   boundBytes: number,
   preambleBytes = boundBytes,
 ): DocumentSizePartition | null {
-  const blocks = boundaries(parse(content));
+  const blocks = boundaries(parse(content), frontMatterEnd(content));
   const byteAt = byteOffsets(content, [...blocks.map((block) => block.position), content.length]);
   const bytes = (start: number, end: number) =>
     byteAt.has(start) && byteAt.has(end)
