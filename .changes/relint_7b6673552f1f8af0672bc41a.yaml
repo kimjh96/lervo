@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7b6673552f1f8af0672bc41a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Knowledge migration no longer stops on large documents: documents over 256 KiB are split byte for byte before normalization, normalization runs in batches within its ceilings, and a moved document is reviewed by hash and rewritten lines."
