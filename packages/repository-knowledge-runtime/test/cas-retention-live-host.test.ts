@@ -53,7 +53,7 @@ it("completes a pass when yield probes are slow and state files change between c
   expect(await f.artifacts.has(kept.uri)).toBe(true);
 });
 
-it("restarts a reference file that changes or vanishes mid-scan and keeps the other progress", async () => {
+it("rescans a reference file that changes mid-scan, restarts on one that vanishes, and keeps progress", async () => {
   const f = await fixture();
   const { obsolete } = await f.settled("racing");
   const directory = resolve(f.storage.paths.knowledgeState, "racing");
@@ -80,11 +80,19 @@ it("restarts a reference file that changes or vanishes mid-scan and keeps the ot
   });
   const saved = JSON.parse(
     await readFile(resolve(f.storage.paths.knowledgeState, files.CAS_RETENTION_SCAN), "utf8"),
-  ) as { scan: { files: Record<string, { complete: boolean; tail: string }> } };
+  ) as {
+    scan: { files: Record<string, { complete: boolean; tail: string; references: string[] }> };
+  };
   const entries = Object.entries(saved.scan.files);
   expect(entries.some(([, entry]) => entry.complete)).toBe(true);
+  // ADR-0658: the changed file is read again at once from its new body, which names the
+  // candidate; the vanished one restarts the pass.
+  expect(saved.scan.files[changing]).toMatchObject({
+    complete: true,
+    references: [obsolete.contentHash.slice(7)],
+  });
   for (const [key, entry] of entries) {
-    expect([changing, vanishing]).not.toContain(key);
+    expect(key).not.toBe(vanishing);
     if (entry.complete) expect(entry.tail).toBe("");
   }
   expect(await finishRetention(f.storage)).toMatchObject({

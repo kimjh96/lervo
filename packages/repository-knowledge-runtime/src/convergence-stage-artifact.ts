@@ -23,7 +23,8 @@ async function readConvergenceCasJson(
     bytes = await artifacts.get(`lervo-cas://sha256/${hash.slice(7)}`);
   } catch (error) {
     const code = (error as { code?: unknown } | null)?.code;
-    if (code === "not_found") return { state: "absent" };
+    // ADR-0658: an object retention pruned is as absent as one never written.
+    if (code === "not_found" || code === "pruned") return { state: "absent" };
     if (typeof code === "string" && PERSISTENT_CAS_FAILURES.has(code)) return { state: "invalid" };
     // Anything else, such as EIO, EMFILE or a lock, may succeed later: never record it as a state.
     throw error;

@@ -1,12 +1,17 @@
 import { collectReportReferences } from "./cas-retention-reports.js";
 import { readRetentionScan, saveScan, writeRetentionProjection } from "./cas-retention-state.js";
 import { memoizedConvergenceArtifactRoots, retentionStillIdle } from "./cas-retention-memo.js";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import { materializationTransactionState } from "./materialization-transaction.js";
-import { CasRetentionBoundError } from "./cas-retention-errors.js";
+import {
+  CasRetentionBoundError,
+  CasRetentionReferenceError,
+  type CasRetentionReferenceFailure,
+  unreadable,
+} from "./cas-retention-errors.js";
 import {
   REFERENCE_SCAN_LIMITS,
   REPORT_READ_LIMITS,
@@ -29,6 +34,7 @@ import {
   CAS_RETENTION_OBSERVATION,
   CAS_RETENTION_SCAN,
   casReferenceFiles,
+  referenceFile,
   scanReferenceChunk,
   removeUnreachableCasObject,
   type CasReferenceFile,
@@ -41,13 +47,22 @@ export interface CasRetentionObservation {
   observedAt: string;
   status: "yielded" | "collected" | "unavailable";
   /**
-   * Set only with `unavailable` (ADR-0584): `bound_exceeded` names a finite collector bound, and
-   * `failed` any other stop. Neither carries a path, hash or exception text.
+   * Set with `unavailable` (ADR-0584): `bound_exceeded` names a finite collector bound, a reference
+   * failure (ADR-0658) names the path that stopped the pass, and `failed` any other stop. With
+   * `yielded`, only `unstable_reference`: a file kept changing while it was read.
    */
-  failure: "bound_exceeded" | "failed" | null;
+  failure: "bound_exceeded" | "failed" | CasRetentionReferenceFailure | null;
+  /**
+   * ADR-0658: the repository-relative path a reference failure names. Never a hash, content or
+   * exception text.
+   */
+  reference?: string;
   removedObjects: number;
   reclaimedBytes: number;
 }
+
+/** How often one cycle reads a file again that changed while it was read (ADR-0658). */
+const IMMEDIATE_RESCANS = 3;
 
 /** Called only while holding the worker lock. The public boundary below acquires it for every host. */
 async function collect(
@@ -110,41 +125,12 @@ async function collect(
   for (const key of Object.keys(scan.files)) if (!keys.has(key)) delete scan.files[key];
   let restarted = false;
   for (const file of files) {
-    const cached = scan.files[file.key];
-    let entry: ReferenceScan =
-      cached !== undefined &&
-      cached.identity === file.identity &&
-      cached.mirror === file.mirror?.liveIdentity
-        ? cached
-        : {
-            identity: file.identity,
-            ...(file.mirror === undefined ? {} : { mirror: file.mirror.liveIdentity }),
-            complete: false,
-            offset: 0,
-            tail: "",
-            references: [],
-          };
-    while (!entry.complete) {
-      const sqlite = file.hash === null && /\.(?:sqlite|db)$/u.test(file.path);
-      if (await budget.exhausted(sqlite ? 1024 * 1024 : 1)) {
-        await saveScan(statePath, scan);
-        return;
-      }
-      const prior: ReferenceScan = entry;
-      const read: ReferenceChunkRead | null = await budget.read(
-        (): Promise<ReferenceChunkRead | null> =>
-          scanReferenceChunk(file, prior, eligible, budget.remainingBytes()),
-        (result: ReferenceChunkRead | null): number => result?.bytesRead ?? 0,
-      );
-      // A live writer replaced, removed or locked it: restart this file next cycle, keep the rest.
-      if (read === null) {
-        delete scan.files[file.key];
-        restarted = true;
-        break;
-      }
-      entry = read.scan;
-      scan.files[file.key] = entry;
+    const outcome = await scanReferenceFile(file, scan, eligible, budget, observation);
+    if (outcome === "exhausted") {
+      await saveScan(statePath, scan);
+      return;
     }
+    if (outcome === "restarted") restarted = true;
   }
   if (restarted) {
     await saveScan(statePath, scan);
@@ -202,10 +188,14 @@ async function collect(
       remaining = true;
       break;
     }
-    await removeUnreachableCasObject(file, () => {
-      if ((storage.events.latest()?.eventHash ?? null) !== roots.head)
-        throw new Error("CAS reference event head changed before unlink.");
-    });
+    await removeUnreachableCasObject(
+      file,
+      () => {
+        if ((storage.events.latest()?.eventHash ?? null) !== roots.head)
+          throw new Error("CAS reference event head changed before unlink.");
+      },
+      storage.paths.cas,
+    );
     deleted.add(file.hash);
     observation.removedObjects++;
     observation.reclaimedBytes += file.size;
@@ -230,6 +220,75 @@ async function collect(
           records,
         },
   );
+}
+
+/** A fresh scan entry for `file` at its current identity. */
+function freshEntry(file: CasReferenceFile): ReferenceScan {
+  return {
+    identity: file.identity,
+    ...(file.mirror === undefined ? {} : { mirror: file.mirror.liveIdentity }),
+    complete: false,
+    offset: 0,
+    tail: "",
+    references: [],
+  };
+}
+
+/**
+ * Reads one reference file's body to completion within the cycle's budget. A live writer that
+ * replaced, removed or locked it makes the pass read it again from its new identity, a few times,
+ * so one busy file cannot hold every pass back forever (ADR-0658). The caller's final inventory
+ * comparison still binds every identity before any unlink.
+ */
+async function scanReferenceFile(
+  file: CasReferenceFile,
+  scan: Awaited<ReturnType<typeof readRetentionScan>>,
+  eligible: ReadonlySet<string>,
+  budget: ReturnType<typeof referenceReadBudget>,
+  observation: CasRetentionObservation,
+): Promise<"complete" | "exhausted" | "restarted"> {
+  let rescans = 0;
+  const cached = scan.files[file.key];
+  let entry: ReferenceScan =
+    cached !== undefined &&
+    cached.identity === file.identity &&
+    cached.mirror === file.mirror?.liveIdentity
+      ? cached
+      : freshEntry(file);
+  while (!entry.complete) {
+    const sqlite = file.hash === null && /\.(?:sqlite|db)$/u.test(file.path);
+    if (await budget.exhausted(sqlite ? 1024 * 1024 : 1)) return "exhausted";
+    const prior: ReferenceScan = entry;
+    const read: ReferenceChunkRead | null = await budget.read(
+      (): Promise<ReferenceChunkRead | null> =>
+        scanReferenceChunk(file, prior, eligible, budget.remainingBytes()),
+      (result: ReferenceChunkRead | null): number => result?.bytesRead ?? 0,
+    );
+    if (read !== null) {
+      entry = read.scan;
+      scan.files[file.key] = entry;
+      continue;
+    }
+    const current =
+      rescans < IMMEDIATE_RESCANS
+        ? await referenceFile(file.path, file.hash).catch(() => null)
+        : null;
+    if (current !== null) {
+      rescans++;
+      file.identity = current.identity;
+      file.size = current.size;
+      file.modifiedAt = current.modifiedAt;
+      entry = freshEntry(file);
+      continue;
+    }
+    delete scan.files[file.key];
+    if (rescans >= IMMEDIATE_RESCANS) {
+      observation.failure = "unstable_reference";
+      observation.reference = file.path;
+    }
+    return "restarted";
+  }
+  return "complete";
 }
 
 /** Shapes outlive a pass only while their object exists. */
@@ -260,8 +319,24 @@ export async function compactProjectConvergenceArtifacts(
       await collect(storage, observation, shouldYield);
     } catch (error) {
       observation.status = "unavailable";
-      observation.failure = error instanceof CasRetentionBoundError ? "bound_exceeded" : "failed";
+      // A permission error anywhere in the pass names its own path, as one in the walk does.
+      const named =
+        error instanceof CasRetentionReferenceError
+          ? error
+          : unreadable(error) && typeof (error as NodeJS.ErrnoException).path === "string"
+            ? new CasRetentionReferenceError(
+                "unreadable_reference",
+                (error as NodeJS.ErrnoException).path!,
+                { cause: error },
+              )
+            : null;
+      observation.failure =
+        error instanceof CasRetentionBoundError ? "bound_exceeded" : (named?.failure ?? "failed");
+      if (named !== null) observation.reference = named.path;
     }
+    // ADR-0658: the path is recorded relative to the repository, never absolute.
+    if (observation.reference !== undefined)
+      observation.reference = relative(storage.paths.repositoryRoot, observation.reference);
     await writeRetentionProjection(
       resolve(storage.paths.knowledgeState, CAS_RETENTION_OBSERVATION),
       observation,

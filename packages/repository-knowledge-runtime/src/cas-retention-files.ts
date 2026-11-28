@@ -1,8 +1,12 @@
 import { sqliteReferenceChunk, type SqliteReferenceCursor } from "./cas-retention-sqlite.js";
 import { isSqliteLockContention } from "@lervo/sqlite-connection";
-import { CasRetentionBoundError } from "./cas-retention-errors.js";
+import {
+  CasRetentionBoundError,
+  CasRetentionReferenceError,
+  unreadable,
+} from "./cas-retention-errors.js";
 import { constants, type Dirent } from "node:fs";
-import { lstat, open, readdir, realpath, unlink } from "node:fs/promises";
+import { lstat, mkdir, open, readdir, realpath, rename, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
@@ -42,6 +46,8 @@ async function isAppleDouble(path: string, name: string): Promise<boolean> {
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW).catch(
     (error: unknown) => {
       if (vanished(error)) return null;
+      if (unreadable(error))
+        throw new CasRetentionReferenceError("unreadable_reference", path, { cause: error });
       throw error;
     },
   );
@@ -79,11 +85,13 @@ export async function referenceFile(path: string, hash: string | null): Promise<
 async function referenceDirectoryEntries(path: string): Promise<Dirent[]> {
   try {
     const info = await lstat(path);
-    if (info.isSymbolicLink()) throw new Error("Unsafe subsystem reference directory.");
-    if (!info.isDirectory()) throw new Error("Invalid subsystem reference directory.");
+    if (info.isSymbolicLink()) throw new CasRetentionReferenceError("unsafe_reference", path);
+    if (!info.isDirectory()) throw new CasRetentionReferenceError("unsupported_reference", path);
     return await readdir(path, { withFileTypes: true });
   } catch (error) {
     if (vanished(error)) return [];
+    if (unreadable(error))
+      throw new CasRetentionReferenceError("unreadable_reference", path, { cause: error });
     throw error;
   }
 }
@@ -101,6 +109,8 @@ export async function casReferenceFiles(storage: ProjectStorage): Promise<CasRef
     try {
       files.push(await referenceFile(path, hash));
     } catch (error) {
+      if (unreadable(error))
+        throw new CasRetentionReferenceError("unreadable_reference", path, { cause: error });
       if (!vanished(error)) throw error;
     }
   };
@@ -139,11 +149,15 @@ export async function casReferenceFiles(storage: ProjectStorage): Promise<CasRef
         child.startsWith(`${storage.paths.eventDatabase}-`)
       )
         continue;
-      if (entry.isSymbolicLink()) throw new Error("Unsafe subsystem reference file.");
+      if (entry.isSymbolicLink()) throw new CasRetentionReferenceError("unsafe_reference", child);
       if (entry.isDirectory()) pending.push(child);
       else if (entry.isFile()) {
         if (!(await isAppleDouble(child, entry.name))) await add(child, null);
-      } else throw new Error("Unsupported subsystem reference file.");
+      }
+      // ADR-0658: a FIFO or socket, such as the event channel's (ADR-0602), holds no bytes, so it
+      // can name no object. Any other special file still stops the pass, by name.
+      else if (!entry.isFIFO() && !entry.isSocket())
+        throw new CasRetentionReferenceError("unsupported_reference", child);
     }
   }
   return files.sort((left, right) => left.key.localeCompare(right.key));
@@ -183,6 +197,8 @@ export async function scanReferenceChunk(
     return await readReferenceChunk(file, prior, eligible, maximumBytes);
   } catch (error) {
     if (vanished(error) || isSqliteLockContention(error)) return null;
+    if (unreadable(error))
+      throw new CasRetentionReferenceError("unreadable_reference", file.path, { cause: error });
     throw error;
   }
 }
@@ -251,10 +267,46 @@ async function readReferenceChunk(
   }
 }
 
-/** A single unlink is the crash boundary; no reachable object or reference record is mutated. */
+/**
+ * ADR-0658: where a pruned object's tombstone lives, beside the objects under the CAS root. The
+ * CAS reads it to report a pruned object as pruned, never as missing or corrupt
+ * (`packages/cas/src/cas.ts` keeps the same layout).
+ */
+export function casTombstonePath(casRoot: string, hash: string): string {
+  return resolve(casRoot, "tombstones", "sha256", hash.slice(0, 2), hash.slice(2));
+}
+
+/** Writes the tombstone whole and durably before the object goes; a crash leaves only a tombstone. */
+async function recordTombstone(casRoot: string, file: CasReferenceFile): Promise<void> {
+  const target = casTombstonePath(casRoot, file.hash!);
+  await mkdir(dirname(target), { recursive: true, mode: 0o700 });
+  const temporary = `${target}.${process.pid}.tmp`;
+  const handle = await open(temporary, "w", 0o600);
+  try {
+    await handle.writeFile(
+      `${JSON.stringify({ schemaVersion: 1, prunedAt: new Date().toISOString(), size: file.size, policy: "convergence_artifact_retention" })}\n`,
+    );
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  await rename(temporary, target);
+  const directory = await open(dirname(target), constants.O_RDONLY);
+  try {
+    await directory.sync();
+  } finally {
+    await directory.close();
+  }
+}
+
+/**
+ * The tombstone, then a single unlink, is the crash boundary; no reachable object or reference
+ * record is mutated.
+ */
 export async function removeUnreachableCasObject(
   file: CasReferenceFile,
   assertCurrent: () => void = () => {},
+  casRoot: string = resolve(dirname(file.path), "..", ".."),
 ): Promise<void> {
   if (file.hash === null || !/^[a-f0-9]{64}$/u.test(file.hash))
     throw new Error("Invalid CAS collection target.");
@@ -263,5 +315,6 @@ export async function removeUnreachableCasObject(
   if ((await referenceFile(file.path, file.hash)).identity !== file.identity)
     throw new Error("CAS collection target changed.");
   assertCurrent();
+  await recordTombstone(casRoot, file);
   await unlink(file.path);
 }
