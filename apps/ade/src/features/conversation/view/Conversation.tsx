@@ -154,19 +154,7 @@ export function Conversation(props: {
                   <Presence className={styles.queued} enterOnMount={false}>
                     {queued.has(item.itemId) ? <FormattedMessage id="conversation.queued" /> : null}
                   </Presence>
-                  {/* A turn's line comes when the turn ends and goes if it opens again, fading
-                      with its space; a conversation that opens with it shows it at once. */}
-                  <Presence enterOnMount={false}>
-                    {ends.has(row.index) ? (
-                      <div className={styles.turnEnd}>
-                        <TurnSummaryLine
-                          turn={ends.get(row.index)!.turn}
-                          window={ends.get(row.index)!.window}
-                          elapsedMs={ends.get(row.index)!.elapsedMs}
-                        />
-                      </div>
-                    ) : null}
-                  </Presence>
+                  <TurnEndLine end={ends.get(row.index)} />
                   {/* motion: Lervo notices in the conversation */}
                   {row.index === 0 && !window.hasEarlier ? (
                     <Presence className={styles.lead} enterOnMount={false}>
@@ -190,5 +178,22 @@ export function Conversation(props: {
         </div>
       </div>
     </OpenQuestions>
+  );
+}
+
+/**
+ * A finished turn's line under its last item. It comes when the turn ends and goes if the turn
+ * opens again, fading with its space; a row that mounts with it shows it at once.
+ */
+function TurnEndLine(props: { end: TurnEnd | undefined }) {
+  const { end } = props;
+  return (
+    <Presence enterOnMount={false}>
+      {end === undefined ? null : (
+        <div className={styles.turnEnd}>
+          <TurnSummaryLine turn={end.turn} window={end.window} elapsedMs={end.elapsedMs} />
+        </div>
+      )}
+    </Presence>
   );
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
 import { failureCode, type PreparedImage, useFiles } from "../../../ports";
 import { IconButton } from "../../../ui/IconButton";
@@ -161,25 +161,36 @@ export function Composer(props: {
           onClick={stops ? stop : undefined}
         />
       </InputCard>
-      {/* One alert replacing another crossfades in place (ADE motion, "Changing in place"). */}
-      <Presence
-        className={styles.error}
-        contentKey={
-          alert !== null ? alert.id : attachments.notice !== null ? "attachments" : "none"
-        }
-      >
-        {alert === null ? (
-          attachments.notice === null ? null : (
-            <InlineAlert size="meta">
-              <FormattedMessage {...attachments.notice} values={attachmentNoticeValues} />
-            </InlineAlert>
-          )
-        ) : (
-          <InlineAlert size="meta">
-            <FormattedMessage id={alert.id} values={{ code: alert.code }} />
-          </InlineAlert>
-        )}
-      </Presence>
+      <ReplyAlert alert={alert} notice={attachments.notice} />
     </div>
+  );
+}
+
+/**
+ * The line under the reply card: a failure to send or route, else an attachment notice. One
+ * replacing another crossfades in place (ADE motion, "Changing in place").
+ */
+function ReplyAlert(props: {
+  alert: { id: string; code: string } | null;
+  notice: MessageDescriptor | null;
+}) {
+  const { alert, notice } = props;
+  return (
+    <Presence
+      className={styles.error}
+      contentKey={alert !== null ? alert.id : notice !== null ? "attachments" : "none"}
+    >
+      {alert === null ? (
+        notice === null ? null : (
+          <InlineAlert size="meta">
+            <FormattedMessage {...notice} values={attachmentNoticeValues} />
+          </InlineAlert>
+        )
+      ) : (
+        <InlineAlert size="meta">
+          <FormattedMessage id={alert.id} values={{ code: alert.code }} />
+        </InlineAlert>
+      )}
+    </Presence>
   );
 }
