@@ -22,6 +22,7 @@ export function WorkingLabel(props: { title: string; working: string | null }) {
       <span ref={label} className={styles.title} data-working={working ? "" : undefined}>
         {props.title}
       </span>
+      {/* motion: Working status */}
       {props.working === null ? null : <span className={styles.status}>{props.working}</span>}
     </>
   );

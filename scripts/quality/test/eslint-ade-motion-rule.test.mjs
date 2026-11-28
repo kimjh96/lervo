@@ -49,5 +49,10 @@ ruleTester.run("declared-motion", declaredMotionRule, {
       code: "const view = <p>\n  {/* why it shows */}\n  {open && <Menu />}\n</p>;",
       errors: [{ messageId: "undecided" }],
     },
+    {
+      // A motion named for a nested branch does not decide the conditional around it.
+      code: "const view = <ul>{shown ? <li>{/* motion: Renaming in place */}{a ? <F /> : <N />}</li> : null}</ul>;",
+      errors: [{ messageId: "undecided" }],
+    },
   ],
 });

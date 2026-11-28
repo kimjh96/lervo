@@ -33,6 +33,7 @@ export function ListRow(props: {
 }) {
   const content = (
     <>
+      {/* motion: Fixed parts */}
       {props.leading === undefined ? null : <RowLeading>{props.leading}</RowLeading>}
       <span className={styles.label}>{props.label}</span>
       {props.trailing}

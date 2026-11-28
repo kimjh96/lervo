@@ -368,7 +368,11 @@ export default defineConfig(
   {
     // ADE motion, "Coming and going": every element a view shows sometimes has a decided motion.
     name: "lervo/ade-motion",
-    files: ["apps/ade/src/features/**/view/**/*.tsx", "apps/ade/src/app/**/*.tsx"],
+    files: [
+      "apps/ade/src/features/**/view/**/*.tsx",
+      "apps/ade/src/app/**/*.tsx",
+      "apps/ade/src/ui/**/*.tsx",
+    ],
     plugins: { "lervo-ade-motion": adeMotionPlugin },
     rules: { "lervo-ade-motion/declared-motion": "error" },
   },

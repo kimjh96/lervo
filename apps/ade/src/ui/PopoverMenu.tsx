@@ -113,9 +113,11 @@ export function PopoverMenu(props: {
           onPointerEnter={() => setActive(index)}
           onClick={() => choose(item)}
         >
+          {/* motion: Fixed parts */}
           {item.leading === undefined ? null : (
             <span className={styles.leading}>{item.leading}</span>
           )}
+          {/* motion: Fixed parts */}
           {item.detail === undefined ? (
             <span>{item.text}</span>
           ) : (
@@ -124,9 +126,11 @@ export function PopoverMenu(props: {
               <span className={styles.detail}>{item.detail}</span>
             </span>
           )}
+          {/* motion: Fixed parts */}
           {item.shortcut === undefined ? null : (
             <span className={styles.shortcut}>{item.shortcut}</span>
           )}
+          {/* motion: Fixed parts */}
           {props.multiple === true ? (
             <span className={styles.check} data-checked={item.checked === true ? "" : undefined}>
               <CheckIcon size="sm" />

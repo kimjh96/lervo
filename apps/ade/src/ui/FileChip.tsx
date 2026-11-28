@@ -47,6 +47,7 @@ export function FileChip(props: {
           <span className={styles.detail}>{props.detail}</span>
         </span>
       </button>
+      {/* motion: Fixed parts */}
       {props.onRemove === undefined ? null : (
         <button
           type="button"

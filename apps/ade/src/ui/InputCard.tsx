@@ -124,6 +124,7 @@ export function InputField(props: {
   };
   return (
     <span className={styles.box}>
+      {/* motion: Fixed parts */}
       {props.decorate === undefined ? null : (
         <span ref={backdrop} className={styles.backdrop} data-size={props.size} aria-hidden="true">
           {props.decorate(value)}

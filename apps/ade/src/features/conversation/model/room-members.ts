@@ -9,6 +9,7 @@ import {
 } from "../../../ports";
 import { useWorkspaceStore } from "../../workspaces/model";
 import type { MemberLane } from "./room";
+import { forgetArrivals, withoutArrivals } from "./arrivals";
 import { useRoomStore } from "./room-store";
 import { applyAppended, applyDelta, applyPage, emptyWindow, PAGE_ITEMS } from "./window";
 
@@ -71,7 +72,7 @@ export class RoomMembers {
     for (const unsubscribe of this.unsubscribe.splice(0)) unsubscribe();
     for (const sessionId of this.members.keys())
       void this.client.send({ kind: "session.detach", sessionId }).catch(() => undefined);
-    useRoomStore.setState({ leadAgentId: null, members: {}, unrouted: null });
+    useRoomStore.setState({ leadAgentId: null, members: {}, unrouted: null, arrived: new Set() });
   }
 
   private lane(member: RoomMember, update: (lane: MemberLane) => MemberLane): void {
@@ -174,7 +175,25 @@ export class RoomMembers {
         ...lane,
         window: applyDelta(lane.window, message.itemId, message.append),
       }));
-    else if (message.kind === "conversation.appended")
+    else if (message.kind === "conversation.appended") {
+      const known = new Set(
+        useRoomStore.getState().members[member.sessionId]?.window.items.map((item) => item.itemId),
+      );
       this.lane(member, (lane) => ({ ...lane, window: applyAppended(lane.window, message.items) }));
+      this.arrive(
+        message.items
+          .filter((item) => !known.has(item.itemId))
+          .map((item) => `${member.sessionId}:${item.itemId}`),
+      );
+    }
+  }
+
+  /** Marks a joined agent's new items as arriving, as the lead's are, until they have entered. */
+  private arrive(ids: readonly string[]): void {
+    if (this.closed || ids.length === 0) return;
+    useRoomStore.setState((state) => ({ arrived: new Set([...state.arrived, ...ids]) }));
+    forgetArrivals(ids, (done) =>
+      useRoomStore.setState((state) => ({ arrived: withoutArrivals(state.arrived, done) })),
+    );
   }
 }

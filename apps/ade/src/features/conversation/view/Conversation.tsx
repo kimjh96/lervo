@@ -66,6 +66,8 @@ export function Conversation(props: {
   // The questions whose choices still wait for the person (Lervo ADE sessions, "Questions").
   const openNow = useMemo(() => openQuestions(window.items, !window.hasLater), [window]);
   const arrived = useConversationStore((store) => store.arrived);
+  // A joined agent's items enter as the lead's do (ADE motion, "A message arrives live").
+  const roomArrived = useRoomStore((store) => store.arrived);
   const scroller = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLDivElement>(null);
   const [dockHeight, setDockHeight] = useState(0);
@@ -139,7 +141,9 @@ export function Conversation(props: {
                   data-kind={item.kind}
                   data-follows={window.items[row.index - 1]?.kind}
                   className={styles.row}
-                  data-arrived={arrived.has(item.itemId) ? "true" : undefined}
+                  data-arrived={
+                    arrived.has(item.itemId) || roomArrived.has(item.itemId) ? "true" : undefined
+                  }
                   style={{ transform: `translateY(${row.start}px)` }}
                 >
                   {/* A speaker line comes and goes with its space when agents join or a joined

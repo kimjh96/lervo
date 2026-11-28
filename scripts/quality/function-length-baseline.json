@@ -3,7 +3,7 @@
   "limit": 150,
   "functions": {
     "apps/ade/src/features/agents/view/AgentProfile.tsx:AgentProfile": 189,
-    "apps/ade/src/features/projects/view/AddProjectSheet.tsx:Sheet": 171,
+    "apps/ade/src/features/projects/view/AddProjectSheet.tsx:Sheet": 160,
     "apps/ade/src/features/start/view/StartScreen.tsx:StartForm": 156,
     "apps/cli/src/agent-context-command.ts:runAgentContextCommand": 172,
     "apps/cli/src/assigned-deliberation-worker-command.ts:runAssignedDeliberationWorkerCommand": 249,

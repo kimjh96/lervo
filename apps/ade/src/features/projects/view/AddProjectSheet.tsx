@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type AnimationEvent, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -38,11 +38,17 @@ const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").match
  * or a click outside closes. Adding starts no work and selects the project. It opens and closes as
  * ADE motion's overlays do.
  */
-function Sheet(props: { kind: "clone" | "new" }) {
+function Sheet(props: {
+  kind: "clone" | "new";
+  /** Closed from outside, such as by an add that succeeded and selected its project. */
+  dismissed: boolean;
+  /** The closing has ended, so the sheet can unmount. */
+  onGone: () => void;
+}) {
   const intl = useIntl();
   const dependencies = useAddDependencies();
   const [value, setValue] = useState("");
-  const [closing, setClosing] = useState(false);
+  const { leaving, close, ended } = useSheetClosing(props.dismissed, props.onGone);
   const field = useRef<HTMLInputElement>(null);
   const adding = useAddStore((store) => store.adding);
   const failure = useAddStore((store) => store.failure);
@@ -62,21 +68,6 @@ function Sheet(props: { kind: "clone" | "new" }) {
     void readLocation(commands).catch(() => undefined);
   }, [commands]);
 
-  const close = () => {
-    if (reducedMotion()) closeProjectSheet();
-    else setClosing(true);
-  };
-  // Escape closes the window wherever the focus is in it.
-  useEffect(() => {
-    const escape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      if (reducedMotion()) closeProjectSheet();
-      else setClosing(true);
-    };
-    window.addEventListener("keydown", escape);
-    return () => window.removeEventListener("keydown", escape);
-  }, []);
   const submit = () => {
     if (!ready) return;
     const added =
@@ -92,7 +83,7 @@ function Sheet(props: { kind: "clone" | "new" }) {
   return createPortal(
     <div
       className={styles.backdrop}
-      data-closing={closing ? "" : undefined}
+      data-closing={leaving ? "" : undefined}
       onPointerDown={(event) => {
         if (
           !(event.target instanceof Node) ||
@@ -108,9 +99,7 @@ function Sheet(props: { kind: "clone" | "new" }) {
         aria-modal="true"
         aria-labelledby="project-sheet-title"
         className={styles.sheet}
-        onAnimationEnd={(event) => {
-          if (closing && event.target === event.currentTarget) closeProjectSheet();
-        }}
+        onAnimationEnd={ended}
       >
         <div className={styles.content}>
           <div className={styles.heading}>
@@ -210,9 +199,48 @@ function Sheet(props: { kind: "clone" | "new" }) {
   );
 }
 
+/**
+ * How the sheet closes: Cancel, Escape wherever the focus is in it, a click outside, and a
+ * dismissal from outside, such as an add that succeeded, all play its closing before it unmounts;
+ * under reduced motion it leaves at once.
+ */
+function useSheetClosing(dismissed: boolean, onGone: () => void) {
+  const [closing, setClosing] = useState(false);
+  const leaving = closing || dismissed;
+  useEffect(() => {
+    if (dismissed && reducedMotion()) onGone();
+  }, [dismissed, onGone]);
+  const close = useCallback(() => {
+    if (reducedMotion()) closeProjectSheet();
+    else setClosing(true);
+  }, []);
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      close();
+    };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [close]);
+  const ended = (event: AnimationEvent<HTMLElement>) => {
+    if (!leaving || event.target !== event.currentTarget) return;
+    closeProjectSheet();
+    onGone();
+  };
+  return { leaving, close, ended };
+}
+
 /** Shows the window "Add Project" opened, from the switcher or the first run. */
 export function AddProjectSheet() {
   const sheet = useProjectStore((store) => store.sheet);
+  // The sheet stays while it closes: Cancel, Escape, and an add that succeeds all play its
+  // closing before it unmounts (ADE motion, "Overlays: command palette, menus, popovers").
+  const [shown, setShown] = useState(sheet);
+  if (sheet !== null && sheet !== shown) setShown(sheet);
+  const gone = useCallback(() => setShown(null), []);
   // motion: Overlays: command palette, menus, popovers
-  return sheet === null ? null : <Sheet key={sheet} kind={sheet} />;
+  return shown === null ? null : (
+    <Sheet key={shown} kind={shown} dismissed={sheet === null} onGone={gone} />
+  );
 }

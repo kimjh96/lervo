@@ -69,8 +69,17 @@ export const declaredMotionRule = {
     return {
       JSXExpressionContainer(node) {
         if (!isConditional(node.expression)) return;
+        // Only a comment before the expression names its motion: one nested in a branch names that
+        // branch's own element, never the conditional around it.
         const names = (container) =>
-          source.getCommentsInside(container).some((comment) => MOTION_COMMENT.test(comment.value));
+          source
+            .getCommentsInside(container)
+            .some(
+              (comment) =>
+                MOTION_COMMENT.test(comment.value) &&
+                (container.expression.type === "JSXEmptyExpression" ||
+                  comment.range[1] <= container.expression.range[0]),
+            );
         if (node.parent?.type === "JSXAttribute") {
           if (showsElement(node.expression) && !names(node))
             context.report({ node, messageId: "undecided" });
