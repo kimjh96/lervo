@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { openSqliteDatabase } from "@lervo/sqlite-connection";
@@ -53,7 +53,7 @@ it("completes a pass when yield probes are slow and state files change between c
   expect(await f.artifacts.has(kept.uri)).toBe(true);
 });
 
-it("rescans a reference file that changes mid-scan, restarts on one that vanishes, and keeps progress", async () => {
+it("rereads a reference file that changes mid-scan, drops one that vanishes, and finishes the pass", async () => {
   const f = await fixture();
   const { obsolete } = await f.settled("racing");
   const directory = resolve(f.storage.paths.knowledgeState, "racing");
@@ -73,32 +73,14 @@ it("rescans a reference file that changes mid-scan, restarts on one that vanishe
     }
     return scan(file, ...rest);
   });
+  // ADR-0658: the changed file is read again from its new body, which names the candidate, and
+  // the vanished one drops out, so the same cycle finishes the pass and keeps the candidate.
   expect(await compactProjectConvergenceArtifacts(f.storage)).toMatchObject({
-    status: "yielded",
+    status: "collected",
     failure: null,
     removedObjects: 0,
   });
-  const saved = JSON.parse(
-    await readFile(resolve(f.storage.paths.knowledgeState, files.CAS_RETENTION_SCAN), "utf8"),
-  ) as {
-    scan: { files: Record<string, { complete: boolean; tail: string; references: string[] }> };
-  };
-  const entries = Object.entries(saved.scan.files);
-  expect(entries.some(([, entry]) => entry.complete)).toBe(true);
-  // ADR-0658: the changed file is read again at once from its new body, which names the
-  // candidate; the vanished one restarts the pass.
-  expect(saved.scan.files[changing]).toMatchObject({
-    complete: true,
-    references: [obsolete.contentHash.slice(7)],
-  });
-  for (const [key, entry] of entries) {
-    expect(key).not.toBe(vanishing);
-    if (entry.complete) expect(entry.tail).toBe("");
-  }
-  expect(await finishRetention(f.storage)).toMatchObject({
-    status: "collected",
-    removedObjects: 0,
-  });
+  expect(raced).toBe(true);
   expect(await f.artifacts.has(obsolete.uri)).toBe(true);
 });
 

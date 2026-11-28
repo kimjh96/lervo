@@ -105,7 +105,7 @@ it("never deletes an object that a file starts to name while the pass reads it",
   expect(await f.artifacts.has(obsolete.uri)).toBe(true);
 });
 
-it("reports a file that keeps changing after three immediate rescans as unstable", async () => {
+it("reports a file that keeps changing while it is read as unstable and as a stall", async () => {
   const f = await fixture();
   await f.settled("unstable");
   const directory = resolve(f.storage.paths.knowledgeState, "unstable");
@@ -123,6 +123,9 @@ it("reports a file that keeps changing after three immediate rescans as unstable
     failure: "unstable_reference",
     reference: ".lervo/state/knowledge/unstable/busy.json",
     removedObjects: 0,
+    stalledPasses: 1,
+    stallCause: "inventory_changed",
   });
-  expect(writes).toBe(4);
-});
+  // One initial read plus three rescans, then the same for each of the five inventory rounds.
+  expect(writes).toBe(24);
+}, 20_000);

@@ -1,8 +1,6 @@
-import { collectReportReferences } from "./cas-retention-reports.js";
 import { readRetentionScan, saveScan } from "./cas-retention-state.js";
 import { memoizedConvergenceArtifactRoots, retentionStillIdle } from "./cas-retention-memo.js";
 import { resolve } from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
@@ -10,24 +8,17 @@ import { materializationTransactionState } from "./materialization-transaction.j
 import {
   classifyRetentionFailure,
   noteProgress,
-  noteStall,
   noteSweep,
   startObservation,
   writeObservation,
   type CasRetentionObservation,
 } from "./cas-retention-observation.js";
 import { expireTombstones } from "./cas-retention-tombstones.js";
-import {
-  REFERENCE_SCAN_LIMITS,
-  REPORT_READ_LIMITS,
-  referenceReadBudget,
-} from "./cas-retention-budget.js";
+import { REFERENCE_SCAN_LIMITS, referenceReadBudget } from "./cas-retention-budget.js";
 import {
   CONVERGENCE_ARTIFACT_GRACE_MS,
   eligibleConvergenceArtifacts,
-  reachableConvergenceArtifacts,
   retentionNamedAt,
-  retentionReferenceGraph,
 } from "./cas-retention-policy.js";
 import { classifyConvergenceRecords } from "./cas-retention-records.js";
 import {
@@ -38,22 +29,12 @@ import { bindEventWriterBackups } from "./cas-retention-backups.js";
 import {
   CAS_RETENTION_SCAN,
   casReferenceFiles,
-  referenceFile,
-  scanReferenceChunk,
   removeUnreachableCasObject,
   type CasReferenceFile,
-  type ReferenceChunkRead,
-  type ReferenceScan,
 } from "./cas-retention-files.js";
+import { scanReferenceFile, settleReferenceInventory } from "./cas-retention-settle.js";
 
 export type { CasRetentionObservation } from "./cas-retention-observation.js";
-
-/**
- * How often one cycle reads a file again that changed while it was read, waiting 50, 100 and then
- * 200 ms first so a database between write-ahead-log commits can settle (ADR-0658).
- */
-const IMMEDIATE_RESCANS = 3;
-const RESCAN_BACKOFF_MS = 50;
 
 /** Called only while holding the worker lock. The public boundary below acquires it for every host. */
 async function collect(
@@ -74,7 +55,7 @@ async function collect(
   // no artifact lifecycle since then leave that answer standing, and roots extend the last replay.
   if (retentionStillIdle(scan, storage.events, Date.now())) return;
   const roots = memoizedConvergenceArtifactRoots(storage.events);
-  const files = await casReferenceFiles(storage);
+  let files = await casReferenceFiles(storage);
   await bindEventWriterBackups(storage, roots.headSeq, files);
   const before = Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS;
   // Probes of live work run between reads and never spend the read budget (ADR-0584).
@@ -112,52 +93,33 @@ async function collect(
     }
   }
   const eligible = new Set(scan.eligible);
-  const released = releasedConvergenceRecords(files, roots.superseded, records, before);
   const keys = new Set(files.map((file) => file.key));
   for (const key of Object.keys(scan.files)) if (!keys.has(key)) delete scan.files[key];
-  let restarted = false;
   for (const file of files) {
-    const outcome = await scanReferenceFile(file, scan, eligible, budget, observation);
-    if (outcome === "exhausted") {
+    if ((await scanReferenceFile(file, scan, eligible, budget, observation)) === "exhausted") {
       await saveScan(statePath, scan);
       return;
     }
-    if (outcome === "restarted") restarted = true;
   }
-  if (restarted) {
-    await saveScan(statePath, scan);
-    return;
-  }
-  const { reachable, edges } = retentionReferenceGraph(
+  // ADR-0658: files that changed meanwhile are read again until the inventory holds still.
+  const settled = await settleReferenceInventory({
+    storage,
+    scan,
     files,
-    (file) => scan.files[file.key]!.references,
     roots,
     eligible,
-    released,
-  );
-  if (
-    !(await collectReportReferences({
-      storage,
-      roots,
-      reachable,
-      scan,
-      casHashes: new Set(files.flatMap((file) => (file.hash === null ? [] : [file.hash]))),
-      budget: referenceReadBudget(REPORT_READ_LIMITS, shouldYield),
-    }))
-  ) {
+    records,
+    before,
+    budget,
+    observation,
+    shouldYield,
+  });
+  if (settled === null) {
     await saveScan(statePath, scan);
     return;
   }
-  const marked = reachableConvergenceArtifacts(reachable, edges);
-  const currentFiles = await casReferenceFiles(storage);
-  if (
-    JSON.stringify(files.map((file) => [file.key, file.identity])) !==
-    JSON.stringify(currentFiles.map((file) => [file.key, file.identity]))
-  ) {
-    noteStall(observation, "inventory_changed");
-    await saveScan(statePath, scan);
-    return;
-  }
+  const { marked, released } = settled;
+  files = settled.files;
   const deleted = new Set<string>();
   let remaining = false;
   let headMoved = false;
@@ -211,76 +173,6 @@ async function collect(
           records,
         },
   );
-}
-
-/** A fresh scan entry for `file` at its current identity. */
-function freshEntry(file: CasReferenceFile): ReferenceScan {
-  return {
-    identity: file.identity,
-    ...(file.mirror === undefined ? {} : { mirror: file.mirror.liveIdentity }),
-    complete: false,
-    offset: 0,
-    tail: "",
-    references: [],
-  };
-}
-
-/**
- * Reads one reference file's body to completion within the cycle's budget. A live writer that
- * replaced, removed or locked it makes the pass read it again from its new identity, a few times,
- * so one busy file cannot hold every pass back forever (ADR-0658). The caller's final inventory
- * comparison still binds every identity before any unlink.
- */
-async function scanReferenceFile(
-  file: CasReferenceFile,
-  scan: Awaited<ReturnType<typeof readRetentionScan>>,
-  eligible: ReadonlySet<string>,
-  budget: ReturnType<typeof referenceReadBudget>,
-  observation: CasRetentionObservation,
-): Promise<"complete" | "exhausted" | "restarted"> {
-  let rescans = 0;
-  const cached = scan.files[file.key];
-  let entry: ReferenceScan =
-    cached !== undefined &&
-    cached.identity === file.identity &&
-    cached.mirror === file.mirror?.liveIdentity
-      ? cached
-      : freshEntry(file);
-  while (!entry.complete) {
-    const sqlite = file.hash === null && /\.(?:sqlite|db)$/u.test(file.path);
-    if (await budget.exhausted(sqlite ? 1024 * 1024 : 1)) return "exhausted";
-    const prior: ReferenceScan = entry;
-    const read: ReferenceChunkRead | null = await budget.read(
-      (): Promise<ReferenceChunkRead | null> =>
-        scanReferenceChunk(file, prior, eligible, budget.remainingBytes()),
-      (result: ReferenceChunkRead | null): number => result?.bytesRead ?? 0,
-    );
-    if (read !== null) {
-      entry = read.scan;
-      scan.files[file.key] = entry;
-      continue;
-    }
-    if (rescans < IMMEDIATE_RESCANS) await delay(RESCAN_BACKOFF_MS * 2 ** rescans);
-    const current =
-      rescans < IMMEDIATE_RESCANS
-        ? await referenceFile(file.path, file.hash).catch(() => null)
-        : null;
-    if (current !== null) {
-      rescans++;
-      file.identity = current.identity;
-      file.size = current.size;
-      file.modifiedAt = current.modifiedAt;
-      entry = freshEntry(file);
-      continue;
-    }
-    delete scan.files[file.key];
-    if (rescans >= IMMEDIATE_RESCANS) {
-      observation.failure = "unstable_reference";
-      observation.reference = file.path;
-    }
-    return "restarted";
-  }
-  return "complete";
 }
 
 /** Shapes outlive a pass only while their object exists. */
