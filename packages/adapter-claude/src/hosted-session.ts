@@ -111,8 +111,8 @@ export const CLAUDE_HOSTED_ENVIRONMENT: Readonly<Record<string, string>> = {
 
 /** Seconds a terminal hook may take, as the project's own terminal hooks allow. */
 const TERMINAL_HOOK_TIMEOUT_SECONDS = 30;
-/** Seconds a pre-tool claim may hold a tool call; Lervo itself defers after 2 seconds. */
-const CLAIM_HOOK_TIMEOUT_SECONDS = 10;
+/** Seconds a pre-tool claim may hold a tool call: a served answer, then an in-process one. */
+const CLAIM_HOOK_TIMEOUT_SECONDS = 60;
 
 /**
  * Claude Code's model aliases by tier. An alias always names the latest model of its line, so a

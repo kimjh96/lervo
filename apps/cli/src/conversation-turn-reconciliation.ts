@@ -8,6 +8,7 @@ import {
   findClaimingConversation,
   type ClaimingConversationPorts,
 } from "./claim-conversation.js";
+import { deferralCode } from "./claim-deferral.js";
 import { recordedRefusalsOf, turnRefusals } from "./claim-turn-refusals.js";
 import { readPendingClaims, settleReconciledClaims } from "./conversation-claim-settlement.js";
 import {
@@ -15,14 +16,17 @@ import {
   type ConversationReconciliation,
   type ReconciliationPorts,
 } from "./conversation-reconciliation.js";
-import { reconciliationMessage } from "./reconciliation-message.js";
+import {
+  reconciliationMessage,
+  unverifiedReconciliationMessage,
+} from "./reconciliation-message.js";
 
 /**
  * How long after the `Stop` began its reconciliation may still list changes or take the scheduler
  * lock. Git calls are bounded by the time left, and the turn's repository capture runs after, on
- * its own deadline.
+ * its own deadline. It stays below half the hook budget, past which a context server exits.
  */
-export const STOP_RECONCILIATION_MS = 3_000;
+export const STOP_RECONCILIATION_MS = 6_000;
 /** How long the reconciliation at a session's exit may spend before it takes no lock. */
 const EXIT_RECONCILIATION_MS = 10_000;
 
@@ -54,12 +58,18 @@ const NOTHING: TurnReconciliation = { blockReason: null, reconciliation: null };
 /**
  * Reconciles the conversation the session writes for, settles the session's pending claims in the
  * claim log, and answers whether the `Stop` blocks. A session that writes for no conversation, or
- * a closed coordination gate, reconciles nothing. It never throws: a failure lets the turn end, and
- * the next reconciliation catches up.
+ * a closed coordination gate, reconciles nothing. It never throws. A reconciliation that could
+ * not finish blocks the first `Stop` as unverified, never as if the turn had been checked; the
+ * second `Stop` checks again and lets the turn end.
  */
 export async function reconcileConversationTurn(
   input: TurnReconciliationInput,
 ): Promise<TurnReconciliation> {
+  let conversationFound = false;
+  const unverified = (code: string, reconciliation: ConversationReconciliation | null) => ({
+    blockReason: input.final ? null : unverifiedReconciliationMessage(code),
+    reconciliation,
+  });
   try {
     const conversation = await findClaimingConversation(
       {
@@ -70,6 +80,7 @@ export async function reconcileConversationTurn(
       input.ports ?? defaultClaimingConversationPorts,
     );
     if (conversation === null) return NOTHING;
+    conversationFound = true;
     const now = input.now ?? new Date();
     const pending = readPendingClaims(input.providerSessionId, conversation.workspaceId);
     // An earlier `Stop`'s conflicts already recorded their events, as this turn's refusals did.
@@ -84,6 +95,8 @@ export async function reconcileConversationTurn(
       now,
       ...(input.reconciliationPorts === undefined ? {} : { ports: input.reconciliationPorts }),
     });
+    if (reconciliation.status === "deferred")
+      return unverified(reconciliation.code, reconciliation);
     // An overflowing reconciliation judged no path, so nothing pending settles against it.
     if (reconciliation.status !== "reconciled" || reconciliation.overflow)
       return { blockReason: null, reconciliation };
@@ -100,8 +113,9 @@ export async function reconcileConversationTurn(
       blockReason: input.final || blocking.length === 0 ? null : reconciliationMessage(blocking),
       reconciliation,
     };
-  } catch {
-    return NOTHING;
+  } catch (error) {
+    // Only a conversation's turn has changes to check; elsewhere a failure blocks nothing.
+    return conversationFound ? unverified(deferralCode(error), null) : NOTHING;
   }
 }
 

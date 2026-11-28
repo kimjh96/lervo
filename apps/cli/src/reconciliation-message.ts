@@ -83,3 +83,15 @@ export function reconciliationMessage(
     ? message
     : `${message.slice(0, MAX_CLAIM_REASON_CHARACTERS - 1)}…`;
 }
+
+/**
+ * The `Stop` block's reason when Lervo could not finish checking the turn's changes, with the
+ * failure's `code`. The turn's next `Stop` checks again, so the agent ends its turn once more.
+ */
+export function unverifiedReconciliationMessage(code: string): string {
+  return (
+    `Lervo could not finish checking this turn's changes against other conversations' work ` +
+    `(${code}), so they are unchecked. End your turn again so Lervo checks them once more. If ` +
+    `Lervo still cannot check them, tell the owner which files you changed.`
+  );
+}

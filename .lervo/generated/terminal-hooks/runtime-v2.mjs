@@ -10,7 +10,7 @@ import { Readable } from "node:stream";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // ADR-0539 and resident-context-socket.md specify this file. Raise the version on any behavior change.
-const launcherVersion = 7;
+const launcherVersion = 8;
 const fail = () => {
   throw new Error("integrity");
 };
@@ -293,6 +293,8 @@ async function readInput() {
     hookInput = JSON.parse(input.toString("utf8"));
   } catch {}
 }
+// A claim a committed server lost decides in process, never unchecked.
+const claiming = process.argv.includes("--claim");
 async function served() {
   globalThis[offer] = "none";
   try {
@@ -339,8 +341,9 @@ async function served() {
       done(value);
     };
     let timer = setTimeout(() => finish(false), 150);
+    const lostAnswer = () => !claiming && {};
     const lost = () =>
-      state === "answered" ? undefined : finish(state === "committed" ? {} : false);
+      state === "answered" ? undefined : finish(state === "committed" ? lostAnswer() : false);
     socket.on("error", lost);
     socket.on("connect", () => {
       state = "sent";
@@ -353,7 +356,7 @@ async function served() {
         if (chunk[0] !== 0x41 /* A */) return finish(false, chunk);
         state = "committed";
         clearTimeout(timer);
-        timer = setTimeout(() => finish({}), 25000);
+        timer = setTimeout(() => finish(lostAnswer()), 25000);
         socket.write("G");
         chunk = chunk.subarray(1);
       }
@@ -365,9 +368,9 @@ async function served() {
       try {
         answer = JSON.parse(received.subarray(0, end).toString("utf8"));
       } catch {
-        return finish({});
+        return finish(lostAnswer());
       }
-      if (answer.ok !== true) return finish({});
+      if (answer.ok !== true) return finish(lostAnswer());
       state = "answered";
       clearTimeout(timer);
       const later = received.subarray(end + 1).toString();
@@ -438,8 +441,6 @@ if (
       await new Promise(() => undefined);
     }
   }
-  // An unserved claim never loads the runtime: the turn's end claims instead.
-  if (process.argv.includes("--claim")) process.exit(0);
   for (let attempt = 0; attempt < 2; attempt++) {
     let entry;
     try {

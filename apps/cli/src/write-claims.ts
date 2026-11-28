@@ -21,6 +21,7 @@ import {
   type WritingSession,
 } from "./claim-contract.js";
 import { decideClaim } from "./claim-decision.js";
+import { deferralCode, unverifiedClaim } from "./claim-deferral.js";
 import { type NewClaimLogEntry, recordClaimLogEntry } from "./claim-log.js";
 import type { ParsedPreToolUseInput } from "./terminal-hook-contract.js";
 
@@ -42,8 +43,12 @@ export function hookDecision(decision: ClaimDecision): HostedClaimDecision {
     : { decision: decision.decision };
 }
 
-/** How long a claim may hold a tool call before the write goes ahead, claimed at the turn's end. */
-export const CLAIM_DECISION_MS = 2000;
+/**
+ * How long a claim may hold a tool call before Lervo refuses it as unverified. It stays below the
+ * provider's hook timeout, `CLAIM_HOOK_TIMEOUT_SECONDS`, so the provider never lets a write go
+ * ahead because the hook ran out of time.
+ */
+export const CLAIM_DECISION_MS = 20_000;
 
 /** How long the hook may spend recording a refusal or a deferral after deciding it. */
 const CLAIM_RECORD_MS = 500;
@@ -122,8 +127,9 @@ async function repositoryPaths(
 /**
  * What the pre-tool hook prints for `input`. Only a session that writes for a conversation
  * claims; a call that writes nothing claimable answers before reading any state. Finding the
- * session and the claim share {@link CLAIM_DECISION_MS}: past it, or on any failure, the answer
- * defers, so Lervo never stops the owner's work for itself.
+ * session and the claim share {@link CLAIM_DECISION_MS}. Past it, or on any failure, the write is
+ * refused as unverified with its cause: Lervo never lets a write it could not check pass as
+ * checked, and the refusal tells the agent to retry.
  */
 export async function answerPreToolUse<Session extends WritingSession>(input: {
   readonly hook: ParsedPreToolUseInput;
@@ -174,8 +180,11 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
   };
   const deferred: ClaimDecision = { decision: "defer", code: CLAIM_DEFERRED };
   let timer: NodeJS.Timeout | undefined;
-  deciding = decide().catch(() => deferred);
-  const decision = await Promise.race([
+  deciding = decide().catch((error: unknown): ClaimDecision => ({
+    decision: "defer",
+    code: deferralCode(error),
+  }));
+  const decided = await Promise.race([
     deciding,
     new Promise<ClaimDecision>((resolve) => {
       timer = setTimeout(() => {
@@ -188,6 +197,13 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
       }, decisionMs);
     }),
   ]).finally(() => clearTimeout(timer));
+  const decision =
+    decided.decision === "defer"
+      ? unverifiedClaim(
+          decided.code,
+          await repositoryPaths(intent.targets, workingDirectory).catch(() => []),
+        )
+      : decided;
   const writing = session as WritingSession | null;
   if (decision.decision !== "allow" && writing !== null && input.record !== undefined) {
     const record = input.record;

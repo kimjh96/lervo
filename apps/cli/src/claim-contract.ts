@@ -77,3 +77,9 @@ export type WriteClaimer<Session extends WritingSession = WritingSession> = (
 
 /** The code a deferral carries when Lervo could not decide in time, or failed without one. */
 export const CLAIM_DEFERRED = "claim_deferred";
+
+/**
+ * The refusal of a write Lervo could not decide in time or failed to decide. Lervo never lets an
+ * unchecked write pass as if it were checked: the write is refused, and the agent may retry it.
+ */
+export const CLAIM_UNVERIFIED = "claim_unverified";

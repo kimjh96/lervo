@@ -13,6 +13,18 @@ import { terminalWriterSessionId } from "../src/terminal-workspace-boundary.js";
 import { answerClaimHook, answerPreToolUse, claimReading } from "../src/write-claims.js";
 
 const answering = claimReading("claude");
+
+/** The refusal reason of an unverified claim's answer, or null for any other answer. */
+function unverifiedReason(answer: string): string | null {
+  const output = JSON.parse(answer) as {
+    hookSpecificOutput?: { permissionDecision?: string; permissionDecisionReason?: string };
+  };
+  const reason = output.hookSpecificOutput?.permissionDecisionReason ?? "";
+  return output.hookSpecificOutput?.permissionDecision === "deny" &&
+    reason.includes("could not check")
+    ? reason
+    : null;
+}
 const lead: WritingSession = { workspaceId: "wsp_1", agentId: "agt_1" };
 const hook = (tool_name: string, tool_input: object) => {
   const parsed = parseTerminalHookIngress(
@@ -127,7 +139,7 @@ describe("claims at first write", () => {
     expect([claimed, looked]).toEqual([0, 0]);
   });
 
-  it("defers when the claim fails or takes too long, so the write goes ahead", async () => {
+  it("refuses as unverified a claim that fails or takes too long, never letting it through", async () => {
     const base = {
       hook: hook("Edit", { file_path: "a.ts" }),
       answering,
@@ -135,8 +147,13 @@ describe("claims at first write", () => {
       writing: () => Promise.resolve(lead),
     };
     expect(
-      await answerPreToolUse({ ...base, claim: () => Promise.reject(new Error("busy")) }),
-    ).toBe("{}\n");
+      unverifiedReason(
+        await answerPreToolUse({
+          ...base,
+          claim: () => Promise.reject(Object.assign(new Error("busy"), { code: "workforce_busy" })),
+        }),
+      ),
+    ).toContain("(workforce_busy)");
     const started = performance.now();
     expect(
       await answerPreToolUse({
@@ -157,7 +174,7 @@ describe("claims at first write", () => {
             ),
           ),
       }),
-    ).toBe("{}\n");
+    ).toMatch(/claim_deferred/u);
     expect(performance.now() - started).toBeLessThan(400);
   });
 
@@ -263,7 +280,7 @@ describe("claims at first write", () => {
       },
     });
     // The hook answered at its deadline, and the work it holds settles once the claim finished.
-    expect([locked, finished, tracked.length]).toEqual(["{}\n", false, 1]);
+    expect([unverifiedReason(locked) !== null, finished, tracked.length]).toEqual([true, false, 1]);
     await Promise.all(tracked);
     expect(finished).toBe(true);
 
