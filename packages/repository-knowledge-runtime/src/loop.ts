@@ -29,7 +29,6 @@ import { residentHealthWriter } from "./resident-health-writer.js";
 import { wireResidentWakes } from "./resident-wakes.js";
 import { residentCycleTrigger } from "./resident-cycle-trigger.js";
 import type { AutonomousKnowledgeWorkerInput } from "./loop-options.js";
-import { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import {
   ownershipFingerprint,
@@ -37,6 +36,7 @@ import {
   hubTokenFingerprint,
   RESIDENT_OWNER_HEARTBEAT_MILLISECONDS,
 } from "./resident-ownership.js";
+import { residentOwnershipWakes } from "./resident-ownership-wakes.js";
 
 /**
  * The standalone host needs no Hub. Startup, event and repository wakeups, and an adaptive
@@ -319,19 +319,16 @@ export function startAutonomousKnowledgeWorker(
           }
         }, input.onFailure);
     },
-    // ADR-0602: a release command in another process rewrites this checkout's fence; the
-    // resident's own observations write the verdict it already holds and are ignored.
-    onOwnerFence: () => {
-      observing
-        .then(() => readConvergenceOwnerFence(root))
-        .then((fence) => {
-          const written = fence?.verdict ?? null;
-          if (written === null || signal.aborted) return;
-          if (written.observedAt === verdict?.observedAt && written.role === verdict.role) return;
-          if (trigger.running() !== null) observeOwnership().catch(input.onFailure);
-          trigger.wakeNow();
-        }, input.onFailure);
-    },
+    // An owner fence another process rewrote, or an admission record that stopped waiting.
+    ...residentOwnershipWakes({
+      root,
+      signal,
+      trigger,
+      verdict: () => verdict,
+      observing: () => observing,
+      observeOwnership,
+      onFailure: input.onFailure,
+    }),
     // ADR-0602: a change the cycle acts on runs it at once; one only continuity reads (a peer's
     // host record, a presence change) runs a forced continuity turn and no cycle.
     onHubChange: (cycle) => {

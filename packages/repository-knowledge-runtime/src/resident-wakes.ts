@@ -26,6 +26,7 @@ export function wireResidentWakes(input: {
   onProjectionInput: () => void;
   onHoldStore: () => void;
   onOwnerFence: () => void;
+  onProviderAdmission?: () => void;
   /** `cycle` is false for a Hub change only continuity reads. */
   onHubChange: (cycle: boolean) => void;
   /** Host-local continuity inputs outside every other watch, and the handler for their change. */
@@ -48,6 +49,9 @@ export function wireResidentWakes(input: {
     onProjectionInput: input.onProjectionInput,
     onHoldStore: input.onHoldStore,
     onOwnerFence: input.onOwnerFence,
+    ...(input.onProviderAdmission === undefined
+      ? {}
+      : { onProviderAdmission: input.onProviderAdmission }),
   });
   // A failing Hub wait, or a Hub too old to push, is attention for as long as it lasts.
   const root = input.storage.paths.repositoryRoot;
