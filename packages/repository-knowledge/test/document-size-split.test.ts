@@ -369,7 +369,9 @@ describe("document size split links", () => {
     expect(link.content).toContain(`](../other/${holder.path.split("/").pop()}#target)`);
   });
 
-  it("splits megabytes with thousands of definitions in seconds", { timeout: 60_000 }, () => {
+  // A guard against the quadratic definition copying that took tens of minutes, not a benchmark:
+  // shared CI runners took 16.6 s for what a Mac does in 3 s, so the bound leaves room for them.
+  it("splits megabytes with thousands of definitions in seconds", { timeout: 120_000 }, () => {
     const definitions = Array.from({ length: 2_000 }, (_, index) => `[d${index}]: d${index}.md`);
     const rows = Array.from(
       { length: 24_000 },
@@ -390,7 +392,7 @@ describe("document size split links", () => {
     expect(Buffer.byteLength(content)).toBeGreaterThan(3 * 1024 * 1024);
     const started = performance.now();
     const ledger = split("docs/ledger.md", content);
-    expect(performance.now() - started).toBeLessThan(15_000);
+    expect(performance.now() - started).toBeLessThan(60_000);
     expect(ledger.parts.length).toBeGreaterThan(10);
   });
 });
