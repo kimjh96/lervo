@@ -14,7 +14,7 @@ On 2026-11-27 the Mac lervo checkout held nine backups, `schema-5` through `sche
 ## Decision
 
 1. **The rollback point always stays.** It is the backup of the writer version that `event-contract.json` selects. An activation replaces the directory for its own target, so this is also the newest backup.
-2. **A superseded backup stays 14 days.** A backup `schema-<n>` below the selected version was superseded by the next higher backup. That backup was written just before the activation that replaced `n`. Once that backup's `createdAt` is more than 14 days old, `schema-<n>` can be removed. If backups between them were removed earlier, the next higher remaining backup is newer, so the wait only grows longer.
+2. **A superseded backup stays 14 days.** _Amended on 2026-11-28: the grace period is zero (see "Amendment" below)._ A backup `schema-<n>` below the selected version was superseded by the next higher backup. That backup was written just before the activation that replaced `n`. Once that backup's `createdAt` is more than 14 days old, `schema-<n>` can be removed. If backups between them were removed earlier, the next higher remaining backup is newer, so the wait only grows longer.
 3. **Any doubt keeps every backup.** Nothing is removed in any of these cases:
    - the selected version cannot be read, or an activation transaction is pending (`event_writer_backup_coordinate_unavailable`);
    - the selected version has no verified backup (`event_writer_backup_rollback_point_unverified`);
@@ -44,3 +44,17 @@ The stage records no event. Its plan state, `stages.eventWriterBackupRetention`,
 - Two-step rollback stays possible during the grace period. After it, ADR-0650's rollback procedure restores only the newest backup. That is the only one it uses.
 - On the Mac checkout on 2026-11-27, the first pass would remove only `schema-5` (about 40 MB). `schema-8` through `schema-14` would go between 2026-12-06 and 2026-12-11, as each successor passes 14 days, keeping `schema-16` (about 120 MB).
 - A backup's `events` rows stop rooting CAS objects once it is removed. ADR-0585 already releases the rows that mirror the live log, and CAS retention skips a file that vanishes during a pass.
+
+## Amendment (2026-11-28): no grace period
+
+The 14-day grace period kept every superseded backup through a day of frequent releases. On 2026-11-28 the six WSL checkouts each held backups from `schema-8` to `schema-16`, about 3.4 GB in all, and the lervo checkout alone held 1.5 GB. Each backup is a full copy of the event store. The WSL virtual disk grows on the Windows host and does not shrink, and the owner reported it running out of space.
+
+The superseded backups `schema-8` through `schema-14` were removed by hand on WSL that day, about 3.3 GB, keeping each checkout's `schema-16` rollback point.
+
+ADR-0650's rollback procedure restores only the newest backup, so `EVENT_WRITER_BACKUP_GRACE_DAYS` is now 0. Each pass of `lervo upgrade` removes every verified superseded backup and keeps only the rollback point. The other rules are unchanged:
+
+- An unverified backup stays.
+- A backup above the selected version stays.
+- An observation the stage cannot complete keeps everything.
+
+A two-step rollback, back past the previous writer version, is no longer possible from local backups. That procedure never existed, and the previous version's readers remain installed.
