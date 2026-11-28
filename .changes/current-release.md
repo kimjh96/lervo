@@ -1,14 +1,8 @@
-<!-- lervo-release package="@lervo/cli" version="0.69.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.69.1" schema="1" -->
 
 ## What's changed
 
-- A hosted conversation leaves out Claude Code's ToolSearch calls, which only load tool definitions, and names what a Monitor call watches and whom a SendMessage call addresses.
-- An agent can hand work to the teammate whose work it is, as a conversation that teammate leads and writes in, with lervo workspace start --lead; an agent that joined a conversation can start one too, and the hourly start guard rises to 12 as a backstop.
-- Background knowledge review no longer stops when a project has more than eight owner rules; instructions are bounded by bytes and low-ranked recommendations give way first.
-- CAS retention skips the event channel's pipes, names the path that stops it in application attention, reads a changing file again within the cycle, and leaves a tombstone so a pruned object reads as pruned.
-- Comments and documents cite the byte-bounded review context decision as ADR-0659, which had collided with another ADR-0657.
-- Lervo agent inspect reports a child agent with its root agent's liveness instead of refusing it.
-- Lervo restores a project checkout that Git reads as bare, such as after a hook's test ran git init against it, instead of resolving an empty coordination home that hides the team.
-- Lervo upgrade removes every superseded event writer backup at once and keeps only the rollback point, instead of keeping each one for 14 days.
-- lervo workspace send hands work to a conversation a teammate already leads, delivered to its lead when the sender's turn ends, and a lead whose session stopped resumes as the conversation's own session to receive it.
-- room.answers leaves out answers in conversations the lead itself leads and finds the lead by its writing record, so a product owner's conversations stop repeating a line for each turn of the others.
+- A conversation read back from Claude Code's transcript leaves out turns Claude Code itself sent the agent, such as a background task's notification, instead of showing them as the person's message.
+- A host whose delegated provider is not admitted now reports provider_not_admitted, not knowledge_authority_unavailable, and looks at ownership again when that hour-old record lapses, so upgrade stages stop waiting as Lervo debt for an unrelated change.
+- A resumed provider-probe now clears that provider's recorded failures host-wide and wakes ineligible repositories, and an empty Git index lock older than 10 minutes with no git running is reported as git_index_lock_stale with its path for the owner to remove.
+- Keep CAS retention running on an idle or provider-waiting host until the store settles, with time-boxed slices about every 30 seconds
