@@ -34,7 +34,7 @@ const load = () => import("./surface");
  * name, with a dot when another project's workspaces need the owner. It shows the list of
  * projects below it. A double-click edits the name in place; the context menu changes the logo,
  * renames, shows the folder in Finder, or removes the project from Lervo. `⌘1`–`⌘9` select a
- * project. With no project, nothing shows here.
+ * project, and Escape closes the list. With no project, nothing shows here.
  */
 export function ProjectSwitcher() {
   const intl = useIntl();
@@ -76,6 +76,20 @@ export function ProjectSwitcher() {
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, [memory]);
+
+  // Escape closes the open list, as it closes a menu. It listens on the window, since a click
+  // leaves no focus on the row in WebKit; a menu or name field handles its own Escape first.
+  useEffect(() => {
+    if (!expanded) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (useProjectStore.getState().renaming !== null) return;
+      event.preventDefault();
+      useProjectStore.setState({ expanded: false });
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [expanded]);
 
   // ⌘O opens a folder as a project, as "Open Folder" in the Add Project menu shows.
   const add = useAddProject();

@@ -70,6 +70,17 @@ describe("the claim lines", () => {
     );
   });
 
+  it("says when Lervo could not check a path in time, never naming the bare code", () => {
+    const unverified = { ...conflict, holder: "", code: "claim_unverified" };
+    expect(render(line("claim_conflict", unverified))).toContain(
+      ">src/retry.ts</code> · Lervo could not check it in time</p>",
+    );
+    expect(render(line("claim_unresolved", { ...unverified, workspace: "" }))).toContain(
+      ">src/retry.ts</code> stays unresolved · Lervo could not check it in time</p>",
+    );
+    expect(render(line("claim_conflict", unverified))).not.toContain("claim_unverified");
+  });
+
   it("says once a turn that its claims wait for its end", () => {
     expect(render(line("claim_deferred", { code: "workforce_busy" }))).toContain(
       "Lervo checks this turn&#x27;s claims at its end (workforce_busy)",

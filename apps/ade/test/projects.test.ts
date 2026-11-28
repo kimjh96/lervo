@@ -12,6 +12,7 @@ import {
 import {
   currentProject,
   managesProjects,
+  otherProjects,
   projectName,
   projectsNeedingYou,
   shortcutProject,
@@ -163,6 +164,12 @@ describe("project decisions", () => {
     expect(shortcutProject(listed, "3")).toBeUndefined();
     expect(shortcutProject(listed, "0")).toBeUndefined();
     expect(shortcutProject(listed, "n")).toBeUndefined();
+  });
+
+  it("lists every project but the selected one, each keeping its key", () => {
+    expect(otherProjects(listed, "prj_a")).toEqual([{ project: listed[1], index: 1 }]);
+    expect(otherProjects(listed, "prj_b")).toEqual([{ project: listed[0], index: 0 }]);
+    expect(otherProjects(listed.slice(0, 1), "prj_a")).toEqual([]);
   });
 
   it("offers project changes only when the core names the project commands", () => {

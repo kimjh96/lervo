@@ -5,19 +5,33 @@ import { FormattedMessage, type MessageDescriptor } from "react-intl";
 import { useWorkspaceStore } from "../../workspaces";
 import styles from "./renderers.module.css";
 
-/** Each claim line's words: who holds the path in a listed conversation, elsewhere, or no one. */
+/**
+ * Each claim line's words: who holds the path in a listed conversation, elsewhere, or no one, and
+ * a path Lervo could not check in time (`claim_unverified`), which it refuses rather than lets
+ * through.
+ */
 const messages: Readonly<
-  Record<string, { linked: MessageDescriptor; held: MessageDescriptor; none: MessageDescriptor }>
+  Record<
+    string,
+    {
+      linked: MessageDescriptor;
+      held: MessageDescriptor;
+      none: MessageDescriptor;
+      unverified: MessageDescriptor;
+    }
+  >
 > = {
   claim_conflict: {
     linked: { id: "room.claimConflict" },
     held: { id: "room.claimConflictHeld" },
     none: { id: "room.claimRefused" },
+    unverified: { id: "room.claimUnverified" },
   },
   claim_unresolved: {
     linked: { id: "room.claimUnresolved" },
     held: { id: "room.claimUnresolvedHeld" },
     none: { id: "room.claimUnresolvedCode" },
+    unverified: { id: "room.claimUnresolvedUnverified" },
   },
 };
 
@@ -54,12 +68,13 @@ export function ClaimLine({ item }: { item: Extract<ConversationItem, { kind: "l
   const code = (chunks: ReactNode) => <code className={styles.roomCode}>{chunks}</code>;
   const values = { agent, holder, path: String(item.parameters.path ?? ""), code };
   const title = known?.title ?? known?.branch ?? null;
+  const reason = String(item.parameters.code ?? "");
   if (holder === "")
     return (
       <p className={styles.roomLine}>
         <FormattedMessage
-          {...words.none}
-          values={{ ...values, reason: String(item.parameters.code ?? "") }}
+          {...(reason === "claim_unverified" ? words.unverified : words.none)}
+          values={{ ...values, reason }}
         />
       </p>
     );
