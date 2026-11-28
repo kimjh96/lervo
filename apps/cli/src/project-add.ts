@@ -3,6 +3,7 @@ import { access, constants, mkdir, readFile, rm, stat, writeFile } from "node:fs
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
+import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
 import { renameProject, validDisplayName } from "@lervo/project";
 import {
   defaultRepositoryRegistryPath,
@@ -216,6 +217,16 @@ async function initialize(root: string, name: string): Promise<void> {
 }
 
 /**
+ * Packages the repository's skills into `.lervo/capabilities/`, as `lervo init` does. That folder
+ * is local state, so a clone of a Lervo project starts without it, and `lervo upgrade` defers the
+ * knowledge stages until it exists.
+ */
+async function packageRepositorySkills(root: string): Promise<void> {
+  const plan = await createCapabilityMigrationPlan(root);
+  if (plan.status === "ready") await applyCapabilityMigration(plan);
+}
+
+/**
  * Makes `root` a registered Lervo project: Git and Lervo initialized when missing. A new project,
  * whose folder holds only what Lervo wrote, gets its first commit; a folder of the owner's files
  * never does, so nothing of theirs is committed without them.
@@ -235,6 +246,11 @@ async function adopt(root: string, name: string, created?: { displayName: string
   });
   const firstCommit =
     created === undefined ? false : await commitFirst(registration.repositoryRoot);
+  // A project that already had Lervo, such as a clone, skipped `lervo init`. Its skills are
+  // packaged here, so its knowledge stages need no `lervo upgrade` first. A failure leaves the
+  // stage to `lervo upgrade --apply`, which reports it as pending.
+  if (!lervoInitialized)
+    await packageRepositorySkills(registration.repositoryRoot).catch(() => undefined);
   // ADR-0469: a registered checkout joins background knowledge continuity at once.
   await onboardKnowledgeContinuity({
     repositoryRoot: registration.repositoryRoot,

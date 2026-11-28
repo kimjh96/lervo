@@ -1,4 +1,4 @@
-import { access, chmod, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -77,6 +77,38 @@ describe("adding a project", () => {
     expect(registered.map((entry) => entry.projectId)).toContain(added.value.projectId);
     // The owner's folder is never committed for them.
     expect(git(folder, "rev-list", "-n", "1", "--all")).toBe("");
+  });
+
+  it("packages a cloned Lervo project's skills, as lervo init would", async () => {
+    const root = await workspace();
+    const origin = join(root, "origin");
+    await mkdir(join(origin, ".agents/skills/notes"), { recursive: true });
+    await writeFile(
+      join(origin, ".agents/skills/notes/SKILL.md"),
+      "---\nname: notes\ndescription: Keeps notes.\n---\n\n# Notes\n",
+    );
+    expect((await run(["project", "add", "--folder", origin, "--write"], root)).code).toBe(0);
+    git(origin, "add", ".agents", ".lervo/project.yaml");
+    git(
+      origin,
+      "-c",
+      "user.name=Test",
+      "-c",
+      "user.email=test@localhost",
+      "commit",
+      "-qm",
+      "Start",
+    );
+    const clone = join(root, "clone");
+    git(root, "clone", "--quiet", origin, clone);
+    expect(await isFile(join(clone, ".lervo/capabilities"))).toBe(false);
+    // Another registry, as when the owner adds the clone after unregistering the first checkout.
+    process.env.LERVO_USER_STATE_DIRECTORY = await workspace();
+    const added = await run(["project", "add", "--folder", clone, "--write"], root);
+    expect(added).toMatchObject({ code: 0, value: { lervoInitialized: false } });
+    expect(await readdir(join(clone, ".lervo/capabilities/packages"))).toEqual([
+      expect.stringContaining("notes"),
+    ]);
   });
 
   it("starts a new project in the projects location, keeping the given name", async () => {

@@ -35,6 +35,7 @@ The core adds a project from one of three sources, each in one command, and then
 - An existing folder at the destination is never reused for a clone or a new project (`project_folder_exists`). A clone or a new project that fails leaves no folder behind (`project_clone_failed`, or the failing step's code).
 - A new project gets its first commit, "Start the project with Lervo", with what Lervo wrote there, the profile included, so the first workspace has a commit to start from. It uses the owner's Git identity, or `Lervo <lervo@localhost.invalid>` when none is configured, and is reported after the fact as an effect notice (`project_first_commit`) whose undo removes the commit and keeps the files. A folder of the owner's files is never committed for them: a project with no commit yet refuses new work with `repository_has_no_commit` until the owner commits. Git runs without prompts, as `lervo workspace start` runs it.
 - `lervo init` runs with its onboarding, so the project starts with a developer, as a terminal run does.
+- A folder that already has `.lervo/project.yaml`, such as a clone of a Lervo project, skips `lervo init`. Its repository skills are still packaged into `.lervo/capabilities/`, as `lervo init` packages them, because that folder is local state that a clone lacks, and `lervo upgrade` holds the knowledge stages until it exists. Packaging is best effort: a failure leaves the stage pending for `lervo upgrade --apply` and does not fail the add.
 
 ## Renaming, marking, and unregistering
 
