@@ -24,13 +24,14 @@ The owner's rule ([rule_71ba2fb394f82b0827829cd2](../../../../instructions/gener
 ## Decision
 
 1. **An undecided claim is refused as unverified.** Past the decision deadline, or on any failure other than a refusal, the hook denies the write with the code `claim_unverified`. The message names the paths and the cause (such as `workforce_busy`, or `claim_deferred` for the deadline) and tells the agent that nothing was written and to retry. The claim log records it as a refusal with no holder, and the conversation shows it as stopped because Lervo could not check it in time.
-2. **The decision deadline is 20 seconds, and the provider's claim hook timeout is 60.** The provider never reaches its own timeout, which would let the write go ahead.
-3. **The launcher never answers a claim unchecked.** Launcher version 8 decides a claim in process when no server takes it. It does the same when a server that committed to the claim lost it, failed, or did not answer within 25 seconds. Other hooks keep their behavior.
+2. **A claim decides within 12 seconds, and within 45 seconds of the hook's start.** In process, the hook starts with its process, so the launcher's wait for a server counts. The answer, the refusal's record, and a widening's settle fit below the context server's 20-second run limit and the provider's 60-second claim hook timeout, so neither the server's exit nor the provider's timeout lets the write go ahead.
+3. **The launcher never answers a claim unchecked.** Launcher version 8 decides a claim in process when no server takes it, and when a server that committed to the claim lost it, answered that it failed, or did not answer within 20 seconds. When the runtime is missing or the hook process fails, the launcher exits 2 with "Lervo could not check this write; retry it.", which Claude Code treats as a refusal. A claim hook that cannot read its input refuses the write too. Other hooks keep their behavior.
 4. **A `Stop` whose reconciliation could not finish blocks once.** Its reason says the turn's changes are unchecked and asks the agent to end the turn again. The second `Stop` reconciles again and lets the turn end. A failure outside a conversation blocks nothing. The reconciliation's own deadline is 6 seconds, below half the 15-second hook budget, past which a context server exits.
 
 ## Consequences
 
-- A write in a conversation may wait up to 20 seconds on a slow host, and more when the launcher loads the runtime cold. Lervo's slowness now costs time instead of correctness.
-- A Lervo failure that persists refuses every write in a conversation until it is fixed. The refusal names its cause, and the owner can close the repository's coordination gate.
+- A write in a conversation may wait up to 12 seconds on a slow host, and up to 45 when the launcher first waits for a server and then loads the runtime cold. Lervo's slowness now costs time instead of correctness.
+- A claim that holds the context server for seconds makes other sessions' hooks in that time run in process or from the cached base, and a claim past half the hook budget makes the server restart after answering.
+- A Lervo failure that persists refuses every write in a conversation until it is fixed, including a session whose conversation Lervo could not even look up. The refusal names its cause, and the owner can close the repository's coordination gate.
 - Worktrees started before this release keep their 10-second claim hook timeout until their conversation is restarted.
-- The launcher stays within its 16 KiB bound: 16,318 bytes.
+- The launcher stays within its 16 KiB bound: 16,376 bytes.

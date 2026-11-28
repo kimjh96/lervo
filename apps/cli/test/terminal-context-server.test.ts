@@ -108,6 +108,20 @@ it("answers a committed prompt with what the hook printed, over an owner-only so
   expect(run).toHaveBeenCalledTimes(2);
 });
 
+it("answers a failed claim as no answer, so the launcher decides it in process", async () => {
+  const run = vi.fn(async () => Promise.reject(new Error("broken")));
+  const socketPath = await serverWith(run);
+  const claim = request({
+    kind: "tool",
+    input: JSON.stringify({ hook_event_name: "PreToolUse", session_id: "s" }),
+  });
+  const received = await exchange(socketPath, JSON.stringify(claim));
+  expect(JSON.parse(received.slice(1))).toEqual({ ok: false });
+  // Any other failed hook still answers with an empty context.
+  const prompted = await exchange(socketPath, JSON.stringify(request()));
+  expect(JSON.parse(prompted.slice(1))).toMatchObject({ ok: true, stdout: "{}\n" });
+});
+
 it("declines before anything runs, with a closed reason", async () => {
   const run = vi.fn(async () => answer);
   const socketPath = await serverWith(run);

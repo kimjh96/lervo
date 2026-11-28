@@ -44,11 +44,18 @@ export function hookDecision(decision: ClaimDecision): HostedClaimDecision {
 }
 
 /**
- * How long a claim may hold a tool call before Lervo refuses it as unverified. It stays below the
- * provider's hook timeout, `CLAIM_HOOK_TIMEOUT_SECONDS`, so the provider never lets a write go
- * ahead because the hook ran out of time.
+ * How long a claim may hold a tool call before Lervo refuses it as unverified. With the refusal's
+ * record and a widening's settle it stays below the context server's 20-second run limit, so a
+ * served claim is answered, never cut off by the server's exit.
  */
-export const CLAIM_DECISION_MS = 20_000;
+export const CLAIM_DECISION_MS = 12_000;
+
+/**
+ * How long after the hook started a claim may still decide, including a server the launcher
+ * waited for first. With the record and settle after it, the answer stays below the provider's
+ * 60-second claim hook timeout, so the provider never lets a write go ahead on its own timeout.
+ */
+export const CLAIM_HOOK_BUDGET_MS = 45_000;
 
 /** How long the hook may spend recording a refusal or a deferral after deciding it. */
 const CLAIM_RECORD_MS = 500;
@@ -150,6 +157,8 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
   readonly trackWork?: (work: Promise<unknown>) => void;
   readonly decisionMs?: number;
   readonly settleMs?: number;
+  /** When the hook started, on the `performance.now()` clock; the claim's budget counts from it. */
+  readonly hookStartedAt?: number;
 }): Promise<string> {
   const { hook, answering } = input;
   if (answering === null) return "{}\n";
@@ -157,7 +166,13 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
   const intent = answering.writeIntent(hook.toolName, hook.toolInput, workingDirectory);
   if (intent === null || (intent.targets.length === 0 && intent.detection !== "undetected"))
     return answering.claimAnswer({ decision: "allow" });
-  const decisionMs = input.decisionMs ?? CLAIM_DECISION_MS;
+  const decisionMs = Math.max(
+    0,
+    Math.min(
+      input.decisionMs ?? CLAIM_DECISION_MS,
+      (input.hookStartedAt ?? performance.now()) + CLAIM_HOOK_BUDGET_MS - performance.now(),
+    ),
+  );
   const deadline = performance.now() + decisionMs;
   const answered = new AbortController();
   let session: Session | null = null;
@@ -239,6 +254,7 @@ export function answerClaimHook(
   options: {
     readonly ports?: ClaimingConversationPorts;
     readonly trackWork?: (work: Promise<unknown>) => void;
+    readonly hookStartedAt?: number;
   } = {},
 ): Promise<string> {
   const workingDirectory = hook.workingDirectory ?? fallbackDirectory;
@@ -249,8 +265,20 @@ export function answerClaimHook(
     fallbackDirectory,
     record: (entry: NewClaimLogEntry) => recordClaimLogEntry(entry),
     ...(options.trackWork === undefined ? {} : { trackWork: options.trackWork }),
+    ...(options.hookStartedAt === undefined ? {} : { hookStartedAt: options.hookStartedAt }),
     writing: (providerSessionId) =>
       findClaimingConversation({ provider, providerSessionId, workingDirectory }, ports),
     claim: (request) => decideClaim(request),
   });
+}
+
+/**
+ * The claim hook's answer when the hook itself failed before a decision, such as on input it could
+ * not read: the write is refused as unverified with `cause`, never let through unchecked.
+ */
+export function unverifiedClaimAnswer(provider: string, cause: string): string {
+  const answering = claimReading(provider);
+  return answering === null
+    ? "{}\n"
+    : answering.claimAnswer(hookDecision(unverifiedClaim(cause, [])));
 }

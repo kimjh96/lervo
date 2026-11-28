@@ -54,6 +54,9 @@ if (
       createTerminalStageObservation: (digest) =>
         Object.assign(createTerminalStageObservation(digest), { delivery: () => delivery }),
     },
+    // A claim's budget counts from this process's start, which includes the launcher's wait for a
+    // server, because the provider's claim hook timeout does (ADR-0652).
+    process.argv.includes("--claim") ? 0 : undefined,
   );
   // Deadline races cannot cancel every filesystem or child-process handle. Flush the response
   // before ending this short-lived hook process; detached maintenance has its own process.

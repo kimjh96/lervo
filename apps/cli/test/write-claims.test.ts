@@ -10,7 +10,12 @@ import type { WriteClaimRequest, WritingSession } from "../src/claim-contract.js
 import type { HostedLaunchRecord } from "../src/hosted-launch-records.js";
 import { parseTerminalHookIngress, parseTerminalHookInput } from "../src/terminal-hook-input.js";
 import { terminalWriterSessionId } from "../src/terminal-workspace-boundary.js";
-import { answerClaimHook, answerPreToolUse, claimReading } from "../src/write-claims.js";
+import {
+  answerClaimHook,
+  answerPreToolUse,
+  CLAIM_HOOK_BUDGET_MS,
+  claimReading,
+} from "../src/write-claims.js";
 
 const answering = claimReading("claude");
 
@@ -176,6 +181,22 @@ describe("claims at first write", () => {
       }),
     ).toMatch(/claim_deferred/u);
     expect(performance.now() - started).toBeLessThan(400);
+  });
+
+  it("counts the claim's budget from the hook's start, so the provider never times it out", async () => {
+    const started = performance.now();
+    const answer = await answerPreToolUse({
+      hook: hook("Edit", { file_path: "a.ts" }),
+      answering,
+      fallbackDirectory: "/",
+      writing: () => Promise.resolve(lead),
+      // The launcher already waited out the whole budget for a server.
+      hookStartedAt: performance.now() - CLAIM_HOOK_BUDGET_MS,
+      claim: () =>
+        new Promise((resolve) => setTimeout(() => resolve({ decision: "allow" }), 1_000)),
+    });
+    expect(unverifiedReason(answer)).toContain("(claim_deferred)");
+    expect(performance.now() - started).toBeLessThan(500);
   });
 
   it("finds the conversation from the lead's launch record, never a joined reader's", async () => {

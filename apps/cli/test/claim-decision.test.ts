@@ -382,6 +382,29 @@ describe("claims at first write in a conversation's worktree", () => {
     expect((await conversationAssignment(first.leadAgentId)).expectedPaths).toEqual([]);
   });
 
+  it("refuses a claim whose hook input it cannot read, and prints an empty answer for a prompt", async () => {
+    const { first } = app;
+    const run = async (args: string[], input: string) => {
+      const stdout: string[] = [];
+      const exitCode = await runTerminalHookCommand(
+        ["--provider", "claude", "--contract", "2", ...args],
+        {
+          cwd: first.worktree,
+          stdout: (message) => stdout.push(message),
+          stderr: () => undefined,
+          stdin: async () => input,
+        },
+        { createTerminalStageObservation },
+      );
+      return { exitCode, stdout: stdout.join("") };
+    };
+    const refused = await run(["--claim"], "{not json");
+    expect(refused.exitCode).toBe(0);
+    expect(refused.stdout).toMatch(/"permissionDecision":"deny"/u);
+    expect(refused.stdout).toContain("could not check in time");
+    expect(await run([], "{not json")).toEqual({ exitCode: 0, stdout: "{}\n" });
+  });
+
   it("keeps the hook for a claim under the lock and shows it to the server's drain", async () => {
     const { first } = app;
     const tracked: Promise<unknown>[] = [];

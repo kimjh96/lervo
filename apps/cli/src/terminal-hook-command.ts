@@ -36,7 +36,7 @@ import {
 } from "./terminal-workspace-lifecycle.js";
 import type { CliIo, CliServices } from "./types.js";
 import { resolveTerminalRoots } from "./terminal-roots.js";
-import { answerClaimHook } from "./write-claims.js";
+import { answerClaimHook, unverifiedClaimAnswer } from "./write-claims.js";
 import { answerSessionStart } from "./terminal-session-start-hook.js";
 
 /**
@@ -49,9 +49,11 @@ async function answerClaimAndSettle(
   provider: TerminalIntegrationProvider,
   io: CliIo,
   observation: TerminalStageObservationPort,
+  startedAt: number,
 ): Promise<void> {
   const locked: Promise<unknown>[] = [];
   const answer = await answerClaimHook(input, provider, io.cwd, {
+    hookStartedAt: startedAt,
     trackWork: (work) => {
       locked.push(work);
       observation.trackWork?.(work);
@@ -60,6 +62,13 @@ async function answerClaimAndSettle(
   if (io.answer === undefined) io.stdout(answer);
   else io.answer(answer);
   await Promise.all(locked);
+}
+
+/** The provider a claim handler's arguments name, or null when they are no claim handler's. */
+function claimHandlerProvider(args: readonly string[]): string | null {
+  if (!args.includes("--claim")) return null;
+  const at = args.indexOf("--provider");
+  return at === -1 ? null : (args[at + 1] ?? null);
 }
 
 /** A conversation's reconciliation at `Stop`: the block reason, or null to let the turn end. */
@@ -134,7 +143,7 @@ async function executeTerminalHookCommand(
       };
     });
     if (input.event === "PreToolUse") {
-      await answerClaimAndSettle(input, provider, io, observation);
+      await answerClaimAndSettle(input, provider, io, observation, startedAt);
       return 0;
     }
     if (input.event === "SessionStart") {
@@ -322,9 +331,13 @@ async function executeTerminalHookCommand(
       });
     }).catch(() => undefined);
     // ADR-0635: an input Lervo cannot read never blocks the owner's prompt or forces a Stop to
-    // continue, which a nonzero exit does in both providers. The failure is recorded above.
+    // continue, which a nonzero exit does in both providers. The failure is recorded above. A
+    // claim it could not decide is refused instead, never let through unchecked (ADR-0652).
     io.stderr(`Lervo terminal integration failed (${failureReason}).\n`);
-    io.stdout("{}\n");
+    const claimProvider = claimHandlerProvider(args);
+    io.stdout(
+      claimProvider === null ? "{}\n" : unverifiedClaimAnswer(claimProvider, failureReason),
+    );
     return 0;
   }
 }

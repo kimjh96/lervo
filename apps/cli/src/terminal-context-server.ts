@@ -167,10 +167,15 @@ export function startTerminalContextServer(input: {
             return (await answer.afterDrain?.().catch(() => true)) === false;
           },
           () => {
-            // The in-process hook answers an internal failure with an empty context.
+            // The in-process hook answers an internal failure with an empty context. A claim's
+            // failure is no answer, so the launcher decides it in process (ADR-0652).
             if (!socket.destroyed)
               socket.end(
-                `${JSON.stringify({ ok: true, stdout: "{}\n", stderr: "", exitCode: 0 })}\n`,
+                `${JSON.stringify(
+                  current.kind === "tool"
+                    ? { ok: false }
+                    : { ok: true, stdout: "{}\n", stderr: "", exitCode: 0 },
+                )}\n`,
               );
             return true;
           },

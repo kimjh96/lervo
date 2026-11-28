@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { constants } from "node:fs";
+import { constants, writeSync } from "node:fs";
 import { lstat, mkdir, open, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { connect, Socket } from "node:net";
 import { homedir } from "node:os";
@@ -9,7 +9,7 @@ import { relative, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// ADR-0539 and resident-context-socket.md specify this file. Raise the version on any behavior change.
+// See ADR-0539. Raise the version on any behavior change.
 const launcherVersion = 8;
 const fail = () => {
   throw new Error("integrity");
@@ -273,11 +273,11 @@ async function delegated() {
     (await bytes(host, 64 * 1024)).toString(),
   );
   if (version === null || Number(version[1]) < launcherVersion) return false;
-  globalThis[delegatedKey] = true;
+  globalThis[delegatedKey] = decided = true;
   await import(pathToFileURL(await realpath(host)).href);
   return true;
 }
-// Why a hook was not served, for the runtime's schema-13 `delivery`.
+// Why a hook went unserved, for `delivery`.
 const offer = Symbol.for("lervo.terminalHook.offer");
 let input, hookInput;
 async function readInput() {
@@ -293,8 +293,15 @@ async function readInput() {
     hookInput = JSON.parse(input.toString("utf8"));
   } catch {}
 }
-// A claim a committed server lost decides in process, never unchecked.
+// An unanswered claim refuses the write (ADR-0652).
 const claiming = process.argv.includes("--claim");
+let decided = false;
+if (claiming)
+  process.on("exit", (code) => {
+    if (code ? code === 2 : decided) return;
+    process.exitCode = 2;
+    writeSync(2, "Lervo could not check this write; retry it.\n");
+  });
 async function served() {
   globalThis[offer] = "none";
   try {
@@ -308,7 +315,7 @@ async function served() {
   if (input.length > 200 * 1024 || !Object.hasOwn(servedEvents, event)) return false;
   await trustedParents();
   await directory(store);
-  // Prompt text goes only to a store no one else can enter.
+  // Prompt text goes only to a private store.
   if ((await lstat(store)).mode & 0o077) return false;
   const pointer = JSON.parse(await bytes(resolve(store, "current.json"), 4096));
   if (!/^sha256:[a-f0-9]{64}$/u.test(pointer.contentHash)) return false;
@@ -356,7 +363,7 @@ async function served() {
         if (chunk[0] !== 0x41 /* A */) return finish(false, chunk);
         state = "committed";
         clearTimeout(timer);
-        timer = setTimeout(() => finish(lostAnswer()), 25000);
+        timer = setTimeout(() => finish(lostAnswer()), claiming ? 2e4 : 25000);
         socket.write("G");
         chunk = chunk.subarray(1);
       }
@@ -375,7 +382,7 @@ async function served() {
       clearTimeout(timer);
       const later = received.subarray(end + 1).toString();
       if (answer.pending === true && !later.includes("\n")) {
-        // A detached relay keeps the connection and starts the records' launches.
+        // A detached relay starts later launches.
         try {
           spawn(process.execPath, [fileURLToPath(import.meta.url), relayFlag, later], {
             detached: true,
@@ -391,7 +398,7 @@ async function served() {
     socket.on("close", lost);
   });
 }
-// ADR-0645: a prompt the server could not take gets the server's cached base.
+// ADR-0645: an unserved prompt gets the cached base.
 async function cached() {
   const why = `${globalThis[offer]}`;
   const reason =
@@ -415,7 +422,7 @@ async function cached() {
   if (input === undefined) await readInput();
   if (hookInput?.hook_event_name !== "UserPromptSubmit") return null;
   const answer = await bytes(`${file}.json`, 65536);
-  // The marker the server records; the session's tells its Stop this turn prepared nothing.
+  // Markers for the server and the Stop.
   const leave = (path, text) => writeFile(path, text, { mode: 0o600 }).catch(() => undefined);
   await leave(
     `${file}.${Date.now()}.${process.pid}.unserved`,
@@ -434,6 +441,7 @@ if (
     const answer = await served().catch(() => false);
     const base = answer === false && (await cached().catch(() => null));
     if (answer !== false || base) {
+      decided = true;
       process.stderr.write(answer.stderr ?? "");
       process.stdout.write(base || (answer.stdout ?? "{}\n"), () =>
         process.exit(answer.exitCode ?? 0),
@@ -459,14 +467,16 @@ if (
       break;
     }
     try {
-      // Same process and argv; Node resolves symlinks for `import.meta.url`, so name the real path.
+      // Name the real path: Node resolves symlinks.
       const real = await realpath(entry);
       process.env.LERVO_TERMINAL_HOOK_RUNTIME = real;
       globalThis[Symbol.for("lervo.terminalHook.verifiedEntry")] = real;
+      decided = true;
       await import(pathToFileURL(real).href);
       break;
     } catch (error) {
       delete globalThis[Symbol.for("lervo.terminalHook.verifiedEntry")];
+      decided = false;
       if (!missing(error, entry)) throw error;
       if (attempt === 0) continue;
       await marker();
