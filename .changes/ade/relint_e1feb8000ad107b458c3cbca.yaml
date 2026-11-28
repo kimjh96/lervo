@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e1feb8000ad107b458c3cbca"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "The open project list shows only the other projects, since the row above already shows the selected one, and Escape closes the list."

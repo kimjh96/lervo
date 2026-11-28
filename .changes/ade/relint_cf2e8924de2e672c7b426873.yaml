@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cf2e8924de2e672c7b426873"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Content that came or went in one frame now fades and opens or closes its space, from the turn summary line and project switches to removed list items, closing menus, and status rings."

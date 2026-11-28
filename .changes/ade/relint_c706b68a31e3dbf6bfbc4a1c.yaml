@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c706b68a31e3dbf6bfbc4a1c"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Launching shows the Lervo mark from the window's first visible frame: the window goes on screen transparent and turns opaque once the page has painted, instead of showing bare glass while WebKit drew its first frame."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6c5838684f53296ed3d2caaa"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "The first run's three choices are parted by space instead of lines that vanished under the pointer, and rows and chips on filled surfaces show their hover and choice in light mode too."

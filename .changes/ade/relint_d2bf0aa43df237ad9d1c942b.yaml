@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d2bf0aa43df237ad9d1c942b"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "The working line keeps one line while its words change, so Creating the workspace no longer folds onto two lines and jumps before Thinking."
