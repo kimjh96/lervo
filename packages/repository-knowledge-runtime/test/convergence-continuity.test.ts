@@ -20,6 +20,7 @@ import {
 } from "../src/convergence-continuity.js";
 import { ConvergenceOwnership } from "../src/convergence-owner.js";
 import { readConvergenceOwnerHost } from "../src/convergence-owner-host.js";
+import type { ConvergenceOwnerHubCandidate } from "../src/convergence-owner-host-derivation.js";
 import {
   assertConvergenceDelegationBindings,
   CONVERGENCE_DELEGATION_PATH,
@@ -97,13 +98,15 @@ function continuity(input: {
   hosts?: FakeHostRecordHub;
   label?: string;
   now?: () => number;
+  candidates?: ConvergenceOwnerHubCandidate[];
 }): ConvergenceContinuity {
   return new ConvergenceContinuity({
     providerAdmission: async () => null,
     storage: input.f.storage as Fixture["storage"],
     policyPath: input.policyPath,
     hubCandidates: async () =>
-      input.hosts === undefined ? [] : [{ source: "node_runtime" as const, hub }],
+      input.candidates ??
+      (input.hosts === undefined ? [] : [{ source: "node_runtime" as const, hub }]),
     ...(input.hosts === undefined ? {} : { transport: async () => input.hosts!.port() }),
     publication: async () => publication,
     hostLabel: input.label ?? "mac",
@@ -451,6 +454,109 @@ describe("two hosts of one repository", () => {
       code: "owner_host_hub_unusable",
       severity: "attention",
       detail: "hub_forbidden",
+    });
+  });
+});
+
+describe("a project without a Hub credential of its own (ADR-0656)", () => {
+  /** This project's own token path, which holds no token on this host. */
+  const ownPath = (f: Fixture) => ({
+    source: "host_repository" as const,
+    hub: {
+      ...hub,
+      bearerTokenFile: resolve(
+        f.directory,
+        "nodes",
+        f.storage.manifest.projectId,
+        "secrets",
+        "hub-sync.token",
+      ),
+    },
+    credential: "absent" as const,
+  });
+
+  it("is maintained standalone on this host when it does not sync through the Hub", async () => {
+    const f = await tracked(true);
+    const path = await policyFile(f, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    hosts.refuse = { failureCode: "hub_forbidden", httpStatus: 403 };
+    const state = await continuity({
+      f,
+      policyPath: path,
+      hosts,
+      candidates: [ownPath(f)],
+    }).reconcile();
+    expect(state?.ownerHost).toMatchObject({ state: "standalone", hubFailureCode: null });
+    expect(state?.findings.map((finding) => finding.code)).not.toContain("owner_host_hub_unusable");
+    expect((await readConvergenceOwnerHost(f.root))?.config.coordination).toEqual({
+      mode: "standalone",
+    });
+  });
+
+  it("follows a data policy changed after the resident started, without a restart", async () => {
+    const f = await tracked(true);
+    const path = await policyFile(f, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    hosts.refuse = { failureCode: "hub_forbidden", httpStatus: 403 };
+    const manifestPath = resolve(f.root, ".lervo/project.yaml");
+    const original = await readFile(manifestPath, "utf8");
+    await writeFile(
+      manifestPath,
+      original.replace(/hubSyncEnabled: false/u, "hubSyncEnabled: true"),
+    );
+    const synced = await continuity({
+      f,
+      policyPath: path,
+      hosts,
+      candidates: [ownPath(f)],
+    }).reconcile();
+    expect(synced?.ownerHost).toMatchObject({
+      state: "hub",
+      hubFailureCode: "hub_credential_absent",
+    });
+    await writeFile(manifestPath, original);
+    const local = await continuity({
+      f,
+      policyPath: path,
+      hosts,
+      candidates: [ownPath(f)],
+    }).reconcile();
+    expect(local?.ownerHost).toMatchObject({ state: "standalone" });
+  });
+
+  it("stays read-only behind its own missing token, one notice, when it syncs through the Hub", async () => {
+    const f = await tracked(true);
+    const manifestPath = resolve(f.root, ".lervo/project.yaml");
+    await writeFile(
+      manifestPath,
+      (await readFile(manifestPath, "utf8")).replace(
+        /hubSyncEnabled: false/u,
+        "hubSyncEnabled: true",
+      ),
+    );
+    const path = await policyFile(f, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    hosts.refuse = { failureCode: "hub_forbidden", httpStatus: 403 };
+    const state = await continuity({
+      f,
+      policyPath: path,
+      hosts,
+      candidates: [ownPath(f)],
+    }).reconcile();
+    expect(state?.ownerHost).toMatchObject({
+      state: "hub",
+      hubFailureCode: "hub_credential_absent",
+    });
+    expect(
+      state?.findings.filter((finding) =>
+        ["owner_host_hub_unusable", "hub_unavailable"].includes(finding.code),
+      ),
+    ).toEqual([
+      { code: "owner_host_hub_unusable", severity: "attention", detail: "hub_credential_absent" },
+    ]);
+    expect((await readConvergenceOwnerHost(f.root))?.config.coordination).toEqual({
+      mode: "hub",
+      hub: ownPath(f).hub,
     });
   });
 });

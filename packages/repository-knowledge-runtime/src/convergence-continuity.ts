@@ -18,7 +18,12 @@ import {
 } from "@lervo/sync-contract";
 
 import { continuityNextDeadline } from "./continuity-deadline.js";
-import { continuityHostPort, listContinuityHosts } from "./continuity-hub-port.js";
+import {
+  continuityHostPort,
+  listContinuityHosts,
+  probeOwnerHub,
+  reconciledProject,
+} from "./continuity-hub-port.js";
 import {
   hostModelSelectionDirectory,
   publishedModelSelection,
@@ -194,20 +199,11 @@ export class ConvergenceContinuity {
     const ownerHost = await deriveConvergenceOwnerHost({
       root: this.root,
       candidates,
-      probe: async (hub) => {
-        try {
-          const port = await this.input.transport?.({ ...hub, ...identity });
-          if (port === undefined)
-            return { failureCode: "hub_configuration_invalid", httpStatus: null };
-          await port.list(signal);
-          return null;
-        } catch (error) {
-          return knowledgeConvergenceOwnerFailureOf(error);
-        }
-      },
+      probe: (hub) => probeOwnerHub(this.input.transport, hub, identity, signal),
       publication: this.input.publication,
       hostLabel: this.input.hostLabel,
       now: startedAt,
+      project: await reconciledProject(this.root, this.input.storage.manifest),
     }).catch(() => null);
     const host = await readConvergenceOwnerHost(this.root).catch(() => null);
     const { port, failureCode: portFailure } = await continuityHostPort(

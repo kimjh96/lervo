@@ -3,6 +3,14 @@ import type { ContinuityFinding } from "@lervo/repository-knowledge-runtime";
 
 import { continuityRemediation } from "./knowledge-continuity-remediation.js";
 
+/** Hub coordinate failures only a credential the operator issues can fix. */
+const CREDENTIAL_DETAILS: ReadonlySet<string> = new Set([
+  "hub_credential_absent",
+  "hub_forbidden",
+  "hub_unauthorized",
+  "token_file_unreadable",
+]);
+
 /** Findings another attention item already carries with its own remediation. */
 const COVERED_ELSEWHERE: ReadonlySet<ContinuityFinding["code"]> = new Set([
   "lease_unverifiable",
@@ -27,11 +35,14 @@ export function continuityAttentionItems(
     const itemId = `knowledge_convergence_continuity_${finding.code}${finding.detail === null ? "" : `_${finding.detail.replace(/[^a-z0-9_]/gu, "_")}`}`;
     if (items.has(itemId)) continue;
     const debt = finding.severity === "lervo_debt";
+    // ADR-0656: Hub coordinates refused for want of a credential Lervo cannot create are a notice.
+    const credentials =
+      finding.code === "owner_host_hub_unusable" && CREDENTIAL_DETAILS.has(finding.detail ?? "");
     items.set(itemId, {
       schemaVersion: 1,
       kind: "knowledge_convergence_continuity",
       itemId,
-      state: debt ? "lervo_debt" : "observed",
+      state: credentials ? "credentials_missing" : debt ? "lervo_debt" : "observed",
       findingCode: finding.code,
       ...(finding.actor === undefined ? {} : { actor: finding.actor }),
       severity: finding.severity,
@@ -43,7 +54,8 @@ export function continuityAttentionItems(
           : debt || finding.code === "hook_runtime_unavailable"
             ? "host resident"
             : "user",
-      requiresUserAction: false,
+      // ADR-0656: like every credential notice, it names the owner's step and never blocks.
+      requiresUserAction: credentials,
       blocking: false,
       instruction: continuityRemediation(finding),
     });

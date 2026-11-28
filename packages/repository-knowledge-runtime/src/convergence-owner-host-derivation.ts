@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
@@ -34,6 +35,11 @@ export type ConvergenceOwnerHubSource = "node_runtime" | "host_repository";
 export interface ConvergenceOwnerHubCandidate {
   source: ConvergenceOwnerHubSource;
   hub: ConvergenceOwnerHubCoordinates;
+  /**
+   * ADR-0656: omitted for this project's own credential (or its Node's); `absent` for a Hub that
+   * another repository uses, paired with the path where this project's own token belongs.
+   */
+  credential?: "absent";
 }
 
 interface DerivationMarker {
@@ -58,6 +64,8 @@ export interface ConvergenceOwnerHostDerivationResult {
   derivation: ConvergenceOwnerHostDerivation;
   /** The last Hub probe that kept this host standalone; null when no probe failed. */
   hubFailure: KnowledgeConvergenceOwnerFailure | null;
+  /** The written coordinates name this project's own token, which does not exist yet. */
+  credentialAbsent?: true;
   publication: "configured" | "unavailable" | "not_applicable";
 }
 
@@ -135,6 +143,12 @@ export async function deriveConvergenceOwnerHost(input: {
   hostLabel: string;
   now: Date;
   random?: () => string;
+  /**
+   * ADR-0656: the project, read at this reconciliation. With `hubSyncEnabled` false only its own
+   * credentials coordinate it through the Hub, and without one this host maintains it standalone.
+   * Its ID recognizes a token path of another project pinned by an earlier release.
+   */
+  project?: { projectId: string; hubSyncEnabled: boolean };
 }): Promise<ConvergenceOwnerHostDerivationResult> {
   let current: ConvergenceOwnerHostConfig | null;
   try {
@@ -148,11 +162,20 @@ export async function deriveConvergenceOwnerHost(input: {
 
   let chosen: ConvergenceOwnerHubCandidate | null = null;
   let hubFailure: KnowledgeConvergenceOwnerFailure | null = null;
-  const currentHub = current?.coordination.mode === "hub" ? current.coordination.hub : null;
-  for (const candidate of input.candidates) {
+  // ADR-0656: without Hub sync only the project's own credentials coordinate it through the Hub.
+  const hubSync = input.project?.hubSyncEnabled !== false;
+  const candidates = hubSync
+    ? input.candidates
+    : input.candidates.filter((candidate) => candidate.credential === undefined);
+  const pinned = current?.coordination.mode === "hub" ? current.coordination.hub : null;
+  // ADR-0656: another project's token path an earlier release pinned becomes this project's own.
+  const currentHub = pinned === null ? null : ownTokenCoordinates(pinned, input.project?.projectId);
+  const borrowed = currentHub !== pinned;
+  for (const candidate of candidates) {
     // Unchanged coordinates were proven when they were written; the lease reports later failures.
     if (
       currentHub !== null &&
+      !borrowed &&
       marker?.unproven !== true &&
       canonicalJson(currentHub) === canonicalJson(candidate.hub)
     ) {
@@ -166,20 +189,30 @@ export async function deriveConvergenceOwnerHost(input: {
     }
     hubFailure ??= failure;
   }
-  // A Hub configuration whose coordinates disappeared from every source stays as written: losing
-  // a local service definition must not silently downgrade a coordinated host to standalone.
-  if (chosen === null && currentHub !== null)
+  const unproven =
+    chosen === null ? unprovenCandidate(candidates, currentHub, borrowed, hubSync) : null;
+  // A proven Hub configuration whose coordinates disappeared from every source stays as written:
+  // losing a local service definition must not silently downgrade a coordinated host to
+  // standalone, and with Hub sync on, neither do unproven ones without a replacement (ADR-0471).
+  if (
+    chosen === null &&
+    currentHub !== null &&
+    !borrowed &&
+    (marker?.unproven !== true || (hubSync && unproven === null))
+  )
     return {
       derivation: { status: "unchanged", mode: "hub", source: marker?.source ?? "none" },
       hubFailure,
+      ...((await ownTokenAbsent(currentHub, input.project?.projectId))
+        ? { credentialAbsent: true as const }
+        : {}),
       publication: current?.publication === undefined ? "unavailable" : "configured",
     };
 
   // ADR-0470: Hub coordinates that exist but are refused or unreachable never fall back to
   // standalone, whose verdict owns unconditionally: another host may hold the Hub lease. The
-  // most specific candidate is written unproven, so the lease reports `unverifiable` and this
+  // most specific own candidate is written unproven, so the lease reports `unverifiable` and this
   // host stays read-only until coordination works. Standalone is only for hosts without any.
-  const unproven = chosen === null ? (input.candidates[0] ?? null) : null;
   // ADR-0473: a derived publication setting is probed again on the same interval, so a remote
   // whose default branch changed, or a base derived from a stale local ref, is corrected. A failed
   // probe keeps the current setting, and fixed default roots become the delegation scope.
@@ -234,6 +267,9 @@ export async function deriveConvergenceOwnerHost(input: {
       source,
     },
     hubFailure: chosen === null ? hubFailure : null,
+    ...(unproven !== null && (await ownTokenAbsent(unproven.hub, input.project?.projectId))
+      ? { credentialAbsent: true as const }
+      : {}),
     publication:
       desired.coordination.mode !== "hub"
         ? "not_applicable"
@@ -241,4 +277,50 @@ export async function deriveConvergenceOwnerHost(input: {
           ? "unavailable"
           : "configured",
   };
+}
+
+/**
+ * ADR-0656: the coordinates written unproven when no candidate is proven: the most specific own
+ * candidate; else, with Hub sync on, a borrowed configuration rewritten to this project's own
+ * token path, so it stays read-only instead of falling back to standalone (ADR-0471).
+ */
+function unprovenCandidate(
+  candidates: readonly ConvergenceOwnerHubCandidate[],
+  currentHub: ConvergenceOwnerHubCoordinates | null,
+  borrowed: boolean,
+  hubSync: boolean,
+): ConvergenceOwnerHubCandidate | null {
+  if (candidates[0] !== undefined) return candidates[0];
+  return borrowed && hubSync && currentHub !== null
+    ? { source: "host_repository", hub: currentHub, credential: "absent" }
+    : null;
+}
+
+/** A token path under another project's `nodes/<projectId>/`, moved to this project's own. */
+function ownTokenCoordinates(
+  hub: ConvergenceOwnerHubCoordinates,
+  projectId: string | undefined,
+): ConvergenceOwnerHubCoordinates {
+  const match = /^(.*[\\/]nodes[\\/])(prj_[A-Za-z0-9_-]+)([\\/].*)$/u.exec(hub.bearerTokenFile);
+  return projectId === undefined || match === null || match[2] === projectId
+    ? hub
+    : { ...hub, bearerTokenFile: `${match[1]}${projectId}${match[3]}` };
+}
+
+/**
+ * True when the coordinates name this project's own token, `nodes/<projectId>/secrets/
+ * hub-sync.token`, and that file does not exist: the project has no credential of its own yet.
+ */
+async function ownTokenAbsent(
+  hub: ConvergenceOwnerHubCoordinates,
+  projectId: string | undefined,
+): Promise<boolean> {
+  const own = /[\\/]nodes[\\/](prj_[A-Za-z0-9_-]+)[\\/]secrets[\\/]hub-sync\.token$/u.exec(
+    hub.bearerTokenFile,
+  );
+  if (projectId === undefined || own?.[1] !== projectId) return false;
+  return lstat(hub.bearerTokenFile).then(
+    () => false,
+    (error: NodeJS.ErrnoException) => error.code === "ENOENT",
+  );
 }

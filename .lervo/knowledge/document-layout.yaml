@@ -113,6 +113,10 @@ routes:
     path: coordination/sync/workstreams
     priority: 83
     description: "Repository workstream replication across hosts: Hub lineages, heads, branch claims, and import."
+  - id: coordination.sync.knowledge-ownership
+    path: coordination/sync/knowledge-ownership
+    priority: 83
+    description: "Cross-host knowledge convergence ownership: owner-host derivation, Hub credentials, standalone fallback, and leases."
   - id: coordination.sync
     path: coordination/sync
     priority: 82

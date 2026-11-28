@@ -95,21 +95,29 @@ async function projectCredential(
 /**
  * ADR-0469/0470 Hub coordinates for a CLI-hosted resident, most specific first: the Node
  * registered for this exact checkout, this project's own credential (its per-project Node
- * configuration, or its token paired with a Hub another repository on this host uses), then
- * other repositories' Hub configurations as written. A candidate is only a proposal; continuity
- * probes it for this project before using it.
+ * configuration, or its token paired with a Hub another repository on this host uses), or, without
+ * a token, that Hub paired with the path where its own token belongs. Another repository's token is
+ * never offered (ADR-0656). A candidate is only a proposal; continuity probes it before using it.
  */
 export async function knowledgeHostHubCandidates(
   repositoryRoot: string,
   nodeDirectories: readonly string[] = projectNodeDirectories(),
 ): Promise<ConvergenceOwnerHubCandidate[]> {
   const candidates: ConvergenceOwnerHubCandidate[] = [];
-  const add = (hub: HubCoordinates, source: ConvergenceOwnerHubCandidate["source"]) => {
+  const add = (
+    hub: HubCoordinates,
+    source: ConvergenceOwnerHubCandidate["source"],
+    credential?: ConvergenceOwnerHubCandidate["credential"],
+  ) => {
     if (
       candidates.length < 4 &&
       !candidates.some((candidate) => JSON.stringify(candidate.hub) === JSON.stringify(hub))
     )
-      candidates.push({ source, hub: { ...hub } });
+      candidates.push({
+        source,
+        hub: { ...hub },
+        ...(credential === undefined ? {} : { credential }),
+      });
   };
   const node = await registeredNodeHubCoordinates(repositoryRoot);
   if (node !== null) add(node, "node_runtime");
@@ -131,6 +139,21 @@ export async function knowledgeHostHubCandidates(
   }
   if (own.tokenFile !== null)
     for (const hub of others) add({ ...hub, bearerTokenFile: own.tokenFile }, "host_repository");
-  for (const hub of others) add(hub, "host_repository");
+  // ADR-0656: another repository's token is never offered. Without a token of its own, the
+  // project is offered the Hub other repositories use with the path where its own token belongs,
+  // so the coordinates start working once the operator places that token.
+  else if (projectId !== null && others[0] !== undefined)
+    add(
+      {
+        ...others[0],
+        bearerTokenFile: resolve(
+          nodeDirectories[0] ?? resolve(homedir(), ".lervo", "nodes"),
+          projectId,
+          ...PROJECT_TOKEN,
+        ),
+      },
+      "host_repository",
+      "absent",
+    );
   return candidates;
 }

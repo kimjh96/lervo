@@ -15,6 +15,7 @@ import {
   type ConvergenceContinuityState,
 } from "./continuity-state.js";
 import { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
+import { standalonePeerHosts } from "./convergence-owner-history.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { decideDelegationRenewal } from "./delegation-continuity-decision.js";
@@ -104,6 +105,7 @@ export async function inspectConvergenceContinuity(input: {
       hubFailure: state?.hub.failureCode ?? null,
       peers: state?.peers ?? [],
     }),
+    ...(await standalonePeerFindings(root, state?.ownerHost.state ?? null, fence?.verdict, now)),
     ...localContinuityFindings({
       now,
       expected,
@@ -128,4 +130,29 @@ export async function inspectConvergenceContinuity(input: {
     lastFailure: residentCycle?.lastFailure ?? null,
     findings,
   };
+}
+
+/**
+ * ADR-0656: a standalone host yields only for one lease lifetime after it sees another host's
+ * fresh knowledge commit, so two hosts that both maintain a project keep doing so. One finding
+ * makes that visible whenever another host's knowledge commits reached this branch or its
+ * upstream's last fetch within a week, whether that host is standalone or coordinates through
+ * the Hub.
+ */
+async function standalonePeerFindings(
+  root: string,
+  ownerHostState: string | null,
+  verdict: ConvergenceOwnerVerdict | undefined,
+  now: number,
+): Promise<ContinuityFinding[]> {
+  const hostHash = verdict?.hostHash ?? null;
+  if (ownerHostState !== "standalone" || hostHash === null) return [];
+  const peers = await standalonePeerHosts({
+    repositoryRoot: root,
+    hostHash,
+    now,
+  }).catch(() => []);
+  return peers.length === 0
+    ? []
+    : [{ code: "standalone_peer_active", severity: "attention", detail: null }];
 }

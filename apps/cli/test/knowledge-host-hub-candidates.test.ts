@@ -41,7 +41,7 @@ async function host() {
 }
 
 describe("host Hub candidates (ADR-0470)", () => {
-  it("prefers this project's own credential over another repository's token", async () => {
+  it("offers this project's own credential, never another repository's token (ADR-0656)", async () => {
     const { state, checkout } = await host();
     const lervo = await checkout("lervo", "prj_candidates_lervo");
     const plen = await checkout("plen", "prj_candidates_plen");
@@ -64,7 +64,38 @@ describe("host Hub candidates (ADR-0470)", () => {
         source: "host_repository",
         hub: { ...hub, bearerTokenFile: resolve(own, "hub-sync.token") },
       },
-      { source: "host_repository", hub: { ...hub, bearerTokenFile: "/secrets/lervo.token" } },
+    ]);
+  });
+
+  it("offers a project without a token of its own only its own token path, never another's", async () => {
+    const { state, checkout } = await host();
+    const lervo = await checkout("lervo", "prj_candidates_lervo");
+    const plen = await checkout("plen", "prj_candidates_plen");
+    await mkdir(resolve(lervo, ".lervo/state/knowledge"), { recursive: true });
+    await writeFile(
+      resolve(lervo, ".lervo/state/knowledge/convergence-owner-host.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        hostId: `hst_${"1".repeat(32)}`,
+        hostLabel: "mac",
+        coordination: { mode: "hub", hub: { ...hub, bearerTokenFile: "/secrets/lervo.token" } },
+      }),
+    );
+    expect(await knowledgeHostHubCandidates(plen)).toEqual([
+      {
+        source: "host_repository",
+        hub: {
+          ...hub,
+          bearerTokenFile: resolve(
+            state,
+            "nodes",
+            "prj_candidates_plen",
+            "secrets",
+            "hub-sync.token",
+          ),
+        },
+        credential: "absent",
+      },
     ]);
   });
 

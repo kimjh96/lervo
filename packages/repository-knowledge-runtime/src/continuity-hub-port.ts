@@ -1,8 +1,10 @@
+import { loadProjectManifest } from "@lervo/project";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   calculateProjectIdentityHash,
   knowledgeConvergenceOwnerFailureOf,
   type KnowledgeConvergenceHostListing,
+  type KnowledgeConvergenceOwnerFailure,
 } from "@lervo/sync-contract";
 
 import type {
@@ -10,6 +12,7 @@ import type {
   ConvergenceHostRecordTransport,
 } from "./convergence-continuity.js";
 import type { ConvergenceOwnerHost } from "./convergence-owner-host.js";
+import type { ConvergenceOwnerHubCandidate } from "./convergence-owner-host-derivation.js";
 import { adoptPeerModelSelection } from "./model-selection-host.js";
 
 function httpStatusOf(error: unknown): number | null {
@@ -113,4 +116,33 @@ export async function listContinuityHosts(
       failureCode: knowledgeConvergenceOwnerFailureOf(error).failureCode,
     };
   }
+}
+
+/** One host-record read with candidate coordinates for owner-host derivation: null when accepted. */
+export async function probeOwnerHub(
+  transport: ConvergenceHostRecordTransport | undefined,
+  hub: ConvergenceOwnerHubCandidate["hub"],
+  identity: { projectId: string; repositoryIdentityHash: string },
+  signal: AbortSignal | undefined,
+): Promise<KnowledgeConvergenceOwnerFailure | null> {
+  try {
+    const port = await transport?.({ ...hub, ...identity });
+    if (port === undefined) return { failureCode: "hub_configuration_invalid", httpStatus: null };
+    await port.list(signal);
+    return null;
+  } catch (error) {
+    return knowledgeConvergenceOwnerFailureOf(error);
+  }
+}
+
+/**
+ * ADR-0656: the project as tracked now. A resident keeps the manifest it started with, so the
+ * data policy is read again at every reconciliation; an unreadable manifest keeps that one.
+ */
+export async function reconciledProject(
+  root: string,
+  started: ProjectStorage["manifest"],
+): Promise<{ projectId: string; hubSyncEnabled: boolean }> {
+  const manifest = await loadProjectManifest(root).catch(() => started);
+  return { projectId: manifest.projectId, hubSyncEnabled: manifest.dataPolicy.hubSyncEnabled };
 }

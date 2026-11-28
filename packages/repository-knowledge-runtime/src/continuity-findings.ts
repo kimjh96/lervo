@@ -36,6 +36,8 @@ export type ContinuityFindingCode =
   | "policy_revoked"
   | "policy_horizon_near"
   | "owner_host_standalone"
+  // ADR-0656: another host's knowledge commits show it maintains this project too.
+  | "standalone_peer_active"
   | "owner_host_hub_unusable"
   | "owner_host_invalid"
   | "lease_unverifiable"
@@ -216,7 +218,10 @@ function hostFindings(input: ContinuityFindingsInput): ContinuityFinding[] {
       severity: "attention",
       detail: input.publicationStatus,
     });
-  if (input.hubFailure !== null)
+  // ADR-0656: unusable owner-host coordinates already explain why the host-record exchange
+  // through the same Hub failed, so one cause is reported once.
+  const unusable = findings.some((finding) => finding.code === "owner_host_hub_unusable");
+  if (input.hubFailure !== null && !unusable)
     findings.push({ code: "hub_unavailable", severity: "attention", detail: input.hubFailure });
   else if ((input.definitionExchangeFailure ?? null) !== null)
     findings.push({
