@@ -40,6 +40,16 @@ export interface TerminalContextServer {
 }
 
 /**
+ * The answer to a run that failed. The in-process hook answers an internal failure with an empty
+ * context; a claim's failure is no answer, so the launcher decides it in process (ADR-0652).
+ */
+function failedRunAnswer(kind: TerminalContextKind): string {
+  const answer =
+    kind === "tool" ? { ok: false } : { ok: true, stdout: "{}\n", stderr: "", exitCode: 0 };
+  return `${JSON.stringify(answer)}\n`;
+}
+
+/**
  * Listens on `socketPath` and serves one request at a time. `run` prepares the prompt as the
  * in-process hook would. After an answer that `overran`, or a run that has not settled within
  * `runLimitMs`, `onOverrun` lets the caller exit, so abandoned work never runs into the next
@@ -167,16 +177,7 @@ export function startTerminalContextServer(input: {
             return (await answer.afterDrain?.().catch(() => true)) === false;
           },
           () => {
-            // The in-process hook answers an internal failure with an empty context. A claim's
-            // failure is no answer, so the launcher decides it in process (ADR-0652).
-            if (!socket.destroyed)
-              socket.end(
-                `${JSON.stringify(
-                  current.kind === "tool"
-                    ? { ok: false }
-                    : { ok: true, stdout: "{}\n", stderr: "", exitCode: 0 },
-                )}\n`,
-              );
+            if (!socket.destroyed) socket.end(failedRunAnswer(current.kind));
             return true;
           },
         )

@@ -64,11 +64,16 @@ async function answerClaimAndSettle(
   await Promise.all(locked);
 }
 
-/** The provider a claim handler's arguments name, or null when they are no claim handler's. */
-function claimHandlerProvider(args: readonly string[]): string | null {
-  if (!args.includes("--claim")) return null;
+/**
+ * What a hook that failed before answering prints: an empty answer, or for a claim handler, the
+ * refusal of the write as unverified, never letting it through unchecked (ADR-0652).
+ */
+function failedHookAnswer(args: readonly string[], failureReason: string): string {
   const at = args.indexOf("--provider");
-  return at === -1 ? null : (args[at + 1] ?? null);
+  const provider = at === -1 ? undefined : args[at + 1];
+  return args.includes("--claim") && provider !== undefined
+    ? unverifiedClaimAnswer(provider, failureReason)
+    : "{}\n";
 }
 
 /** A conversation's reconciliation at `Stop`: the block reason, or null to let the turn end. */
@@ -330,14 +335,10 @@ async function executeTerminalHookCommand(
         policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
       });
     }).catch(() => undefined);
-    // ADR-0635: an input Lervo cannot read never blocks the owner's prompt or forces a Stop to
-    // continue, which a nonzero exit does in both providers. The failure is recorded above. A
-    // claim it could not decide is refused instead, never let through unchecked (ADR-0652).
+    // ADR-0635: unreadable input never blocks a prompt or forces a Stop to continue; a claim is
+    // refused instead (ADR-0652). The failure is recorded above.
     io.stderr(`Lervo terminal integration failed (${failureReason}).\n`);
-    const claimProvider = claimHandlerProvider(args);
-    io.stdout(
-      claimProvider === null ? "{}\n" : unverifiedClaimAnswer(claimProvider, failureReason),
-    );
+    io.stdout(failedHookAnswer(args, failureReason));
     return 0;
   }
 }
