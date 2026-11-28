@@ -82,7 +82,7 @@ export function nonOwnerHealth(verdict: ConvergenceOwnerVerdict): {
         reason: `waiting_owner:${verdict.holder?.label ?? verdict.holder?.hostHash.slice(7, 19) ?? "unknown"}`,
       };
     case "ineligible":
-      return { state: "waiting", reason: "knowledge_authority_unavailable" };
+      return { state: "waiting", reason: verdict.reason };
     case "yielding":
       return { state: "waiting", reason: "convergence_owner_released" };
     default:

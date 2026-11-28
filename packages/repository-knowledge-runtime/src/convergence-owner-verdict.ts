@@ -22,7 +22,9 @@ export const CONVERGENCE_OWNER_YIELD_MS = CONVERGENCE_OWNER_LEASE_TTL_MS;
  *   A failed Hub request names its cause in `failureCode` and `httpStatus`.
  * - `contended`: a standalone host saw another host's fresh knowledge commit; read-only with
  *   attention, because two unconfigured hosts are converging one repository.
- * - `ineligible`: this host has no usable delegation and does not contend for the lease.
+ * - `ineligible`: this host does not contend for the lease: it has no usable delegation
+ *   (`knowledge_authority_unavailable`), or no provider the delegation allows was admitted here
+ *   within the last hour (`provider_not_admitted`, with `wakeAt` when that observation lapses).
  * - `yielding`: an operator released this host's lease; it does not reclaim until `yieldUntil`.
  */
 export type ConvergenceOwnerRole =
@@ -40,6 +42,7 @@ export type ConvergenceOwnerReason =
   | "convergence_owner_transport_missing"
   | "convergence_owner_contended"
   | "knowledge_authority_unavailable"
+  | "provider_not_admitted"
   | "convergence_owner_released";
 
 export interface ConvergenceOwnerHolder {
@@ -59,7 +62,10 @@ export interface ConvergenceOwnerVerdict {
   holder: ConvergenceOwnerHolder | null;
   /** Local instant until which this host may act as owner; null unless `owner`. */
   validUntil: string | null;
-  /** Local instant at which a non-owner should look again, when a lease expiry is known. */
+  /**
+   * Local instant at which a non-owner should look again: when a lease expiry is known, or when an
+   * `ineligible` host's provider observation lapses.
+   */
   wakeAt: string | null;
   /** Local instant at which this host last obtained a grant or renewal from the Hub. */
   grantedAt: string | null;

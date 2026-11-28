@@ -308,9 +308,17 @@ describe("cross-host convergence ownership", () => {
           mode: 0o600,
         },
       );
+      // The delegation is intact, so the verdict names the provider, not the authority, and wakes
+      // the resident when the observation lapses instead of waiting for an unrelated change.
+      const lapses = new Date(now() + PROVIDER_UNADMITTED_INELIGIBILITY_MS).toISOString();
       expect(await mac.ownership().observe()).toMatchObject({
         role: "ineligible",
-        reason: "knowledge_authority_unavailable",
+        reason: "provider_not_admitted",
+        wakeAt: lapses,
+      });
+      expect((await readConvergenceOwnerFence(mac.root))?.verdict).toMatchObject({
+        reason: "provider_not_admitted",
+        wakeAt: lapses,
       });
       expect(ownerEvents(mac.storage).at(-1)).toMatchObject({ reason: "delegation" });
       expect(await wsl.ownership().observe()).toMatchObject({ role: "owner" });

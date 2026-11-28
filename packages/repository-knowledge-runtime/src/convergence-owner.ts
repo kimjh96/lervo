@@ -8,7 +8,10 @@ import {
   type KnowledgeConvergenceOwnerReading,
 } from "@lervo/sync-contract";
 
-import { convergenceOwnerEligible } from "./convergence-owner-eligibility.js";
+import {
+  convergenceOwnerEligibility,
+  type ConvergenceOwnerEligibility,
+} from "./convergence-owner-eligibility.js";
 import {
   recordConvergenceOwnerChange,
   type ConvergenceOwnerChangeReason,
@@ -187,19 +190,21 @@ export class ConvergenceOwnership {
       );
     // A Hub lease is only worth holding with an active delegation; standalone hosts keep the
     // legacy single-host behavior and their own authority checks.
-    if (!(await this.eligible(now))) {
+    const eligibility = await this.eligibility(now);
+    if (!eligibility.eligible) {
       if (previous?.role === "owner" && previous.hostHash === host.hostHash)
         await this.releaseLease(host, previous, signal).catch(() => undefined);
       return this.settle(
         host,
         {
           role: "ineligible",
-          reason: "knowledge_authority_unavailable",
+          // The exact cause, and when a provider observation lapses, the moment to look again.
+          reason: eligibility.reason,
           mode,
           ...identity,
           holder: null,
           validUntil: null,
-          wakeAt: null,
+          wakeAt: eligibility.wakeAt === null ? null : iso(eligibility.wakeAt),
           grantedAt: null,
           yieldUntil: null,
           observedAt: iso(now),
@@ -270,8 +275,8 @@ export class ConvergenceOwnership {
     return calculateProjectIdentityHash(this.input.storage.manifest);
   }
 
-  private eligible(now: number): Promise<boolean> {
-    return convergenceOwnerEligible({
+  private eligibility(now: number): Promise<ConvergenceOwnerEligibility> {
+    return convergenceOwnerEligibility({
       root: this.root,
       provider: this.input.provider,
       policyPath: this.input.continuityPolicyPath ?? null,
