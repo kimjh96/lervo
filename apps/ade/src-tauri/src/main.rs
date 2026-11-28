@@ -45,6 +45,7 @@ fn main() -> ExitCode {
             commands::host_send,
             commands::host_replace,
             window::window_ready,
+            window::window_painted,
             measure::measure_report,
             measure::measure_hide,
             measure::measure_opaque,

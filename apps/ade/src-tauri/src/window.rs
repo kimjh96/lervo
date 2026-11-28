@@ -1,33 +1,85 @@
-//! The window opens hidden (`tauri.conf.json`) and shows once its page can paint the launch view,
-//! so it never shows an empty window while the webview starts (ADE motion, "Launch").
+//! The window opens hidden (`tauri.conf.json`) and shows once its page has painted the launch
+//! view, so it never shows an empty window while the webview starts (ADE motion, "Launch").
+//!
+//! WebKit draws nothing for a window that is not on screen, so a window shown when its page could
+//! paint still showed its bare material until the first frame landed, for seconds when the Mac
+//! was short of memory. The window therefore goes on screen fully transparent, so WebKit draws
+//! into it, and turns opaque when the page reports its first frame, or after a bound.
 
 use serde_json::json;
 use tauri::webview::{PageLoadEvent, PageLoadPayload};
 use tauri::{Emitter, Runtime, Webview, WebviewWindow, Window, WindowEvent};
 
-/// Shows the window. `public/launch.js` calls it as soon as the document's stylesheets have
-/// loaded, which is when the launch view can paint.
+/// How long a transparent window waits for its page's first frame before it turns opaque anyway.
+const PAINT_WAIT: std::time::Duration = std::time::Duration::from_millis(600);
+
+/// Puts the window on screen, transparent, so WebKit draws the launch view into it.
+/// `public/launch.js` calls it as soon as the document's stylesheets have loaded, and
+/// `window_painted` once a frame has landed.
 #[tauri::command]
 pub fn window_ready(window: WebviewWindow) {
-    show(window.as_ref().window());
+    let window = window.as_ref().window();
+    if window.is_visible().unwrap_or(false) {
+        return;
+    }
+    set_opacity(&window, 0.0);
+    if window.show().is_ok() {
+        let _ = window.set_focus();
+    }
+    // A page whose frame never reports still turns opaque.
+    std::thread::spawn(move || {
+        std::thread::sleep(PAINT_WAIT);
+        reveal(&window);
+    });
+}
+
+/// Turns the window opaque: its page has painted a frame (`public/launch.js`).
+#[tauri::command]
+pub fn window_painted(window: WebviewWindow) {
+    reveal(&window.as_ref().window());
 }
 
 /// Shows the window when its page has finished loading, in case the page never asked.
 pub fn on_page_load<R: Runtime>(webview: &Webview<R>, payload: &PageLoadPayload<'_>) {
-    if payload.event() == PageLoadEvent::Finished {
-        show(webview.window());
-    }
-}
-
-/// Shows and focuses a hidden window; a visible window keeps its place and focus.
-fn show<R: Runtime>(window: Window<R>) {
-    if window.is_visible().unwrap_or(false) {
+    if payload.event() != PageLoadEvent::Finished {
         return;
     }
-    if window.show().is_ok() {
+    let window = webview.window();
+    if !window.is_visible().unwrap_or(false) && window.show().is_ok() {
         let _ = window.set_focus();
     }
+    reveal(&window);
 }
+
+/// Makes the window opaque; an opaque window stays as it is.
+fn reveal<R: Runtime>(window: &Window<R>) {
+    set_opacity(window, 1.0);
+}
+
+/// Sets the native window's opacity on the main thread, where AppKit requires it. The window is
+/// found among the application's windows by its pointer, so no raw pointer is dereferenced.
+#[cfg(target_os = "macos")]
+fn set_opacity<R: Runtime>(window: &Window<R>, alpha: f64) {
+    let target = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        let (Some(main_thread), Ok(pointer)) = (objc2::MainThreadMarker::new(), target.ns_window())
+        else {
+            return;
+        };
+        let application = objc2_app_kit::NSApplication::sharedApplication(main_thread);
+        for ns_window in application.windows().iter() {
+            if objc2::rc::Retained::as_ptr(&ns_window).cast::<std::ffi::c_void>()
+                == pointer.cast_const()
+            {
+                ns_window.setAlphaValue(alpha);
+            }
+        }
+    });
+}
+
+/// Elsewhere the window shows as WebKit draws it, so it stays opaque.
+#[cfg(not(target_os = "macos"))]
+fn set_opacity<R: Runtime>(_window: &Window<R>, _alpha: f64) {}
 
 /// The appearance a development build was asked to open in, `LERVO_ADE_APPEARANCE=light` or
 /// `dark`, so the window can be checked in both without changing the system's appearance (ADE
