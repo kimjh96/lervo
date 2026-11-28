@@ -12,3 +12,5 @@ export * from "./repository.js";
 export * from "./repository-role-rendering.js";
 export * from "./types.js";
 export * from "./role-templates.js";
+export * from "./project-role-authoring.js";
+export * from "./project-role-store.js";
