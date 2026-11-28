@@ -1588,15 +1588,15 @@
     "description": "Under the start screen, when the installed Lervo is older than the app and offers no agent list."
   },
   "start.keptChanges": {
-    "defaultMessage": "The workspace was removed with its changes. Lervo keeps them for up to 14 days, and this command brings them back:",
-    "description": "Under the start card after a workspace was removed with its uncommitted changes, above the Git command that restores them."
+    "defaultMessage": "Removed. Lervo keeps its changes for up to 14 days.",
+    "description": "Under the start card after a workspace was removed with its uncommitted changes; the button beside it copies the command that restores them."
   },
   "start.keptChanges.copied": {
     "defaultMessage": "Copied",
     "description": "The copy button's words once the restore command is on the clipboard."
   },
   "start.keptChanges.copy": {
-    "defaultMessage": "Copy command",
+    "defaultMessage": "Copy restore command",
     "description": "Copies the Git command that brings removed changes back."
   },
   "start.keptChanges.dismiss": {

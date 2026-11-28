@@ -3685,7 +3685,7 @@
   "start.keptChanges": [
     {
       "type": 0,
-      "value": "The workspace was removed with its changes. Lervo keeps them for up to 14 days, and this command brings them back:"
+      "value": "Removed. Lervo keeps its changes for up to 14 days."
     }
   ],
   "start.keptChanges.copied": [
@@ -3697,7 +3697,7 @@
   "start.keptChanges.copy": [
     {
       "type": 0,
-      "value": "Copy command"
+      "value": "Copy restore command"
     }
   ],
   "start.keptChanges.dismiss": [
