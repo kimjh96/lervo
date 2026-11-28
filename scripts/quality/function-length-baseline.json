@@ -86,7 +86,7 @@
     "packages/adapter-discord/src/discord-adapter.ts:DiscordConversationAdapter.receiveAuthenticatedMessage": 164,
     "packages/agent-organization/src/projection.ts:projectAgentOrganization": 220,
     "packages/agent-workforce/src/assignment-creation.ts:createAssignmentOnce": 172,
-    "packages/agent-workforce/src/role-binding-migration.ts:createInternalPlan": 181,
+    "packages/agent-workforce/src/role-binding-migration.ts:createInternalPlan": 165,
     "packages/agent-workforce/src/supervision-responsibility-claim.ts:SupervisionResponsibilityClaimer.claim": 163,
     "packages/context-coverage/src/projector.ts:projectManagedContextCoverage": 277,
     "packages/context/src/selection.ts:createContextPlan": 196,
