@@ -24,6 +24,11 @@ import { CONVERGENCE_DELEGATION_PATH, loadConvergenceDelegation } from "../src/d
 import { convergenceDelegationScopeHash } from "../src/delegation-scope.js";
 import { FakeConvergenceOwnerHub, peerHost } from "./convergence-owner-hosts.js";
 import { fixture } from "./fixture.js";
+import {
+  DEFAULT_KNOWLEDGE_SUITE_CONTENT,
+  DEFAULT_KNOWLEDGE_SUITE_ID,
+  DEFAULT_KNOWLEDGE_SUITE_PATH,
+} from "../src/default-knowledge-suite.js";
 import { modelSelectionPath, writeModelSelectionRole } from "@lervo/execution-contract";
 import { hostModelSelectionDirectory } from "../src/model-selection-host.js";
 
@@ -446,6 +451,37 @@ describe("two hosts of one repository", () => {
 });
 
 describe("default onboarding of a new repository", () => {
+  it("installs Lervo's default suite when the repository has none, and seeds with it (ADR-0655)", async () => {
+    const f = await tracked(false);
+    const { registerAgent } = await import("@lervo/agent-workforce");
+    await registerAgent({ repositoryRoot: f.root, roleId: "developer", provider: "any" });
+    await expect(readFile(resolve(f.root, DEFAULT_KNOWLEDGE_SUITE_PATH))).rejects.toThrow();
+    const path = await policyFile(f, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    const state = await continuity({ f, policyPath: path, hosts, label: "wsl" }).reconcile();
+    expect(state).toMatchObject({
+      delegation: { state: "active" },
+      lastContinuation: { action: "seeded", source: "policy_template" },
+    });
+    const delegation = (await loadConvergenceDelegation(f.root))!.delegation;
+    expect(delegation.verification.map((suite) => suite.suiteId)).toEqual([
+      DEFAULT_KNOWLEDGE_SUITE_ID,
+    ]);
+    expect(await readFile(resolve(f.root, DEFAULT_KNOWLEDGE_SUITE_PATH), "utf8")).toBe(
+      DEFAULT_KNOWLEDGE_SUITE_CONTENT,
+    );
+    expect(
+      f.storage.events
+        .list({ limit: 500 })
+        .filter(
+          (event) =>
+            event.type === "knowledge.materialization.applied" &&
+            (event.payload as { operation?: string }).operation ===
+              "convergence_default_verification_suite",
+        ),
+    ).toHaveLength(1);
+  });
+
   it("reaches an active delegation, Hub coordination, publication, and a lease on its first cycle", async () => {
     const f = await tracked(false);
     // `lervo init` registers the developer agent; the repository has its own default suite.

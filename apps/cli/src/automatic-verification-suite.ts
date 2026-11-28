@@ -28,7 +28,10 @@ function selectAutomaticVerificationSuite(suiteIds: readonly string[]): string {
   if (uniqueSuiteIds.includes(UNVERSIONED_DEFAULT_SUITE_ID)) {
     return UNVERSIONED_DEFAULT_SUITE_ID;
   }
-  const nonPilot = uniqueSuiteIds.filter((suiteId) => !suiteId.startsWith("lervo.pilot."));
+  // Lervo's default suite checks only knowledge (ADR-0655), never a deliberation's code change.
+  const nonPilot = uniqueSuiteIds.filter(
+    (suiteId) => !suiteId.startsWith("lervo.pilot.") && suiteId !== "lervo.default.knowledge",
+  );
   if (nonPilot.length === 1) return nonPilot[0]!;
   throw automaticSuiteError(
     "deliberation_verification_ambiguous",

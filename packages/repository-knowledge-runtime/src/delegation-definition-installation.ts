@@ -33,6 +33,7 @@ import {
 import type { ConvergenceDelegation } from "./delegation-contract.js";
 import { bindConvergenceDelegationScope } from "./delegation-scope.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { ensureSeedDefaultSuite } from "./default-knowledge-suite.js";
 import { recordConvergenceMaterialization } from "./materialization-event.js";
 
 function failure(code: string): never {
@@ -85,6 +86,12 @@ export async function installPeerScopeDefinitions(input: {
 }): Promise<InstalledDefinitionCoordinate[]> {
   const delegation = input.record.delegation;
   if (delegation === null) return [];
+  // ADR-0655: Lervo's default suite has fixed bytes, so a checkout installs it itself.
+  await ensureSeedDefaultSuite({
+    storage: input.storage,
+    now: input.now,
+    peerScope: delegation.scope,
+  });
   const scope = bindConvergenceDelegationScope({
     scope: delegation.scope,
     parentAgentId: PLACEHOLDER_AGENT_ID,

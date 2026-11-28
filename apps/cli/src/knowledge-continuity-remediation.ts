@@ -18,7 +18,7 @@ const SEED_FAILURES: Record<string, string> = {
   convergence_seed_roots_missing:
     "None of the template's canonical or normalization roots exist in this checkout, so the resident cannot seed from it and retries when a root appears",
   convergence_seed_verification_missing:
-    "The repository has no repository.default.vN or repository.default verification suite. Add .lervo/verifications/repository.default.v1.yaml, then the resident seeds on its next cycle",
+    "The repository has no verification suite to bind. The resident installs Lervo's default suite, .lervo/verifications/lervo.default.knowledge.yaml, which runs lervo knowledge lint, and seeds on its next cycle; a resident older than ADR-0655 needs the host upgraded. Add your own .lervo/verifications/repository.default.v1.yaml to verify more",
   convergence_seed_definition_unavailable:
     "The peer's scope binds a verification suite or asset manifest this checkout lacks, and no host has shared the exact reviewed bytes through the Hub yet. The peer shares them on its next reconciliation once both the Hub and that host run an ADR-0477 version; see the definition_exchange_unavailable finding if one is reported",
   convergence_seed_definition_conflict:
@@ -26,7 +26,7 @@ const SEED_FAILURES: Record<string, string> = {
   convergence_seed_identity_mismatch:
     "The peer's delegation names another repository identity. Check that both checkouts share one .lervo/project.json",
   knowledge_authority_unavailable:
-    "The continued delegation no longer passes its role, suite, or ancestry checks, so the scope changed; the resident retries every 15 minutes",
+    "This host holds no delegation that passes its role, suite, and ancestry checks. A repository that was never seeded reports why under its convergence_seed_* finding, such as a missing verification suite, which the resident fixes itself; otherwise the bound scope changed and the resident seeds again on its next cycle",
   knowledge_reader_transition_required:
     "This checkout's event store still writes a schema older than 4. Run lervo upgrade on this host",
   knowledge_plan_stale:

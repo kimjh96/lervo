@@ -318,7 +318,7 @@ export async function continueConvergenceDelegation(input: {
             now: input.now,
           })
         : await seedDelegationFromTemplate({
-            root,
+            storage: input.storage,
             template: policy.policy.template!,
             expiresAt: seed.expiresAt,
             now: input.now,
