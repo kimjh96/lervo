@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a0851da0964f3d82ba3e29cc"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Scrolling back through a long conversation keeps the reader's place when earlier pages, joined agents' items, or answered lines land above it, and estimates unmeasured rows closely, so the view no longer jumps or flickers."
