@@ -74,15 +74,9 @@ export async function createDocumentSizeSplitPlan(input: {
     registered: userConcept,
   });
   let virtualScan = splitting.virtualScan;
-  const { planned, deferred, unsplittable, splits } = splitting;
-  const references = splitReferenceUpdates(
-    scan,
-    new Map(
-      splits.flatMap(({ source, split }) =>
-        typeof split === "string" ? [] : [[source.path, split.anchors] as const],
-      ),
-    ),
-  );
+  const { planned, deferred, unsplittable, failed } = splitting;
+  const linked = splitReferenceUpdates(scan, splitting.anchors);
+  const references = linked.filter((reference) => reference.linkRewrites.length > 0);
   if (references.length > 0)
     virtualScan = upsertRepositoryKnowledgeScanSources(
       virtualScan,
@@ -161,7 +155,11 @@ export async function createDocumentSizeSplitPlan(input: {
     afterRegistryDigest: registry.afterRegistryDigest,
     boundBytes,
     documents,
+    failed,
     referenceUpdates: references.map(({ content: _content, ...reference }) => reference),
+    unkeptReferences: linked.flatMap((reference) =>
+      reference.unkeptLinks.map((url) => ({ path: reference.path, url })),
+    ),
     unsplittable: [...unsplittable, ...planned.flatMap((item) => item.unsplittable)],
     data: sources
       .filter((source) => source.data)

@@ -6,8 +6,10 @@ import type { KnowledgeFileOperation, RepositoryKnowledgeScan } from "./types.js
 export interface DocumentSizeSplitRestoration {
   /** Table header rows copied ahead of the range, or null. */
   repeatedHeader: string | null;
-  /** Reference definitions copied after the range, or "". */
-  copiedDefinitions: string;
+  /** Reference definitions copied ahead of the file, so they take effect first, or "". */
+  definitionsBefore: string;
+  /** Reference definitions copied after the range, in the document's own file, or "". */
+  definitionsAfter: string;
   /** Link destinations rewritten, at character offsets before rewriting. */
   linkRewrites: Array<{ start: number; end: number; before: string; after: string }>;
 }
@@ -42,6 +44,8 @@ export interface DocumentSizeSplitReferenceUpdate {
   beforeHash: string;
   afterHash: string;
   linkRewrites: DocumentSizeSplitRestoration["linkRewrites"];
+  /** Links to a split document's heading that no file holds, named so none breaks silently. */
+  unkeptLinks: string[];
 }
 
 export interface DocumentSizeSplitPlan {
@@ -61,6 +65,13 @@ export interface DocumentSizeSplitPlan {
   afterRegistryDigest: string;
   boundBytes: number;
   documents: DocumentSizeSplitDocument[];
+  /**
+   * Documents the plan leaves unsplit because their split failed its own check or a part path is
+   * taken, with the reason; the other documents still split.
+   */
+  failed: Array<{ path: string; reason: string }>;
+  /** Links of other documents to a split document's heading that no file holds. */
+  unkeptReferences: Array<{ path: string; url: string }>;
   /** Other documents whose anchor links the split rewrites. */
   referenceUpdates: DocumentSizeSplitReferenceUpdate[];
   /**

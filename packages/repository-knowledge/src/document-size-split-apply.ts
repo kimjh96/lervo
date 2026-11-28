@@ -63,8 +63,9 @@ export async function verifyDocumentSizeSplitPlan(plan: DocumentSizeSplitPlan): 
       const reason = restoreSplitPiece(original, written, {
         start,
         end,
+        prefix: range.definitionsBefore,
         header: range.repeatedHeader,
-        appendix: range.copiedDefinitions,
+        appendix: range.definitionsAfter,
         rewrites: range.linkRewrites,
         ...(index === 0 ? { block: document.partsBlock } : {}),
       });

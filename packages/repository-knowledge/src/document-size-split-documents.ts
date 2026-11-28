@@ -1,13 +1,16 @@
 // ADR-0653: planning each document of a size split: its parts' paths checked, its lineage, its
 // user writes, and the scan as it will read after them.
+import { posix } from "node:path";
 
 import {
   byteOffset,
+  restoreSplitPiece,
   splitDocuments,
   type SplitDocument,
   type SplitPiece,
 } from "./document-size-split-layout.js";
 import { assertSafeAbsentDestination } from "./document-structure-split.js";
+import type { SplitAnchorFiles } from "./document-size-split-links.js";
 import type { DurableKnowledgeUserFileOperation } from "./durable-apply.js";
 import type {
   DocumentSizeSplitDocument,
@@ -181,12 +184,56 @@ async function planDocument(input: {
 function restoration(piece: SplitPiece): DocumentSizeSplitRestoration {
   return {
     repeatedHeader: piece.header,
-    copiedDefinitions: piece.appendix,
+    definitionsBefore: piece.prefix,
+    definitionsAfter: piece.appendix,
     linkRewrites: piece.rewrites,
   };
 }
 
-/** Every document's split planned in order, and what the plan defers or keeps whole. */
+/** Why a document's split fails its own check, or null when every file restores exactly. */
+function selfCheckFailure(source: SplitSource, split: SplitDocument): string | null {
+  for (const piece of [split.index, ...split.parts]) {
+    const reason = restoreSplitPiece(source.content, piece.content, {
+      ...piece,
+      ...(piece === split.index ? { block: split.index.block } : {}),
+    });
+    if (reason !== null) return `${piece.path}: ${reason}`;
+  }
+  return null;
+}
+
+/**
+ * A rewritten link of the split that names a split document or one of its parts that the final
+ * plan does not write, or null. Every other destination is the reader's own business.
+ */
+function missingTarget(
+  split: SplitDocument,
+  planned: ReadonlySet<string>,
+  splitPaths: readonly string[],
+) {
+  for (const piece of [split.index, ...split.parts])
+    for (const rewrite of piece.rewrites) {
+      const path = /^([^?#]*)/u.exec(rewrite.after)?.[1] ?? "";
+      if (path.length === 0) continue;
+      let target: string;
+      try {
+        target = posix.normalize(posix.join(posix.dirname(piece.path), decodeURI(path)));
+      } catch {
+        return rewrite.after;
+      }
+      const intoSplit = splitPaths.some(
+        (document) => target === document || target.startsWith(`${document.slice(0, -3)}/`),
+      );
+      if (intoSplit && !planned.has(target)) return rewrite.after;
+    }
+  return null;
+}
+
+/**
+ * Every document's split planned in order, and what the plan defers, keeps whole, or leaves
+ * unsplit. A document whose split fails its own check, names a part path that is taken, or links
+ * to a part the final plan does not write is reported as failed; it never blocks the others.
+ */
 export async function planSplits(input: {
   root: string;
   scan: RepositoryKnowledgeScan;
@@ -200,37 +247,78 @@ export async function planSplits(input: {
   planned: PlannedDocument[];
   deferred: DocumentSizeSplitPlan["deferred"];
   unsplittable: DocumentSizeSplitPlan["unsplittable"];
-  splits: ReturnType<typeof splitDocuments<SplitSource>>;
+  failed: DocumentSizeSplitPlan["failed"];
+  anchors: SplitAnchorFiles;
 }> {
   const { root, scan, policy, generatedPaths, sources, boundBytes } = input;
-  const userConcept = input.registered;
-  let virtualScan = scan;
-  const planned: PlannedDocument[] = [];
   const deferred: DocumentSizeSplitPlan["deferred"] = [];
   const unsplittable: DocumentSizeSplitPlan["unsplittable"] = [];
+  const failed: DocumentSizeSplitPlan["failed"] = [];
   const splittable = sources.filter((source) => {
     if (source.data) return false;
-    if (source.unread || userConcept(source.path)) return true;
+    if (source.unread || input.registered(source.path)) return true;
     deferred.push({ path: source.path, byteCount: source.byteCount });
     return false;
   });
-  const splits = splitDocuments(splittable, boundBytes);
-  for (const { source, split } of splits) {
+  let accepted: Array<{ source: SplitSource; split: SplitDocument }> = [];
+  for (const { source, split } of splitDocuments(splittable, boundBytes)) {
     if (typeof split === "string") {
       unsplittable.push({ path: source.path, byteCount: source.byteCount, reason: split });
       continue;
     }
-    const document = await planDocument({
-      root,
-      scan,
-      virtualScan,
-      policy,
-      generatedPaths,
-      source,
-      split,
-    });
-    virtualScan = document.scan;
-    planned.push(document);
+    const reason = selfCheckFailure(source, split);
+    if (reason === null) accepted.push({ source, split });
+    else failed.push({ path: source.path, reason: `document_split_failed: ${reason}` });
   }
-  return { virtualScan, planned, deferred, unsplittable, splits };
+  // A link into a document that failed points to parts no one writes; its document fails too.
+  for (let changed = true; changed;) {
+    changed = false;
+    const files = new Set(
+      accepted.flatMap(({ split }) => [split.path, ...split.parts.map((part) => part.path)]),
+    );
+    const splitPaths = splittable.map((source) => source.path);
+    accepted = accepted.filter(({ source, split }) => {
+      const target = missingTarget(split, files, splitPaths);
+      if (target === null) return true;
+      failed.push({
+        path: source.path,
+        reason: `document_split_failed: a link names ${target}, which the plan does not write`,
+      });
+      changed = true;
+      return false;
+    });
+  }
+  let virtualScan = scan;
+  const planned: PlannedDocument[] = [];
+  for (const { source, split } of accepted) {
+    try {
+      const document = await planDocument({
+        root,
+        scan,
+        virtualScan,
+        policy,
+        generatedPaths,
+        source,
+        split,
+      });
+      virtualScan = document.scan;
+      planned.push(document);
+    } catch (error) {
+      if (!(error instanceof RepositoryKnowledgeError)) throw error;
+      failed.push({ path: source.path, reason: `document_split_failed: ${error.message}` });
+    }
+  }
+  const plannedPaths = new Set(planned.map((item) => item.document.path));
+  return {
+    virtualScan,
+    planned,
+    deferred,
+    unsplittable,
+    failed: failed.sort((left, right) => left.path.localeCompare(right.path)),
+    anchors: new Map(
+      accepted
+        .filter(({ source }) => plannedPaths.has(source.path))
+        .map(({ source, split }) => [source.path, split.anchors] as const),
+    ),
+  };
 }

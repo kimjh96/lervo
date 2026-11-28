@@ -56,11 +56,6 @@ interface Boundary {
 const MANAGED_BEGIN = /^<!--\s*lervo:begin\b/u;
 const MANAGED_END = /^<!--\s*lervo:end\b/u;
 
-function nodeText(node: PositionedNode): string {
-  if (typeof node.value === "string") return node.value;
-  return (node.children ?? []).map(nodeText).join("");
-}
-
 function parse(content: string): PositionedNode {
   try {
     return fromMarkdown(content) as PositionedNode;
@@ -97,7 +92,7 @@ function boundaries(root: PositionedNode): Boundary[] {
     if (MANAGED_BEGIN.test(html)) managed = !MANAGED_END.test(html.split("\n").pop() ?? "");
     if (node.type !== "heading") return [{ position: position!, heading: null }];
     const depth = node.depth ?? 0;
-    const title = nodeText(node).trim().slice(0, 300);
+    const title = headingText(node).replace(/\s+/gu, " ").trim().slice(0, 300);
     if (depth < 1 || depth > 6 || title.length === 0)
       return [{ position: position!, heading: null }];
     while (stack.length > 0 && stack[stack.length - 1]!.depth >= depth) stack.pop();
@@ -110,7 +105,7 @@ function boundaries(root: PositionedNode): Boundary[] {
   });
 }
 
-/** GitHub's anchor for a heading: lowercase, punctuation removed, spaces as hyphens. */
+/** GitHub's anchor text for a heading: lowercase, punctuation removed, spaces as hyphens. */
 export function githubHeadingSlug(title: string): string {
   return title
     .toLowerCase()
@@ -118,23 +113,54 @@ export function githubHeadingSlug(title: string): string {
     .replace(/ /gu, "-");
 }
 
-/** Every heading's anchor in document order, numbered as GitHub numbers repeated anchors. */
+/**
+ * GitHub's numbering of repeated anchors (github-slugger): a repeat takes the first free `-N`, and
+ * every anchor handed out, numbered or not, is taken from then on.
+ */
+export function githubHeadingSlugger(): (title: string) => string {
+  const occurrences = new Map<string, number>();
+  return (title) => {
+    const base = githubHeadingSlug(title);
+    let anchor = base;
+    while (occurrences.has(anchor)) {
+      const count = occurrences.get(base)! + 1;
+      occurrences.set(base, count);
+      anchor = `${base}-${count}`;
+    }
+    occurrences.set(anchor, 0);
+    return anchor;
+  };
+}
+
+/** A heading's visible text, as GitHub renders it: inline HTML tags and images contribute none. */
+function headingText(node: PositionedNode): string {
+  if (node.type === "html" || node.type === "image") return "";
+  if (typeof node.value === "string") return node.value;
+  return (node.children ?? []).map(headingText).join("");
+}
+
+const EXPLICIT_ANCHOR = /<[a-z][^>]*?\s(?:name|id)\s*=\s*["']([^"']+)["']/giu;
+
+/**
+ * Every anchor in document order: each heading's, numbered as GitHub numbers repeats, and each
+ * explicit HTML anchor (`<a name>` or an `id` attribute), which keeps its own name.
+ */
 export function documentHeadingAnchors(content: string): DocumentHeadingAnchor[] {
-  const seen = new Map<string, number>();
+  const slug = githubHeadingSlugger();
   const anchors: DocumentHeadingAnchor[] = [];
   const visit = (node: PositionedNode): void => {
     const position = node.position?.start?.offset;
     if (node.type === "heading" && Number.isSafeInteger(position)) {
-      const title = nodeText(node).trim();
-      const base = githubHeadingSlug(title);
-      const count = seen.get(base) ?? 0;
-      seen.set(base, count + 1);
-      anchors.push({ position: position!, title, anchor: count === 0 ? base : `${base}-${count}` });
+      const title = headingText(node).replace(/\s+/gu, " ").trim();
+      anchors.push({ position: position!, title, anchor: slug(title) });
     }
+    if (node.type === "html" && Number.isSafeInteger(position))
+      for (const match of (node.value ?? "").matchAll(EXPLICIT_ANCHOR))
+        anchors.push({ position: position!, title: "", anchor: match[1]! });
     for (const child of node.children ?? []) visit(child);
   };
   visit(parse(content));
-  return anchors;
+  return anchors.sort((left, right) => left.position - right.position);
 }
 
 /** The byte offset of each character position, computed in one pass over sorted positions. */
@@ -148,6 +174,65 @@ function byteOffsets(content: string, positions: readonly number[]): Map<number,
     byteAt.set(position, previousBytes);
   }
   return byteAt;
+}
+
+interface TablePiece {
+  start: number;
+  end: number;
+  oversized: boolean;
+  header: string | null;
+}
+
+/**
+ * A pipe table between `start` and `end`, split between rows; the header and delimiter rows lead
+ * every continuation. Null when the block is no table or a single row exceeds the bound.
+ */
+function tablePieces(
+  content: string,
+  start: number,
+  end: number,
+  bound: number,
+): TablePiece[] | null {
+  const lines: number[] = [];
+  for (let at = start; at < end;) {
+    lines.push(at);
+    const newline = content.indexOf("\n", at);
+    at = newline === -1 || newline >= end ? end : newline + 1;
+  }
+  if (
+    lines.length < 4 ||
+    !content.slice(lines[0], lines[1]).trimStart().startsWith("|") ||
+    !/^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/u.test(content.slice(lines[1], lines[2]))
+  )
+    return null;
+  const header = content.slice(lines[0], lines[2]);
+  const headerBytes = Buffer.byteLength(header);
+  const pieces: TablePiece[] = [];
+  let current: TablePiece = { start, end: lines[2]!, oversized: false, header: null };
+  // Bytes are counted line by line, so a table of many megabytes is split in one pass.
+  let currentBytes = headerBytes;
+  let rows = 0;
+  for (const [index, line] of lines.slice(2).entries()) {
+    const next = lines[index + 3] ?? end;
+    const text = content.slice(line, next);
+    const lineBytes = Buffer.byteLength(text);
+    // Trailing blank lines never open a header-only part: past the bound they go on without
+    // the header, and packing joins them to what follows.
+    const blank = text.trim().length === 0;
+    if (rows > 0 && currentBytes + lineBytes > bound) {
+      pieces.push(current);
+      current = { start: line, end: next, oversized: false, header: blank ? null : header };
+      currentBytes = (blank ? 0 : headerBytes) + lineBytes;
+      rows = blank ? 0 : 1;
+    } else {
+      current.end = next;
+      currentBytes += lineBytes;
+      if (!blank) rows += 1;
+    }
+    if (currentBytes > bound) return null;
+  }
+  pieces.push(current);
+  return pieces;
 }
 
 /**
@@ -191,43 +276,6 @@ export function partitionOversizedMarkdown(
     }
     return packed;
   };
-  // A pipe table between `start` and `end`, split between rows; the header and delimiter rows
-  // lead every continuation. Null when the block is no table or a single row exceeds the bound.
-  const tableRows = (start: number, end: number, bound: number): Piece[] | null => {
-    const lines: number[] = [];
-    for (let at = start; at < end;) {
-      lines.push(at);
-      const newline = content.indexOf("\n", at);
-      at = newline === -1 || newline >= end ? end : newline + 1;
-    }
-    if (
-      lines.length < 4 ||
-      !content.slice(lines[0], lines[1]).trimStart().startsWith("|") ||
-      !/^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/u.test(content.slice(lines[1], lines[2]))
-    )
-      return null;
-    const header = content.slice(lines[0], lines[2]);
-    const pieces: Piece[] = [];
-    let current: Piece = { start, end: lines[2]!, oversized: false, header: null };
-    let rows = 0;
-    for (const [index, line] of lines.slice(2).entries()) {
-      const next = lines[index + 3] ?? end;
-      // Trailing blank lines never open a header-only part: past the bound they go on without
-      // the header, and packing joins them to what follows.
-      const blank = content.slice(line, next).trim().length === 0;
-      if (rows > 0 && size({ ...current, end: next }) > bound) {
-        pieces.push(current);
-        current = { start: line, end: next, oversized: false, header: blank ? null : header };
-        rows = blank ? 0 : 1;
-      } else {
-        current.end = next;
-        if (!blank) rows += 1;
-      }
-      if (size(current) > bound) return null;
-    }
-    pieces.push(current);
-    return pieces;
-  };
   const segments = (start: number, end: number, points: number[]): Array<[number, number]> => {
     const cuts = [start, ...points, end];
     return cuts.slice(0, -1).map((cut, index) => [cut, cuts[index + 1]!]);
@@ -256,7 +304,7 @@ export function partitionOversizedMarkdown(
       ).flatMap(([from, to]): Piece[] =>
         bytes(from, to) <= bound
           ? [{ start: from, end: to, oversized: false, header: null }]
-          : (tableRows(from, to, bound) ?? [
+          : (tablePieces(content, from, to, bound) ?? [
               { start: from, end: to, oversized: true, header: null },
             ]),
       ),
@@ -274,11 +322,16 @@ export function partitionOversizedMarkdown(
     firstSection === null
       ? split(0, content.length, 7, boundBytes)
       : [
-          ...split(0, firstSection, topDepth! + 1, preambleBytes),
+          ...split(0, firstSection, topDepth! + 1, Math.min(preambleBytes, boundBytes)),
           ...split(firstSection, content.length, topDepth!, boundBytes),
         ];
   if (size(pieces[0]!) > preambleBytes) {
-    const preamble = split(pieces[0]!.start, pieces[0]!.end, 7, preambleBytes);
+    const preamble = split(
+      pieces[0]!.start,
+      pieces[0]!.end,
+      7,
+      Math.min(preambleBytes, boundBytes),
+    );
     if (preamble.length < 2) return null;
     pieces = [...preamble, ...pieces.slice(1)];
   }

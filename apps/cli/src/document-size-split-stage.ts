@@ -1,6 +1,6 @@
 // ADR-0653: the `lervo migrate knowledge` stage that splits documents too large to normalize in
-// one pass, before normalization. Its check is deterministic, so no provider reviews it: the
-// planned index and parts must split again identically from the document's current bytes.
+// one pass, before normalization. Its check is deterministic, so no provider reviews it: every
+// written file must restore to its original byte range once its recorded changes are undone.
 import {
   applyDocumentSizeSplitPlan,
   createDocumentSizeSplitPlan,
@@ -20,7 +20,7 @@ import type { CliIo } from "./types.js";
 /** Who stands in for the reviewer of a size split, as the notice and the commit name it. */
 export const DOCUMENT_SIZE_SPLIT_VERIFIER = "deterministic byte verifier";
 
-/** The cross-check of a size split: the plan must split again identically from current bytes. */
+/** The cross-check of a size split: every written file restores to its original byte range. */
 export const verifyDocumentSizeSplit: CrossCheckPlan = async ({ plan }) => {
   const verdict = await verifyDocumentSizeSplitPlan(plan as DocumentSizeSplitPlan);
   return {
@@ -39,16 +39,24 @@ function printable(plan: DocumentSizeSplitPlan): unknown {
 
 /** Every document the split keeps whole, with why, so none is passed over silently. */
 function keptWholeLines(plan: DocumentSizeSplitPlan): string[] {
+  const kept = [
+    ...plan.unsplittable,
+    ...plan.data.map((item) => ({ ...item, reason: "document_too_large" })),
+  ];
   return [
-    ...plan.unsplittable.map(
-      (item) => `kept whole: ${item.path} (${item.byteCount} bytes, ${item.reason})`,
-    ),
-    ...plan.data.map(
-      (item) => `kept whole: ${item.path} (${item.byteCount} bytes, document_too_large)`,
-    ),
+    ...kept.map((item) => `kept whole: ${item.path} (${item.byteCount} bytes, ${item.reason})`),
+    ...(kept.length === 0
+      ? []
+      : [
+          "Lervo keeps these whole as data and leaves them out of normalization. Split one by its",
+          "headings yourself to bring it back, or list it under normalization.exclude in",
+          ".lervo/knowledge/policy.yaml to stop this notice.",
+        ]),
+    ...plan.failed.map((item) => `not split: ${item.path} (${item.reason})`),
     ...plan.deferred.map(
       (item) => `waiting: ${item.path} (${item.byteCount} bytes, not_yet_registered)`,
     ),
+    ...plan.unkeptReferences.map((item) => `link not kept: ${item.path} -> ${item.url}`),
   ];
 }
 

@@ -15,6 +15,7 @@ export interface SplitReferenceUpdate {
   beforeHash: string;
   afterHash: string;
   linkRewrites: SplitLinkRewrite[];
+  unkeptLinks: string[];
   content: string;
 }
 
@@ -45,7 +46,7 @@ export function splitReferenceUpdates(
       toPath: source.path,
       anchorFiles,
     });
-    return links.rewrites.length === 0
+    return links.rewrites.length === 0 && links.unkept.length === 0
       ? []
       : [
           {
@@ -53,6 +54,7 @@ export function splitReferenceUpdates(
             beforeHash: source.contentHash,
             afterHash: sha256(links.content),
             linkRewrites: links.rewrites,
+            unkeptLinks: links.unkept,
             content: links.content,
           },
         ];

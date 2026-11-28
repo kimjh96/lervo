@@ -23,13 +23,14 @@ In each case, one large document stopped work on every other document, or a docu
    - **Split points.** The split cuts at the shallowest heading level that keeps parts within the bound, then at deeper headings, and finally between top-level blocks. It never cuts inside fenced code, a list, or a Lervo-managed block. A pipe table that is too large is split between rows, and each continuation repeats the table's header and delimiter rows.
    - **What the document keeps.** The document keeps its preamble and a Lervo-managed block (`document-parts`) that links the parts in order. The preamble is packed with room for that block, so the document itself stays within the bound. Parts leave room for the bytes their rewritten links and copied definitions add.
    - **Where the parts go.** Each part is `<directory>/<document stem>/<NN>-<slug>.md`. A document with more than 32 parts groups them into numbered directories of 32.
-   - **Links.** Links follow the text:
-     - a relative link in a part is rebased to the part's directory;
-     - a link to a heading of a split document, inside it or from any other document, points to the file that now holds the heading, with the anchor that heading has there, since GitHub numbers a repeated heading within its file;
-     - a reference definition is copied into every part that uses it.
+   - **Links.** Links follow the text. The CommonMark parser locates every link, image, and definition destination, and only those character ranges are rewritten. A linked image's two destinations, or a badge URL that contains another file's name, are therefore each rewritten in place, exactly once.
+     - A relative link in a part is rebased to the part's directory.
+     - A link to a heading of a split document points to the file that now holds the heading, with the anchor that heading has there. This applies inside the document and from any other document. Anchors follow GitHub: the visible heading text, without inline HTML, numbered as github-slugger numbers repeats. An explicit `<a name>` or `id` anchor keeps its name.
+     - Documents split together are laid out again until no layout changes, so no link names a part path an earlier layout planned.
+     - A reference definition that takes effect is copied ahead of each part that uses it. CommonMark uses the first definition of a label, matched case-insensitively with whitespace collapsed, and the copy keeps that true when a part holds a later duplicate or the document ends without a newline.
 
-     A destination the split cannot locate is listed as a link not kept. None is dropped silently.
-2. **Check the split deterministically.** Instead of a provider review, the check is deterministic. It never plans again. For every file the plan writes, it undoes the recorded link rewrites, then drops the copied definitions, the managed block, and the repeated header rows, and what remains must equal the original byte range. The ranges must cover the document in order. A linking document must restore to its current bytes once its recorded link rewrites are undone.
+     A link to a heading that no file holds is listed as a link not kept, whether it sits in the split document or in another document. None is dropped silently.
+2. **Check the split deterministically.** Instead of a provider review, the check is deterministic, and it never plans again. For every file the plan writes, it undoes the recorded link rewrites; each rewrite must lie exactly on a destination the parser reads in the restored text. It then drops the copied definitions, the managed block, and the repeated header rows, and what remains must equal the original byte range. The ranges must cover the document in order. A linking document must restore to its current bytes once its recorded link rewrites are undone. Each document is also checked while it is planned. A document whose split fails that check, whose part path is taken, or whose links name a part the final plan does not write is reported as `document_split_failed` with its reason, and the other documents still split.
 
    A provider review cannot take documents over 1 MiB. The split is its own reversible `Lervo Knowledge` commit (ADR-0561), and the notice names the deterministic byte verifier as the cross-check.
 
@@ -39,13 +40,14 @@ In each case, one large document stopped work on every other document, or a docu
    - a split's own index, `document_parts_index`, which is never split again;
    - a document over 16 MiB or not UTF-8, `document_too_large`.
 
-   A document that waits for the structural stage to register it is named as `not_yet_registered`. Until a document over 256 KiB is split, normalization output names it and attention carries the `document_too_large_to_normalize` advisory. None of them blocks the other documents. Planning again after an apply is a no-op.
+   The output says what to do with them: Lervo leaves them out of normalization; split one by its headings to bring it back, or list it under `normalization.exclude` in `.lervo/knowledge/policy.yaml`. A document that waits for the structural stage to register it is named as `not_yet_registered`. Until a document over 256 KiB is split, normalization output names it and attention carries the `document_too_large_to_normalize` advisory. None of them blocks the other documents. Planning again after an apply is a no-op.
 
 5. **Normalize in batches.** When pending documents exceed one run's source-byte or provider-call ceiling, each run normalizes the next batch in path order, recorded as an explicit selection. A single document over the ceiling still blocks, before any provider call. A candidate whose selected source has since grown past 256 KiB is stale, not invalid.
 6. **Review a move by its changes.** A document that a plan moves byte for byte is shown to the reviewer by hash and destination. A move that rewrites references in place is shown as each line's changed span, from its column, with up to 80 unchanged characters around it, however long the line or how many lines change. Lervo checked that every other byte is identical. A rewrite that changes the line count is still shown whole.
 
 ## Consequences
 
+- Splitting reads a document in a few whole-document parses, about one second per megabyte on the Mac, about 15 seconds at the 16 MiB maximum.
 - A repository with large documents gains parts under new directories, with links from the original paths. Links to a moved heading are rewritten in every included Markdown document that names the split document.
 - The 512 KiB bound on one canonical assessment source, and the repository-wide capture bounds of 20,000 files and 256 MiB, still stop their stage. With documents split first, they are reached only by non-document sources or by repositories that large.
 - `axli-lab` reproduction on a clone of `main` (`203763cae`):

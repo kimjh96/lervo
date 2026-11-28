@@ -12,15 +12,16 @@ import {
   type DocumentSizePartition,
 } from "./document-size-partition.js";
 import {
-  documentReferenceDefinitions,
-  missingReferenceDefinitions,
+  copiedReferenceDefinitions,
+  documentLinkFacts,
+  markdownDestinations,
   restoreSplitLinks,
   rewriteSplitLinks,
   type SplitAnchorFiles,
   type SplitAnchorTarget,
   type SplitLinkRewrite,
 } from "./document-size-split-links.js";
-import { githubHeadingSlug } from "./document-size-partition.js";
+import { githubHeadingSlugger } from "./document-size-partition.js";
 
 /** The largest document Lervo splits: the bound its split lineage records. Larger is data. */
 export const DOCUMENT_SIZE_SPLIT_MAXIMUM_BYTES = 16 * 1024 * 1024;
@@ -89,11 +90,13 @@ export interface SplitPiece {
   /** Character range of the original document this file holds. */
   start: number;
   end: number;
+  /** Reference definitions copied ahead of everything, so they take effect first, or "". */
+  prefix: string;
   /** Table header rows copied ahead of the range, or null. */
   header: string | null;
-  /** Reference definitions copied after the range, or "". */
+  /** Reference definitions copied after the range, in the document's own file, or "". */
   appendix: string;
-  /** Link destinations rewritten in `header + range + appendix`. */
+  /** Link destinations rewritten in `prefix + header + range + appendix`. */
   rewrites: SplitLinkRewrite[];
   /** The bytes written. */
   content: string;
@@ -119,9 +122,16 @@ interface Layout {
   anchors: Map<string, SplitAnchorTarget>;
 }
 
+/** What a document's split reads once, whatever its layout: its anchors and its definitions. */
+interface DocumentFacts {
+  headings: ReturnType<typeof documentHeadingAnchors>;
+  links: ReturnType<typeof documentLinkFacts>;
+}
+
 function layout(
   documentPath: string,
   content: string,
+  facts: DocumentFacts,
   partBytes: number,
   preambleBytes: number,
 ): Layout | null {
@@ -135,17 +145,17 @@ function layout(
     const index = partition.parts.findLastIndex((part) => part.start <= position);
     return index < 0 ? documentPath : paths[index]!;
   };
-  // A heading's anchor in its new file is numbered among that file's headings only.
-  const seen = new Map<string, Map<string, number>>();
+  // A heading's anchor in its new file is numbered among that file's headings only, as GitHub
+  // numbers them; an explicit HTML anchor keeps its name.
+  const sluggers = new Map<string, (title: string) => string>();
   const anchors = new Map(
-    documentHeadingAnchors(content).map((heading) => {
+    facts.headings.map((heading) => {
       const file = fileAt(heading.position);
-      const counts = seen.get(file) ?? new Map<string, number>();
-      seen.set(file, counts);
-      const base = githubHeadingSlug(heading.title);
-      const count = counts.get(base) ?? 0;
-      counts.set(base, count + 1);
-      return [heading.anchor, { file, anchor: count === 0 ? base : `${base}-${count}` }] as const;
+      if (heading.title.length === 0 && heading.anchor.length > 0)
+        return [heading.anchor, { file, anchor: heading.anchor }] as const;
+      const slug = sluggers.get(file) ?? githubHeadingSlugger();
+      sluggers.set(file, slug);
+      return [heading.anchor, { file, anchor: slug(heading.title) }] as const;
     }),
   );
   return { partition, paths, anchors };
@@ -154,24 +164,58 @@ function layout(
 function render(
   documentPath: string,
   content: string,
+  facts: DocumentFacts,
   planned: Layout,
   foreignAnchors: SplitAnchorFiles,
 ): SplitDocument {
   const anchorFiles = new Map(foreignAnchors);
   anchorFiles.set(documentPath, planned.anchors);
-  const definitions = documentReferenceDefinitions(content);
+  const { links: linkFacts } = facts;
   const unkept: string[] = [];
-  const piece = (path: string, start: number, end: number, header: string | null) => {
-    const range = `${header ?? ""}${content.slice(start, end)}`;
-    const appendix = missingReferenceDefinitions(range, definitions);
+  const piece = (path: string, start: number, end: number, header: string | null): SplitPiece => {
+    const range = content.slice(start, end);
+    const copied = copiedReferenceDefinitions(linkFacts, { start, end });
+    // A part takes its copies first; the document's own file keeps its title first and takes
+    // them after its preamble, which never holds a later duplicate of a part's definition.
+    const own = path === documentPath;
+    const prefix = !own && copied.length > 0 ? `${copied}\n\n` : "";
+    const appendix =
+      own && copied.length > 0 ? `${range.endsWith("\n") ? "\n" : "\n\n"}${copied}\n` : "";
+    // The range's destinations come from the whole document's parse, shifted into this file;
+    // only the small copied and repeated text around it is parsed again.
+    const lead = `${prefix}${header ?? ""}`;
+    const shift = lead.length - start;
+    const tail = lead.length + (end - start);
+    const destinations = [
+      ...markdownDestinations(lead),
+      ...linkFacts.destinations
+        .filter((item) => item.start >= start && item.end <= end)
+        .map((item) => ({ start: item.start + shift, end: item.end + shift })),
+      ...(appendix.length === 0
+        ? []
+        : markdownDestinations(appendix).map((item) => ({
+            start: item.start + tail,
+            end: item.end + tail,
+          }))),
+    ];
     const links = rewriteSplitLinks({
-      text: `${range}${appendix}`,
+      text: `${lead}${content.slice(start, end)}${appendix}`,
       fromPath: documentPath,
       toPath: path,
       anchorFiles,
+      destinations,
     });
     unkept.push(...links.unkept);
-    return { path, start, end, header, appendix, rewrites: links.rewrites, content: links.content };
+    return {
+      path,
+      start,
+      end,
+      prefix,
+      header,
+      appendix,
+      rewrites: links.rewrites,
+      content: links.content,
+    };
   };
   const { partition, paths } = planned;
   const parts = partition.parts.map((part, index) => ({
@@ -210,14 +254,18 @@ export function splitOversizedDocument(
   foreignAnchors: SplitAnchorFiles = new Map(),
 ): SplitDocument | UnsplittableReason {
   if (hasDocumentPartsBlock(content)) return "document_parts_index";
+  const facts: DocumentFacts = {
+    headings: documentHeadingAnchors(content),
+    links: documentLinkFacts(content),
+  };
   let partBytes = Math.max(1, boundBytes - partHeadroomBytes(boundBytes));
   let preambleBytes = partBytes;
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const planned = layout(documentPath, content, partBytes, preambleBytes);
+    const planned = layout(documentPath, content, facts, partBytes, preambleBytes);
     // A split whose every part is one block over the bound would only move the problem.
     if (planned === null || planned.partition.parts.every((part) => part.oversized))
       return "document_unsplittable";
-    const split = render(documentPath, content, planned, foreignAnchors);
+    const split = render(documentPath, content, facts, planned, foreignAnchors);
     const indexBytes = Buffer.byteLength(split.index.content);
     const overflowing = split.parts.filter(
       (part) => !part.part.oversized && Buffer.byteLength(part.content) > boundBytes,
@@ -225,7 +273,9 @@ export function splitOversizedDocument(
     if (indexBytes <= boundBytes && overflowing.length === 0) return split;
     // Leave room for what the managed block and the rewritten links add, and plan again.
     if (indexBytes > boundBytes) preambleBytes -= indexBytes - boundBytes + 1024;
-    if (overflowing.length > 0) partBytes = Math.floor(partBytes * 0.9);
+    if (overflowing.length > 0)
+      partBytes -=
+        Math.max(...overflowing.map((part) => Buffer.byteLength(part.content) - boundBytes)) + 1024;
     if (preambleBytes < 1 || partBytes < 1) return "document_unsplittable";
   }
   return "document_unsplittable";
@@ -233,37 +283,48 @@ export function splitOversizedDocument(
 
 /**
  * Each document's split, its links following headings across every document split with it. A
- * document kept whole is returned with its reason instead.
+ * document that names another's heading renders again with the others' layouts, until no layout
+ * changes, so no link points to a part path an earlier layout planned. A document kept whole is
+ * returned with its reason instead.
  */
 export function splitDocuments<Source extends { path: string; content: string }>(
   sources: readonly Source[],
   boundBytes: number,
 ): Array<{ source: Source; split: SplitDocument | UnsplittableReason }> {
-  const first = sources.map((source) => ({
+  let splits = sources.map((source) => ({
     source,
     split: splitOversizedDocument(source.path, source.content, boundBytes),
   }));
-  const anchors = new Map(
-    first.flatMap(({ source, split }) =>
-      typeof split === "string" ? [] : [[source.path, split.anchors] as const],
-    ),
-  );
-  if (anchors.size < 2) return first;
+  const anchorsOf = () =>
+    new Map(
+      splits.flatMap(({ source, split }) =>
+        typeof split === "string" ? [] : [[source.path, split.anchors] as const],
+      ),
+    );
+  const fingerprint = (anchors: ReturnType<typeof anchorsOf>) =>
+    JSON.stringify([...anchors].map(([path, map]) => [path, [...map]]));
+  let anchors = anchorsOf();
+  if (anchors.size < 2) return splits;
   const names = [...anchors.keys()].map((path) => `${posix.basename(path)}#`);
-  return first.map(({ source, split }) =>
-    // Only a document that names another split document's heading renders again.
-    typeof split === "string" || !names.some((name) => source.content.includes(name))
-      ? { source, split }
-      : {
-          source,
-          split: splitOversizedDocument(
-            source.path,
-            source.content,
-            boundBytes,
-            new Map([...anchors].filter(([path]) => path !== source.path)),
-          ),
-        },
-  );
+  for (let round = 0; round < 4; round += 1) {
+    const current = anchors;
+    splits = splits.map(({ source, split }) =>
+      typeof split === "string" || !names.some((name) => source.content.includes(name))
+        ? { source, split }
+        : {
+            source,
+            split: splitOversizedDocument(
+              source.path,
+              source.content,
+              boundBytes,
+              new Map([...current].filter(([path]) => path !== source.path)),
+            ),
+          },
+    );
+    anchors = anchorsOf();
+    if (fingerprint(anchors) === fingerprint(current)) break;
+  }
+  return splits;
 }
 
 /**
@@ -274,7 +335,7 @@ export function splitDocuments<Source extends { path: string; content: string }>
 export function restoreSplitPiece(
   original: string,
   written: string,
-  piece: Pick<SplitPiece, "start" | "end" | "header" | "appendix" | "rewrites"> & {
+  piece: Pick<SplitPiece, "start" | "end" | "prefix" | "header" | "appendix" | "rewrites"> & {
     block?: string;
   },
 ): string | null {
@@ -284,12 +345,13 @@ export function restoreSplitPiece(
     text = text.slice(0, text.length - piece.block.length);
   }
   const restored = restoreSplitLinks(text, piece.rewrites);
-  if (restored === null) return "a rewritten link is not where the plan recorded it";
-  if (!restored.endsWith(piece.appendix)) return "the copied definitions are missing";
-  const withoutAppendix = restored.slice(0, restored.length - piece.appendix.length);
+  if (restored === null) return "a rewrite does not lie exactly on a link destination";
+  if (!restored.startsWith(piece.prefix)) return "the copied definitions before it are missing";
+  if (!restored.endsWith(piece.appendix)) return "the copied definitions after it are missing";
+  const inner = restored.slice(piece.prefix.length, restored.length - piece.appendix.length);
   const header = piece.header ?? "";
-  if (!withoutAppendix.startsWith(header)) return "the repeated table header is missing";
-  const range = withoutAppendix.slice(header.length);
+  if (!inner.startsWith(header)) return "the repeated table header is missing";
+  const range = inner.slice(header.length);
   return Buffer.from(range).equals(Buffer.from(original.slice(piece.start, piece.end)))
     ? null
     : "the written bytes differ from the original range";

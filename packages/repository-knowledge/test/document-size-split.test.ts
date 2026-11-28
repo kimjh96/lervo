@@ -10,8 +10,10 @@ import {
   applyKnowledgeMigrationPlan,
   createDocumentSizeSplitPlan,
   createKnowledgeMigrationPlan,
+  documentHeadingAnchors,
   documentSizePartPaths,
   githubHeadingSlug,
+  splitDocuments,
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
   partitionOversizedMarkdown,
@@ -257,6 +259,142 @@ async function repository(files: Record<string, string>): Promise<string> {
   return root;
 }
 
+const filler = (count: number) =>
+  Array.from({ length: count }, (_, index) => `Paragraph ${index} ${"x".repeat(80)}\n\n`).join("");
+
+/** A document whose sections A and B land in different parts at a 2 KiB bound. */
+function sections(intro: string, b: string, tail = ""): string {
+  return `# Title\n\n${intro}\n\n## A\n\n${filler(15)}## B\n\n${b}\n\n${filler(15)}${tail}`;
+}
+
+function restoresAll(content: string, result: SplitDocument): void {
+  for (const piece of [result.index, ...result.parts])
+    expect(
+      restoreSplitPiece(content, piece.content, {
+        ...piece,
+        ...(piece === result.index ? { block: result.index.block } : {}),
+      }),
+    ).toBeNull();
+}
+
+describe("document size split links", () => {
+  it("rewrites a linked image's two destinations each in its own place", () => {
+    const content = sections("intro", "[![shot](images/shot.png)](images/shot.png)");
+    const result = split("docs/big.md", content, 2_048);
+    const holder = result.parts.find((part) => part.content.includes("shot"))!;
+    expect(holder.content).toContain("[![shot](../images/shot.png)](../images/shot.png)");
+    restoresAll(content, result);
+  });
+
+  it("rewrites only the link destination of a badge whose image URL names the same file", () => {
+    const content = sections(
+      "intro",
+      "[![guide](https://img.shields.io/badge/read-guide.md-blue)](guide.md)",
+    );
+    const result = split("docs/big.md", content, 2_048);
+    const holder = result.parts.find((part) => part.content.includes("shields"))!;
+    expect(holder.content).toContain(
+      "[![guide](https://img.shields.io/badge/read-guide.md-blue)](../guide.md)",
+    );
+    restoresAll(content, result);
+    // A rewrite moved off its destination fails the check, even when the bytes still restore.
+    const forged = holder.rewrites.map((rewrite) => ({ ...rewrite }));
+    const badge = holder.content.indexOf("read-guide.md");
+    expect(
+      restoreSplitPiece(
+        content,
+        holder.content
+          .replace("](../guide.md)", "](guide.md)")
+          .replace("read-guide.md", "read-../guide.md"),
+        {
+          ...holder,
+          rewrites: forged.map((rewrite) => ({ ...rewrite, start: badge + 5, end: badge + 13 })),
+        },
+      ),
+    ).not.toBeNull();
+  });
+
+  it("follows a heading with inline HTML and an explicit anchor, and names an anchor no file holds", () => {
+    const content = `# Title\n\n- [Go A](#a)\n- [Go custom](#custom)\n- [Go kbd](#ctrl-c)\n- [Gone](#nowhere)\n\n## A\n\n${filler(15)}## <a name="custom"></a>B\n\n${filler(5)}## <kbd>Ctrl</kbd> C\n\n${filler(15)}`;
+    const result = split("docs/big.md", content, 2_048);
+    const kbd = result.parts.find((part) => part.content.includes("<kbd>Ctrl</kbd>"))!;
+    const custom = result.parts.find((part) => part.content.includes('name="custom"'))!;
+    expect(result.index.content).toContain(`](${kbd.path.slice("docs/".length)}#ctrl-c)`);
+    expect(result.index.content).toContain(`](${custom.path.slice("docs/".length)}#custom)`);
+    expect(result.unkept).toEqual(["#nowhere"]);
+    restoresAll(content, result);
+  });
+
+  it("numbers repeated headings as GitHub does", () => {
+    expect(
+      documentHeadingAnchors("# Foo 1\n\n# Foo\n\n# Foo\n").map((heading) => heading.anchor),
+    ).toEqual(["foo-1", "foo", "foo-2"]);
+  });
+
+  it("copies the definition that takes effect, matched as CommonMark matches labels", () => {
+    // A later duplicate is ignored by CommonMark, so the part must keep resolving to the first.
+    const shadow = sections("[x]: first.md", "see [x]\n\n[x]: second.md");
+    const shadowed = split("docs/big.md", shadow, 2_048);
+    const holder = shadowed.parts.find((part) => part.content.includes("second.md"))!;
+    expect(holder.content.startsWith("[x]: ../first.md\n\n")).toBe(true);
+    restoresAll(shadow, shadowed);
+    // Labels match case-insensitively with whitespace collapsed.
+    const spaced = sections("[Foo bar]: target.md", "see [foo  BAR]");
+    const labelled = split("docs/big.md", spaced, 2_048);
+    expect(labelled.parts.some((part) => part.content.startsWith("[Foo bar]: ../target.md"))).toBe(
+      true,
+    );
+    // A document without a final newline still gets a definition, never paragraph text.
+    const eof = sections("[x]: t.md", "middle", "see [x] end");
+    const ended = split("docs/big.md", eof, 2_048);
+    const last = ended.parts[ended.parts.length - 1]!;
+    expect(last.content.startsWith("[x]: ../t.md\n\n")).toBe(true);
+    expect(last.content.endsWith("see [x] end")).toBe(true);
+    restoresAll(eof, ended);
+  });
+
+  it("points a link to another split document at its final parts", () => {
+    const other = `# Other\n\n${filler(10)}## Target\n\n${filler(30)}`;
+    const linking = sections("intro", "see [target](other.md#target)");
+    const results = splitDocuments(
+      [
+        { path: "docs/big.md", content: linking },
+        { path: "docs/other.md", content: other },
+      ],
+      2_048,
+    );
+    const [big, target] = results.map((item) => item.split as SplitDocument);
+    const holder = target!.parts.find((part) => part.content.includes("## Target"))!;
+    const link = big!.parts.find((part) => part.content.includes("[target]("))!;
+    expect(link.content).toContain(`](../other/${holder.path.split("/").pop()}#target)`);
+  });
+
+  it("splits megabytes with thousands of definitions in seconds", { timeout: 60_000 }, () => {
+    const definitions = Array.from({ length: 2_000 }, (_, index) => `[d${index}]: d${index}.md`);
+    const rows = Array.from(
+      { length: 24_000 },
+      (_, index) => `| R-${index} | ${"v".repeat(120)} [d${index % 2_000}] |`,
+    );
+    const content = [
+      "# Ledger",
+      "",
+      "## Rows",
+      "",
+      "| id | v |",
+      "|---|---|",
+      ...rows,
+      "",
+      ...definitions,
+      "",
+    ].join("\n");
+    expect(Buffer.byteLength(content)).toBeGreaterThan(3 * 1024 * 1024);
+    const started = performance.now();
+    const ledger = split("docs/ledger.md", content);
+    expect(performance.now() - started).toBeLessThan(15_000);
+    expect(ledger.parts.length).toBeGreaterThan(10);
+  });
+});
+
 describe("document size split plan", () => {
   it("splits a registered document and one the scanner left out for its size, keeping every byte", async () => {
     const registered = document(7, 200);
@@ -346,8 +484,9 @@ describe("document size split plan", () => {
           restoreSplitPiece(original, written, {
             start,
             end,
+            prefix: part.definitionsBefore,
             header: part.repeatedHeader,
-            appendix: part.copiedDefinitions,
+            appendix: part.definitionsAfter,
             rewrites: part.linkRewrites,
           }),
         ).toBeNull();
@@ -367,4 +506,28 @@ describe("document size split plan", () => {
     expect(again.status).toBe("current");
     expect(again.unsplittable.map((item) => item.path)).toEqual(["docs/specs/dump.md"]);
   }, 180_000);
+
+  it("names another document's lost link and isolates a document whose part path is taken", async () => {
+    const big = document(7, 200);
+    const other = document(9, 200);
+    const root = await repository({
+      "docs/specs/big.md": big,
+      "docs/specs/other.md": other,
+      "docs/specs/other/01-section-0.md": "# Taken\n",
+      "docs/specs/linker.md": "# Linker\n\nSee [gone](big.md#nowhere-at-all).\n",
+    });
+    const normalization = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
+    const plan = await createDocumentSizeSplitPlan({
+      repositoryRoot: root,
+      sourcePaths: normalization.oversizedDocuments.map((item) => item.path),
+    });
+    expect(plan.documents.map((item) => item.path)).toEqual(["docs/specs/big.md"]);
+    expect(plan.failed).toEqual([
+      { path: "docs/specs/other.md", reason: expect.stringContaining("document_split_failed") },
+    ]);
+    expect(plan.unkeptReferences).toEqual([
+      { path: "docs/specs/linker.md", url: "big.md#nowhere-at-all" },
+    ]);
+    expect(await verifyDocumentSizeSplitPlan(plan)).toMatchObject({ agreed: true });
+  }, 120_000);
 });

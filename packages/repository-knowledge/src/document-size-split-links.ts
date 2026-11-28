@@ -1,7 +1,8 @@
 // ADR-0653: links across a document size split. A part moves into the document's directory, so its
 // relative links are rebased; a link to a heading follows the heading into the part that now holds
-// it; a reference definition travels with each part that uses it. Every rewrite is recorded, so the
-// check can undo it and compare the written bytes with the original range.
+// it; a reference definition travels with each part that uses it. Destinations are located by the
+// CommonMark parser, never by searching text, and every rewrite is recorded, so the check can
+// undo it on exactly that destination and compare the written bytes with the original range.
 import { posix } from "node:path";
 
 import { fromMarkdown } from "mdast-util-from-markdown";
@@ -25,10 +26,44 @@ export type SplitAnchorFiles = ReadonlyMap<string, ReadonlyMap<string, SplitAnch
 
 interface MarkdownNode {
   type?: string;
-  url?: string;
   identifier?: string;
+  label?: string;
   position?: { start?: { offset?: number }; end?: { offset?: number } };
   children?: MarkdownNode[];
+}
+
+interface Token {
+  start: { offset: number };
+  end: { offset: number };
+}
+
+/**
+ * The character range of every link, image, and definition destination in `text`, as the parser
+ * reads it, without the angle brackets of `<destination>`. Ranges never overlap, so a nested link
+ * or a destination that contains another's text is rewritten exactly once, in its own place.
+ */
+export function markdownDestinations(text: string): Array<{ start: number; end: number }> {
+  return parseWithDestinations(text).destinations;
+}
+
+function parseWithDestinations(text: string): {
+  tree: MarkdownNode;
+  destinations: Array<{ start: number; end: number }>;
+} {
+  const destinations: Array<{ start: number; end: number }> = [];
+  const record = (token: Token) => {
+    let start = token.start.offset;
+    let end = token.end.offset;
+    if (text[start] === "<" && text[end - 1] === ">") {
+      start += 1;
+      end -= 1;
+    }
+    if (end > start) destinations.push({ start, end });
+  };
+  const tree = fromMarkdown(text, {
+    mdastExtensions: [{ exit: { resourceDestination: record, definitionDestination: record } }],
+  }) as MarkdownNode;
+  return { tree, destinations: destinations.sort((left, right) => left.start - right.start) };
 }
 
 const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/)/iu;
@@ -43,21 +78,23 @@ function decoded(fragment: string): string {
 
 /** Where `fragment` of a document now lives, matched as written, then case-insensitively. */
 function anchorFile(
-  anchors: ReadonlyMap<string, SplitAnchorTarget> | undefined,
+  anchors: ReadonlyMap<string, SplitAnchorTarget>,
   fragment: string,
 ): SplitAnchorTarget | undefined {
-  if (anchors === undefined || fragment.length === 0) return undefined;
   const value = decoded(fragment);
   return anchors.get(value) ?? anchors.get(value.toLowerCase());
 }
 
-/** The destination `url` needs once its text moves from `fromPath` to `toPath`, or null. */
+/**
+ * The destination `url` needs once its text moves from `fromPath` to `toPath`: unchanged, a new
+ * destination, or `unkept` when it names a heading of a split document that no file holds.
+ */
 function rewrittenUrl(
   url: string,
   fromPath: string,
   toPath: string,
   anchorFiles: SplitAnchorFiles,
-): string | null {
+): string | "unkept" | null {
   if (url.length === 0 || EXTERNAL.test(url)) return null;
   const match = /^([^?#]*)(\?[^#]*)?(#.*)?$/u.exec(url);
   const pathPart = match?.[1] ?? "";
@@ -66,62 +103,43 @@ function rewrittenUrl(
   const target =
     pathPart.length === 0
       ? fromPath
-      : posix.normalize(posix.join(posix.dirname(fromPath), pathPart));
-  const holder = anchorFile(anchorFiles.get(target), fragment);
-  if (holder !== undefined) {
+      : posix.normalize(posix.join(posix.dirname(fromPath), decoded(pathPart)));
+  const anchors = anchorFiles.get(target);
+  if (anchors !== undefined && fragment.length > 0) {
+    const holder = anchorFile(anchors, fragment);
+    if (holder === undefined) return "unkept";
     const file = holder.file === toPath ? "" : posix.relative(posix.dirname(toPath), holder.file);
     // A repeated heading's anchor is numbered within its new file, so it may change.
     const anchor = decoded(fragment) === holder.anchor ? fragment : holder.anchor;
-    return `${file}${query}#${anchor}`;
+    return `${encodeURI(file)}${query}#${anchor}`;
   }
   if (pathPart.length === 0 || posix.dirname(fromPath) === posix.dirname(toPath)) return null;
-  let rebased = posix.relative(posix.dirname(toPath), target);
+  let rebased = encodeURI(posix.relative(posix.dirname(toPath), target));
   if (!rebased.startsWith(".") && pathPart.startsWith("./")) rebased = `./${rebased}`;
   return `${rebased}${query}${match?.[3] ?? ""}`;
 }
 
 /**
- * Rewrites the link and image destinations and the definitions of `text`, written to `toPath`
- * from a document at `fromPath`. A destination whose characters cannot be located is left as is
- * and returned in `unkept`, never dropped silently.
+ * Rewrites the link, image, and definition destinations of `text`, written to `toPath` from a
+ * document at `fromPath`. A destination naming a heading no file holds stays as is and is
+ * returned in `unkept`, never dropped silently.
  */
 export function rewriteSplitLinks(input: {
   text: string;
   fromPath: string;
   toPath: string;
   anchorFiles: SplitAnchorFiles;
+  /** The destinations of `text`, when the caller read them already; otherwise they are parsed. */
+  destinations?: ReadonlyArray<{ start: number; end: number }>;
 }): { content: string; rewrites: SplitLinkRewrite[]; unkept: string[] } {
   const rewrites: SplitLinkRewrite[] = [];
   const unkept: string[] = [];
-  const visit = (node: MarkdownNode): void => {
-    if (
-      (node.type === "link" || node.type === "image" || node.type === "definition") &&
-      typeof node.url === "string"
-    ) {
-      const after = rewrittenUrl(node.url, input.fromPath, input.toPath, input.anchorFiles);
-      if (after !== null && after !== node.url) {
-        const start = node.position?.start?.offset;
-        const end = node.position?.end?.offset;
-        const slice =
-          Number.isSafeInteger(start) && Number.isSafeInteger(end)
-            ? input.text.slice(start, end)
-            : "";
-        const marker = slice.indexOf(node.type === "definition" ? "]:" : "](");
-        const local = marker < 0 ? -1 : slice.indexOf(node.url, marker + 2);
-        if (local < 0) unkept.push(node.url);
-        else
-          rewrites.push({
-            start: start! + local,
-            end: start! + local + node.url.length,
-            before: node.url,
-            after,
-          });
-      }
-    }
-    for (const child of node.children ?? []) visit(child);
-  };
-  visit(fromMarkdown(input.text) as MarkdownNode);
-  rewrites.sort((left, right) => left.start - right.start);
+  for (const range of input.destinations ?? markdownDestinations(input.text)) {
+    const before = input.text.slice(range.start, range.end);
+    const after = rewrittenUrl(before, input.fromPath, input.toPath, input.anchorFiles);
+    if (after === "unkept") unkept.push(before);
+    else if (after !== null && after !== before) rewrites.push({ ...range, before, after });
+  }
   let content = "";
   let at = 0;
   for (const rewrite of rewrites) {
@@ -131,7 +149,10 @@ export function rewriteSplitLinks(input: {
   return { content: content + input.text.slice(at), rewrites, unkept };
 }
 
-/** `written` with every recorded rewrite undone, or null when a rewrite is not where recorded. */
+/**
+ * `written` with every recorded rewrite undone, or null when a rewrite is not where recorded or
+ * does not lie exactly on a destination the parser reads in the restored text.
+ */
 export function restoreSplitLinks(
   written: string,
   rewrites: readonly SplitLinkRewrite[],
@@ -139,9 +160,10 @@ export function restoreSplitLinks(
   let restored = "";
   let at = 0;
   let original = 0;
-  for (const rewrite of [...rewrites].sort((left, right) => left.start - right.start)) {
+  const ordered = [...rewrites].sort((left, right) => left.start - right.start);
+  for (const rewrite of ordered) {
     const unchanged = rewrite.start - original;
-    if (unchanged < 0) return null;
+    if (unchanged < 0 || rewrite.end - rewrite.start !== rewrite.before.length) return null;
     restored += written.slice(at, at + unchanged);
     at += unchanged;
     if (!written.startsWith(rewrite.after, at)) return null;
@@ -149,58 +171,71 @@ export function restoreSplitLinks(
     at += rewrite.after.length;
     original = rewrite.end;
   }
-  return restored + written.slice(at);
+  restored += written.slice(at);
+  if (ordered.length === 0) return restored;
+  const destinations = new Set(
+    markdownDestinations(restored).map((range) => `${range.start}:${range.end}`),
+  );
+  return ordered.every((rewrite) => destinations.has(`${rewrite.start}:${rewrite.end}`))
+    ? restored
+    : null;
 }
 
-/** Every reference definition of a document, by identifier, as its original text. */
-export function documentReferenceDefinitions(documentContent: string): Map<string, string> {
-  const definitions = new Map<string, string>();
-  const visit = (node: MarkdownNode): void => {
-    const start = node.position?.start?.offset;
-    const end = node.position?.end?.offset;
-    if (
-      node.type === "definition" &&
-      typeof node.identifier === "string" &&
-      !definitions.has(node.identifier) &&
-      Number.isSafeInteger(start) &&
-      Number.isSafeInteger(end)
-    )
-      definitions.set(node.identifier, documentContent.slice(start, end));
-    for (const child of node.children ?? []) visit(child);
-  };
-  visit(fromMarkdown(documentContent) as MarkdownNode);
-  return definitions;
+/** What a document's links are, read in one parse of the whole document. */
+export interface DocumentLinkFacts {
+  /** The first definition of each label, by its CommonMark-normalized identifier. */
+  first: Map<string, { start: number; end: number; text: string }>;
+  /** Every reference and its identifier, resolved as the whole document resolves it. */
+  references: Array<{ position: number; identifier: string }>;
+  /** Every link, image, and definition destination. */
+  destinations: Array<{ start: number; end: number }>;
 }
 
 /**
- * The definitions `text` uses but does not hold, copied from its document's `definitions`, so
- * every reference in a part still resolves. A reference without its definition parses as plain
- * text, so uses are found by their brackets; copying a definition a part does not use is harmless.
- * Empty when the part needs none.
+ * The definitions that take effect (CommonMark uses the first definition of a label, matched
+ * case-insensitively with whitespace collapsed, and ignores later ones), every reference, and
+ * every destination of a document. The split reads its parts from these, never parsing a part.
  */
-export function missingReferenceDefinitions(
-  text: string,
-  definitions: ReadonlyMap<string, string>,
-): string {
-  if (definitions.size === 0) return "";
-  const held = new Set<string>();
+export function documentLinkFacts(documentContent: string): DocumentLinkFacts {
+  const { tree, destinations } = parseWithDestinations(documentContent);
+  const first = new Map<string, { start: number; end: number; text: string }>();
+  const references: Array<{ position: number; identifier: string }> = [];
   const visit = (node: MarkdownNode): void => {
-    if (node.type === "definition" && typeof node.identifier === "string")
-      held.add(node.identifier);
+    const start = node.position?.start?.offset;
+    const end = node.position?.end?.offset;
+    if (typeof node.identifier === "string" && Number.isSafeInteger(start)) {
+      if (node.type === "definition" && !first.has(node.identifier) && Number.isSafeInteger(end))
+        first.set(node.identifier, {
+          start: start!,
+          end: end!,
+          text: documentContent.slice(start, end),
+        });
+      if (node.type === "linkReference" || node.type === "imageReference")
+        references.push({ position: start!, identifier: node.identifier });
+    }
     for (const child of node.children ?? []) visit(child);
   };
-  visit(fromMarkdown(text) as MarkdownNode);
-  const lower = text.toLowerCase();
-  const copied = [...definitions].flatMap(([identifier, definition]) => {
-    if (held.has(identifier)) return [];
-    const label = identifier.toLowerCase();
-    const used =
-      lower.includes(`][${label}]`) ||
-      lower.includes(`[${label}][]`) ||
-      new RegExp(`\\[${label.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}\\](?!\\s*[(:\\[])`, "u").test(
-        lower,
-      );
-    return used ? [definition] : [];
-  });
-  return copied.length === 0 ? "" : `\n${copied.join("\n")}\n`;
+  visit(tree);
+  return { first, references, destinations };
+}
+
+/**
+ * The first definitions the range `[start, end)` of a document uses but does not itself hold, as
+ * written, one per line. Empty when it needs none.
+ */
+export function copiedReferenceDefinitions(
+  facts: DocumentLinkFacts,
+  range: { start: number; end: number },
+): string {
+  const copied = new Map<string, string>();
+  for (const reference of facts.references) {
+    if (reference.position < range.start || reference.position >= range.end) continue;
+    const definition = facts.first.get(reference.identifier);
+    if (
+      definition !== undefined &&
+      !(definition.start >= range.start && definition.end <= range.end)
+    )
+      copied.set(reference.identifier, definition.text);
+  }
+  return [...copied.values()].join("\n");
 }
