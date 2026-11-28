@@ -199,21 +199,30 @@ function Summary({ tool, detail }: { tool: ToolItem["tool"]; detail: ToolDetail 
 /**
  * One tool call as a quiet line: the tool, what it acted on, and its result. A call with output
  * or a change opens to its preview. Opening and closing move the details' space with their fade
- * (ADE motion, "Disclosure"). A line without detail, such as one stored before details existed, shows
- * the tool and its status. `ToolLinesProvider` keeps which lines are open.
+ * (ADE motion, "Disclosure"). A line without detail, such as one stored before details existed or a
+ * call whose input names nothing, shows the tool and its status, aligned with the others. `ToolLinesProvider` keeps which lines are open.
  */
 export function ToolLine({ item }: { item: ToolItem }) {
   const [opened, toggle] = useToolLine(item.itemId);
   const { tool } = item;
   const detail = tool.detail;
+  // A call with nothing to show lines up with the others: the caret's place, then its name.
   if (detail === undefined)
     return (
-      <p className={styles.plain} data-status={tool.status}>
-        <FormattedMessage
-          {...toolMessages[tool.status]}
-          values={{ name: tool.name, calls: tool.calls }}
-        />
-      </p>
+      <div className={styles.tool}>
+        <p className={styles.summary}>
+          <span className={styles.caret} />
+          <span className={styles.bare} data-status={tool.status}>
+            <FormattedMessage
+              {...toolMessages[tool.status]}
+              values={{
+                name: <span className={styles.name}>{tool.name}</span>,
+                calls: tool.calls,
+              }}
+            />
+          </span>
+        </p>
+      </div>
     );
   const lervo = detail.lervo;
   const summary = <Summary tool={tool} detail={detail} />;
