@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_88c037aae4b22b13afffb8b2"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Conversations can be renamed from the header or sidebar menu and pinned to the top; a failed agent list retries and never shows another project's agents; the hire menu and agent profile drop unused parts; diagnostics keep the core's failure code."

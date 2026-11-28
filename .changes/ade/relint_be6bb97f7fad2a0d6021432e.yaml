@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_be6bb97f7fad2a0d6021432e"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Hiring opens a sheet that asks for the agent's nickname and its role, and can add a new project role from a template; a project role is edited or removed from its own sheet, and an agent's profile moves it to another role."

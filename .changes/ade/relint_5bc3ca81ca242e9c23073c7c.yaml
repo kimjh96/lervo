@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5bc3ca81ca242e9c23073c7c"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A conversation follows every member's session, so members who work in their own worktrees show their work and working status in it."
