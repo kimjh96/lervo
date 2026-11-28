@@ -1688,7 +1688,7 @@
     "description": "The last item of the hire menu: hires an agent for a role the project adds first."
   },
   "agents.hire.newRole.detail": {
-    "defaultMessage": "A role this project needs, started from a template",
+    "defaultMessage": "A role of this project's own, with its own name and work",
     "description": "One quiet line under New Role in the hire menu."
   },
   "agents.sheet.hire.title": {
@@ -1732,8 +1732,8 @@
     "description": "The hint in the empty role description field: what the role owns and decides."
   },
   "agents.sheet.from": {
-    "defaultMessage": "Starts from",
-    "description": "The label of the menu that picks the template a new role extends."
+    "defaultMessage": "What it can do",
+    "description": "The label of the menu that picks which of Lervo's roles a new project role takes its permissions from, such as changing code like a Developer."
   },
   "agents.sheet.cancel": {
     "defaultMessage": "Cancel",

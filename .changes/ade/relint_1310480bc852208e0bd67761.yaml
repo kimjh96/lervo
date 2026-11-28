@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1310480bc852208e0bd67761"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "A new project role's permission menu reads What it can do, so it reads as what the role's agents may do rather than as a name."
