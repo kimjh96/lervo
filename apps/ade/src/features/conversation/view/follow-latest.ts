@@ -5,7 +5,12 @@ import { estimatedRowHeight } from "./row-estimate";
 
 /** The key of the conversation's first row. */
 const FIRST_ROW = "first-row";
-const NEAR_EDGE_PX = 48;
+/**
+ * How many viewports from either edge the next page loads. A page that loaded only at the very
+ * top landed while the wheel pressed against the top, and the view jumped as it took its place
+ * (2026-11-28); loading ahead lets each page land out of sight.
+ */
+const PREFETCH_VIEWPORTS = 1.5;
 /** The most frames a list stays hidden while its measured height settles. */
 const PLACE_FRAMES = 12;
 /** How close to the bottom counts as the live end, so a bounce at the bottom stays there. */
@@ -185,8 +190,9 @@ function useUserScroll(input: {
       // At the bottom the view is at the live end, whatever moved it there.
       if (bottom <= LIVE_END_PX) setFollowing(true);
       else if (byUser && movedUp) setFollowing(false);
-      if (bottom < NEAR_EDGE_PX) loaders.current.onLoadLater();
-      if (top < NEAR_EDGE_PX) loaders.current.onLoadEarlier();
+      const ahead = element.clientHeight * PREFETCH_VIEWPORTS;
+      if (bottom < ahead) loaders.current.onLoadLater();
+      if (top < ahead) loaders.current.onLoadEarlier();
     };
     element.addEventListener("scroll", scrolled, { passive: true });
     element.addEventListener("wheel", user, { passive: true });
