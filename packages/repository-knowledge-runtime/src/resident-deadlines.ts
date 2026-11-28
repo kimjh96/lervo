@@ -5,17 +5,17 @@ import { ResidentDeadlineTimer } from "./resident-deadline-timer.js";
  * its own next reconciliation as well as before each cycle, so a cycle waiting for host-wide
  * admission cannot starve it; the owner renews its lease (ADR-0466) at the heartbeat bound; the
  * health projection refreshes at its age bound; the reconcile deadline is the next due time or a
- * failure retry. A wall-clock step or a sleep only ever makes a deadline late, never early: the
+ * failure retry; ADR-0660's retention deadline runs a retention-only slice. A wall-clock step or a sleep only ever makes a deadline late, never early: the
  * timer fires on the monotonic clock and then hands over only names whose wall-clock moment has
  * passed, re-arming for the rest.
  */
-export type ResidentDeadline = "reconcile" | "projection" | "owner" | "continuity";
+export type ResidentDeadline = "reconcile" | "projection" | "owner" | "continuity" | "retention";
 
 export function residentDeadlines(
   handlers: Record<ResidentDeadline, () => void>,
   onRefused: (name: ResidentDeadline) => void,
 ): ResidentDeadlineTimer<ResidentDeadline> {
-  const order: ResidentDeadline[] = ["reconcile", "continuity", "owner", "projection"];
+  const order: ResidentDeadline[] = ["reconcile", "continuity", "owner", "projection", "retention"];
   return new ResidentDeadlineTimer<ResidentDeadline>(
     (due) => {
       for (const name of order) if (due.includes(name)) handlers[name]();

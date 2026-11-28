@@ -2,7 +2,6 @@ import type { ConvergenceSourceFingerprint } from "./source-fingerprint.js";
 import type { ResidentCycleResult, ResidentCycleState } from "./resident-cycle-state.js";
 import type { runAutonomousKnowledgeWorker } from "./worker.js";
 import { residentCycleFailure } from "./resident-cycle-failure.js";
-import { casRetentionContinueAt } from "./cas-retention-cadence.js";
 
 export const RESIDENT_RECONCILE_BASE_MILLISECONDS = 60_000;
 export const RESIDENT_RECONCILE_CEILING_MILLISECONDS = 900_000;
@@ -27,16 +26,11 @@ function parkedRetryAt(result: WorkerResult, now: number): number | null {
 }
 
 /**
- * The earliest future moment among the fence's observation, a parked retry, and work the cycle
- * left (ADR-0660). The fence was observed before the cycle, so what the cycle itself rescheduled
- * is known only from its result.
+ * The earliest future moment among the fence's observation and a parked retry. The fence was
+ * observed before the cycle, so a retry the cycle itself rescheduled is known only from the result.
  */
-function nextDueAt(
-  observed: number | null,
-  dueAfterCycle: readonly (number | null)[],
-  now: number,
-): number | null {
-  const future = [observed, ...dueAfterCycle].filter((at): at is number => at !== null && at > now);
+function nextDueAt(observed: number | null, retryAt: number | null, now: number): number | null {
+  const future = [observed, retryAt].filter((at): at is number => at !== null && at > now);
   return future.length === 0 ? observed : Math.min(...future);
 }
 
@@ -232,11 +226,6 @@ export async function runResidentCycle(input: {
   now: () => number;
   observe: () => ConvergenceSourceFingerprint;
   runFull: () => Promise<WorkerResult>;
-  /**
-   * ADR-0660: when work a full cycle left falls due again; by default, the next retention slice.
-   * The fence was observed before the cycle, so this is known only once it ends.
-   */
-  continueAt?: (cycleStartedAt: number, finishedAt: number) => number | null;
 }): Promise<{
   outcome: ResidentCycleOutcome;
   state: Omit<ResidentCycleState, "nextReconcileAt">;
@@ -245,10 +234,6 @@ export async function runResidentCycle(input: {
   observedAt: number;
 }> {
   const startedAt = input.now();
-  const continueAt =
-    input.continueAt ??
-    ((cycleStartedAt: number, finishedAt: number) =>
-      casRetentionContinueAt(input.repositoryRoot, cycleStartedAt, finishedAt));
   let observed: ConvergenceSourceFingerprint | null;
   try {
     observed = input.observe();
@@ -287,7 +272,7 @@ export async function runResidentCycle(input: {
       },
       earliestAvailableAt: nextDueAt(
         observed?.earliestAvailableAt ?? null,
-        [parkedRetryAt(result, finishedAt), continueAt(startedAt, finishedAt)],
+        parkedRetryAt(result, finishedAt),
         finishedAt,
       ),
       observedAt: finishedAt,

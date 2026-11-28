@@ -1,13 +1,13 @@
 import { readRepositoryHold } from "@lervo/repository-registry";
-import { compactProjectConvergenceArtifacts } from "./cas-retention.js";
+import { runCasRetentionSlice } from "./cas-retention-slice.js";
+import { fullCycleAdmissionDirectory } from "./full-cycle-admission.js";
 import { recordCasRetentionFailure } from "./cas-retention-observation.js";
 import { checkoutOnBaseBranch } from "./checkout-base-branch.js";
 import { keepConvergenceDelegationHostLocal } from "./delegation-tracking.js";
 import { admittedBackgroundContext } from "./background-provider.js";
 import { runPracticeLearningCycle } from "./practice-stage.js";
 import { loadConvergenceDelegation } from "./delegation.js";
-import { listAssignments } from "@lervo/agent-workforce";
-import { hasCurrentForegroundLease } from "./foreground-admission.js";
+import { foregroundWorkPending } from "./foreground-admission.js";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   processKnowledgeConvergence,
@@ -150,9 +150,7 @@ export async function runAutonomousKnowledgeWorker(input: {
     }),
   ).catch(() => {});
   const signal = input.signal ?? new AbortController().signal;
-  const liveWorkPending =
-    input.liveWorkPending ??
-    (async () => hasCurrentForegroundLease(await listAssignments(root), Date.now()));
+  const liveWorkPending = input.liveWorkPending ?? foregroundWorkPending(root);
   const providerQuantum = {
     remaining: input.maximumProviderCallsPerTurn ?? Number.MAX_SAFE_INTEGER,
   };
@@ -196,12 +194,14 @@ export async function runAutonomousKnowledgeWorker(input: {
   }
   // ADR-0610: an older repository still tracks its host-local delegation; untrack it once.
   await keepConvergenceDelegationHostLocal(root).catch(() => undefined);
+  // ADR-0660: under this host's retention turn, so the host-wide pace holds in full cycles too.
   await withProcessCostScope("artifact_retention", () =>
-    compactProjectConvergenceArtifacts(
-      input.storage,
-      async () =>
+    runCasRetentionSlice({
+      storage: input.storage,
+      directory: fullCycleAdmissionDirectory(input.admissionDirectory),
+      shouldYield: async () =>
         signal.aborted || (await liveWorkPending()) || ((await input.shouldYield?.()) ?? false),
-    ),
+    }),
   ).catch((error: unknown) => recordCasRetentionFailure(input.storage, error));
   const upgradeWaiting = async () => (await input.yieldToUpgrade?.()) ?? false;
   const yieldedToUpgrade = {

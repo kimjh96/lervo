@@ -31,6 +31,8 @@ const COMMANDS: Record<string, (reference: string) => string> = {
 };
 
 const STALLS: Record<string, string> = {
+  read_budget_exhausted:
+    "a file in Lervo's state keeps changing faster than one retention slice can read it, so retention stopped asking for slices; stop whatever rewrites the named file, and retention resumes on the next worker cycle",
   inventory_changed:
     "Lervo state files keep changing between a pass's scan and its sweep; retention keeps trying each cycle, and a quieter period lets it finish",
   event_head_changed:
@@ -44,6 +46,7 @@ interface Observation {
   reference?: unknown;
   stalledPasses?: unknown;
   stallCause?: unknown;
+  stallReference?: unknown;
 }
 
 /** The retention outcome's attention issues, or none while retention runs as it should. */
@@ -83,7 +86,9 @@ export async function readCasRetentionAttention(root: string, now = new Date()):
     issues.push({
       code: "cas_retention_stalled",
       command: STALLS[cause]!,
-      detail: `${stalled} passes removed nothing: ${cause}`,
+      detail: `${stalled} passes removed nothing: ${cause}${
+        typeof observation.stallReference === "string" ? ` (${observation.stallReference})` : ""
+      }`,
     });
   return issues;
 }

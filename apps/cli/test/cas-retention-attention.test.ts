@@ -85,6 +85,21 @@ it("reports an observation too old to be current, and passes that keep removing 
       stallCause: "inventory_changed",
     }),
   ).toEqual([]);
+  // ADR-0660: a file that changes faster than a slice reads it is named.
+  expect(
+    await attention({
+      status: "collected",
+      failure: null,
+      stalledPasses: 5,
+      stallCause: "read_budget_exhausted",
+      stallReference: ".lervo/state/big.sqlite",
+    }),
+  ).toMatchObject([
+    {
+      code: "cas_retention_stalled",
+      detail: "5 passes removed nothing: read_budget_exhausted (.lervo/state/big.sqlite)",
+    },
+  ]);
 });
 
 it("stays quiet while retention works", async () => {

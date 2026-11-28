@@ -80,6 +80,11 @@ export function admissionSignalsHeld(): boolean {
   return signalCapableHolders > 0;
 }
 
+/** The host admission directory a resident shares with every other resident on its host. */
+export function fullCycleAdmissionDirectory(directory?: string): string {
+  return directory ?? resolve(homedir(), ".lervo", "state", "knowledge-provider-admission");
+}
+
 /**
  * One full knowledge cycle per host at a time, so co-hosted residents serialise their bursts.
  * Upgrades are admitted first, then residents, each in arrival order. Waiting ends on abort with
@@ -107,8 +112,7 @@ export async function acquireFullCycleAdmission(input: {
   leaseMilliseconds?: number;
   onWait?: () => void;
 }): Promise<FullCycleAdmission> {
-  const directory =
-    input.directory ?? resolve(homedir(), ".lervo", "state", "knowledge-provider-admission");
+  const directory = fullCycleAdmissionDirectory(input.directory);
   const repositoryHash = sha256(resolve(input.repositoryRoot));
   const nonce = randomUUID();
   const since = Date.now() - (input.priority === "upgrade" ? PRIORITY_ADVANCE_MILLISECONDS : 0);

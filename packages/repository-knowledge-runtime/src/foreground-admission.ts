@@ -1,4 +1,4 @@
-import type { WorkforceAssignment } from "@lervo/agent-workforce";
+import { listAssignments, type WorkforceAssignment } from "@lervo/agent-workforce";
 
 /** Scheduling evidence only: expiry does not settle an assignment or prove its effects stopped. */
 export function hasCurrentForegroundLease(
@@ -15,4 +15,9 @@ export function hasCurrentForegroundLease(
     const expiry = Date.parse(assignment.lease?.expiresAt ?? "");
     return !Number.isFinite(expiry) || expiry > nowMilliseconds;
   });
+}
+
+/** The default live-work probe of a resident's stages: a current developer foreground lease. */
+export function foregroundWorkPending(repositoryRoot: string): () => Promise<boolean> {
+  return async () => hasCurrentForegroundLease(await listAssignments(repositoryRoot), Date.now());
 }

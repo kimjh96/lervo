@@ -179,6 +179,28 @@ export async function othersWaiting(
   }
 }
 
+/**
+ * ADR-0660: whether a live holder or waiter occupies the admission. A retention-only slice asks
+ * first and never queues: a waiter would make the running full cycle yield at its next stage.
+ */
+export async function admissionOccupied(directory: string, now: number): Promise<boolean> {
+  const db = await database(directory);
+  try {
+    const holder = sqliteRow(db.prepare(HOLDER).get());
+    if (holder !== undefined && Number(holder.expires_at) > now && (await rowAlive(holder)))
+      return true;
+    const waiters = sqliteRows(
+      db
+        .prepare(`${WAITERS} WHERE p.presence IS NOT NULL OR w.heartbeat>=?`)
+        .all(now - WAITER_STALE_MILLISECONDS),
+    );
+    for (const row of waiters) if (await rowAlive(row)) return true;
+    return false;
+  } finally {
+    db.close();
+  }
+}
+
 /** Wakes every waiter's presence, so a release or a departure is seen at once. */
 export async function wakeWaiters(directory: string, except: string): Promise<void> {
   const db = await database(directory);

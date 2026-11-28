@@ -6,7 +6,6 @@ import { canonicalJson, recordSynchronousGitProcess, sha256 } from "@lervo/repos
 import { defaultRepositoryHoldPath } from "@lervo/repository-registry";
 import type { OutboxStore } from "@lervo/storage-contract";
 
-import { casRetentionWakeAt } from "./cas-retention-cadence.js";
 import { observeConvergenceQueue } from "./convergence-queue-observation.js";
 import { freshnessUsagePauseEndsAt } from "./freshness-usage-pause.js";
 import { nextUtcDayAt, observePracticeSchedule } from "./practice-schedule.js";
@@ -28,9 +27,8 @@ export interface ConvergenceSourceFingerprint {
    */
   earliestAvailableAt: number | null;
   /**
-   * ADR-0595: the earliest moment a local time-based stage (practice, the daily skill usage
-   * window, and ADR-0660's next retention slice) falls due. Every host runs these, so a non-owner
-   * wakes for them too.
+   * ADR-0595: the earliest future moment a local time-based stage (practice, the daily skill
+   * usage window) falls due. Every host runs these, so a non-owner wakes for them too.
    */
   localWakeAt?: number | null;
 }
@@ -264,12 +262,10 @@ export function convergenceSourceFingerprint(input: {
     ];
     practiceWakeAt = null;
   }
-  // ADR-0660: retention with work left is a local time-based stage too; every host runs it.
-  const localWakeAt = [
-    nextUtcDayAt(now, offset),
+  const localWakeAt = earliestMoment(
+    earliestMoment(practiceWakeAt, nextUtcDayAt(now, offset)),
     freshnessUsagePauseEndsAt(input.repositoryRoot, now),
-    casRetentionWakeAt(input.repositoryRoot),
-  ].reduce(earliestMoment, practiceWakeAt);
+  );
   return {
     fingerprint: sha256(
       canonicalJson({

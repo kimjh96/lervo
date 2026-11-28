@@ -16,12 +16,22 @@ import { writeRetentionProjection } from "./cas-retention-state.js";
 
 /**
  * Consecutive stalls after which attention reports `cas_retention_stalled` and retention stops
- * asking for an early cycle. The CLI's attention reader uses the same bound.
+ * asking for another slice. The CLI's attention reader uses the same bound.
  */
 export const CAS_RETENTION_STALL_PASSES = 5;
 
-/** Why a pass that reached its sweep removed nothing although candidates were past grace. */
-export type CasRetentionStallCause = "inventory_changed" | "event_head_changed";
+/**
+ * Why a pass removed nothing although candidates were past grace (ADR-0658), or, with
+ * `read_budget_exhausted` (ADR-0660), why a slice spent its read budget and advanced no read.
+ */
+export type CasRetentionStallCause =
+  "inventory_changed" | "event_head_changed" | "read_budget_exhausted";
+
+const STALL_CAUSES: readonly unknown[] = [
+  "inventory_changed",
+  "event_head_changed",
+  "read_budget_exhausted",
+];
 
 export interface CasRetentionObservation {
   schemaVersion: 1;
@@ -46,9 +56,14 @@ export interface CasRetentionObservation {
   stalledPasses?: number;
   stallCause?: CasRetentionStallCause;
   /**
+   * ADR-0660: with `read_budget_exhausted`, the repository-relative path whose read the budget
+   * ran out in, when one file holds it. Carried with the stall.
+   */
+  stallReference?: string;
+  /**
    * ADR-0660: the pass stopped with work left: unclassified records, unread references, eligible
-   * candidates, or a stall below `CAS_RETENTION_STALL_PASSES`. The resident keeps retention due
-   * while it is true. A pass that never looked, because it yielded first, carries the last answer.
+   * candidates, or a stall below `CAS_RETENTION_STALL_PASSES`. While it is true the resident asks
+   * for another slice. A pass that yielded before doing any work writes no observation at all.
    */
   remaining?: boolean;
   removedObjects: number;
@@ -73,15 +88,16 @@ export async function startObservation(storage: ProjectStorage): Promise<CasRete
     const previous = JSON.parse(await readFile(observationPath(storage), "utf8")) as {
       stalledPasses?: unknown;
       stallCause?: unknown;
-      remaining?: unknown;
+      stallReference?: unknown;
     };
-    if (previous.remaining === true) observation.remaining = true;
     if (
       Number.isSafeInteger(previous.stalledPasses) &&
-      (previous.stallCause === "inventory_changed" || previous.stallCause === "event_head_changed")
+      STALL_CAUSES.includes(previous.stallCause)
     ) {
       observation.stalledPasses = previous.stalledPasses as number;
-      observation.stallCause = previous.stallCause;
+      observation.stallCause = previous.stallCause as CasRetentionStallCause;
+      if (typeof previous.stallReference === "string")
+        observation.stallReference = resolve(storage.paths.repositoryRoot, previous.stallReference);
     }
   } catch {
     // No readable previous observation: no stall to carry.
@@ -104,14 +120,29 @@ export function noteSweep(observation: CasRetentionObservation, headMoved: boole
   else noteProgress(observation);
 }
 
-export function noteStall(observation: CasRetentionObservation, cause: CasRetentionStallCause) {
+export function noteStall(
+  observation: CasRetentionObservation,
+  cause: CasRetentionStallCause,
+  reference?: string,
+) {
   observation.stalledPasses = (observation.stalledPasses ?? 0) + 1;
   observation.stallCause = cause;
+  if (reference === undefined) delete observation.stallReference;
+  else observation.stallReference = reference;
 }
 
 export function noteProgress(observation: CasRetentionObservation) {
   delete observation.stalledPasses;
   delete observation.stallCause;
+  delete observation.stallReference;
+}
+
+/**
+ * ADR-0660: a slice that advanced a read ends a read stall. Other stalls end only when a pass
+ * removes or finishes, since every pass rereads what changed before it can stall again.
+ */
+export function noteReadProgress(observation: CasRetentionObservation) {
+  if (observation.stallCause === "read_budget_exhausted") noteProgress(observation);
 }
 
 /** Names a failure; a permission error anywhere in the pass names its own path. */
@@ -135,6 +166,8 @@ export async function writeObservation(
   // ADR-0658: the path is recorded relative to the repository, never absolute.
   if (observation.reference !== undefined)
     observation.reference = relative(storage.paths.repositoryRoot, observation.reference);
+  if (observation.stallReference !== undefined)
+    observation.stallReference = relative(storage.paths.repositoryRoot, observation.stallReference);
   await writeRetentionProjection(observationPath(storage), observation);
 }
 
