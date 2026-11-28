@@ -99,9 +99,11 @@ export async function runDocumentSizeSplitStage(input: {
   json: boolean;
   io: CliIo;
 }): Promise<number | null> {
+  // ADR-0578: the stage reads the command's scan instead of scanning the repository again.
   const normalization = await inspectConfiguredDocumentNormalization({
     repositoryRoot: input.repositoryRoot,
     supplementalSources: input.supplementalSources,
+    ...(input.preparedScan === undefined ? {} : { preparedScan: input.preparedScan }),
   });
   const sourcePaths = normalization.oversizedDocuments.map((document) => document.path);
   const unread = input.preparedScan?.sources.some(
