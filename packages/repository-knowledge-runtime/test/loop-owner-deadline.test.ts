@@ -138,8 +138,10 @@ it.each([
     await turns(50);
     expect(runResidentCycle).toHaveBeenCalledTimes(1);
     expect(observe).toHaveBeenCalledTimes(1);
-    // No owner renewal, no reconcile, no poll: an idle owner waits on changes alone.
-    expect(vi.getTimerCount()).toBe(0);
+    // No owner renewal, no reconcile, no poll: an idle owner waits on changes alone. ADR-0660:
+    // its one timer is the first retention-only slice, armed once at start, which decides
+    // whether a pass is due and arms nothing more when none is.
+    expect(vi.getTimerCount()).toBe(1);
     await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
     await turns(20);
     expect(runResidentCycle).toHaveBeenCalledTimes(1);

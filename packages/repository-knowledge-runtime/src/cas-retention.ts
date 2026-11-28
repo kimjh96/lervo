@@ -230,6 +230,20 @@ export async function runCasRetentionPass(
   return result.status === "busy" ? null : result.result;
 }
 
+/**
+ * ADR-0660: whether a pass could find work, by the same two checks a pass makes first: the
+ * rescan interval after a completed pass has passed, and no idle answer (ADR-0597) still stands.
+ * It reads the scan projection and the events since the idle head, never a CAS body, so a
+ * retention-only wake asks before it takes the host's turn. An unreadable projection is due.
+ */
+export async function casRetentionPassMayBeDue(
+  storage: ProjectStorage,
+  now: number,
+): Promise<boolean> {
+  const scan = await readRetentionScan(resolve(storage.paths.knowledgeState, CAS_RETENTION_SCAN));
+  return scan.nextScanAt <= now && !retentionStillIdle(scan, storage.events, now);
+}
+
 /** One pass with no host turn, as one-shot commands and tests run it. */
 export async function compactProjectConvergenceArtifacts(
   storage: ProjectStorage,

@@ -54,6 +54,8 @@ it(
       observer.close();
     }
     expect(outcome).toMatchObject({ kind: "slice", slice: { outcome: "ran" } });
+    // That pass found nothing eligible, so the next wake takes no turn and reads no body.
+    expect(await slice(f)).toEqual({ kind: "not_due" });
     expect(scopes).toEqual(["artifact_retention"]);
     expect(await exists(resolve(f.directory, "provider-calls.jsonl"))).toBe(false);
     expect(f.storage.events.list({ limit: 1_000 })).toHaveLength(events);

@@ -5,6 +5,7 @@ import { withProcessCostScope } from "@lervo/repository-knowledge";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { readRepositoryHold } from "@lervo/repository-registry";
 
+import { casRetentionPassMayBeDue } from "./cas-retention.js";
 import { runCasRetentionSlice, type CasRetentionSlice } from "./cas-retention-slice.js";
 import { checkoutOnBaseBranch } from "./checkout-base-branch.js";
 import { requestRetentionTurn, returnRetentionTurn } from "./cas-retention-host-turns.js";
@@ -14,12 +15,13 @@ import { acquireFullCycleAdmission, fullCycleAdmissionDirectory } from "./full-c
  * - `held`, `off_base`: the repository takes no Lervo effect now; a full cycle, which the release
  *   or checkout switch wakes, looks again.
  * - `live_work`: a developer lease is current, so the slice did not start.
+ * - `not_due`: no pass is in progress and the rescan interval has not passed.
  * - `turn_deferred`: another repository's turn, or the host's pause; come back at `retryAt`.
  * - `admission_busy`: this repository had the turn, but a full cycle holds or waits for the host
  *   admission; the turn was given back.
  */
 export type RetentionOnlyOutcome =
-  | { kind: "held" | "off_base" | "admission_busy" | "live_work" }
+  | { kind: "held" | "off_base" | "admission_busy" | "live_work" | "not_due" }
   | { kind: "turn_deferred"; retryAt: number }
   | { kind: "slice"; slice: CasRetentionSlice };
 
@@ -40,6 +42,8 @@ async function retentionOnlySlice(input: RetentionOnlyInput): Promise<RetentionO
   if ((await readRepositoryHold(root)) !== null) return { kind: "held" };
   if (!(await checkoutOnBaseBranch(root)).onBase) return { kind: "off_base" };
   if (await input.liveWorkPending()) return { kind: "live_work" };
+  // Nothing in progress and no rescan due: no turn is taken, so a resident's start costs little.
+  if (!(await casRetentionPassMayBeDue(input.storage, Date.now()))) return { kind: "not_due" };
   const directory = fullCycleAdmissionDirectory(input.admissionDirectory);
   const turnInput = { directory, repositoryRoot: root };
   // The turn comes first, so repositories that are not served never touch the admission.
