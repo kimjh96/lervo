@@ -5,7 +5,7 @@
 // retiring prunes any older than 14 days and all but the newest 10, never the one it just wrote,
 // and Git's own garbage collection then drops their objects. Lervo pushes only branches, so the
 // copies stay in the repository's local refs.
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,18 +30,26 @@ const IDENTITY = {
   GIT_COMMITTER_EMAIL: "lervo@localhost",
 };
 
+/** Output past this fails a Git call; listings that grow with the repository stream instead. */
+const MAXIMUM_OUTPUT_BYTES = 16 * 1024 * 1024;
+
+/** No inherited Git variable points a call at another repository or index. */
+function gitEnvironment(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
+  const inherited = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+  );
+  return { ...inherited, GIT_OPTIONAL_LOCKS: "0", ...extra };
+}
+
 async function git(
   directory: string,
   arguments_: readonly string[],
   environment: Record<string, string> = {},
 ): Promise<string> {
-  // No inherited Git variable points this at another repository or index.
-  const inherited = Object.fromEntries(
-    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
-  );
   const { stdout } = await execute("git", ["-C", directory, ...arguments_], {
     encoding: "utf8",
-    env: { ...inherited, GIT_OPTIONAL_LOCKS: "0", ...environment },
+    env: gitEnvironment(environment),
+    maxBuffer: MAXIMUM_OUTPUT_BYTES,
   });
   return stdout.trim();
 }
@@ -56,14 +64,39 @@ export class NestedRepositoryChanges extends Error {
   }
 }
 
-/** The gitlinks of a tree listing, by path. */
-function gitlinks(listing: string): Map<string, string> {
-  const links = new Map<string, string>();
-  for (const line of listing.split("\n")) {
-    const match = /^160000 commit ([0-9a-f]+)\t(.+)$/u.exec(line);
-    if (match !== null) links.set(match[2]!, match[1]!);
-  }
-  return links;
+/**
+ * The gitlinks of a tree, by path. The listing streams and keeps only gitlinks, because a whole
+ * repository's tree runs to megabytes, past any buffer a single call would hold.
+ */
+function gitlinks(directory: string, treeish: string): Promise<Map<string, string>> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("git", ["-C", directory, "ls-tree", "-r", "-z", treeish], {
+      env: gitEnvironment(),
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const links = new Map<string, string>();
+    let partial = "";
+    let failure = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      const records = (partial + chunk).split("\0");
+      partial = records.pop() ?? "";
+      for (const record of records) {
+        const match = /^160000 commit ([0-9a-f]+)\t(.+)$/su.exec(record);
+        if (match !== null) links.set(match[2]!, match[1]!);
+      }
+    });
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk: string) => {
+      failure = (failure + chunk).slice(0, 2000);
+    });
+    child.on("error", reject);
+    child.on("close", (code) =>
+      code === 0
+        ? resolve(links)
+        : reject(new Error(failure.trim() || `git ls-tree exited with ${String(code)}`)),
+    );
+  });
 }
 
 /**
@@ -72,9 +105,9 @@ function gitlinks(listing: string): Map<string, string> {
  * and a submodule with uncommitted changes of its own.
  */
 async function nestedWork(worktree: string, tree: string): Promise<string[]> {
-  const kept = gitlinks(await git(worktree, ["ls-tree", "-r", tree]));
+  const kept = await gitlinks(worktree, tree);
   if (kept.size === 0) return [];
-  const head = gitlinks(await git(worktree, ["ls-tree", "-r", "HEAD"]));
+  const head = await gitlinks(worktree, "HEAD");
   const lost: string[] = [];
   for (const [path, commit] of kept) {
     if (head.get(path) !== commit) lost.push(path);
