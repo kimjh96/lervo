@@ -16,6 +16,7 @@ import {
 import { applyDocumentStructureOperation } from "./document-structure-apply.js";
 import type { CrossCheckPlan } from "./plan-cross-check.js";
 import type { CliIo } from "./types.js";
+import { errorCode } from "./command-error-output.js";
 
 /** Who stands in for the reviewer of a size split, as the notice and the commit name it. */
 export const DOCUMENT_SIZE_SPLIT_VERIFIER = "deterministic byte verifier";
@@ -107,11 +108,20 @@ export async function runDocumentSizeSplitStage(input: {
     (source) => source.reason === "file_size_limit" && source.path.endsWith(".md"),
   );
   if (sourcePaths.length === 0 && unread === false) return null;
-  const plan = await createDocumentSizeSplitPlan({
-    repositoryRoot: input.repositoryRoot,
-    sourcePaths,
-    supplementalSources: input.supplementalSources,
-  });
+  let plan: Awaited<ReturnType<typeof createDocumentSizeSplitPlan>>;
+  try {
+    plan = await createDocumentSizeSplitPlan({
+      repositoryRoot: input.repositoryRoot,
+      sourcePaths,
+      supplementalSources: input.supplementalSources,
+    });
+  } catch (error) {
+    // A split that cannot be planned is named and waits; it never stops normalization (ADR-0653).
+    input.io.stderr(
+      `large documents not split this run (${errorCode(error)}): ${sourcePaths.join(", ")}\n`,
+    );
+    return null;
+  }
   if (plan.status === "current") {
     // Nothing to split, but what stays whole is named on every run, never passed silently.
     const kept = keptWholeLines(plan);

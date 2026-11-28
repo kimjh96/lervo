@@ -11,6 +11,7 @@ import {
   type UnsplittableReason,
 } from "./document-size-split-layout.js";
 import type { SplitAnchorFiles } from "./document-size-split-links.js";
+import { mentionsFileName } from "./document-size-split-names.js";
 
 /** Rounds a set of documents renders again before a document whose links still move fails. */
 const SETTLE_ROUNDS = 4;
@@ -62,7 +63,7 @@ export function splitDocuments<Source extends { path: string; content: string }>
   const named = (source: Source, all: SplitAnchorFiles) =>
     new Map(
       [...all].filter(
-        ([path]) => path !== source.path && source.content.includes(posix.basename(path)),
+        ([path]) => path !== source.path && mentionsFileName(source.content, posix.basename(path)),
       ),
     );
   const fingerprint = (files: SplitAnchorFiles) =>

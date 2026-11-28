@@ -11,6 +11,7 @@ import {
 import { scannedText } from "./document-size-split-sources.js";
 import { sha256 } from "./integrity.js";
 import type { RepositoryKnowledgeScan } from "./types.js";
+import { mentionsFileName } from "./document-size-split-names.js";
 
 export interface SplitReferenceUpdate {
   path: string;
@@ -41,7 +42,7 @@ export function splitReferenceUpdates(
       source.contentHash === null ||
       !source.path.endsWith(".md") ||
       anchorFiles.has(source.path) ||
-      !names.some((name) => text.includes(name))
+      !names.some((name) => mentionsFileName(text, name))
     )
       return [];
     const links = rewriteSplitLinks({
