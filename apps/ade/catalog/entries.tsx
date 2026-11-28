@@ -4,6 +4,7 @@
 import type { ReactNode } from "react";
 
 import { feedbackEntries } from "./entries-feedback";
+import { sheetEntries } from "./entries-sheets";
 import { MovingRowsDemo } from "./MovingRowsDemo";
 
 import { Button } from "../src/ui/Button";
@@ -252,6 +253,7 @@ export const entries: readonly Entry[] = [
     avoid: ["A project's context menu, which is the system's", "More than about seven items"],
     variants: [{ name: "Add Project", render: () => <PopoverMenuDemo /> }],
   },
+  ...sheetEntries,
   {
     module: "SuggestionList",
     name: "Suggestions",

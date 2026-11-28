@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button } from "../src/ui/Button";
 import { PopoverMenu } from "../src/ui/PopoverMenu";
+import { Sheet, SheetField, SheetHeading, sheetStyles } from "../src/ui/Sheet";
 import { IconButton } from "../src/ui/IconButton";
 import { ArrowUpIcon } from "../src/ui/icons";
 import { AttachmentTray } from "../src/ui/AttachmentTray";
@@ -292,6 +293,50 @@ export function SuggestionListDemo() {
         onActive={setActive}
         onChoose={() => setAnchor(null)}
       />
+    </span>
+  );
+}
+
+export function SheetDemo() {
+  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  return (
+    <span>
+      <Button
+        variant="outlined"
+        onClick={() => {
+          setDismissed(false);
+          setOpen(true);
+        }}
+      >
+        Hire an Agent
+      </Button>
+      {open ? (
+        <Sheet
+          labelledBy="catalog-sheet-title"
+          dismissed={dismissed}
+          onClose={() => setDismissed(true)}
+          onGone={() => setOpen(false)}
+        >
+          {(close) => (
+            <>
+              <SheetHeading
+                id="catalog-sheet-title"
+                title="Hire an Agent"
+                subtitle="Name them like a person, such as Bora. Their role says what they do."
+              />
+              <SheetField label="Name">
+                <input className={sheetStyles.input} placeholder="Bora" />
+              </SheetField>
+              <div className={sheetStyles.actions}>
+                <Button variant="outlined" onClick={close}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
+        </Sheet>
+      ) : null}
     </span>
   );
 }

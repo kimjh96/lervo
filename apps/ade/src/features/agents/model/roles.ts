@@ -1,7 +1,8 @@
 import type { HireableRole } from "@lervo/session-host-contract";
 
 import { type ApplicationCommands, RequestFailure } from "../../../ports";
-import { changeAgent, showProjectAgents } from "./controller";
+import { changeAgent } from "./controller";
+import { showProjectAgents } from "./listing";
 import { useAgentStore } from "./store";
 
 /**
