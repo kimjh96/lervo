@@ -69,6 +69,54 @@ describe("Lervo calls in hosted shell lines", () => {
       });
   });
 
+  it("reads a call that input is piped into, inside a compound command, or after a here-document", () => {
+    const intake = [
+      "python3 - <<'EOF' | lervo knowledge instruction intake --provider claude --stdin --json 2>&1 | head -40",
+      "import json",
+      'req = """Owner decision; ls -la | lervo plan list"""',
+      "print(json.dumps({'request': req}))",
+      "EOF",
+    ].join("\n");
+    expect(readLervoShellLine(intake, commands)).toEqual({
+      call: { command: "knowledge instruction intake" },
+    });
+    expect(readLervoShellLine(`${intake}\ngit status -s`, commands)).toEqual({
+      call: { command: "knowledge instruction intake" },
+      others: "git status -s",
+    });
+    expect(
+      readLervoShellLine("echo '{}' | lervo knowledge instruction intake --stdin", commands),
+    ).toEqual({ call: { command: "knowledge instruction intake" } });
+    const hire = [
+      'R=/work/axli; for n in "Drawing:developer" "Machining:developer"; do name=${n%%:*};',
+      'role=${n##*:}; lervo agent hire --role $role --name "$name" --root $R --write --json 2>&1 |',
+      ' python3 -c "import json,sys\nprint(json.load(sys.stdin))"; done',
+    ].join(" ");
+    expect(readLervoShellLine(hire, commands)).toEqual({ call: { command: "agent hire" } });
+    expect(readLervoShellLine("if lervo plan list; then echo ok; fi", commands)).toEqual({
+      call: { command: "plan list" },
+    });
+    // A loop that also does work of its own keeps that work, as the line spells it.
+    expect(
+      readLervoShellLine("for f in a b; do wc -l $f; done; lervo knowledge lint", commands),
+    ).toEqual({
+      call: { command: "knowledge lint" },
+      others: "for f in a b; do wc -l $f; done",
+    });
+    // A here-string is not a here-document.
+    expect(readLervoShellLine("lervo plan list <<< x\nls", commands)).toEqual({
+      call: { command: "plan list" },
+      others: "ls",
+    });
+  });
+
+  it("reads a command group alone as a help lookup", () => {
+    expect(callOf("lervo role 2>&1 | head -20")).toEqual({ command: "role", flag: "help" });
+    expect(callOf("lervo agent")).toEqual({ command: "agent", flag: "help" });
+    expect(callOf("lervo")).toEqual({ command: "", flag: "help" });
+    expect(callOf("lervo garden")).toEqual({ command: "garden" });
+  });
+
   it("reads no call in a line that runs no lervo command", () => {
     for (const line of [
       "echo lervo knowledge query",

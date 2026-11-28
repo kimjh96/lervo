@@ -1,8 +1,19 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { lstat, mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import { listBuiltInRoleDefinitions } from "./profiles.js";
 import { parseRepositoryRoleSource } from "./repository-role-source.js";
+import { mainCheckoutOf } from "./shared-role-checkout.js";
+
+/** Whether `path` is a role source file. */
+async function kept(path: string): Promise<boolean> {
+  try {
+    const info = await lstat(path);
+    return info.isFile() && !info.isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Repository roles the core writes into a project that lacks them, the first time the project
@@ -66,6 +77,11 @@ export async function ensureTemplateRole(
   // The template is checked the way any repository role source is, before it is written.
   parseRepositoryRoleSource(template, roleId);
   const path = resolve(repositoryRoot, ".lervo/roles", `${roleId}.json`);
+  // A linked worktree shares its main checkout's roles, so a template the main checkout keeps is
+  // present here too, and the worktree's own files stay untouched.
+  const main = await mainCheckoutOf(repositoryRoot);
+  if (main !== undefined && (await kept(resolve(main, ".lervo/roles", `${roleId}.json`))))
+    return "present";
   await mkdir(dirname(path), { recursive: true });
   try {
     await writeFile(path, `${JSON.stringify(template, null, 2)}\n`, { flag: "wx", mode: 0o644 });

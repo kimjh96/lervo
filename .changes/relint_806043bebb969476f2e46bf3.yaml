@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_806043bebb969476f2e46bf3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Agent and role commands in a linked worktree, such as an ADE workspace, resolve the roles the main checkout keeps, so a template role written on a first hire no longer fails every agent command there."

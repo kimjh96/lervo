@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_44d590bcf480a239b715f325"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "A run of tool lines reads as one block, with the same room before and after the messages around it, instead of a message hugging the run above it."
