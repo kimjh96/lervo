@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_6f4ba3017a9524b3fb2956a5"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "The host follower upgrades a repository registered after its last pass within one poll, instead of waiting for the next release."
