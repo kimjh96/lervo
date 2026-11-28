@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cf61f4c0c500af330453cc55"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Retiring a workspace waits up to 5 seconds for processes to leave its worktree before it refuses with workspace_in_use, so removing a conversation right after its turn ends no longer fails."
