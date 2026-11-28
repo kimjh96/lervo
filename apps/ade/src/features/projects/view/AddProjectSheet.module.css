@@ -139,8 +139,12 @@
   transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
 }
 
+/* The button keeps its input fill and takes the filled-surface tint over it, which also shows in
+   light mode. */
 .where:hover:not(:disabled) {
-  background: var(--color-surface-selected);
+  background:
+    linear-gradient(var(--color-surface-hover-filled), var(--color-surface-hover-filled)),
+    var(--color-surface-input);
 }
 
 .whereName {

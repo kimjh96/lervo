@@ -1,4 +1,4 @@
-/* The start card's participants chip: overlapping marks and names on the hover surface. */
+/* The start card's participants chip: overlapping marks and names on a quiet fill. */
 .chip {
   display: inline-flex;
   gap: var(--space-6);
@@ -10,14 +10,16 @@
   color: var(--color-text-secondary);
   font: inherit;
   font-size: var(--type-meta-size);
-  background: var(--color-surface-hover);
+  /* The chip sits in the start card's input fill, so it takes the filled-surface tints, which
+     also show in light mode. */
+  background: var(--color-surface-hover-filled);
   cursor: pointer;
   transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
 }
 
 .chip:hover,
 .chip[aria-expanded="true"] {
-  background: var(--color-surface-selected);
+  background: var(--color-surface-selected-filled);
 }
 
 .chip:focus-visible {
