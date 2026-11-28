@@ -159,6 +159,8 @@ export function continuityRemediation(finding: ContinuityFinding): string {
     case "replica_diverged":
       return "The Mac–WSL replica of this repository diverged; see the repository_replica_divergence attention item.";
     case "convergence_attention":
+      if (finding.detail === "review_context_limit_exceeded")
+        return "Background knowledge review stopped because its required context exceeds 1 MiB: the AGENTS.md chain and applicable owner rules under docs/instructions/generated/, plus the contracts the reviewed sources link to. Shorten the largest of them; the resident retries when they change.";
       return finding.detail === "knowledge_sources_parked"
         ? "Background knowledge finished everything except parked sources. lervo knowledge convergence status --json lists them: edit a parked source to readmit it; a target_diverged source is also readmitted when its integration-target bytes change."
         : "Background knowledge convergence on this host stopped for this cause. lervo knowledge convergence status --json names the stage; the resident retries once the cause changes.";

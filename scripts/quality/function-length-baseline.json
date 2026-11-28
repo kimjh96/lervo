@@ -116,7 +116,7 @@
     "packages/remote-command/src/receiver.ts:RemoteCommandReceiver.handle": 226,
     "packages/repository-context/src/context-outcome-correction.ts:correctContextOutcome": 155,
     "packages/repository-context/src/host-context-outcomes.ts:observeHostContextOutcomes": 165,
-    "packages/repository-context/src/knowledge-review-context.ts:loadCanonicalReviewContext": 233,
+    "packages/repository-context/src/knowledge-review-context.ts:loadCanonicalReviewContext": 210,
     "packages/repository-context/src/managed-search-context.ts:prepareManagedSearchContext": 174,
     "packages/repository-context/src/repository-quality-context.ts:prepareWithoutRecording": 188,
     "packages/repository-knowledge-runtime/src/candidate-resolution.ts:resolveConvergenceCandidates": 179,

@@ -102,7 +102,7 @@ describe("conversation knowledge review context", () => {
     ]);
   });
 
-  it("rejects more applicable instructions than the reviewer can receive", async () => {
+  it("gives the reviewer every applicable instruction along a deep path", async () => {
     const root = await fixture();
     let directory = root;
     const parts: string[] = [];
@@ -112,14 +112,11 @@ describe("conversation knowledge review context", () => {
       await mkdir(directory);
       await writeFile(resolve(directory, "AGENTS.md"), `# Instructions ${index}\n`);
     }
-    await expect(
-      loadConversationKnowledgeReviewContext({
-        repositoryRoot: root,
-        sourcePaths: [`${parts.join("/")}/source.md`],
-        queryKnowledge: queryWith([]),
-      }),
-    ).rejects.toMatchObject({
-      code: "review_context_limit_exceeded",
-    } satisfies Partial<ConversationKnowledgeReviewContextError>);
+    const documents = await loadConversationKnowledgeReviewContext({
+      repositoryRoot: root,
+      sourcePaths: [`${parts.join("/")}/source.md`],
+      queryKnowledge: queryWith([]),
+    });
+    expect(documents.filter((document) => document.role === "instruction")).toHaveLength(9);
   });
 });
