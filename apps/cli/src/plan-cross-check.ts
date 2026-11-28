@@ -25,6 +25,8 @@ export interface PlanCrossCheckInput {
   plan: unknown;
   /** Every path the plan changes. */
   paths: readonly string[];
+  /** Unchanged files the plan derives its content from, shown to the reviewer as evidence. */
+  evidencePaths?: readonly string[];
   /** Replaced only in tests. */
   readSelection?: ReadModelSelection;
 }

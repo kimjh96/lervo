@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_94a1231639d25380d2682c0d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Migrating a continuation document into the workstream sends the unchanged document to the independent review as evidence, so the review no longer rejects every plan for missing source bytes."
