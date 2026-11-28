@@ -1,4 +1,4 @@
-# ADR-0657: Bound review instructions by bytes, not by count
+# ADR-0659: Bound review instructions by bytes, not by count
 
 Status: `accepted`
 Decision date: 2026-11-28

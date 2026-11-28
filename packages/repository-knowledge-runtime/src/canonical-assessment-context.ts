@@ -6,7 +6,7 @@ import {
 
 /**
  * Keep every applicable instruction, then the highest-ranked exact canonical references, up to the
- * loader's own candidate limit, so nothing the loader kept is cut (ADR-0657). A candidate left out
+ * loader's own candidate limit, so nothing the loader kept is cut (ADR-0659). A candidate left out
  * anyway is returned as a `context_budget` skip, never dropped silently.
  */
 export function selectCanonicalAssessmentContext(

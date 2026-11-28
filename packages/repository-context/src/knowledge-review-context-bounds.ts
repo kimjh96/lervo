@@ -1,4 +1,4 @@
-// Review context bounds (ADR-0657): bytes, not the number of required instructions, bound what a
+// Review context bounds (ADR-0659): bytes, not the number of required instructions, bound what a
 // reviewer receives, and optional recommendations give way to them first.
 import {
   KnowledgeReviewContextError,
@@ -10,7 +10,7 @@ export const MAXIMUM_CONTEXT_DOCUMENTS = 20;
 /**
  * Instructions that share the context document count with candidates; more of them add slots
  * instead of displacing candidates. Owner rules accumulate through intake, so every applicable
- * instruction reaches the reviewer and only bytes bound them (ADR-0657).
+ * instruction reaches the reviewer and only bytes bound them (ADR-0659).
  */
 export const INSTRUCTIONS_WITHIN_CONTEXT_COUNT = 8;
 /** A sanity bound far above any real instruction set; the byte bound is the working limit. */
@@ -46,7 +46,7 @@ export function largestDocument(
  * Fits the context into its byte bound by leaving out the lowest-ranked general recommendations
  * first, each recorded as a `context_budget` skip. Instructions, source-linked and focused
  * documents, and linked contracts stay; if they alone exceed the bound, the review stops and names
- * the largest of them, so it never repeats a bare limit (ADR-0657).
+ * the largest of them, so it never repeats a bare limit (ADR-0659).
  */
 export function withinContextBytes(
   documents: SemanticReviewContextDocument[],
