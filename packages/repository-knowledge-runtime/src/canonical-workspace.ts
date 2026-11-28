@@ -13,7 +13,6 @@ import {
   type ManagedProjectVerification,
 } from "@lervo/orchestrator";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
-import { loadVerificationSuite } from "@lervo/verification";
 import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { assertConvergenceVerificationPassed } from "./verification-outcome.js";
@@ -31,6 +30,7 @@ import {
   runConvergenceVerificationSuite,
   verificationEnvironment,
 } from "./verification-environment.js";
+import { loadConvergenceSuite } from "./default-knowledge-suite.js";
 
 const execute = promisify(execFile);
 export async function convergenceGit(root: string, args: string[]): Promise<string> {
@@ -146,7 +146,7 @@ export async function verifyCanonicalWorkspace(
   const environment = await verificationEnvironment();
   for (const required of authority.delegation.verification) {
     await authority.assertCurrent();
-    const suite = await loadVerificationSuite(
+    const suite = await loadConvergenceSuite(
       context.storage.paths.repositoryRoot,
       required.suiteId,
     );

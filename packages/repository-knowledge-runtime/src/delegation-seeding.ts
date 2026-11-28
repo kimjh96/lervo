@@ -27,6 +27,7 @@ import {
   ensureSeedDefaultSuite,
   repositorySuiteIds,
   selectRepositoryDefaultSuite,
+  unboundSuiteFailure,
 } from "./default-knowledge-suite.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 
@@ -114,10 +115,8 @@ export async function localRoleBinding(input: {
 
 /** The suite seeding binds (`selectRepositoryDefaultSuite`), or the seed fails. */
 async function repositoryDefaultSuite(root: string): Promise<string> {
-  return (
-    selectRepositoryDefaultSuite(await repositorySuiteIds(root)) ??
-    seedFailure("convergence_seed_verification_missing")
-  );
+  const names = await repositorySuiteIds(root);
+  return selectRepositoryDefaultSuite(names) ?? seedFailure(unboundSuiteFailure(names));
 }
 
 async function existingRoots(root: string, candidates: readonly string[]): Promise<string[]> {
@@ -144,8 +143,6 @@ export async function seedDelegationFromTemplate(input: {
   expiresAt: string;
   now: Date;
 }): Promise<ConvergenceDelegation> {
-  // ADR-0655: a repository without a suite seeding can bind gets Lervo's default suite first.
-  await ensureSeedDefaultSuite({ storage: input.storage, now: input.now });
   const root = input.storage.paths.repositoryRoot;
   const manifest = await loadProjectManifest(root);
   const projectId = manifest.projectId;
@@ -171,6 +168,9 @@ export async function seedDelegationFromTemplate(input: {
       parent,
       now: input.now,
     });
+  // ADR-0655: only once the roots and roles hold, a repository without a suite seeding can bind
+  // gets Lervo's default suite.
+  await ensureSeedDefaultSuite({ storage: input.storage, now: input.now });
   const suiteId = await repositoryDefaultSuite(root);
   const scope: ConvergenceDelegationScope = {
     schemaVersion: 1,

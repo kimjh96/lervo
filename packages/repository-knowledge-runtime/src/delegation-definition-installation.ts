@@ -86,12 +86,6 @@ export async function installPeerScopeDefinitions(input: {
 }): Promise<InstalledDefinitionCoordinate[]> {
   const delegation = input.record.delegation;
   if (delegation === null) return [];
-  // ADR-0655: Lervo's default suite has fixed bytes, so a checkout installs it itself.
-  await ensureSeedDefaultSuite({
-    storage: input.storage,
-    now: input.now,
-    peerScope: delegation.scope,
-  });
   const scope = bindConvergenceDelegationScope({
     scope: delegation.scope,
     parentAgentId: PLACEHOLDER_AGENT_ID,
@@ -104,6 +98,13 @@ export async function installPeerScopeDefinitions(input: {
       calculateProjectIdentityHash(input.storage.manifest)
   )
     failure("convergence_seed_identity_mismatch");
+  // ADR-0655: Lervo's default suite has fixed bytes, so a checkout installs it itself, after the
+  // identity check.
+  await ensureSeedDefaultSuite({
+    storage: input.storage,
+    now: input.now,
+    peerScope: delegation.scope,
+  });
   return installBoundDefinitions({
     storage: input.storage,
     scope,

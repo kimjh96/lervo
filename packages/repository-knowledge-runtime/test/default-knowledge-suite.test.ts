@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { loadVerificationSuite } from "@lervo/verification";
@@ -10,9 +10,13 @@ import {
   DEFAULT_KNOWLEDGE_SUITE_PATH,
   ensureDefaultKnowledgeSuite,
   ensureSeedDefaultSuite,
+  restoreDefaultKnowledgeSuite,
+  selectOwnerSuite,
   selectRepositoryDefaultSuite,
+  unboundSuiteFailure,
 } from "../src/default-knowledge-suite.js";
 import { readInstalledDefinitions } from "../src/delegation-definition-ledger.js";
+import { verificationEnvironment } from "../src/verification-environment.js";
 import { fixture } from "./fixture.js";
 
 const cleanups: (() => Promise<void>)[] = [];
@@ -102,5 +106,69 @@ describe("installing Lervo's default suite (ADR-0655)", () => {
     // A template seed (no peer scope) installs it in a repository without a suite.
     const g = await repository();
     expect(await ensureSeedDefaultSuite({ storage: g.storage, now })).toBe(true);
+  });
+});
+
+describe("what seeding does without one suite to bind (ADR-0655)", () => {
+  it("installs nothing beside several owner suites and names the ambiguity", async () => {
+    const f = await repository();
+    await mkdir(resolve(f.root, ".lervo/verifications"), { recursive: true });
+    for (const id of ["project.default", "role.x"])
+      await writeFile(
+        resolve(f.root, `.lervo/verifications/${id}.yaml`),
+        DEFAULT_KNOWLEDGE_SUITE_CONTENT.replace(DEFAULT_KNOWLEDGE_SUITE_ID, id),
+      );
+    const now = new Date("2026-11-28T06:00:00.000Z");
+    expect(await ensureDefaultKnowledgeSuite({ storage: f.storage, now })).toBe(false);
+    await expect(readFile(resolve(f.root, DEFAULT_KNOWLEDGE_SUITE_PATH))).rejects.toThrow();
+    expect(unboundSuiteFailure(["project.default", "role.x"])).toBe(
+      "convergence_seed_verification_ambiguous",
+    );
+    expect(unboundSuiteFailure([])).toBe("convergence_seed_verification_missing");
+  });
+
+  it("gives way to the owner's own suite and finds none while only the default exists", () => {
+    expect(selectOwnerSuite([DEFAULT_KNOWLEDGE_SUITE_ID])).toBeNull();
+    expect(selectOwnerSuite([DEFAULT_KNOWLEDGE_SUITE_ID, "repository.default.v1"])).toBe(
+      "repository.default.v1",
+    );
+  });
+
+  it("puts back the default it installed after the file is removed, and nothing it never installed", async () => {
+    const f = await repository();
+    const now = new Date("2026-11-28T06:00:00.000Z");
+    expect(await restoreDefaultKnowledgeSuite(f.root)).toBe(false);
+    await ensureDefaultKnowledgeSuite({ storage: f.storage, now });
+    await rm(resolve(f.root, DEFAULT_KNOWLEDGE_SUITE_PATH));
+    expect(await restoreDefaultKnowledgeSuite(f.root)).toBe(true);
+    expect(await readFile(resolve(f.root, DEFAULT_KNOWLEDGE_SUITE_PATH), "utf8")).toBe(
+      DEFAULT_KNOWLEDGE_SUITE_CONTENT,
+    );
+    expect(await restoreDefaultKnowledgeSuite(f.root)).toBe(false);
+  });
+});
+
+describe("the lervo a verification suite runs (ADR-0655)", () => {
+  it("is the CLI this process runs, ahead of any lervo on the PATH", async () => {
+    const f = await repository();
+    const entry = resolve(f.directory, "fake-cli.mjs");
+    await writeFile(entry, "process.stdout.write(process.argv.slice(2).join(' '));\n");
+    const environment = await verificationEnvironment(
+      async () => ({ environment: { PATH: "/usr/bin:/bin" }, failure: null }) as never,
+      entry,
+    );
+    const shim = environment.PATH!.split(":")[0]!;
+    expect(environment.PATH).toBe(`${shim}:/usr/bin:/bin`);
+    expect((await stat(resolve(shim, "lervo"))).mode & 0o111).not.toBe(0);
+    const { execFileSync } = await import("node:child_process");
+    expect(
+      execFileSync("lervo", ["knowledge", "lint"], { env: environment, encoding: "utf8" }),
+    ).toBe("knowledge lint");
+    // Without a usable entry the PATH lookup stands.
+    const plain = await verificationEnvironment(
+      async () => ({ environment: { PATH: "/usr/bin:/bin" }, failure: null }) as never,
+      undefined,
+    );
+    expect(plain.PATH).toBe("/usr/bin:/bin");
   });
 });

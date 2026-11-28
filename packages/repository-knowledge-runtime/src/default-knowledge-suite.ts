@@ -2,14 +2,19 @@
 // maintenance. Seeding binds the repository's own default suite; when there is none, Lervo
 // installs one that checks only what the convergence worker changes, the knowledge, with
 // `lervo knowledge lint`, which needs no project toolchain.
-import { readdir } from "node:fs/promises";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import { applyDurableKnowledgeOperations, sha256 } from "@lervo/repository-knowledge";
+import { loadVerificationSuite } from "@lervo/verification";
 
 import { localDefinitionBytes } from "./delegation-definition-catalog.js";
-import { recordInstalledDefinitions } from "./delegation-definition-ledger.js";
+import {
+  lervoManagedDefinition,
+  readInstalledDefinitions,
+  recordInstalledDefinitions,
+} from "./delegation-definition-ledger.js";
 import { recordConvergenceMaterialization } from "./materialization-event.js";
 
 /** The default suite's ID: outside `repository.default*`, so an owner's suite always wins. */
@@ -61,13 +66,40 @@ export function selectRepositoryDefaultSuite(names: readonly string[]): string |
     );
   if (versioned[0] !== undefined) return versioned[0].name;
   if (names.includes("repository.default")) return "repository.default";
-  const owners = names.filter(
-    (name) => !name.startsWith("lervo.pilot.") && name !== DEFAULT_KNOWLEDGE_SUITE_ID,
-  );
+  const owners = ownerSuites(names);
   if (owners.length === 1) return owners[0]!;
   if (owners.length === 0 && names.includes(DEFAULT_KNOWLEDGE_SUITE_ID))
     return DEFAULT_KNOWLEDGE_SUITE_ID;
   return null;
+}
+
+/** Suites that are neither a pilot nor Lervo's default, and not a `repository.default*` suite. */
+function ownerSuites(names: readonly string[]): string[] {
+  return names.filter(
+    (name) =>
+      !name.startsWith("lervo.pilot.") &&
+      name !== DEFAULT_KNOWLEDGE_SUITE_ID &&
+      name !== "repository.default" &&
+      !VERSIONED_DEFAULT_SUITE.test(name),
+  );
+}
+
+/**
+ * The owner's own suite seeding would bind with Lervo's default left out, or null. A delegation
+ * bound to the default rebinds to it once it exists (ADR-0655).
+ */
+export function selectOwnerSuite(names: readonly string[]): string | null {
+  return selectRepositoryDefaultSuite(names.filter((name) => name !== DEFAULT_KNOWLEDGE_SUITE_ID));
+}
+
+/**
+ * Why seeding cannot bind a suite: none at all, which the default fixes, or several owner suites
+ * and no `repository.default*` to choose among them, which only the owner can resolve.
+ */
+export function unboundSuiteFailure(names: readonly string[]): string {
+  return ownerSuites(names).length > 1
+    ? "convergence_seed_verification_ambiguous"
+    : "convergence_seed_verification_missing";
 }
 
 /**
@@ -87,7 +119,14 @@ export async function ensureDefaultKnowledgeSuite(input: {
   const root = input.storage.paths.repositoryRoot;
   const names = await repositorySuiteIds(root);
   if (names.includes(DEFAULT_KNOWLEDGE_SUITE_ID)) return false;
-  if (input.boundByPeer !== true && selectRepositoryDefaultSuite(names) !== null) return false;
+  // Only where seeding would then bind it: never beside an owner suite, nor beside several owner
+  // suites that seeding cannot choose among.
+  if (
+    input.boundByPeer !== true &&
+    selectRepositoryDefaultSuite([...names, DEFAULT_KNOWLEDGE_SUITE_ID]) !==
+      DEFAULT_KNOWLEDGE_SUITE_ID
+  )
+    return false;
   if (localDefinitionBytes(root, DEFAULT_KNOWLEDGE_SUITE_PATH, MAXIMUM_SUITE_BYTES) !== null)
     return false;
   const content = DEFAULT_KNOWLEDGE_SUITE_CONTENT;
@@ -152,4 +191,43 @@ export async function ensureSeedDefaultSuite(input: {
     return ensureDefaultKnowledgeSuite({ storage: input.storage, now: input.now });
   if (!peerBindsSuite(input.peerScope, DEFAULT_KNOWLEDGE_SUITE_ID)) return false;
   return ensureDefaultKnowledgeSuite({ storage: input.storage, now: input.now, boundByPeer: true });
+}
+
+/**
+ * Puts back Lervo's default suite with its exact bytes when Lervo installed it and the file is now
+ * gone, as after `git clean -fdx` or `git stash -u`, so the delegation bound to it keeps passing
+ * its binding check. A file someone edited or that Lervo never installed is left alone.
+ */
+export async function restoreDefaultKnowledgeSuite(root: string): Promise<boolean> {
+  const contentHash = sha256(DEFAULT_KNOWLEDGE_SUITE_CONTENT);
+  if (
+    !lervoManagedDefinition(
+      await readInstalledDefinitions(root),
+      DEFAULT_KNOWLEDGE_SUITE_PATH,
+      contentHash,
+    )
+  )
+    return false;
+  if (localDefinitionBytes(root, DEFAULT_KNOWLEDGE_SUITE_PATH, MAXIMUM_SUITE_BYTES) !== null)
+    return false;
+  await mkdir(resolve(root, ".lervo/verifications"), { recursive: true });
+  try {
+    await writeFile(resolve(root, DEFAULT_KNOWLEDGE_SUITE_PATH), DEFAULT_KNOWLEDGE_SUITE_CONTENT, {
+      flag: "wx",
+      mode: 0o644,
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+    throw error;
+  }
+  return true;
+}
+
+/** A suite convergence binds or runs, with Lervo's default put back first if Lervo installed it. */
+export async function loadConvergenceSuite(
+  root: string,
+  suiteId: string,
+): ReturnType<typeof loadVerificationSuite> {
+  if (suiteId === DEFAULT_KNOWLEDGE_SUITE_ID) await restoreDefaultKnowledgeSuite(root);
+  return loadVerificationSuite(root, suiteId);
 }

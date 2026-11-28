@@ -282,6 +282,21 @@ describe("the coordination stage of lervo workspace start", () => {
     });
   });
 
+  it("coordinates a repository whose only suite is Lervo's default knowledge suite (ADR-0655)", async () => {
+    const app = await fixture(16);
+    await mkdir(resolve(app.repository, ".lervo/verifications"), { recursive: true });
+    await writeFile(
+      resolve(app.repository, ".lervo/verifications/lervo.default.knowledge.yaml"),
+      "fixture\n",
+    );
+    const started = await startWorkspaceFromInstruction({
+      instruction,
+      repository: app.projectId,
+      participants: [app.lead.agentId],
+    });
+    expect(started.coordination).toEqual({ status: "active" });
+  });
+
   it("keeps a claiming conversation claiming when it reopens without the worktree's handler", async () => {
     const app = await fixture(16);
     const started = await startWorkspaceFromInstruction({

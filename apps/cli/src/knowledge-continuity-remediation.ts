@@ -19,6 +19,8 @@ const SEED_FAILURES: Record<string, string> = {
     "None of the template's canonical or normalization roots exist in this checkout, so the resident cannot seed from it and retries when a root appears",
   convergence_seed_verification_missing:
     "The repository has no verification suite to bind. The resident installs Lervo's default suite, .lervo/verifications/lervo.default.knowledge.yaml, which runs lervo knowledge lint, and seeds on its next cycle; a resident older than ADR-0655 needs the host upgraded. Add your own .lervo/verifications/repository.default.v1.yaml to verify more",
+  convergence_seed_verification_ambiguous:
+    "The repository has several verification suites and none named repository.default, so Lervo cannot tell which one verifies its knowledge changes and installs no default beside them. Rename the suite to bind to .lervo/verifications/repository.default.v1.yaml; the resident seeds on its next cycle",
   convergence_seed_definition_unavailable:
     "The peer's scope binds a verification suite or asset manifest this checkout lacks, and no host has shared the exact reviewed bytes through the Hub yet. The peer shares them on its next reconciliation once both the Hub and that host run an ADR-0477 version; see the definition_exchange_unavailable finding if one is reported",
   convergence_seed_definition_conflict:

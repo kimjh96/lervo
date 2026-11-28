@@ -1,4 +1,3 @@
-import { loadVerificationSuite } from "@lervo/verification";
 import { convergenceSourceObservation } from "./source-observation.js";
 import { assertConvergenceVerificationPassed } from "./verification-outcome.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
@@ -8,6 +7,7 @@ import {
   runConvergenceVerificationSuite,
   verificationEnvironment,
 } from "./verification-environment.js";
+import { loadConvergenceSuite } from "./default-knowledge-suite.js";
 
 export async function verifyConvergenceEffect(
   context: ConvergenceRuntimeContext,
@@ -28,7 +28,7 @@ export async function verifyConvergenceEffect(
   const environment = await verificationEnvironment();
   for (const binding of authority.delegation.verification) {
     await authority.assertCurrent();
-    const suite = await loadVerificationSuite(root, binding.suiteId);
+    const suite = await loadConvergenceSuite(root, binding.suiteId);
     const repositoryRevision = (await observe()).revision;
     const verification = await withVerificationSourceChanges(
       context.storage.artifacts,

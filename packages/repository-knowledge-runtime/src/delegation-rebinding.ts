@@ -1,6 +1,6 @@
 import { listAgents } from "@lervo/agent-workforce";
 import { canonicalJson } from "@lervo/repository-knowledge";
-import { loadVerificationSuite, verificationSuiteHash } from "@lervo/verification";
+import { verificationSuiteHash } from "@lervo/verification";
 
 import {
   convergenceDelegationPlanHash,
@@ -11,6 +11,12 @@ import {
 } from "./delegation-contract.js";
 import { localRoleBinding } from "./delegation-seeding.js";
 import { withoutToolGeneratedAssetDispositions } from "./tool-generated-asset-dispositions.js";
+import {
+  DEFAULT_KNOWLEDGE_SUITE_ID,
+  loadConvergenceSuite,
+  repositorySuiteIds,
+  selectOwnerSuite,
+} from "./default-knowledge-suite.js";
 
 const WORKER_ROLES: readonly ConvergenceWorkerRole[] = [
   "generator",
@@ -48,12 +54,17 @@ export async function reboundConvergenceDelegation(input: {
       parent,
       now: input.now,
     });
+  // ADR-0655: Lervo's default suite gives way to the owner's own suite once one exists.
+  const ownerSuite = selectOwnerSuite(await repositorySuiteIds(input.root));
   const verification = [];
-  for (const suite of current.verification)
+  for (const suite of current.verification) {
+    const suiteId =
+      suite.suiteId === DEFAULT_KNOWLEDGE_SUITE_ID ? (ownerSuite ?? suite.suiteId) : suite.suiteId;
     verification.push({
-      suiteId: suite.suiteId,
-      suiteHash: verificationSuiteHash(await loadVerificationSuite(input.root, suite.suiteId)),
+      suiteId,
+      suiteHash: verificationSuiteHash(await loadConvergenceSuite(input.root, suiteId)),
     });
+  }
   // ADR-0491: tool-generated files leave the asset declarations in the same rebind.
   const assets = await withoutToolGeneratedAssetDispositions(input.root, current);
   const { review: _currentReview, ...rest } = structuredClone({

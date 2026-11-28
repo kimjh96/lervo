@@ -20,8 +20,13 @@ import {
 } from "../src/convergence-continuity.js";
 import { ConvergenceOwnership } from "../src/convergence-owner.js";
 import { readConvergenceOwnerHost } from "../src/convergence-owner-host.js";
-import { CONVERGENCE_DELEGATION_PATH, loadConvergenceDelegation } from "../src/delegation.js";
+import {
+  assertConvergenceDelegationBindings,
+  CONVERGENCE_DELEGATION_PATH,
+  loadConvergenceDelegation,
+} from "../src/delegation.js";
 import { convergenceDelegationScopeHash } from "../src/delegation-scope.js";
+import { reboundConvergenceDelegation } from "../src/delegation-rebinding.js";
 import { FakeConvergenceOwnerHub, peerHost } from "./convergence-owner-hosts.js";
 import { fixture } from "./fixture.js";
 import {
@@ -480,6 +485,37 @@ describe("default onboarding of a new repository", () => {
               "convergence_default_verification_suite",
         ),
     ).toHaveLength(1);
+  });
+
+  it("keeps a default-bound delegation alive when the file goes, and gives way to the owner's suite (ADR-0655)", async () => {
+    const f = await tracked(false);
+    const { registerAgent } = await import("@lervo/agent-workforce");
+    await registerAgent({ repositoryRoot: f.root, roleId: "developer", provider: "any" });
+    const path = await policyFile(f, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    await continuity({ f, policyPath: path, hosts, label: "wsl" }).reconcile();
+
+    // `git clean -fdx` removes the untracked default; the next binding check puts it back, so the
+    // delegation still loads instead of failing every cycle.
+    await rm(resolve(f.root, DEFAULT_KNOWLEDGE_SUITE_PATH));
+    const bound = (await loadConvergenceDelegation(f.root))!;
+    await expect(
+      assertConvergenceDelegationBindings(f.root, bound.delegation.projectId, bound.delegation),
+    ).resolves.toBeDefined();
+    expect(await readFile(resolve(f.root, DEFAULT_KNOWLEDGE_SUITE_PATH), "utf8")).toBe(
+      DEFAULT_KNOWLEDGE_SUITE_CONTENT,
+    );
+
+    // The owner's own suite replaces the default at the next rebind.
+    await writeFile(
+      resolve(f.root, ".lervo/verifications/repository.default.v1.yaml"),
+      DEFAULT_KNOWLEDGE_SUITE_CONTENT.replace(DEFAULT_KNOWLEDGE_SUITE_ID, "repository.default.v1"),
+    );
+    const current = (await loadConvergenceDelegation(f.root))!.delegation;
+    const rebound = await reboundConvergenceDelegation({ root: f.root, current, now: new Date() });
+    expect(rebound?.delegation.verification.map((suite) => suite.suiteId)).toEqual([
+      "repository.default.v1",
+    ]);
   });
 
   it("reaches an active delegation, Hub coordination, publication, and a lease on its first cycle", async () => {
