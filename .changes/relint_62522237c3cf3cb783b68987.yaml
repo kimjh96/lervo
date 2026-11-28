@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_62522237c3cf3cb783b68987"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Every repository now coordinates its ADE conversations by default, and an owner-only disabled file in the coordination home closes the gate."
