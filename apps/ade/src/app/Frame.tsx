@@ -7,6 +7,7 @@ import {
   AgentList,
   AgentProfile,
   listSettled,
+  AgentSheets,
   managesAgents,
   useAgentStore,
 } from "../features/agents";
@@ -143,6 +144,7 @@ export function Frame() {
         </ViewPresence>
       </main>
       <AddProjectSheet />
+      <AgentSheets />
     </div>
   );
 }

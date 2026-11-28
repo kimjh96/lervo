@@ -1682,5 +1682,129 @@
   "workspaces.rename.label": {
     "defaultMessage": "Conversation title",
     "description": "Accessible label of the field that edits a conversation's title in place."
+  },
+  "agents.hire.newRole": {
+    "defaultMessage": "New Role",
+    "description": "The last item of the hire menu: hires an agent for a role the project adds first."
+  },
+  "agents.hire.newRole.detail": {
+    "defaultMessage": "A role this project needs, started from a template",
+    "description": "One quiet line under New Role in the hire menu."
+  },
+  "agents.sheet.hire.title": {
+    "defaultMessage": "Hire an Agent",
+    "description": "The title of the sheet that hires an agent."
+  },
+  "agents.sheet.hire.subtitle": {
+    "defaultMessage": "Name them like a person, such as Bora. Their role says what they do.",
+    "description": "One line under the hire sheet's title: the name is a nickname, and the specialty belongs in the role."
+  },
+  "agents.sheet.name": {
+    "defaultMessage": "Name",
+    "description": "The label of the hire sheet's name field."
+  },
+  "agents.sheet.name.placeholder": {
+    "defaultMessage": "Bora",
+    "description": "The hint in the empty name field: a person-like nickname. Lervo picks one when the field stays empty."
+  },
+  "agents.sheet.role": {
+    "defaultMessage": "Role",
+    "description": "The label of the hire sheet's role menu."
+  },
+  "agents.sheet.role.new": {
+    "defaultMessage": "A new role",
+    "description": "The last choice of the hire sheet's role menu: adds a role before hiring."
+  },
+  "agents.sheet.roleName": {
+    "defaultMessage": "Role name",
+    "description": "The label of a role's name field, in the hire sheet and the role sheet."
+  },
+  "agents.sheet.roleName.placeholder": {
+    "defaultMessage": "Machining",
+    "description": "The hint in the empty role name field: a specialty, never a person's name."
+  },
+  "agents.sheet.roleDescription": {
+    "defaultMessage": "What it does",
+    "description": "The label of a role's description field."
+  },
+  "agents.sheet.roleDescription.placeholder": {
+    "defaultMessage": "Owns machining feasibility and reviews every toolpath.",
+    "description": "The hint in the empty role description field: what the role owns and decides."
+  },
+  "agents.sheet.from": {
+    "defaultMessage": "Starts from",
+    "description": "The label of the menu that picks the template a new role extends."
+  },
+  "agents.sheet.cancel": {
+    "defaultMessage": "Cancel",
+    "description": "Closes an agent sheet without changing anything."
+  },
+  "agents.sheet.hire.submit": {
+    "defaultMessage": "Hire",
+    "description": "The hire sheet's primary button."
+  },
+  "agents.sheet.hire.hiring": {
+    "defaultMessage": "Hiring",
+    "description": "What Lervo is doing while the hire sheet waits for the core."
+  },
+  "agents.sheet.failed": {
+    "defaultMessage": "Lervo could not hire the agent ({code}).",
+    "description": "One line in the hire sheet when adding the role or hiring failed; code is the stable failure code."
+  },
+  "agents.sheet.role.edit": {
+    "defaultMessage": "Edit Role",
+    "description": "Opens the sheet of a role the project wrote itself, from the hire sheet."
+  },
+  "agents.sheet.role.title": {
+    "defaultMessage": "Edit Role",
+    "description": "The title of a project role's sheet."
+  },
+  "agents.sheet.role.subtitle": {
+    "defaultMessage": "Changes apply to every agent with this role, from their next session.",
+    "description": "One line under the role sheet's title."
+  },
+  "agents.sheet.role.save": {
+    "defaultMessage": "Save",
+    "description": "The role sheet's primary button."
+  },
+  "agents.sheet.role.saving": {
+    "defaultMessage": "Saving the role",
+    "description": "What Lervo is doing while a role's change waits for the core."
+  },
+  "agents.sheet.role.remove": {
+    "defaultMessage": "Remove Role",
+    "description": "Removes the project role; the core refuses one that an agent or open work still holds."
+  },
+  "agents.sheet.role.removing": {
+    "defaultMessage": "Removing the role",
+    "description": "What Lervo is doing while a role's removal waits for the core."
+  },
+  "agents.sheet.role.failed": {
+    "defaultMessage": "Lervo could not change the role ({code}).{code, select, role_in_use { Move its agents to another role first.} role_extended { Another role starts from it; change that role first.} role_name_conflict { Another role has that name.} other {}}",
+    "description": "One line in the role sheet when a change or removal failed; code is the stable failure code, and a known code adds its next step."
+  },
+  "agents.profile.role": {
+    "defaultMessage": "Role",
+    "description": "The heading of the role section in an agent's profile, and the label of its role menu."
+  },
+  "agents.profile.role.edit": {
+    "defaultMessage": "Edit Role",
+    "description": "Opens the sheet of the agent's role, for a role the project wrote itself."
+  },
+  "agents.profile.role.note": {
+    "defaultMessage": "Choosing another role pauses the agent for a moment. Its name and what it learned stay.",
+    "description": "Under the role menu in an agent's profile."
+  },
+  "lervo.command.role.add": {
+    "defaultMessage": "Added a role",
+    "description": "What Lervo did when the agent ran `lervo role add`, as a quiet line in the conversation."
+  },
+  "lervo.command.role.edit": {
+    "defaultMessage": "Changed a role",
+    "description": "What Lervo did when the agent ran `lervo role edit`, as a quiet line in the conversation."
+  },
+  "lervo.command.role.remove": {
+    "defaultMessage": "Removed a role",
+    "description": "What Lervo did when the agent ran `lervo role remove`, as a quiet line in the conversation."
   }
 }

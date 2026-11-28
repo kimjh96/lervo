@@ -17,6 +17,7 @@ import { statusMessages, useWorkspaceStore } from "../../workspaces";
 import { hireAgent } from "../model/controller";
 import { showProjectAgents } from "../model/listing";
 import { agentActivity, managesAgents, productOwnerRole, teamAgents } from "../model/decisions";
+import { openHireSheet } from "../model/roles";
 import { listSettled, openProfile, useAgentStore } from "../model/store";
 import styles from "./AgentList.module.css";
 import { roleSummary } from "./role-summary";
@@ -117,6 +118,9 @@ function Agents(props: { shown: string }) {
   // Kept as one array per change of the agents, so its rows can tell departures from renders.
   const team = useMemo(() => teamAgents(agents), [agents]);
   const owner = productOwnerRole(roles);
+  const addsRoles = useWorkspaceStore(
+    (store) => store.advertisedCommands?.includes("role.add") === true,
+  );
   const hire = (roleId: string) => void hireAgent(commands, shown, roleId);
 
   return (
@@ -162,11 +166,23 @@ function Agents(props: { shown: string }) {
           label={intl.formatMessage({ id: "agents.hire" })}
           openedByKey={menuAt.byKey}
           wide
-          items={roles.map((role) => ({
-            text: role.name,
-            detail: roleSummary(intl, role.roleId, role.description),
-            run: () => hire(role.roleId),
-          }))}
+          items={[
+            ...roles.map((role) => ({
+              text: role.name,
+              detail: roleSummary(intl, role.roleId, role.description),
+              run: () => openHireSheet(role.roleId),
+            })),
+            // A role the project lacks is added from a template as the agent is hired (ADR-0662).
+            ...(addsRoles
+              ? [
+                  {
+                    text: intl.formatMessage({ id: "agents.hire.newRole" }),
+                    detail: intl.formatMessage({ id: "agents.hire.newRole.detail" }),
+                    run: () => openHireSheet(null),
+                  },
+                ]
+              : []),
+          ]}
           onClose={() => setMenuAt(null)}
         />
       )}

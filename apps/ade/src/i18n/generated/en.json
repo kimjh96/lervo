@@ -19,6 +19,18 @@
       "value": "Hire an Agent"
     }
   ],
+  "agents.hire.newRole": [
+    {
+      "type": 0,
+      "value": "New Role"
+    }
+  ],
+  "agents.hire.newRole.detail": [
+    {
+      "type": 0,
+      "value": "A role this project needs, started from a template"
+    }
+  ],
   "agents.hireProductOwner": [
     {
       "type": 0,
@@ -227,6 +239,24 @@
       "value": "Resume agent"
     }
   ],
+  "agents.profile.role": [
+    {
+      "type": 0,
+      "value": "Role"
+    }
+  ],
+  "agents.profile.role.edit": [
+    {
+      "type": 0,
+      "value": "Edit Role"
+    }
+  ],
+  "agents.profile.role.note": [
+    {
+      "type": 0,
+      "value": "Choosing another role pauses the agent for a moment. Its name and what it learned stay."
+    }
+  ],
   "agents.role": [
     {
       "type": 0,
@@ -283,6 +313,193 @@
     {
       "type": 0,
       "value": "Writes docs and release notes"
+    }
+  ],
+  "agents.sheet.cancel": [
+    {
+      "type": 0,
+      "value": "Cancel"
+    }
+  ],
+  "agents.sheet.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not hire the agent ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "agents.sheet.from": [
+    {
+      "type": 0,
+      "value": "Starts from"
+    }
+  ],
+  "agents.sheet.hire.hiring": [
+    {
+      "type": 0,
+      "value": "Hiring"
+    }
+  ],
+  "agents.sheet.hire.submit": [
+    {
+      "type": 0,
+      "value": "Hire"
+    }
+  ],
+  "agents.sheet.hire.subtitle": [
+    {
+      "type": 0,
+      "value": "Name them like a person, such as Bora. Their role says what they do."
+    }
+  ],
+  "agents.sheet.hire.title": [
+    {
+      "type": 0,
+      "value": "Hire an Agent"
+    }
+  ],
+  "agents.sheet.name": [
+    {
+      "type": 0,
+      "value": "Name"
+    }
+  ],
+  "agents.sheet.name.placeholder": [
+    {
+      "type": 0,
+      "value": "Bora"
+    }
+  ],
+  "agents.sheet.role": [
+    {
+      "type": 0,
+      "value": "Role"
+    }
+  ],
+  "agents.sheet.role.edit": [
+    {
+      "type": 0,
+      "value": "Edit Role"
+    }
+  ],
+  "agents.sheet.role.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not change the role ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    },
+    {
+      "type": 5,
+      "value": "code",
+      "options": {
+        "role_in_use": {
+          "value": [
+            {
+              "type": 0,
+              "value": " Move its agents to another role first."
+            }
+          ]
+        },
+        "role_extended": {
+          "value": [
+            {
+              "type": 0,
+              "value": " Another role starts from it; change that role first."
+            }
+          ]
+        },
+        "role_name_conflict": {
+          "value": [
+            {
+              "type": 0,
+              "value": " Another role has that name."
+            }
+          ]
+        },
+        "other": {
+          "value": []
+        }
+      }
+    }
+  ],
+  "agents.sheet.role.new": [
+    {
+      "type": 0,
+      "value": "A new role"
+    }
+  ],
+  "agents.sheet.role.remove": [
+    {
+      "type": 0,
+      "value": "Remove Role"
+    }
+  ],
+  "agents.sheet.role.removing": [
+    {
+      "type": 0,
+      "value": "Removing the role"
+    }
+  ],
+  "agents.sheet.role.save": [
+    {
+      "type": 0,
+      "value": "Save"
+    }
+  ],
+  "agents.sheet.role.saving": [
+    {
+      "type": 0,
+      "value": "Saving the role"
+    }
+  ],
+  "agents.sheet.role.subtitle": [
+    {
+      "type": 0,
+      "value": "Changes apply to every agent with this role, from their next session."
+    }
+  ],
+  "agents.sheet.role.title": [
+    {
+      "type": 0,
+      "value": "Edit Role"
+    }
+  ],
+  "agents.sheet.roleDescription": [
+    {
+      "type": 0,
+      "value": "What it does"
+    }
+  ],
+  "agents.sheet.roleDescription.placeholder": [
+    {
+      "type": 0,
+      "value": "Owns machining feasibility and reviews every toolpath."
+    }
+  ],
+  "agents.sheet.roleName": [
+    {
+      "type": 0,
+      "value": "Role name"
+    }
+  ],
+  "agents.sheet.roleName.placeholder": [
+    {
+      "type": 0,
+      "value": "Machining"
     }
   ],
   "app.name": [
@@ -2329,10 +2546,28 @@
       "value": "Verified a research result"
     }
   ],
+  "lervo.command.role.add": [
+    {
+      "type": 0,
+      "value": "Added a role"
+    }
+  ],
+  "lervo.command.role.edit": [
+    {
+      "type": 0,
+      "value": "Changed a role"
+    }
+  ],
   "lervo.command.role.list": [
     {
       "type": 0,
       "value": "Listed the roles"
+    }
+  ],
+  "lervo.command.role.remove": [
+    {
+      "type": 0,
+      "value": "Removed a role"
     }
   ],
   "lervo.command.role.show": [

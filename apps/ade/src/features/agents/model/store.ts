@@ -2,6 +2,7 @@ import type { AgentModelChoice, AgentSummary, HireableRole } from "@lervo/sessio
 import { create } from "zustand";
 
 import { useWorkspaceStore } from "../../workspaces/model";
+import type { AgentSheet } from "./roles";
 
 /** The selected project's agents and the roles it can hire (Lervo ADE agents, "The sidebar"). */
 export interface AgentState {
@@ -21,6 +22,8 @@ export interface AgentState {
   readonly models: readonly AgentModelChoice[];
   /** The agent whose profile the main area shows, or null. */
   readonly profile: string | null;
+  /** The sheet shown over Lervo, hiring or a project role's words, or null (ADR-0662). */
+  readonly sheet: AgentSheet | null;
 }
 
 export const useAgentStore = create<AgentState>(() => ({
@@ -33,6 +36,7 @@ export const useAgentStore = create<AgentState>(() => ({
   arrived: new Set(),
   models: [],
   profile: null,
+  sheet: null,
 }));
 
 /**
