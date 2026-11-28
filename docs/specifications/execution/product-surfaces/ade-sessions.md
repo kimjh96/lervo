@@ -128,7 +128,7 @@ The native conversation's structured stream carries the same kinds of events tha
 - Streamed text applies at most once per frame. A new item, or a repeat of a streaming item, flushes the pending text first, so the order never changes.
 - When the workspace's session does not run, the interface opens it with `session.open`, which resumes the provider's session through the core, and attaches again.
 - Each item kind has one renderer in a registry. Lervo notices render from the catalog by code. In S1.5c, messages render as plain text; S1.6 chooses Markdown and code rendering by measurement against the conversation budgets.
-- Slash commands, skills included, work in a native session: the reply goes to Claude Code as typed, and the conversation shows it as sent. A conversation read back from Claude Code's transcript shows the same: the command's line reads as the command and its arguments, while the skill text it loaded and a built-in command's local output, which the live conversation never shows, stay out.
+- Slash commands, skills included, work in a native session: the reply goes to Claude Code as typed, and the conversation shows it as sent. A conversation read back from Claude Code's transcript shows the same: the command's line reads as the command and its arguments, while the skill text it loaded and a built-in command's local output, which the live conversation never shows, stay out. So does a turn Claude Code itself sends the agent, which its line marks with an `origin` other than another session's, such as a background task's notification: the live conversation never shows it either.
 
 ## Stopping a turn
 

@@ -20,6 +20,16 @@ const at = (second: number) => `2026-11-23T05:19:${String(second).padStart(2, "0
 /** A transcript as Claude Code writes it: both modes' turns, with lines the conversation omits. */
 const lines = [
   { type: "session-owner", sessionId: session.sessionId },
+  // A turn Claude Code itself sends the agent, such as a background task's notification.
+  {
+    type: "user",
+    timestamp: at(0),
+    origin: { kind: "task-notification", producer: "session-task" },
+    message: {
+      role: "user",
+      content: "<task-notification>\n<task-id>b3fyxz6a6</task-id>\n</task-notification>",
+    },
+  },
   { type: "user", timestamp: at(1), message: { role: "user", content: "테스트" } },
   {
     type: "assistant",
