@@ -227,6 +227,25 @@ async function inspectValidationLifecycle(input: {
         command: documentNormalizationProcedure(normalization.pendingDocuments.length),
       });
     }
+    // ADR-0653: a document too large to normalize is attention until the migration splits it;
+    // one the split keeps whole needs an owner decision, which the migration cannot make.
+    const named = (documents: typeof normalization.oversizedDocuments) =>
+      documents.map((document) => `${document.path} (${document.byteCount} bytes)`).join(", ");
+    const splittable = normalization.oversizedDocuments.filter((item) => item.splittable);
+    const keptWhole = normalization.oversizedDocuments.filter((item) => !item.splittable);
+    if (splittable.length > 0)
+      advisories.push({
+        code: "document_too_large_to_normalize",
+        command: "lervo migrate knowledge",
+        detail: named(splittable),
+      });
+    if (keptWhole.length > 0)
+      advisories.push({
+        code: "document_kept_whole_for_size",
+        command:
+          "Split the document by its headings, or list it under normalization.exclude in .lervo/knowledge/policy.yaml",
+        detail: named(keptWhole),
+      });
   } else {
     lintIssues.push(
       lifecycleFailure({

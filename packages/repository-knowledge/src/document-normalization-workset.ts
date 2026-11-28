@@ -318,3 +318,30 @@ export function assertDocumentNormalizationPreflightReady(
     `Document normalization resource ceiling exceeded: ${summary}.`,
   );
 }
+
+/**
+ * The first pending documents, in path order, that one run's ceilings admit: their bytes within
+ * the source ceiling and their provider calls within the call ceiling. Undefined when every pending
+ * document fits, so a run that needs no batch records no selection.
+ */
+export function selectDocumentNormalizationBatch(
+  pending: ReadonlyArray<{ source: { path: string; content: string } }>,
+  ceilings: DocumentNormalizationResourceCeilings,
+): string[] | undefined {
+  const maximumDocuments = Math.max(1, Math.floor(ceilings.maximumProviderCalls / 2));
+  const batch: string[] = [];
+  let bytes = 0;
+  for (const item of [...pending].sort((left, right) =>
+    left.source.path.localeCompare(right.source.path),
+  )) {
+    const size = Buffer.byteLength(item.source.content);
+    if (
+      batch.length > 0 &&
+      (bytes + size > ceilings.maximumSourceBytes || batch.length >= maximumDocuments)
+    )
+      break;
+    batch.push(item.source.path);
+    bytes += size;
+  }
+  return batch.length === pending.length ? undefined : batch;
+}

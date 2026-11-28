@@ -14,7 +14,7 @@
     "apps/cli/src/document-normalization-command.ts:runDocumentNormalizationCommand": 248,
     "apps/cli/src/init-onboarding.ts:bootstrapOnboarding": 151,
     "apps/cli/src/knowledge-host-residents.ts:startHostKnowledgeResidents": 308,
-    "apps/cli/src/knowledge-migration-command.ts:runKnowledgeMigration": 341,
+    "apps/cli/src/knowledge-migration-command.ts:runKnowledgeMigration": 327,
     "apps/cli/src/knowledge-query-command.ts:runKnowledgeQuery": 156,
     "apps/cli/src/managed-deliberation-resume.ts:resumeManagedDeliberationWithStorage": 224,
     "apps/cli/src/managed-deliberation-resume.ts:resumeManagedDeliberationWithStorage.work": 206,

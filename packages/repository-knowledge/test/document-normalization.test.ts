@@ -228,6 +228,31 @@ describe("document content normalization", () => {
     expect(lifecycle.pendingDocuments).toEqual(["docs/operations/new.md"]);
   });
 
+  it("reads a candidate whose source grew past the single-pass bound as stale", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/alpha.md"), "# Alpha\n\nOriginal.\n");
+    await writeFile(resolve(root, "docs/operations/beta.md"), "# Beta\n\nOriginal.\n");
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      normalize: async (envelope) => normalizedResponse(envelope),
+    };
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+      sourcePaths: ["docs/operations/alpha.md"],
+    });
+    // ADR-0653: a source now over 256 KiB waits for a size split; an earlier candidate is stale.
+    await writeFile(
+      resolve(root, "docs/operations/alpha.md"),
+      `# Alpha\n\n${"Grown paragraph.\n\n".repeat(20_000)}`,
+    );
+    await expect(
+      createDocumentNormalizationPlan({ repositoryRoot: root, candidate, now: new Date() }),
+    ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
+  });
+
   it("binds an explicit path subset inside the selected lifecycle scope", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/operations"), { recursive: true });
@@ -368,22 +393,36 @@ describe("document content normalization", () => {
     await writeFile(resolve(root, "docs/operations/beta.md"), "# Beta\n\nContent.\n");
     const calls: DocumentNormalizationEnvelope[] = [];
     const normalizer = compiler(calls);
-    const preflight = await createConfiguredDocumentNormalizationPreflight({
+    // ADR-0653: two documents in one envelope need three calls, so a two-call run takes one.
+    const batched = await createConfiguredDocumentNormalizationPreflight({
       repositoryRoot: root,
       compiler: normalizer,
       ceilings: { maximumProviderCalls: 2 },
     });
+    expect(batched).toMatchObject({
+      status: "ready",
+      selection: { envelopeCount: 1, cacheMisses: 1, providerCallCapacity: 1 },
+      blockers: [],
+    });
+    expect(batched.selection.documents.map((document) => document.path)).toEqual([
+      "docs/operations/alpha.md",
+    ]);
+    // A single document over the ceiling still blocks, before any provider call.
+    const preflight = await createConfiguredDocumentNormalizationPreflight({
+      repositoryRoot: root,
+      compiler: normalizer,
+      ceilings: { maximumSourceBytes: 4 },
+    });
     expect(preflight).toMatchObject({
       status: "blocked",
-      selection: { envelopeCount: 1, cacheMisses: 2, providerCallCapacity: 3 },
-      blockers: [{ code: "provider_calls_exceeded", observed: 3, limit: 2 }],
+      blockers: [{ code: "source_bytes_exceeded", limit: 4 }],
     });
     await expect(
       compileConfiguredDocumentNormalizationCandidate({
         repositoryRoot: root,
         compiler: normalizer,
         signal: new AbortController().signal,
-        ceilings: { maximumProviderCalls: 2 },
+        ceilings: { maximumSourceBytes: 4 },
       }),
     ).rejects.toMatchObject({ code: "normalization_budget_exceeded" });
     expect(calls).toEqual([]);

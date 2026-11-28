@@ -18,6 +18,8 @@ Default limits are 1,048,576 selected source bytes and 256 provider calls, overr
 
 Call capacity includes batch fallback. Blocked preflight prevents generation, and execution cannot cross the same call ceiling.
 
+When the pending documents of the selected scope exceed one run's source bytes, or need more provider calls than half the call ceiling admits, each run takes the next batch in path order and binds it as an explicit selection ([ADR-0653](../../decisions/knowledge/semantics/0653-never-let-one-large-document-stop-repository-knowledge.md)). The next run continues with what remains, so a repository's size never blocks normalization. Preflight still blocks a batch of one document over the source ceiling. A document over 256 KiB is never selected; `lervo migrate knowledge` splits it first and lists it until then.
+
 ## Resource observations
 
 Codex and Claude translate native normalization usage behind the compiler adapter into neutral input, cached-input, output, and total-token fields. Missing or invalid usage is explicitly unavailable, never zero. Core orchestration aggregates provider-call elapsed time and complete token observations without retaining prompts, document bodies, or native output.

@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-04
+- Amended by: [ADR-0653](../semantics/0653-never-let-one-large-document-stop-repository-knowledge.md) (pending documents over one run's ceilings normalize in batches)
 
 ## Context
 

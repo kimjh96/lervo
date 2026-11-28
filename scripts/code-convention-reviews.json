@@ -151,9 +151,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:2990b50e8a725dbdc3a9474dfa95d49610e8ac5fad35394670216aa43b74b160",
+      "contentHash": "sha256:fd8c5c9970c43a76e5f79050b19dddc489457fd0acfb8379e92034e87ac13cb2",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, tool ownership, and protected Markdown fragments are separate modules. The compiler delegates complete-coverage admission to the shared guard before provider calls; preparation and apply use the complete scanner. ADR-0604 only reclassifies a lifecycle mismatch at the same snapshot as a stale candidate; no independent scan or persistence policy is added.",
+      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, tool ownership, and protected Markdown fragments are separate modules. The compiler uses the shared coverage guard before provider calls; preparation and apply use the complete scanner. ADR-0604 reclassifies a same-snapshot lifecycle mismatch as a stale candidate; ADR-0653 asks the split layout whether an oversized document is splittable.",
       "disposition": "cohesive"
     },
     {
@@ -172,7 +172,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-split.ts",
-      "contentHash": "sha256:c56867427227383374a48eae18676a6ca7f86fd8ee684a59946f5b61416267dc",
+      "contentHash": "sha256:29f47e9c065b3ef40ac05cd5ee1579ce4eaf15968303cc3e25890bb58af2e6fc",
       "responsibility": "Exact-approved document split operation",
       "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
