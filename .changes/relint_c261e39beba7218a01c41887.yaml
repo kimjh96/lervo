@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c261e39beba7218a01c41887"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep CAS retention running on an idle or provider-waiting host until the store settles, with time-boxed slices about every 30 seconds"

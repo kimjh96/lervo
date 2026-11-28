@@ -1,25 +1,32 @@
-import { readRetentionScan, saveScan } from "./cas-retention-state.js";
+import { readRetentionScan, saveScan, type RetentionScan } from "./cas-retention-state.js";
 import { memoizedConvergenceArtifactRoots, retentionStillIdle } from "./cas-retention-memo.js";
 import { resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import { materializationTransactionState } from "./materialization-transaction.js";
+import { scanAdvanced, scanProgressMark, type ScanProgressMark } from "./cas-retention-progress.js";
 import {
   classifyRetentionFailure,
   noteProgress,
+  noteRemaining,
+  noteStall,
   noteSweep,
   startObservation,
   writeObservation,
   type CasRetentionObservation,
 } from "./cas-retention-observation.js";
 import { expireTombstones } from "./cas-retention-tombstones.js";
-import { REFERENCE_SCAN_LIMITS, referenceReadBudget } from "./cas-retention-budget.js";
+import {
+  CAS_RETENTION_SLICE_MS,
+  REFERENCE_SCAN_LIMITS,
+  referenceReadBudget,
+} from "./cas-retention-budget.js";
 import {
   CONVERGENCE_ARTIFACT_GRACE_MS,
   eligibleConvergenceArtifacts,
-  retentionNamedAt,
 } from "./cas-retention-policy.js";
+import { sweepUnreachableObjects } from "./cas-retention-sweep.js";
 import { classifyConvergenceRecords } from "./cas-retention-records.js";
 import {
   releasedConvergenceRecords,
@@ -29,39 +36,63 @@ import { bindEventWriterBackups } from "./cas-retention-backups.js";
 import {
   CAS_RETENTION_SCAN,
   casReferenceFiles,
-  removeUnreachableCasObject,
   type CasReferenceFile,
 } from "./cas-retention-files.js";
 import { scanReferenceFile, settleReferenceInventory } from "./cas-retention-settle.js";
 
 export type { CasRetentionObservation } from "./cas-retention-observation.js";
 
+/**
+ * ADR-0660: `entry_yield` and `deferred` passes did no work and write no observation; `ran` covers
+ * every pass that looked, including one that found nothing due.
+ */
+export type CasRetentionPassOutcome = "entry_yield" | "deferred" | "ran";
+
+/** ADR-0660: a slice that spent its read budget either advanced a read or counts a stall. */
+function noteReadBudget(
+  observation: CasRetentionObservation,
+  mark: ScanProgressMark,
+  scan: RetentionScan,
+  reference?: string,
+) {
+  if (scanAdvanced(mark, scan)) noteProgress(observation);
+  else noteStall(observation, "read_budget_exhausted", reference);
+  noteRemaining(observation, true);
+}
+
 /** Called only while holding the worker lock. The public boundary below acquires it for every host. */
 async function collect(
   storage: ProjectStorage,
   observation: CasRetentionObservation,
   shouldYield: () => Promise<boolean>,
-): Promise<void> {
+  admit: () => Promise<boolean>,
+): Promise<CasRetentionPassOutcome> {
   if (
     storage.readOnly ||
     (await materializationTransactionState(storage.paths.repositoryRoot)) !== "clear" ||
     (await shouldYield())
   )
-    return;
+    return "entry_yield";
   const statePath = resolve(storage.paths.knowledgeState, CAS_RETENTION_SCAN);
   const scan = await readRetentionScan(statePath);
-  if (scan.nextScanAt > Date.now()) return;
+  noteRemaining(observation, false);
+  if (scan.nextScanAt > Date.now()) return "ran";
   // ADR-0597: replaying the event log found nothing eligible at this head; ADR-0601: events with
   // no artifact lifecycle since then leave that answer standing, and roots extend the last replay.
-  if (retentionStillIdle(scan, storage.events, Date.now())) return;
+  if (retentionStillIdle(scan, storage.events, Date.now())) return "ran";
+  // ADR-0660: work is due, so it waits for this host's retention turn before it reads anything.
+  if (!(await admit())) return "deferred";
+  const sliceEndsAt = Date.now() + CAS_RETENTION_SLICE_MS;
+  noteRemaining(observation, true);
   const roots = memoizedConvergenceArtifactRoots(storage.events);
-  let files = await casReferenceFiles(storage);
+  const files = await casReferenceFiles(storage);
   await bindEventWriterBackups(storage, roots.headSeq, files);
   const before = Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS;
   // Probes of live work run between reads and never spend the read budget (ADR-0584).
   const budget = referenceReadBudget(REFERENCE_SCAN_LIMITS, shouldYield);
   const records = presentRecords(scan.records ?? {}, files);
   scan.records = records;
+  const mark = scanProgressMark(scan);
   if (!scan.eligible.length) {
     // A pass fixes its eligible set once, so every record must be classified before its scan.
     const classified = await classifyConvergenceRecords({
@@ -80,16 +111,18 @@ async function collect(
         ]),
       ];
     if (!classified.complete) {
+      noteReadBudget(observation, mark, scan);
       if (classified.changed) await saveScan(statePath, scan);
-      return;
+      return "ran";
     }
     if (!scan.eligible.length) {
       noteProgress(observation);
+      noteRemaining(observation, false);
       await saveScan(statePath, {
         ...scan,
         idle: { head: roots.head, at: Date.now(), seq: roots.headSeq },
       });
-      return;
+      return "ran";
     }
   }
   const eligible = new Set(scan.eligible);
@@ -97,10 +130,12 @@ async function collect(
   for (const key of Object.keys(scan.files)) if (!keys.has(key)) delete scan.files[key];
   for (const file of files) {
     if ((await scanReferenceFile(file, scan, eligible, budget, observation)) === "exhausted") {
+      noteReadBudget(observation, mark, scan, file.path);
       await saveScan(statePath, scan);
-      return;
+      return "ran";
     }
   }
+  const stallsBefore = observation.stalledPasses ?? 0;
   // ADR-0658: files that changed meanwhile are read again until the inventory holds still.
   const settled = await settleReferenceInventory({
     storage,
@@ -115,44 +150,27 @@ async function collect(
     shouldYield,
   });
   if (settled === null) {
+    // Settling either counted its own stall or ran out of read budget.
+    if ((observation.stalledPasses ?? 0) > stallsBefore) noteRemaining(observation, true);
+    else noteReadBudget(observation, mark, scan);
     await saveScan(statePath, scan);
-    return;
+    return "ran";
   }
-  const { marked, released } = settled;
-  files = settled.files;
-  const deleted = new Set<string>();
-  let remaining = false;
-  let headMoved = false;
-  const headCurrent = () => (storage.events.latest()?.eventHash ?? null) === roots.head;
-  for (const file of files) {
-    if (
-      file.hash === null ||
-      !eligible.has(file.hash) ||
-      marked.has(file.hash) ||
-      file.modifiedAt >= before ||
-      retentionNamedAt(roots, released, file.hash) >= before
-    )
-      continue;
-    if (observation.removedObjects >= 32 || (await shouldYield()) || !headCurrent()) {
-      headMoved = !headCurrent();
-      remaining = true;
-      break;
-    }
-    if ((await materializationTransactionState(storage.paths.repositoryRoot)) !== "clear") {
-      remaining = true;
-      break;
-    }
-    // ADR-0658: the head is checked again after the tombstone, right before the unlink.
-    if (!(await removeUnreachableCasObject(file, headCurrent, storage.paths.cas))) {
-      headMoved = remaining = true;
-      break;
-    }
-    deleted.add(file.hash);
-    observation.removedObjects++;
-    observation.reclaimedBytes += file.size;
-  }
+  const { deleted, remaining, headMoved } = await sweepUnreachableObjects({
+    storage,
+    files: settled.files,
+    eligible,
+    marked: settled.marked,
+    released: settled.released,
+    roots,
+    before,
+    observation,
+    shouldYield,
+    sliceEndsAt,
+  });
   observation.status = "collected";
   noteSweep(observation, headMoved);
+  noteRemaining(observation, remaining);
   if (!remaining) await expireTombstones(storage.paths.cas, Date.now());
   // A completed pass starts with a fresh grace horizon next time. Interruption can only leak bytes.
   for (const hash of deleted) {
@@ -173,6 +191,7 @@ async function collect(
           records,
         },
   );
+  return "ran";
 }
 
 /** Shapes outlive a pass only while their object exists. */
@@ -184,22 +203,37 @@ function presentRecords(
   return Object.fromEntries(Object.entries(records).filter(([hash]) => present.has(hash)));
 }
 
-/** Best-effort host-local maintenance: no wait for a worker, provider call, or developer lease. */
+/**
+ * Best-effort host-local maintenance: no wait for a worker, provider call, or developer lease.
+ * `admit` is asked once work is due and before any read (ADR-0660); null means the lock was busy.
+ */
+export async function runCasRetentionPass(
+  storage: ProjectStorage,
+  shouldYield: () => Promise<boolean> = async () => false,
+  admit: () => Promise<boolean> = async () => true,
+): Promise<{ observation: CasRetentionObservation; outcome: CasRetentionPassOutcome } | null> {
+  if (storage.readOnly) return null;
+  const result = await withRepositoryKnowledgeWorkerLock(storage.paths.repositoryRoot, async () => {
+    const observation = await startObservation(storage);
+    let outcome: CasRetentionPassOutcome = "ran";
+    try {
+      outcome = await collect(storage, observation, shouldYield, admit);
+    } catch (error) {
+      observation.status = "unavailable";
+      observation.remaining = false;
+      Object.assign(observation, classifyRetentionFailure(error));
+    }
+    // ADR-0660: a pass that did no work leaves the last observation, its age and its answer.
+    if (outcome === "ran") await writeObservation(storage, observation);
+    return { observation, outcome };
+  });
+  return result.status === "busy" ? null : result.result;
+}
+
+/** One pass with no host turn, as one-shot commands and tests run it. */
 export async function compactProjectConvergenceArtifacts(
   storage: ProjectStorage,
   shouldYield: () => Promise<boolean> = async () => false,
 ): Promise<CasRetentionObservation | null> {
-  if (storage.readOnly) return null;
-  const result = await withRepositoryKnowledgeWorkerLock(storage.paths.repositoryRoot, async () => {
-    const observation = await startObservation(storage);
-    try {
-      await collect(storage, observation, shouldYield);
-    } catch (error) {
-      observation.status = "unavailable";
-      Object.assign(observation, classifyRetentionFailure(error));
-    }
-    await writeObservation(storage, observation);
-    return observation;
-  });
-  return result.status === "busy" ? null : result.result;
+  return (await runCasRetentionPass(storage, shouldYield))?.observation ?? null;
 }

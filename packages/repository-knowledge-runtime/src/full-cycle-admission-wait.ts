@@ -4,6 +4,7 @@ import { waitForProcessExit, wakeProcessPresence } from "@lervo/project-storage"
 
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import {
+  admitImmediately,
   tryAcquireOrWait,
   update,
   wakeWaiters,
@@ -104,6 +105,8 @@ export async function waitForAdmission(input: {
   nonce: string;
   since: number;
   leaseMilliseconds: number;
+  /** ADR-0660: admit now or refuse; never insert a waiter row. */
+  immediate?: boolean;
   signal: AbortSignal;
   pollMilliseconds: number;
   presence: string | null;
@@ -112,6 +115,12 @@ export async function waitForAdmission(input: {
   /** An exit wait that cannot see its process, then null once it can again. */
   onIssue?: (issue: string | null) => void;
 }): Promise<number> {
+  if (input.immediate === true) {
+    const admittedAt = await admitImmediately({ ...input, now: Date.now() });
+    if (admittedAt === null)
+      throw new KnowledgeConvergenceRuntimeError("knowledge_admission_occupied");
+    return admittedAt;
+  }
   const connection: { db: DatabaseSync | null } = { db: null };
   let retry = input.pollMilliseconds;
   let holderNonce: string | null = null;

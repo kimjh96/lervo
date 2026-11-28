@@ -14,8 +14,24 @@ import {
 import { CAS_RETENTION_OBSERVATION } from "./cas-retention-files.js";
 import { writeRetentionProjection } from "./cas-retention-state.js";
 
-/** Why a pass that reached its sweep removed nothing although candidates were past grace. */
-export type CasRetentionStallCause = "inventory_changed" | "event_head_changed";
+/**
+ * Consecutive stalls after which attention reports `cas_retention_stalled` and retention stops
+ * asking for another slice. The CLI's attention reader uses the same bound.
+ */
+export const CAS_RETENTION_STALL_PASSES = 5;
+
+/**
+ * Why a pass removed nothing although candidates were past grace (ADR-0658), or, with
+ * `read_budget_exhausted` (ADR-0660), why a slice spent its read budget and advanced no read.
+ */
+export type CasRetentionStallCause =
+  "inventory_changed" | "event_head_changed" | "read_budget_exhausted";
+
+const STALL_CAUSES: readonly unknown[] = [
+  "inventory_changed",
+  "event_head_changed",
+  "read_budget_exhausted",
+];
 
 export interface CasRetentionObservation {
   schemaVersion: 1;
@@ -39,6 +55,17 @@ export interface CasRetentionObservation {
    */
   stalledPasses?: number;
   stallCause?: CasRetentionStallCause;
+  /**
+   * ADR-0660: with `read_budget_exhausted`, the repository-relative path whose read the budget
+   * ran out in, when one file holds it. Carried with the stall.
+   */
+  stallReference?: string;
+  /**
+   * ADR-0660: the pass stopped with work left: unclassified records, unread references, eligible
+   * candidates, or a stall below `CAS_RETENTION_STALL_PASSES`. While it is true the resident asks
+   * for another slice. A pass that yielded before doing any work writes no observation at all.
+   */
+  remaining?: boolean;
   removedObjects: number;
   reclaimedBytes: number;
 }
@@ -61,18 +88,30 @@ export async function startObservation(storage: ProjectStorage): Promise<CasRete
     const previous = JSON.parse(await readFile(observationPath(storage), "utf8")) as {
       stalledPasses?: unknown;
       stallCause?: unknown;
+      stallReference?: unknown;
     };
     if (
       Number.isSafeInteger(previous.stalledPasses) &&
-      (previous.stallCause === "inventory_changed" || previous.stallCause === "event_head_changed")
+      STALL_CAUSES.includes(previous.stallCause)
     ) {
       observation.stalledPasses = previous.stalledPasses as number;
-      observation.stallCause = previous.stallCause;
+      observation.stallCause = previous.stallCause as CasRetentionStallCause;
+      if (typeof previous.stallReference === "string")
+        observation.stallReference = resolve(storage.paths.repositoryRoot, previous.stallReference);
     }
   } catch {
     // No readable previous observation: no stall to carry.
   }
   return observation;
+}
+
+/**
+ * ADR-0660: whether work is left after this pass. A stall counts only below its bound, after which
+ * attention owns it; a failure that stopped the pass needs the owner, never an early cycle.
+ */
+export function noteRemaining(observation: CasRetentionObservation, remaining: boolean) {
+  observation.remaining =
+    remaining && (observation.stalledPasses ?? 0) < CAS_RETENTION_STALL_PASSES;
 }
 
 /** A sweep that removed nothing because the head moved is a stall; any other sweep is progress. */
@@ -81,14 +120,26 @@ export function noteSweep(observation: CasRetentionObservation, headMoved: boole
   else noteProgress(observation);
 }
 
-export function noteStall(observation: CasRetentionObservation, cause: CasRetentionStallCause) {
+export function noteStall(
+  observation: CasRetentionObservation,
+  cause: CasRetentionStallCause,
+  reference?: string,
+) {
   observation.stalledPasses = (observation.stalledPasses ?? 0) + 1;
   observation.stallCause = cause;
+  if (reference === undefined) delete observation.stallReference;
+  else observation.stallReference = reference;
 }
 
+/**
+ * Progress ends any stall: a removal, a finished pass, or (ADR-0660) a slice that advanced a read.
+ * A pass whose inventory or head keeps moving rereads only changed files, whose new identities
+ * count as no progress, so such a stall still reaches its bound.
+ */
 export function noteProgress(observation: CasRetentionObservation) {
   delete observation.stalledPasses;
   delete observation.stallCause;
+  delete observation.stallReference;
 }
 
 /** Names a failure; a permission error anywhere in the pass names its own path. */
@@ -112,6 +163,8 @@ export async function writeObservation(
   // ADR-0658: the path is recorded relative to the repository, never absolute.
   if (observation.reference !== undefined)
     observation.reference = relative(storage.paths.repositoryRoot, observation.reference);
+  if (observation.stallReference !== undefined)
+    observation.stallReference = relative(storage.paths.repositoryRoot, observation.stallReference);
   await writeRetentionProjection(observationPath(storage), observation);
 }
 
@@ -129,6 +182,7 @@ export async function recordCasRetentionFailure(
   await writeObservation(storage, {
     ...observation,
     status: "unavailable",
+    remaining: false,
     ...classifyRetentionFailure(error),
   }).catch(() => undefined);
 }

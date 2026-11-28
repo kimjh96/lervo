@@ -1,13 +1,13 @@
-import { measureProcessCost, withProcessCostScope } from "@lervo/repository-knowledge";
+import { measureProcessCost } from "@lervo/repository-knowledge";
 import { readRepositoryHold } from "@lervo/repository-registry";
 import { residentContinuityTurns } from "./resident-continuity-turns.js";
-import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { runAutonomousKnowledgeWorker } from "./worker.js";
 import { coalescedRefresh } from "./resident-projection-refresh.js";
 import { residentCycleHealth } from "./resident-cycle-health.js";
 import type { KnowledgeResidentState } from "./resident-health.js";
 import { acquireFullCycleAdmission } from "./full-cycle-admission.js";
-import { convergenceSourceFingerprint } from "./source-fingerprint.js";
+import { residentFingerprint } from "./resident-fingerprint.js";
+import { startResidentRetention } from "./resident-retention.js";
 import { residentWakeOffset } from "./resident-wake-offset.js";
 import {
   readResidentCycleState,
@@ -30,12 +30,7 @@ import { wireResidentWakes } from "./resident-wakes.js";
 import { residentCycleTrigger } from "./resident-cycle-trigger.js";
 import type { AutonomousKnowledgeWorkerInput } from "./loop-options.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
-import {
-  ownershipFingerprint,
-  evaluationFingerprint,
-  hubTokenFingerprint,
-  RESIDENT_OWNER_HEARTBEAT_MILLISECONDS,
-} from "./resident-ownership.js";
+import { RESIDENT_OWNER_HEARTBEAT_MILLISECONDS } from "./resident-ownership.js";
 import { residentOwnershipWakes } from "./resident-ownership-wakes.js";
 
 /**
@@ -77,6 +72,8 @@ export function startAutonomousKnowledgeWorker(
       },
       // During a cycle only the age bound applies; the cycle's own offer follows its changes.
       projection: () => void offerProjection({ ageOnly: trigger.running() !== null }),
+      // ADR-0660: a retention-only slice; it never runs the worker or any provider stage.
+      retention: () => void retention.run(),
     },
     (name) => input.onFailure(new Error(`The resident's ${name} deadline came back in the past.`)),
   );
@@ -189,23 +186,13 @@ export function startAutonomousKnowledgeWorker(
         previous: observedPrevious,
         now: Date.now,
         observe: () =>
-          withProcessCostScope("fingerprint", () =>
-            evaluationFingerprint(
-              ownershipFingerprint(
-                hubTokenFingerprint(
-                  convergenceSourceFingerprint({
-                    repositoryRoot: root,
-                    events: input.storage.events,
-                    wakeOffsetMilliseconds: wakeOffset,
-                    owner: observedOwner === null || observedOwner.role === "owner",
-                  }),
-                  wakes.hubToken(),
-                ),
-                observedOwner,
-              ),
-              convergenceEvaluationContract(),
-            ),
-          ),
+          residentFingerprint({
+            repositoryRoot: root,
+            events: input.storage.events,
+            wakeOffsetMilliseconds: wakeOffset,
+            owner: observedOwner,
+            hubToken: wakes.hubToken(),
+          }),
         runFull,
       }),
     );
@@ -277,6 +264,7 @@ export function startAutonomousKnowledgeWorker(
       await refreshProjection();
     }
     if (!signal.aborted) deadlines.set("reconcile", at);
+    if (!signal.aborted) void retention.afterCycle();
     // The cycle has ended; a next one observes ownership again and re-arms the renewal.
     if (!signal.aborted) armOwnerRenewal(false);
     // A continuity turn that met this cycle's own lock runs once the cycle has fully ended.
@@ -292,6 +280,11 @@ export function startAutonomousKnowledgeWorker(
     },
   });
   const cycle = trigger.cycle;
+  const retention = startResidentRetention(input, {
+    signal,
+    cycleRunning: () => trigger.running() !== null,
+    arm: (at) => void (signal.aborted || deadlines.set("retention", at)),
+  });
   const ownsQueue = () => verdict === null || verdict.role === "owner";
   const wakes = wireResidentWakes({
     storage: input.storage,
@@ -352,6 +345,7 @@ export function startAutonomousKnowledgeWorker(
     trigger.stop();
     await wakes.stop();
     await trigger.running();
+    await retention.settled();
     await projection.running();
     await continuityTurns.settled();
     deadlines.stop();

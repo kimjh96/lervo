@@ -31,8 +31,11 @@ const CONFIRM_CONTENTION_WAIT_MILLISECONDS = 30_000;
  * - `resident`: a background full cycle; it takes its turn in arrival order.
  * - `upgrade`: `lervo upgrade --apply`; it goes ahead of waiting residents, and a running cycle
  *   stops at its next stage boundary.
+ * - `retention`: ADR-0660's retention-only slice; admitted at once when nothing holds or waits,
+ *   otherwise refused with `knowledge_admission_occupied`. It never queues, so no running cycle
+ *   is asked to yield for it.
  */
-export type FullCycleAdmissionPriority = "resident" | "upgrade";
+export type FullCycleAdmissionPriority = "resident" | "upgrade" | "retention";
 
 /**
  * - `held`: this holder still holds the admission.
@@ -80,6 +83,11 @@ export function admissionSignalsHeld(): boolean {
   return signalCapableHolders > 0;
 }
 
+/** The host admission directory a resident shares with every other resident on its host. */
+export function fullCycleAdmissionDirectory(directory?: string): string {
+  return directory ?? resolve(homedir(), ".lervo", "state", "knowledge-provider-admission");
+}
+
 /**
  * One full knowledge cycle per host at a time, so co-hosted residents serialise their bursts.
  * Upgrades are admitted first, then residents, each in arrival order. Waiting ends on abort with
@@ -107,8 +115,7 @@ export async function acquireFullCycleAdmission(input: {
   leaseMilliseconds?: number;
   onWait?: () => void;
 }): Promise<FullCycleAdmission> {
-  const directory =
-    input.directory ?? resolve(homedir(), ".lervo", "state", "knowledge-provider-admission");
+  const directory = fullCycleAdmissionDirectory(input.directory);
   const repositoryHash = sha256(resolve(input.repositoryRoot));
   const nonce = randomUUID();
   const since = Date.now() - (input.priority === "upgrade" ? PRIORITY_ADVANCE_MILLISECONDS : 0);
@@ -135,6 +142,7 @@ export async function acquireFullCycleAdmission(input: {
       nonce,
       since,
       leaseMilliseconds,
+      immediate: input.priority === "retention",
       signal: input.signal,
       pollMilliseconds: input.pollMilliseconds ?? POLL_MILLISECONDS,
       presence: presenceToken,

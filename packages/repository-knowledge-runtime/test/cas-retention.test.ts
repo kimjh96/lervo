@@ -153,21 +153,46 @@ it("leaves only unreachable objects after a crash and safely resumes the remaini
   ).toMatchObject({ removedObjects: 1, reclaimedBytes: expect.any(Number) });
 });
 
-it("limits deletion to 32 objects and resumes the same reference scan on the next cycle", async () => {
-  const f = await fixture();
+async function boundedCandidates(f: Awaited<ReturnType<typeof fixture>>) {
   const artifacts = [];
   for (let index = 0; index < 40; index++) artifacts.push(await f.put({ index }));
-  const final = await f.settled(
+  return f.settled(
     "bounded",
     artifacts.map((artifact) => artifact.contentHash),
   );
+}
+
+it("removes at least 32 objects until the slice's time box passes, then resumes (ADR-0660)", async () => {
+  const f = await fixture();
+  let now = Date.now();
+  vi.mocked(Date.now).mockImplementation(() => now);
+  const remove = files.removeUnreachableCasObject;
+  // A slow disk: each removal takes a second, so the five-second slice ends after five.
+  vi.spyOn(files, "removeUnreachableCasObject").mockImplementation(async (...args) => {
+    now += 1_000;
+    return remove(...args);
+  });
+  const final = await boundedCandidates(f);
   expect(await finishRetention(f.storage)).toMatchObject({
     status: "collected",
     removedObjects: 32,
+    remaining: true,
   });
   expect(await finishRetention(f.storage)).toMatchObject({
     status: "collected",
     removedObjects: 9,
+    remaining: false,
+  });
+  expect(await f.artifacts.has(final.kept.uri)).toBe(true);
+});
+
+it("removes every candidate in one slice while the time box holds", async () => {
+  const f = await fixture();
+  const final = await boundedCandidates(f);
+  expect(await finishRetention(f.storage)).toMatchObject({
+    status: "collected",
+    removedObjects: 41,
+    remaining: false,
   });
   expect(await f.artifacts.has(final.kept.uri)).toBe(true);
 });

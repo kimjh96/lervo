@@ -5,6 +5,7 @@ Decision date: 2026-11-18
 Amends: [ADR-0534](0534-bound-installed-runtimes-and-convergence-artifacts.md) (collector read bounds, live-change handling and the retention observation)
 Amended by: [ADR-0585](0585-release-mirrored-backups-and-settled-assignment-inputs.md) (the owner approved and implemented both proposed policy changes)
 Amended by: [ADR-0658](0658-name-what-stops-cas-retention-and-tombstone-what-it-prunes.md) (named stops, immediate rescans and pruned tombstones)
+Amended by: [ADR-0660](0660-keep-cas-retention-due-until-the-store-settles.md) (per-slice read bounds and a time-boxed sweep instead of the 32-object cap)
 
 ## Context
 
