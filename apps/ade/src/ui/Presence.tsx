@@ -1,4 +1,14 @@
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type Dispatch,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { motion } from "../design/generated/motion";
 import styles from "./Presence.module.css";
@@ -15,6 +25,10 @@ interface Layer {
   readonly leaving: boolean;
   /** Arrived while other content was leaving, so it starts halfway through that leaving. */
   readonly after: boolean;
+  /** Came back while it was leaving: its fade runs backward from where it was. */
+  readonly returning?: boolean;
+  /** Came back once, so it never plays an arrival again. */
+  readonly returned?: boolean;
 }
 
 /**
@@ -72,16 +86,24 @@ export function Presence(props: {
   // The layers follow the children during render, so the leaving content is still at hand.
   const current = layers.find((layer) => !layer.leaving);
   if (present && current?.key !== key) {
+    // Content that comes back while it is still leaving turns around where it is, instead of
+    // starting its arrival again from nothing.
+    const back = layers.find((layer) => layer.key === key && layer.leaving);
     const others = layers
       .filter((layer) => layer.key !== key)
-      .map((layer) => ({ ...layer, leaving: true }));
-    setLayers([...others, { key, node: props.children, leaving: false, after: others.length > 0 }]);
+      .map((layer) => ({ ...layer, leaving: true, returning: false }));
+    setLayers([
+      ...others,
+      back === undefined
+        ? { key, node: props.children, leaving: false, after: others.length > 0 }
+        : { ...back, node: props.children, leaving: false, returning: true },
+    ]);
   } else if (present && current !== undefined && current.node !== props.children)
     setLayers(
       layers.map((layer) => (layer === current ? { ...layer, node: props.children } : layer)),
     );
   else if (!present && current !== undefined)
-    setLayers(layers.map((layer) => ({ ...layer, leaving: true })));
+    setLayers(layers.map((layer) => ({ ...layer, leaving: true, returning: false })));
   const leaving = layers
     .filter((layer) => layer.leaving)
     .map((layer) => layer.key)
@@ -94,10 +116,19 @@ export function Presence(props: {
     );
     return () => clearTimeout(timer);
   }, [leaving]);
+  const own = useRef<HTMLElement | null>(null);
+  useTurnedFades(own, layers, setLayers);
   const Element = props.as ?? "div";
-  const place = usePlaceSpace(
+  const space = usePlaceSpace(
     layers.map((layer) => `${layer.key}${layer.leaving ? "-" : "+"}`).join(" "),
     Element === "span" ? "inline" : "block",
+  );
+  const place = useCallback(
+    (node: HTMLElement | null) => {
+      own.current = node;
+      space(node);
+    },
+    [space],
   );
   if (layers.length === 0) return null;
   return (
@@ -113,8 +144,10 @@ export function Presence(props: {
         <Element
           key={layer.key}
           className={styles.layer}
-          data-leaving={layer.leaving ? "" : undefined}
-          data-enter={layer.mounted && !mountEnter ? undefined : ""}
+          // A returning layer keeps its leaving fade, which runs backward until it is whole.
+          data-leaving={layer.leaving || layer.returning === true ? "" : undefined}
+          data-returning={layer.returning === true ? "" : undefined}
+          data-enter={(layer.mounted && !mountEnter) || layer.returned === true ? undefined : ""}
           data-arrival={props.arrival === "rise" ? "rise" : undefined}
           data-after={layer.after ? "" : undefined}
           aria-hidden={layer.leaving ? true : undefined}
@@ -125,6 +158,49 @@ export function Presence(props: {
       ))}
     </Element>
   );
+}
+
+/**
+ * Turns leaving fades around (ADE motion, principle 6: a new state continues from the current
+ * value). A layer whose content came back runs its leaving fade backward from where it was, and
+ * one that leaves again runs it forward again; once a returning fade is whole, the layer is
+ * shown as usual.
+ */
+function useTurnedFades(
+  place: RefObject<HTMLElement | null>,
+  layers: readonly Layer[],
+  setLayers: Dispatch<SetStateAction<readonly Layer[]>>,
+): void {
+  const states = layers
+    .map((layer) => `${layer.key}${layer.leaving ? "-" : layer.returning === true ? "<" : "+"}`)
+    .join(" ");
+  const returning = layers.some((layer) => layer.returning === true);
+  useLayoutEffect(() => {
+    const element = place.current;
+    if (element === null) return;
+    const turned: Promise<unknown>[] = [];
+    for (const layer of element.children) {
+      const back = layer.hasAttribute("data-returning");
+      const away = layer.hasAttribute("data-leaving") && !back;
+      for (const fade of layer.getAnimations()) {
+        if ((back && fade.playbackRate > 0) || (away && fade.playbackRate < 0)) fade.reverse();
+        if (back) turned.push(fade.finished);
+      }
+    }
+    if (!returning) return;
+    let current = true;
+    void Promise.allSettled(turned).then(() => {
+      if (!current) return;
+      setLayers((all) =>
+        all.map((layer) =>
+          layer.returning === true ? { ...layer, returning: false, returned: true } : layer,
+        ),
+      );
+    });
+    return () => {
+      current = false;
+    };
+  }, [place, states, returning, setLayers]);
 }
 
 /**

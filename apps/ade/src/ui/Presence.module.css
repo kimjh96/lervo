@@ -74,6 +74,11 @@
   animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
 }
 
+/* Content that came back while leaving takes clicks again at once, while its fade turns back. */
+.layer[data-returning] {
+  pointer-events: auto;
+}
+
 /* In one place, the new content starts halfway through the old content's leaving, as views do:
    the two cross while both are faint, so two texts never read over each other, and no blank gap
    blinks. */
