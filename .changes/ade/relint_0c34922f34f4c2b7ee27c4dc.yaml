@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0c34922f34f4c2b7ee27c4dc"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Scrolling back through a long conversation no longer jumps back and forth: the list keeps the reader's item in place in one step, and code blocks and tables get closer height estimates."

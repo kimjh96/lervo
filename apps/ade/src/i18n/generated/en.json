@@ -28,7 +28,7 @@
   "agents.hire.newRole.detail": [
     {
       "type": 0,
-      "value": "A role this project needs, started from a template"
+      "value": "A role of this project's own, with its own name and work"
     }
   ],
   "agents.hireProductOwner": [
@@ -338,7 +338,7 @@
   "agents.sheet.from": [
     {
       "type": 0,
-      "value": "Starts from"
+      "value": "What it can do"
     }
   ],
   "agents.sheet.hire.hiring": [
