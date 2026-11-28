@@ -36,6 +36,19 @@ export function shortcutProject(
   return repositories[Number(key) - 1];
 }
 
+/**
+ * The projects the open switcher lists below its row: every project but the selected one, which
+ * the row already shows, each with its place among all projects, so its `⌘` key matches.
+ */
+export function otherProjects(
+  repositories: readonly Repository[],
+  selectedId: string,
+): { project: Repository; index: number }[] {
+  return repositories
+    .map((project, index) => ({ project, index }))
+    .filter(({ project }) => project.projectId !== selectedId);
+}
+
 /** Whether the core answers project commands; an older core only lists projects. */
 export const managesProjects = (advertised: readonly string[] | null): boolean =>
   advertised?.includes("project.rename") === true;

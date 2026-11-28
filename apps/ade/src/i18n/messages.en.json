@@ -1463,6 +1463,14 @@
     "defaultMessage": "{count, plural, one {# more path stays unresolved} other {# more paths stay unresolved}}",
     "description": "A room line after the first unresolved paths of a turn, counting the rest."
   },
+  "room.claimUnresolvedUnverified": {
+    "defaultMessage": "<code>{path}</code> stays unresolved · Lervo could not check it in time",
+    "description": "A room line at a turn's end for a path the turn changed that Lervo could not check in time (claim_unverified)."
+  },
+  "room.claimUnverified": {
+    "defaultMessage": "{agent} was stopped at <code>{path}</code> · Lervo could not check it in time",
+    "description": "A room line after a tool call Lervo stopped because it could not check the path's claim in time (claim_unverified); nothing was written, and the agent can retry."
+  },
   "room.deliveryFailed": {
     "defaultMessage": "Lervo could not deliver a mention ({code}).",
     "description": "A room line: a mention could not reach the mentioned agent; {code} is the core's code."

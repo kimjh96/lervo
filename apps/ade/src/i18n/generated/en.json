@@ -3373,6 +3373,46 @@
       "pluralType": "cardinal"
     }
   ],
+  "room.claimUnresolvedUnverified": [
+    {
+      "type": 8,
+      "value": "code",
+      "children": [
+        {
+          "type": 1,
+          "value": "path"
+        }
+      ]
+    },
+    {
+      "type": 0,
+      "value": " stays unresolved · Lervo could not check it in time"
+    }
+  ],
+  "room.claimUnverified": [
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " was stopped at "
+    },
+    {
+      "type": 8,
+      "value": "code",
+      "children": [
+        {
+          "type": 1,
+          "value": "path"
+        }
+      ]
+    },
+    {
+      "type": 0,
+      "value": " · Lervo could not check it in time"
+    }
+  ],
   "room.conversationStarted": [
     {
       "type": 1,

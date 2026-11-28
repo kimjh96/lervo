@@ -10,7 +10,7 @@ import { Presence } from "../../../ui/Presence";
 import { StatusDot } from "../../../ui/StatusDot";
 import { type Repository, useWorkspaceStore } from "../../workspaces";
 import { selectProject } from "../model/controller";
-import { projectName, projectsNeedingYou } from "../model/decisions";
+import { otherProjects, projectName, projectsNeedingYou } from "../model/decisions";
 import { useProjectStore } from "../model/store";
 import { type ProjectMenuContext, showProjectMenu } from "./project-menu";
 import { useAddProject } from "./add-project";
@@ -19,9 +19,11 @@ import { RenameField } from "./RenameField";
 import styles from "./ProjectSwitcher.module.css";
 
 /**
- * The list the switcher shows below its row: every project with its mark, a dot when its
- * workspaces need the owner, and its `⌘1`–`⌘9` key, then "Add project". Loaded when the list
- * first opens, so it stays out of the start screen's bundle.
+ * The list the switcher shows below its row: every other project with its mark, a dot when its
+ * workspaces need the owner, and its `⌘1`–`⌘9` key, then "Add project". The selected project
+ * shows only in the row above, so it never reads twice. Keys follow the order of every project,
+ * as they do with the list closed. Loaded when the list first opens, so it stays out of the start
+ * screen's bundle.
  */
 export function ProjectList(props: { context: ProjectMenuContext; current: Repository }) {
   const intl = useIntl();
@@ -33,62 +35,65 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
   const add = useAddProject();
   const [menuAt, setMenuAt] = useState<{ rect: DOMRect; byKey: boolean } | null>(null);
   const needing = projectsNeedingYou(workspaces, statuses);
+  const others = otherProjects(repositories, props.current.projectId);
   const rename = (project: Repository) => {
     if (context.managed) useProjectStore.setState({ renaming: project.projectId });
   };
   return (
     <div className={styles.list}>
-      <ul className={styles.projects}>
-        {repositories.map((project, index) => (
-          <li key={project.projectId}>
-            {/* motion: Renaming in place */}
-            {renaming === project.projectId ? (
-              <RenameField
-                project={project}
-                leading={<ProjectMark project={project} size="sm" />}
-                dependencies={context.dependencies}
-              />
-            ) : (
-              <ListRow
-                current={project.projectId === props.current.projectId}
-                // The second click of a double-click edits the name instead.
-                onClick={(event) => {
-                  if (event.detail <= 1)
-                    selectProject(context.dependencies.memory, project.projectId);
-                }}
-                onDoubleClick={() => rename(project)}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  showProjectMenu(context, project);
-                }}
-                leading={<ProjectMark project={project} size="sm" />}
-                label={projectName(project)}
-                trailing={
-                  <span className={styles.trailing}>
-                    <Presence as="span">
-                      {needing.has(project.projectId) ? (
-                        <StatusDot
-                          label={intl.formatMessage({ id: "workspaces.status.needsYou" })}
-                        />
-                      ) : null}
-                    </Presence>
-                    <Presence as="span">
-                      {index < 9 ? (
-                        <Kbd>
-                          {intl.formatMessage(
-                            { id: "keyboard.command" },
-                            { modifier: commandModifier, key: String(index + 1) },
-                          )}
-                        </Kbd>
-                      ) : null}
-                    </Presence>
-                  </span>
-                }
-              />
-            )}
-          </li>
-        ))}
-      </ul>
+      {others.length === 0 ? null : (
+        <ul className={styles.projects}>
+          {others.map(({ project, index }) => (
+            <li key={project.projectId}>
+              {/* motion: Renaming in place */}
+              {renaming === project.projectId ? (
+                <RenameField
+                  project={project}
+                  leading={<ProjectMark project={project} size="sm" />}
+                  dependencies={context.dependencies}
+                />
+              ) : (
+                <ListRow
+                  current={false}
+                  // The second click of a double-click edits the name instead.
+                  onClick={(event) => {
+                    if (event.detail <= 1)
+                      selectProject(context.dependencies.memory, project.projectId);
+                  }}
+                  onDoubleClick={() => rename(project)}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    showProjectMenu(context, project);
+                  }}
+                  leading={<ProjectMark project={project} size="sm" />}
+                  label={projectName(project)}
+                  trailing={
+                    <span className={styles.trailing}>
+                      <Presence as="span">
+                        {needing.has(project.projectId) ? (
+                          <StatusDot
+                            label={intl.formatMessage({ id: "workspaces.status.needsYou" })}
+                          />
+                        ) : null}
+                      </Presence>
+                      <Presence as="span">
+                        {index < 9 ? (
+                          <Kbd>
+                            {intl.formatMessage(
+                              { id: "keyboard.command" },
+                              { modifier: commandModifier, key: String(index + 1) },
+                            )}
+                          </Kbd>
+                        ) : null}
+                      </Presence>
+                    </span>
+                  }
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
       <Presence>
         {context.managed ? (
           <ListRow
