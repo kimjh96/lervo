@@ -14,6 +14,7 @@ import {
   pendingStart,
   pendingStartsOf,
   recordPendingStart,
+  AGENT_STARTS_PER_HOUR,
   PENDING_START_LIMIT,
 } from "../src/room-starts.js";
 import { startAgentConversation } from "../src/workspace-agent-start.js";
@@ -48,10 +49,11 @@ describe("an agent starting a conversation", () => {
     ).rejects.toMatchObject({ code: "agent_not_caller" });
   });
 
-  it("starts at most four conversations an hour", async () => {
+  it("starts at most twelve conversations an hour, a backstop against a runaway loop", async () => {
+    expect(AGENT_STARTS_PER_HOUR).toBe(12);
     const { environment } = await state();
     const now = new Date("2026-11-27T12:00:00.000Z");
-    for (let index = 0; index < 4; index += 1)
+    for (let index = 0; index < AGENT_STARTS_PER_HOUR; index += 1)
       await recordHostedLaunch(hostedLaunchRecordsPath(environment), {
         schemaVersion: 1,
         workspaceId: `wsp_${index}`,
@@ -100,5 +102,30 @@ describe("pending starts", () => {
     const kept = await pendingStartsOf(path, agent, at);
     expect(kept).toHaveLength(PENDING_START_LIMIT);
     expect(kept[0]?.workspaceId).toBe("wsp_4");
+  });
+
+  it("belongs to the agent that made it, which may hand it to a teammate to lead", async () => {
+    const { directory } = await state();
+    const path = join(directory, "room-starts.json");
+    const at = new Date("2026-11-27T12:00:00.000Z");
+    const teammate = `agt_${"e".repeat(24)}`;
+    await recordPendingStart(
+      path,
+      {
+        workspaceId: "wsp_h",
+        agentId: teammate,
+        startedBy: agent,
+        title: "Port the verifier",
+        text: "Port it.",
+        preparedAt: at.toISOString(),
+      },
+      at,
+    );
+    // The starter's turn delivers it; the lead's session opens from it.
+    expect(await pendingStartsOf(path, agent, at)).toMatchObject([
+      { workspaceId: "wsp_h", agentId: teammate, startedBy: agent },
+    ]);
+    expect(await pendingStartsOf(path, teammate, at)).toEqual([]);
+    expect(await pendingStart(path, "wsp_h", teammate, at)).toMatchObject({ startedBy: agent });
   });
 });

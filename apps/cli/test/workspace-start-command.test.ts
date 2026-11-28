@@ -464,6 +464,10 @@ describe("agents joining a conversation", () => {
     expect(member).toContain(
       "cannot change files. When a request needs changes, start a conversation you lead",
     );
+    // Every agent learns how to hand work to a teammate, with the teammate's ID, and the channels.
+    expect(member).toContain(`${lead.displayName} (Developer, ${lead.agentId})`);
+    expect(member).toContain("add `--lead <agent ID>` to hand it to the teammate whose work it is");
+    expect(member).toContain("Never message another session through a provider's own tools");
     expect(await roomBlock("00000000-0000-4000-8000-000000000000")).toBeNull();
 
     // Joining again continues the agent's session, and reopening still opens the lead's.
@@ -525,5 +529,70 @@ describe("conversations an agent starts", () => {
     );
     expect(await pendingStartsOf(pendingStartsPath(), ciel.agentId)).toEqual([]);
     expect((await openWorkspace(started.workspaceId)).sessionId).toBe(started.sessionId);
+  });
+
+  it("hands a conversation to a teammate, who leads it and writes", async () => {
+    const app = await fixture();
+    const bora = await registerAgent({
+      repositoryRoot: app.repository,
+      roleId: "developer",
+      origin: "team",
+    });
+    const machining = await registerAgent({
+      repositoryRoot: app.repository,
+      roleId: "developer",
+      origin: "team",
+    });
+    const as = { ...process.env, LERVO_AGENT_ID: bora.agentId };
+    const started = await startAgentConversation(
+      {
+        instruction,
+        repository: app.projectId,
+        startedBy: bora.agentId,
+        lead: machining.agentId,
+        title: "Port the verifier",
+      },
+      as,
+    );
+    // Bora's turn delivers it; Machining leads it.
+    expect(await pendingStartsOf(pendingStartsPath(), bora.agentId)).toMatchObject([
+      { workspaceId: started.workspaceId, agentId: machining.agentId, startedBy: bora.agentId },
+    ]);
+    const listed = (await listWorkspaces()).workspaces.find(
+      (workspace) => workspace.workspaceId === started.workspaceId,
+    );
+    expect(listed).toMatchObject({ agentId: machining.agentId, participants: [machining.agentId] });
+    const opened = await joinWorkspaceRoom({
+      workspaceId: started.workspaceId,
+      agentId: machining.agentId,
+      instruction: "[Lervo room] From Bora (Developer):\nPort the verifier.",
+    });
+    expect(opened).toMatchObject({ lead: true, sessionId: started.sessionId });
+    expect(opened.launch.arguments).not.toContain("dontAsk");
+    expect(await pendingStartsOf(pendingStartsPath(), bora.agentId)).toEqual([]);
+
+    // Only the calling session's agent starts, and only for an active teammate.
+    await expect(
+      startAgentConversation(
+        {
+          instruction,
+          repository: app.projectId,
+          startedBy: bora.agentId,
+          lead: machining.agentId,
+        },
+        { ...process.env, LERVO_AGENT_ID: machining.agentId },
+      ),
+    ).rejects.toMatchObject({ code: "agent_not_caller" });
+    await expect(
+      startAgentConversation(
+        {
+          instruction,
+          repository: app.projectId,
+          startedBy: bora.agentId,
+          lead: `agt_${"0".repeat(24)}`,
+        },
+        as,
+      ),
+    ).rejects.toMatchObject({ code: "participant_invalid" });
   });
 });

@@ -76,7 +76,9 @@ export const CLAUDE_HOSTED_PERMISSION_MODE = "bypassPermissions";
 /**
  * A read-access session (Lervo ADE rooms, "Participants and their sessions"): Claude Code refuses
  * every tool these rules do not allow, so the session reads, searches, and answers but changes
- * nothing. Git and Lervo run only their reading commands.
+ * nothing in the worktree. Git and Lervo run only their reading commands, and Lervo's
+ * `workspace start`, which changes no file here: work that needs changes goes to a conversation
+ * the agent, or the teammate it hands the work to, leads (ADR-0657).
  */
 export const CLAUDE_READ_ACCESS_ARGUMENTS = [
   "--permission-mode",
@@ -95,6 +97,7 @@ export const CLAUDE_READ_ACCESS_ARGUMENTS = [
     "Bash(git status *)",
     "Bash(lervo knowledge query *)",
     "Bash(lervo workstream current *)",
+    "Bash(lervo workspace start *)",
   ].join(","),
 ] as const;
 

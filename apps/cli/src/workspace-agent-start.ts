@@ -17,12 +17,12 @@ import { titleFor, type WorkspaceStartResult } from "./workspace-start.js";
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
- * Starts a conversation that `startedBy` leads. Only the calling session's own agent may start one
- * (`agent_not_caller`), and at most {@link AGENT_STARTS_PER_HOUR} an hour
- * (`conversation_start_limited`).
+ * Starts a conversation that `lead` leads, or `startedBy` itself (ADR-0657). Only the calling
+ * session's own agent may start one (`agent_not_caller`), for itself or any active teammate, and
+ * at most {@link AGENT_STARTS_PER_HOUR} an hour (`conversation_start_limited`).
  */
 export async function startAgentConversation(
-  options: WorkspaceStartOptions & { readonly startedBy: string },
+  options: WorkspaceStartOptions & { readonly startedBy: string; readonly lead?: string },
   environment: NodeJS.ProcessEnv = process.env,
   now = new Date(),
 ): Promise<WorkspaceStartResult> {
@@ -45,9 +45,11 @@ export async function startAgentConversation(
     hostedLaunchRecordsPath(environment),
     options.startedBy,
   );
+  const lead = options.lead ?? options.startedBy;
+  const { lead: _lead, ...start } = options;
   const result = await startWorkspaceFromInstruction({
-    ...options,
-    participants: [options.startedBy],
+    ...start,
+    participants: [lead],
     ...(own?.questions === true ? { questions: true } : {}),
   });
   const title = titleFor(options.title ?? options.instruction);
@@ -55,7 +57,8 @@ export async function startAgentConversation(
     pendingStartsPath(environment),
     {
       workspaceId: result.workspaceId,
-      agentId: options.startedBy,
+      agentId: lead,
+      ...(lead === options.startedBy ? {} : { startedBy: options.startedBy }),
       title,
       text: options.instruction,
       preparedAt: now.toISOString(),

@@ -6,7 +6,7 @@ import type { RoomEvent } from "./room-events.js";
 import type { ConversationNote } from "./conversation-notes.js";
 import { RoomLedger, type RoomMention, type RoomReceipt } from "./room-ledger.js";
 import { mentionedAgents, turnTargets } from "./room-mentions.js";
-import type { PendingStart } from "./room-starts.js";
+import { type PendingStart, starterOf } from "./room-starts.js";
 import type { TeamAgent } from "./workspace-participants.js";
 
 /** What the core knows of a session's conversation, loaded when the session host names it. */
@@ -127,7 +127,8 @@ export class RoomRouter {
     const events: HostedDecodedEvent[] = [];
     const deliveries: RoomDelivery[] = [];
     for (const start of starts) {
-      if (start.agentId !== self.agentId) continue;
+      // The starter's turn delivers the first turn to the lead, itself or a teammate (ADR-0657).
+      if (starterOf(start) !== self.agentId) continue;
       const deliveryId = this.newId();
       this.deliveries.set(deliveryId, {
         depth: 0,
@@ -144,14 +145,14 @@ export class RoomRouter {
       deliveries.push({
         deliveryId,
         workspaceId: start.workspaceId,
-        agentId: self.agentId,
+        agentId: start.agentId,
         sessionId: null,
         text: envelopeText({
           from: self.displayName,
           role: self.roleName,
           message: start.text,
           recent: [],
-          reason: "start",
+          reason: start.agentId === self.agentId ? "start" : "handed",
         }),
       });
     }
