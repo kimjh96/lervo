@@ -9,13 +9,23 @@ import type { ConversationWindow } from "./window";
 
 export type RoomAnswer = RoomAnswersResult["answers"][number];
 
-/** One quiet line per answer, named for the lead and the agent it answered. */
+/**
+ * One quiet line per conversation and agent the lead answered there, at the newest answer: the
+ * line points to where the answers are, so a long exchange there adds no line per turn here
+ * (2026-11-28, the owner saw the same line repeated down a conversation).
+ */
 export function answerItems(
   answers: readonly RoomAnswer[],
   leadName: string,
   nameOf: (agentId: string) => string | null,
 ): ConversationItem[] {
-  return answers.map((answer) => ({
+  const newest = new Map<string, RoomAnswer>();
+  for (const answer of answers) {
+    const key = `${answer.workspaceId}\u0000${answer.fromAgentId}`;
+    const kept = newest.get(key);
+    if (kept === undefined || answer.deliveredAt > kept.deliveredAt) newest.set(key, answer);
+  }
+  return [...newest.values()].map((answer) => ({
     kind: "lervo_notice",
     itemId: `answer-${answer.mentionId}`,
     createdAtMs: Date.parse(answer.deliveredAt),

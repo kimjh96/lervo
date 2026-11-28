@@ -107,6 +107,8 @@ describe("what a conversation's lead answered elsewhere", () => {
           deliveredAt: "2026-11-27T03:00:00.000Z",
         },
       ]);
+      // A conversation Ciel leads shows its answers itself, so none points there from here.
+      expect(answersElsewhere(storage, own, ciel, new Set([logFormat]))).toEqual([]);
     } finally {
       await storage.close();
     }

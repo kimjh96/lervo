@@ -9,7 +9,11 @@ import {
 } from "@lervo/repository-registry";
 import { MAXIMUM_ROOM_ANSWERS, type RoomAnswersResult } from "@lervo/session-host-contract";
 
-import { hostedLaunchRecordsPath, latestHostedLaunch } from "./hosted-launch-records.js";
+import {
+  conversationsLedBy,
+  hostedLaunchRecordsPath,
+  roomSessionRecords,
+} from "./hosted-launch-records.js";
 
 /** The most records of each type one answer reads, newest first: one page of the store. */
 const READ_RECORDS = 1_000;
@@ -26,13 +30,16 @@ function newest(storage: ProjectStorage, type: string): EventEnvelope[] {
 }
 
 /**
- * The mentions delivered to `leadAgentId` in conversations other than `workspaceId`, newest first,
- * at most `MAXIMUM_ROOM_ANSWERS`. A mention without its delivery's receipt was never answered.
+ * The mentions delivered to `leadAgentId` in conversations it joined, other than `workspaceId`,
+ * newest first, at most `MAXIMUM_ROOM_ANSWERS`. A conversation the agent leads shows its answers
+ * itself, so `led` leaves them out: otherwise every conversation it leads repeated a line for each
+ * turn of the others (2026-11-28). A mention without its delivery's receipt was never answered.
  */
 export function answersElsewhere(
   storage: ProjectStorage,
   workspaceId: string,
   leadAgentId: string,
+  led: ReadonlySet<string> = new Set(),
 ): RoomAnswersResult["answers"] {
   const delivered = new Map<string, string>();
   for (const event of newest(storage, "room.mention.delivered")) {
@@ -47,6 +54,7 @@ export function answersElsewhere(
     if (
       payload.toAgentId !== leadAgentId ||
       payload.workspaceId === workspaceId ||
+      led.has(String(payload.workspaceId)) ||
       typeof payload.fromAgentId !== "string" ||
       deliveredAt === undefined
     )
@@ -67,8 +75,13 @@ export async function roomAnswers(arguments_: Record<string, unknown>): Promise<
   const workspaceId = arguments_.workspaceId;
   if (typeof workspaceId !== "string" || !/^wsp_[a-f0-9]{24}$/u.test(workspaceId))
     return { answers: [] };
-  const lead = await latestHostedLaunch(hostedLaunchRecordsPath(), workspaceId);
+  const path = hostedLaunchRecordsPath();
+  // The lead is the session that writes; a joined agent's newer record never stands in for it.
+  const lead = (await roomSessionRecords(path, workspaceId)).find(
+    (record) => record.access === undefined,
+  );
   if (lead?.agentId === undefined) return { answers: [] };
+  const led = new Set(await conversationsLedBy(path, lead.agentId));
   const repository = await resolveRegisteredRepository({
     registryPath: defaultRepositoryRegistryPath(),
     projectId: lead.projectId,
@@ -76,7 +89,7 @@ export async function roomAnswers(arguments_: Record<string, unknown>): Promise<
   if (repository === null) return { answers: [] };
   const storage = await openProjectStorage(repository.repositoryRoot);
   try {
-    return { answers: answersElsewhere(storage, workspaceId, lead.agentId) };
+    return { answers: answersElsewhere(storage, workspaceId, lead.agentId, led) };
   } finally {
     await storage.close();
   }

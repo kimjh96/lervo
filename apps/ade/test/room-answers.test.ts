@@ -73,6 +73,14 @@ describe("what the lead answered elsewhere", () => {
     ).toHaveLength(2);
   });
 
+  it("keeps one line per conversation and agent, at the newest answer there", () => {
+    const at = (minute: number) => `2026-11-27T03:${String(minute).padStart(2, "0")}:00.000Z`;
+    const repeated = [1, 2, 3].map((minute) => ({ ...answers[0]!, deliveredAt: at(minute) }));
+    const other = { ...answers[0]!, fromAgentId: "agt_ciel", deliveredAt: at(4) };
+    const lines = answerItems([...repeated, other], "Bora", names);
+    expect(lines.map((line) => line.createdAtMs)).toEqual([Date.parse(at(3)), Date.parse(at(4))]);
+  });
+
   it("names the other conversation, or says another when it is not listed", () => {
     const [line] = answerItems(answers, "Ciel", names);
     const html = renderToStaticMarkup(

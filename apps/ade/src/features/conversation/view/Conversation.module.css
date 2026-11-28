@@ -53,11 +53,14 @@
   animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
+/* One column that never grows past the row: a code block's long lines scroll inside the block
+   instead of widening the conversation past the window (2026-11-28). */
 .row {
   position: absolute;
   inset-block-start: 0;
   inset-inline-start: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
   padding-block: var(--space-14);
   box-sizing: border-box;
@@ -125,6 +128,18 @@
   pointer-events: auto;
 }
 
+/* While the person reads earlier turns, the conversation runs under the working line, so the
+   line fades out until the view is back at the live end; the sidebar's ring and the reply card's
+   stop button still show the work (2026-11-28). */
+.dock [data-working-line] {
+  transition: opacity var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.dock:not([data-live]) [data-working-line] {
+  opacity: 0;
+  transition-duration: var(--motion-duration-leave);
+}
+
 /* "Jump to latest" floats centered just above the dock. Its place is positioned, not the button:
    the rise arrival moves the button's layer with a transform, and a transformed layer becomes the
    box an absolutely placed button is laid out in, so the button started right of center and moved
@@ -145,5 +160,9 @@
   .row[data-arrived="true"] > *,
   .list[data-placed="arrive"] {
     animation: none;
+  }
+
+  .dock [data-working-line] {
+    transition: none;
   }
 }
