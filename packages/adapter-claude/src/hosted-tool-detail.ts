@@ -138,10 +138,12 @@ function withPreview(
 }
 
 /**
- * Tools whose calls add no line. `Yield` only pauses the agent until its background work reports:
- * the agent's own words say what it waits for, and the working status shows the turn goes on.
+ * Tools whose calls add no line, since they are Claude Code's own machinery rather than the agent's
+ * work: `Yield` only pauses the agent until its background work reports, and the agent's own words
+ * say what it waits for; `ToolSearch` only loads the definitions of tools the agent then calls,
+ * and those calls show.
  */
-const LINELESS_TOOLS: ReadonlySet<string> = new Set(["Yield"]);
+const LINELESS_TOOLS: ReadonlySet<string> = new Set(["Yield", "ToolSearch"]);
 
 /** Whether a finished call of `name` reads as a tool line in the conversation. */
 export function claudeToolAddsLine(name: string): boolean {
@@ -235,6 +237,10 @@ export function claudeToolDetail(
       return withPreview(toolSubject("text", text(input.description)), []);
     case "Skill":
       return withPreview(toolSubject("text", text(input.skill) ?? text(input.command)), []);
+    case "Monitor":
+      return withPreview(toolSubject("text", text(input.description)), []);
+    case "SendMessage":
+      return withPreview(toolSubject("text", text(input.to)), []);
     default:
       return undefined;
   }

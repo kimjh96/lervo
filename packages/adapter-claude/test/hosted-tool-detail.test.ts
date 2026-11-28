@@ -154,5 +154,23 @@ describe("Claude Code tool detail", () => {
     expect(
       claudeToolDetail({ name: "mcp__docs__search", input: {} }, succeeded("ok"), places),
     ).toBeUndefined();
+    // A watch and a message to another session name what they are about.
+    expect(
+      claudeToolDetail(
+        {
+          name: "Monitor",
+          input: { description: "main CI for the merge", command: "gh run list" },
+        },
+        succeeded("Monitor started"),
+        places,
+      )?.subject,
+    ).toEqual({ kind: "text", text: "main CI for the merge" });
+    expect(
+      claudeToolDetail(
+        { name: "SendMessage", input: { to: "Drawing Understanding", message: "…" } },
+        succeeded("sent"),
+        places,
+      )?.subject,
+    ).toEqual({ kind: "text", text: "Drawing Understanding" });
   });
 });

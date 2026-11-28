@@ -219,7 +219,12 @@ describe("tool lines", () => {
   });
 
   it("shows a line stored before details existed by its tool and status", () => {
-    expect(render(tool({ name: "Read", calls: 3 }))).toContain("Read · 3 calls");
-    expect(render(tool({ name: "Bash", status: "failed" }))).toContain("Bash failed");
+    // It lines up with the others: the caret's place, then the tool's name as theirs reads.
+    expect(render(tool({ name: "Read", calls: 3 }))).toMatch(
+      /class="_caret[^"]*"><\/span><span[^>]*><span class="_name[^"]*">Read<\/span> · 3 calls/u,
+    );
+    expect(render(tool({ name: "Bash", status: "failed" }))).toMatch(
+      /data-status="failed"><span class="_name[^"]*">Bash<\/span> failed/u,
+    );
   });
 });

@@ -395,7 +395,7 @@ describe("Claude Code questions with choices", () => {
     ).toEqual(["Bash"]);
   });
 
-  it("shows no line for a call that only waits for the agent's background work", () => {
+  it("shows no line for Claude Code's own machinery: waiting and loading tools", () => {
     const decoder = new ClaudeHostedStreamDecoder(() => 7);
     const call = (id: string, name: string) => ({
       type: "assistant",
@@ -409,6 +409,8 @@ describe("Claude Code questions with choices", () => {
       bytes([
         call("toolu_wait", "Yield"),
         result("toolu_wait"),
+        call("toolu_load", "ToolSearch"),
+        result("toolu_load"),
         call("toolu_ls", "Bash"),
         result("toolu_ls"),
       ]),
