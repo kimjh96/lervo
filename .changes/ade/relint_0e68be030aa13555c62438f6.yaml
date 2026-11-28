@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0e68be030aa13555c62438f6"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A joined agent's items arrive with motion as the lead's do, the Add Project window closes with its motion when an add succeeds, and history scrolled back into view no longer replays entrances."
