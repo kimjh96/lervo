@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0785d951b2483af592ddba7c"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A code block's long lines scroll inside the block instead of widening the conversation past the window, the working line fades while earlier turns are read under it, and an agent's answers elsewhere show one line per conversation."

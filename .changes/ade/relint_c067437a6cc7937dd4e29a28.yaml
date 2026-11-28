@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c067437a6cc7937dd4e29a28"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A conversation shows when an agent sent work to a teammate's conversation, and the lead's conversation shows who sent it and from where; each line opens the other conversation."
