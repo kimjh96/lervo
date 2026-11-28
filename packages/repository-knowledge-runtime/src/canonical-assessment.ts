@@ -10,7 +10,7 @@ import { completeConvergenceStage, waitingConvergenceStage } from "./stage-recei
 import { withConvergenceAssignment } from "./workforce.js";
 import { prepareCanonicalAssessmentSources } from "./canonical-assessment-workset.js";
 import { loadCanonicalReviewContext } from "./review-context.js";
-import { selectCanonicalAssessmentContext } from "./canonical-assessment-context.js";
+import { assessmentDocuments } from "./canonical-assessment-context.js";
 import { reviewKnowledgeJson } from "./provider-call.js";
 import type { captureConvergenceSources } from "./source-capture.js";
 import { loadAssessmentRetryTargets } from "./canonical-assessment-retry-targets.js";
@@ -87,7 +87,7 @@ export async function assessCanonicalBaseline(
     repositoryRoot: root,
     sourcePaths: selected.map((source) => source.path),
   });
-  const documents = selectCanonicalAssessmentContext(loadedContext.documents);
+  const documents = assessmentDocuments(loadedContext);
   const sourceFacts = [
     ...canonicalSourceFacts(selected),
     ...canonicalReleaseManifestFacts({
