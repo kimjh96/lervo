@@ -14,9 +14,10 @@ import { StatusRing } from "../../../ui/StatusRing";
 import { useDepartingInPlace } from "../../../ui/departing";
 import { useItemSpace } from "../../../ui/space";
 import { statusMessages, useWorkspaceStore } from "../../workspaces";
-import { hireAgent, showProjectAgents } from "../model/controller";
+import { hireAgent } from "../model/controller";
+import { showProjectAgents } from "../model/listing";
 import { agentActivity, managesAgents, productOwnerRole, teamAgents } from "../model/decisions";
-import { openProfile, useAgentStore } from "../model/store";
+import { listSettled, openProfile, useAgentStore } from "../model/store";
 import styles from "./AgentList.module.css";
 import { roleSummary } from "./role-summary";
 
@@ -89,7 +90,7 @@ export function AgentList(props: { projectId: string | null }) {
   const commands = useApplicationCommands();
   const advertised = useWorkspaceStore((store) => store.advertisedCommands);
   const managed = managesAgents(advertised);
-  const loaded = useAgentStore((store) => store.loaded);
+  const settled = useAgentStore(listSettled);
   const shown = useAgentStore((store) => store.projectId);
   const { projectId } = props;
 
@@ -99,10 +100,10 @@ export function AgentList(props: { projectId: string | null }) {
     if (managed && projectId !== null) void showProjectAgents(commands, projectId);
   }, [advertised, commands, managed, projectId]);
 
-  // Nothing shows until the first list is known, so no heading stands over nothing. The list
-  // then opens its space as it fades in, together with the conversations' heading, so the rows
-  // below slide once instead of jumping (ADE motion, "Space").
-  const ready = managed && projectId !== null && loaded && shown !== null;
+  // Nothing shows until the first list is known, or failed after its last try, so no heading
+  // stands over nothing. The list then opens its space as it fades in, together with the
+  // conversations' heading, so the rows below slide once instead of jumping (ADE motion, "Space").
+  const ready = managed && projectId !== null && settled && shown !== null;
   return <Presence>{ready ? <Agents shown={shown} /> : null}</Presence>;
 }
 
@@ -164,9 +165,6 @@ function Agents(props: { shown: string }) {
           items={roles.map((role) => ({
             text: role.name,
             detail: roleSummary(intl, role.roleId, role.description),
-            ...(role.source === "repository"
-              ? { shortcut: intl.formatMessage({ id: "agents.thisProject" }) }
-              : {}),
             run: () => hire(role.roleId),
           }))}
           onClose={() => setMenuAt(null)}

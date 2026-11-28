@@ -1,7 +1,7 @@
 # Lervo ADE rooms
 
 Status: `proposed`
-As of: 2026-11-27
+As of: 2026-11-28
 
 This specification defines S2g of [ADR-0637](../../../decisions/execution/applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md): conversations where agents mention each other and the owner watches them work together. It implements [ADR-0641](../../../decisions/coordination/conversations/agent-organization/0641-let-agents-mention-each-other-in-core-rooms-and-keep-their-own-context.md) as amended by [ADR-0644](../../../decisions/coordination/conversations/agent-organization/0644-keep-agent-coordination-in-conversations.md). There is no team room; a mention stays in the conversation where it was made. The owner approved the interface on 2026-11-26 (mockup "Lervo ADE · 에이전트끼리 멘션하는 대화 (S2g)").
 
@@ -150,7 +150,7 @@ Work for a conversation a teammate already leads goes there rather than to a new
   - The note's subject is `conversation/<conversation>/<mention>`, and its source and review are the delivery's `room.mention.delivered`. It expires after 30 days.
   - The writer records nothing below event schema 16. It gives up after 10 seconds, and a note its receipt cannot attest yet is not written. None of these changes the turn.
 
-- Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both. A session's block recalls its own agent's three newest notes, labeled as notes it wrote itself and no one reviewed. The recalled notes take at most 2,048 bytes, and the block waits at most one second for them before the session starts without them. A note reaches only its own agent: its profile, its block, and its materialized context. The repository's compact context, which every session receives, never reads agent context.
+- Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both. A session's block recalls its own agent's three newest notes, labeled as notes it wrote itself and no one reviewed. The recalled notes take at most 2,048 bytes, and the block waits at most one second for them before the session starts without them. A note reaches only its own agent: its block and its materialized context; the ADE profile does not show it ([Lervo ADE agents](ade-agents.md), "The profile"). The repository's compact context, which every session receives, never reads agent context.
 
 ## State, events, privacy, and failure meaning
 

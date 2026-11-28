@@ -1,7 +1,7 @@
 # Lervo ADE agents
 
 Status: `proposed`
-As of: 2026-11-26
+As of: 2026-11-28
 
 This specification defines S2c of [ADR-0637](../../../decisions/execution/applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md): each project's agents in the ADE, hiring by role, and conversations that start with chosen agents whose sessions carry their identity. The owner approved the interface on 2026-11-26 (mockup "Lervo ADE · 프로젝트별 에이전트 (S2c)"). Every operation is a core command that the terminal can run too; the ADE calls it through the core link ([Lervo ADE core link](ade-core-link.md)).
 
@@ -13,7 +13,7 @@ Agents work together by mentioning each other directly, by role and by what each
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | The sidebar's team, hiring by role, and "Hire a Product Owner" in a project without agents.                                                                            |
 | 2     | A new conversation's participants, a hosted session that carries its writer agent's identity, participants in the conversation's header, and the speaker on each turn. |
-| 3     | An agent's profile: what it works on, its paths, what it has learned, its image, renaming in place, and retiring.                                                      |
+| 3     | An agent's profile: its model, its conversations, its image, renaming in place, and pausing.                                                                           |
 
 ## Team agents and Lervo's agents
 
@@ -30,11 +30,11 @@ Agents work together by mentioning each other directly, by role and by what each
 
 ## The ADE
 
-- **The sidebar.** Below the project switcher, "Agents" lists the selected project's team agents, each with its round mark, name, and role, in the order they were hired. A thin ring around an agent's mark shows its status: blue and breathing while one of its conversations works, amber and still while one needs the owner. Lervo's own agents do not show; one that stops or needs the owner surfaces through Lervo's health and attention reports. "Conversations" follows with the project's workspaces; its heading shows only over rows, so no heading stands over nothing. The agents show once the project's first list is known, and switching projects keeps the shown list until the next one arrives, then crossfades it (ADE craft rules, 13). The list reloads with the workspace lists, on every connection and after each change. When the project's list first arrives, the agents open their space as they fade in, together with the "Conversations" heading, so the rows below slide once (ADE motion, "Space").
-- **Hiring.** The plus beside "Agents" opens the interface's own menu directly below it (ADE craft rules, 10 and 15): each hireable role with one line on what it does, and "This Project" beside a repository role. A built-in role's line is a short summary in the ADE's message catalog; a project's own role shows the first sentence of its description. Choosing a role hires at once; the new agent appears in the list. Writing or changing roles is asked of the product owner or Lervo in a conversation, not edited in a form.
+- **The sidebar.** Below the project switcher, "Agents" lists the selected project's team agents, each with its round mark, name, and role, in the order they were hired. A thin ring around an agent's mark shows its status: blue and breathing while one of its conversations works, amber and still while one needs the owner. Lervo's own agents do not show; one that stops or needs the owner surfaces through Lervo's health and attention reports. "Conversations" follows with the project's workspaces; its heading shows only over rows, so no heading stands over nothing. The agents show once the project's first list is known, and switching projects keeps the shown list until the next one arrives, then crossfades it (ADE craft rules, 13). A list that fails is asked again after 1, 2, and 4 seconds; meanwhile a list of another project never stays shown under the asked one, so it neither shows nor joins a conversation there, and its failure shows only once the last try failed. Asking again, as returning to the project or the next reload does, starts over. On 2026-11-28 a project cloned a second earlier showed another project's five agents under a transient failure that the same request no longer had. The list reloads with the workspace lists, on every connection and after each change. When the project's list first arrives, the agents open their space as they fade in, together with the "Conversations" heading, so the rows below slide once (ADE motion, "Space").
+- **Hiring.** The plus beside "Agents" opens the interface's own menu directly below it (ADE craft rules, 10 and 15): each hireable role with one line on what it does. The owner found a note marking a project's own role ("This Project") of no use and it was removed on 2026-11-28; `source` stays in `agents.list` for older session hosts. A built-in role's line is a short summary in the ADE's message catalog; a project's own role shows the first sentence of its description. Choosing a role hires at once; the new agent appears in the list. Writing or changing roles is asked of the product owner or Lervo in a conversation, not edited in a form.
 - **No agents yet.** A project without team agents shows one quiet row, "Hire a Product Owner", which hires one. It is offered, never required: the start card proposes a Product Owner anyway (ADR-0646).
 - **Arrival.** An agent hired while the person watches arrives with the space it takes (ADE motion, principle 12); the agents of a project's first list are already there.
-- **Failure.** A failed list or hire shows as one line under the list: "Lervo could not list or hire the agents (<code>)."
+- **Failure.** A hire that fails, or a list whose last try failed, shows as one line under the list: "Lervo could not list or hire the agents (<code>)." A list that failed for a project the sidebar did not show yet shows the line alone, without agents. The session host's diagnostics log records the core's own code with each such failure ([session-host protocol](ade-session-host-protocol.md), "Privacy and failure").
 
 ## Participants and sessions (slice 2)
 
@@ -53,12 +53,7 @@ Agents work together by mentioning each other directly, by role and by what each
 - **Conversations.** The conversations the agent takes part in, as the lead or a joined participant; choosing one opens it.
 - **Pausing.** "Pause agent" sets the agent suspended through `agent.status`; it takes no new work, keeps its conversations, and shows quieter in the sidebar. "Resume agent" undoes it. Retiring cannot be undone, so the profile does not offer it (invariant 10); `lervo agent status` retires an agent.
 - **Image.** Pressing the agent's large mark opens the image panel, as a project's logo does; an agent with an image first offers "Choose Image" and "Remove Image" in a menu. The image shows wherever the agent's mark does: the sidebar, the conversation's header, the speaker lines, the mention suggestions, and the participants chip.
-- **What it has learned.** The agent's active context entries, newest first: each entry's words, then what kind of note it is and when it was observed. A restricted entry says that its words stay with the agent's own sessions. An agent without entries says that what it learns in its conversations appears here. Conversation notes join them once event schema 16 is active ([Lervo ADE rooms](ade-rooms.md), "Memory from conversation").
-- **Paths it holds.** The repository paths the agent holds under a live write lease, sorted and shown whole, as its conversations' claims and its other assignments widened them ([Lervo ADE coordination](ade-coordination.md)).
-  - `agent.context` answers them with what the agent has learned, at most 100, with `pathsTotal` counting them all. Beyond the 100 shown, a line says how many more it holds.
-  - A lease that expired, and a read lease, hold nothing.
-  - Under them, "Changed, not yet sealed" lists the paths the conversations the agent leads changed and have not sealed yet, as their latest reconciliation recorded them. Those paths also keep other conversations off them, though they are not leased. `agent.context` answers them as `changedPaths` with `changedPathsTotal`, read from each led conversation's newest open generation without writing anything.
-  - An agent that holds nothing says that the paths it writes in a conversation are leased to it and show there. A core that does not read leases answers no paths, and the section stays out.
+- **What it has learned and the paths it holds** do not show. On 2026-11-28 the owner found the learned entries were whole final messages with their Markdown as raw text, and the paths internal write leases, neither of use to them. The core still answers `agent.context`, and the agent's own sessions still receive its notes ([Lervo ADE rooms](ade-rooms.md), "Memory from conversation").
 - **Failure.** A failed rename or model change shows one line under the profile: "Lervo could not change the agent (<code>)."
 
 ## Model and effort
@@ -74,6 +69,8 @@ Agents work together by mentioning each other directly, by role and by what each
 ## What an agent has learned
 
 - `agent.context` (`projectId`, `agentId`) returns the agent's promoted context entries that are active and unexpired, newest first, at most 50: `entryId`, `layer`, `kind` (the memory kind), `subject`, `observedAt`, and `summary`, the entry's words read from the project's artifact store, at most 4,000 characters. A restricted entry's `summary` is null, so its words stay with the agent's own sessions, and a summary the store cannot read is null too. It reads the same projection as `lervo agent context inspect`, and an unknown agent fails with `agent_not_found`.
+- It also answers the repository paths the agent holds under a live write lease, sorted, at most 100, with `pathsTotal` counting them all; a lease that expired, and a read lease, hold nothing. `changedPaths`, with `changedPathsTotal`, are the paths the conversations the agent leads changed and have not sealed yet, read from each led conversation's newest open generation without writing anything ([Lervo ADE coordination](ade-coordination.md)). A core that does not read leases answers no paths.
+- The ADE's profile no longer reads it ("The profile").
 
 ## The agent's image
 

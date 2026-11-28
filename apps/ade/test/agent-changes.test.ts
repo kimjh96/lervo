@@ -41,7 +41,7 @@ function slowCore(listed: () => AgentSummary[], refuse = false) {
 const shownName = () => useAgentStore.getState().agents[0]?.displayName;
 
 beforeEach(() => {
-  useAgentStore.setState({ projectId: "prj_a", requested: "prj_a", agents: [ciel], loaded: true });
+  useAgentStore.setState({ projectId: "prj_a", agents: [ciel], loaded: true });
 });
 
 describe("a change to an agent", () => {

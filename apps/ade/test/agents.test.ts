@@ -1,7 +1,8 @@
 import type { AgentSummary, ApplicationResults } from "@lervo/session-host-contract";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { hireAgent, showProjectAgents } from "../src/features/agents/model/controller";
+import { hireAgent } from "../src/features/agents/model/controller";
+import { showProjectAgents } from "../src/features/agents/model/listing";
 import {
   agentActivity,
   chosenParticipants,
@@ -69,7 +70,7 @@ function core(lists: Record<string, AgentSummary[]>, hired?: AgentSummary) {
 beforeEach(() => {
   useAgentStore.setState({
     projectId: null,
-    requested: null,
+    asks: 0,
     agents: [],
     roles: [],
     loaded: false,

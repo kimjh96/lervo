@@ -3,7 +3,13 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
 import { preloadConversation, WorkspaceConversation } from "../features/conversation";
-import { AgentList, AgentProfile, managesAgents, useAgentStore } from "../features/agents";
+import {
+  AgentList,
+  AgentProfile,
+  listSettled,
+  managesAgents,
+  useAgentStore,
+} from "../features/agents";
 import { AddProjectSheet, ProjectSwitcher, useCurrentProject } from "../features/projects";
 import { StartScreen, type Surface, useFirstRun, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
@@ -103,7 +109,7 @@ export function Frame() {
   const agentsManaged = useWorkspaceStore((store) => managesAgents(store.advertisedCommands));
   // The conversations' heading arrives with the agents above it, in the same frame, so the rows
   // below slide once (ADE motion, "Space").
-  const agentsShown = useAgentStore((store) => store.loaded);
+  const agentsShown = useAgentStore(listSettled);
   // With no project yet there is nothing to list, so the sidebar folds away and the first run
   // takes the window; adding a project opens it like a disclosure (ADE motion, "Space").
   const folded = useFirstRun().folded;

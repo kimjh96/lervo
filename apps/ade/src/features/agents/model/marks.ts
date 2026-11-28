@@ -3,7 +3,8 @@
 // keeps by the image's hash, as it does for project marks.
 import type { ApplicationCommands, Choosers, Files, Images, ProjectMemory } from "../../../ports";
 import { bytesOf, keepMark } from "../../projects/model";
-import { changeAgent, showProjectAgents } from "./controller";
+import { changeAgent } from "./controller";
+import { showProjectAgents } from "./listing";
 import { useAgentStore } from "./store";
 
 export interface AgentMarkDependencies {

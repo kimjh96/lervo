@@ -1,7 +1,7 @@
 # Lervo ADE session-host protocol
 
 Status: `proposed`
-As of: 2026-11-23
+As of: 2026-11-28
 
 This specification defines version 1 of the protocol between the ADE interface (the client) and the session host. `@lervo/session-host-contract` holds its JSON Schema. The TypeScript types and the Rust types are generated from that schema, and both sides decode the same fixtures in contract tests. The [sessions specification](ade-sessions.md) defines the sessions, events, and failure meanings this protocol carries.
 
@@ -158,7 +158,7 @@ A tool call's `detail` says what the call acted on and what it showed, bounded s
 
 - Conversation text crosses only the owner-only local channel. Logs on either side record message kinds, identifiers, and sizes, never message bodies or terminal bytes.
 - **The diagnostics log.** The session host writes `diagnostics.log` in its state directory, one JSON line per event.
-  - Events: `host.started`, `accept.failed`, `connection.opened`, `connection.ended` with the code it ended with, `request.failed` with its code, and `session.started` with the session, its mode, and its channel.
+  - Events: `host.started`, `accept.failed`, `connection.opened`, `connection.ended` with the code it ended with, `request.failed` with its code and, for a failure the core reported, the core's `coreCode` and `stage` (codes, never text; [core link](ade-core-link.md), "Failure meaning"), and `session.started` with the session, its mode, and its channel.
   - Values: numbers, and strings that look like codes or identifiers. Anything else is written as `redacted`, so no message body, file path, or terminal byte can reach the log.
   - Bounds: the file rotates to `diagnostics.log.1` at 512 KiB, so the log holds at most 1 MiB.
   - Writing: a writer thread owns the file, and an entry that finds its queue full is dropped, so the log never delays the host.

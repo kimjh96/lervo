@@ -2,17 +2,16 @@ import type { AgentModelChoice, AgentSummary, HireableRole } from "@lervo/sessio
 import { create } from "zustand";
 
 import { useWorkspaceStore } from "../../workspaces/model";
-import type { Learned } from "./learned";
 
 /** The selected project's agents and the roles it can hire (Lervo ADE agents, "The sidebar"). */
 export interface AgentState {
-  /** The project the shown list belongs to; null before the first list arrives. */
+  /** The project the shown list belongs to; null before the first list is asked for. */
   readonly projectId: string | null;
-  /** The project whose list was asked for last; an older answer is dropped. */
-  readonly requested: string | null;
+  /** Counts the lists asked for; only the latest ask's answer shows. */
+  readonly asks: number;
   readonly agents: readonly AgentSummary[];
   readonly roles: readonly HireableRole[];
-  /** Whether the project's list arrived once. */
+  /** Whether the shown project's list arrived. */
   readonly loaded: boolean;
   /** The failure code of the last list or hire, or null. */
   readonly failure: string | null;
@@ -22,13 +21,11 @@ export interface AgentState {
   readonly models: readonly AgentModelChoice[];
   /** The agent whose profile the main area shows, or null. */
   readonly profile: string | null;
-  /** What the profile's agent has learned, as the core last answered. */
-  readonly learned: Learned | null;
 }
 
 export const useAgentStore = create<AgentState>(() => ({
   projectId: null,
-  requested: null,
+  asks: 0,
   agents: [],
   roles: [],
   loaded: false,
@@ -36,8 +33,14 @@ export const useAgentStore = create<AgentState>(() => ({
   arrived: new Set(),
   models: [],
   profile: null,
-  learned: null,
 }));
+
+/**
+ * Whether the sidebar shows the project's agents: its list arrived, or its last try failed and
+ * the failure shows in their place.
+ */
+export const listSettled = (state: AgentState): boolean =>
+  state.projectId !== null && (state.loaded || state.failure !== null);
 
 /** Shows an agent's profile in the main area, in place of a conversation or the start screen. */
 export function openProfile(agentId: string): void {
