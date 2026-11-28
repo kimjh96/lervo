@@ -135,7 +135,7 @@ fn detail(name: &str) -> serde_json::Value {
 /// One to three paragraphs of one to three sentences.
 fn reply(sequence: &mut Sequence) -> String {
     let paragraphs = sequence.next(3) + 1;
-    (0..paragraphs)
+    let mut blocks = (0..paragraphs)
         .map(|_| {
             let sentences = sequence.next(3) + 1;
             (0..sentences)
@@ -143,6 +143,54 @@ fn reply(sequence: &mut Sequence) -> String {
                 .collect::<Vec<_>>()
                 .join(" ")
         })
+        .collect::<Vec<_>>();
+    // Real replies mix prose with lists, tables, and code, whose rows a height estimate misses
+    // by far more than prose, so scrolling back measures rows of very different heights.
+    match sequence.next(6) {
+        0 => blocks.push(rich_list(sequence)),
+        1 => blocks.push(rich_table(sequence)),
+        2 => blocks.push(rich_code(sequence)),
+        _ => {}
+    }
+    blocks.join("\n\n")
+}
+
+fn rich_list(sequence: &mut Sequence) -> String {
+    (0..sequence.next(6) + 2)
+        .map(|_| {
+            format!(
+                "- **{}** {}",
+                TOOLS[sequence.next(TOOLS.len())],
+                SENTENCES[sequence.next(SENTENCES.len())]
+            )
+        })
         .collect::<Vec<_>>()
-        .join("\n\n")
+        .join("\n")
+}
+
+fn rich_table(sequence: &mut Sequence) -> String {
+    let rows = (0..sequence.next(5) + 2)
+        .map(|row| {
+            format!(
+                "| {row} | {} | {} |",
+                TOOLS[sequence.next(TOOLS.len())],
+                SENTENCES[sequence.next(SENTENCES.len())]
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("| Step | Tool | Note |\n|---|---|---|\n{rows}")
+}
+
+fn rich_code(sequence: &mut Sequence) -> String {
+    let lines = (0..sequence.next(24) + 4)
+        .map(|line| {
+            format!(
+                "const step{line} = await run(\"{}\");",
+                TOOLS[sequence.next(TOOLS.len())]
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("```ts\n{lines}\n```")
 }

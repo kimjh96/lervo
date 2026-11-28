@@ -14,12 +14,6 @@ const LIVE_END_PX = 4;
 const USER_SCROLL_MS = 300;
 const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "]);
 
-/** Where the reader is: the first visible item and how far its top sits above the viewport. */
-interface Anchor {
-  readonly itemId: string;
-  readonly offset: number;
-}
-
 /**
  * The conversation's virtualized list, following its live end (ADE motion, "Following the
  * stream"): only items near the viewport mount, and their heights are measured once per item. The
@@ -59,10 +53,12 @@ export function useFollowLatest(input: {
     getItemKey: (index) =>
       index === 0 && !input.hasEarlier ? FIRST_ROW : (input.items[index]?.itemId ?? index),
     overscan: 8,
+    // A conversation grows at its end and loads earlier pages at its start, so the virtualizer
+    // keeps the item the reader is on in place whenever items are added or dropped around it, in
+    // the same step that tracks its own scroll offset. The view's own correction of an earlier
+    // page, run after the virtualizer's, moved the view against it (2026-11-28).
+    anchorTo: "end",
   });
-  const items = useRef(input.items);
-  items.current = input.items;
-  const anchor = useRef<Anchor | null>(null);
   /** The position the view last scrolled to itself, whose scroll event is not the user's. */
   const selfScrolled = useRef<number | null>(null);
   const loaders = useRef(input);
@@ -141,22 +137,7 @@ export function useFollowLatest(input: {
     return () => cancelAnimationFrame(frame);
   }, [scroller, placed, hasItems, input.continues]);
 
-  // When items are added, dropped, or moved above the reader, the item they read stays where it
-  // was: an earlier page, a joined agent's items that page brings, or a line of what the lead
-  // answered elsewhere, which can land anywhere above. A change below the reader leaves its item
-  // where it is, so nothing moves; leaving the live end must not move the view.
-  useLayoutEffect(() => {
-    const element = scroller.current;
-    const reading = anchor.current;
-    if (liveNow.current || element === null || reading === null) return;
-    const index = input.items.findIndex((item) => item.itemId === reading.itemId);
-    const start = virtualizer.measurementsCache[index]?.start;
-    if (start === undefined || Math.abs(element.scrollTop - (start + reading.offset)) < 1) return;
-    element.scrollTop = start + reading.offset;
-    selfScrolled.current = element.scrollTop;
-  }, [scroller, input.items, virtualizer]);
-
-  useUserScroll({ scroller, virtualizer, items, anchor, selfScrolled, loaders, setFollowing });
+  useUserScroll({ scroller, selfScrolled, loaders, setFollowing });
 
   return { virtualizer, live, placed, follow: () => setFollowing(true) };
 }
@@ -164,35 +145,23 @@ export function useFollowLatest(input: {
 /**
  * Tells the user's scrolls from the view's own (ADE motion, "Following the stream"): only the
  * user leaves the live end, by moving up with a wheel, a key, or the scroll bar, by however
- * little; reaching the bottom returns to it, whatever moved the view there. It also keeps the
- * item the user reads, for `anchor`, and loads pages near either edge.
+ * little; reaching the bottom returns to it, whatever moved the view there. It also loads pages
+ * near either edge.
  */
 function useUserScroll(input: {
   scroller: RefObject<HTMLDivElement | null>;
-  virtualizer: Virtualizer<HTMLDivElement, Element>;
-  items: RefObject<readonly ConversationItem[]>;
-  anchor: RefObject<Anchor | null>;
   /** The position the view last scrolled to itself, whose scroll event is not the user's. */
   selfScrolled: RefObject<number | null>;
   loaders: RefObject<{ onLoadEarlier: () => void; onLoadLater: () => void }>;
   setFollowing: (following: boolean) => void;
 }): void {
-  const { scroller, virtualizer, items, anchor, selfScrolled, loaders, setFollowing } = input;
+  const { scroller, selfScrolled, loaders, setFollowing } = input;
   useEffect(() => {
     const element = scroller.current;
     if (element === null) return;
     let dragging = false;
     let userAt = Number.NEGATIVE_INFINITY;
     let previousTop = element.scrollTop;
-    const remember = () => {
-      const top = element.scrollTop;
-      const row = virtualizer.getVirtualItems().find((candidate) => candidate.end > top);
-      const item = row === undefined ? undefined : items.current[row.index];
-      anchor.current =
-        row === undefined || item === undefined
-          ? null
-          : { itemId: item.itemId, offset: top - row.start };
-    };
     // Only the user leaves the live end, by moving up with a wheel, a key, or the scroll bar, by
     // however little. Scrolls the view makes itself, such as following new text or correcting
     // measured heights, never count. The user returns to the live end by reaching the bottom.
@@ -206,7 +175,6 @@ function useUserScroll(input: {
     };
     const release = () => (dragging = false);
     const scrolled = () => {
-      remember();
       const top = element.scrollTop;
       const movedUp = top < previousTop;
       previousTop = top;
@@ -232,5 +200,5 @@ function useUserScroll(input: {
       element.removeEventListener("pointerdown", press);
       globalThis.removeEventListener("pointerup", release);
     };
-  }, [scroller, virtualizer, items, anchor, selfScrolled, loaders, setFollowing]);
+  }, [scroller, selfScrolled, loaders, setFollowing]);
 }
