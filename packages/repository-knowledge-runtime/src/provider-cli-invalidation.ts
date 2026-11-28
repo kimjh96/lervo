@@ -1,4 +1,5 @@
 import { rm } from "node:fs/promises";
+import { setTimeout as sleep } from "node:timers/promises";
 import { resolve } from "node:path";
 
 import { isProviderCliAdmissionProjection } from "@lervo/sync-contract";
@@ -82,4 +83,37 @@ export async function invalidateProviderCliFailures(input: {
     }
     return { hostCacheEntries, repositoryProjections };
   });
+}
+
+/** The waits between attempts while an admission holds the host cache lock, about 3.75 seconds. */
+export const PROVIDER_CLI_INVALIDATION_RETRY_MS: readonly number[] = [250, 500, 1000, 2000];
+
+/**
+ * {@link invalidateProviderCliFailures} as a best effort after a probe that already succeeded: an
+ * admission holding the host cache lock is waited for within a small bound, and a cleanup that
+ * still cannot run reports why instead of failing the probe, whose paid call already proved the
+ * provider. The records it could not clear lapse on their own schedule.
+ */
+export async function tryInvalidateProviderCliFailures(
+  input: Parameters<typeof invalidateProviderCliFailures>[0],
+  retryMs: readonly number[] = PROVIDER_CLI_INVALIDATION_RETRY_MS,
+): Promise<
+  | { invalidated: ProviderCliFailureInvalidation; reason: null }
+  | { invalidated: null; reason: string }
+> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return { invalidated: await invalidateProviderCliFailures(input), reason: null };
+    } catch (error) {
+      const code = (error as { code?: unknown }).code;
+      const reason =
+        typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code)
+          ? code
+          : "provider_cli_invalidation_failed";
+      const wait = retryMs[attempt];
+      if (reason !== "knowledge_capacity_unavailable" || wait === undefined)
+        return { invalidated: null, reason };
+      await sleep(wait);
+    }
+  }
 }

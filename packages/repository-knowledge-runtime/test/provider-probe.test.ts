@@ -28,6 +28,7 @@ it("clears an unknown reset only after one native no-capability probe with obser
     expect(result).toMatchObject({
       resumed: true,
       invalidated: { hostCacheEntries: 0, repositoryProjections: 0 },
+      invalidationReason: null,
     });
     expect(await knowledgeProviderAdmissionState(authority)).toMatchObject({
       paused: false,

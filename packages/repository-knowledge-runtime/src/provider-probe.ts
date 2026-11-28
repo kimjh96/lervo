@@ -19,7 +19,7 @@ import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { providerOutputSchema } from "@lervo/schemas";
 import { resolve } from "node:path";
 import {
-  invalidateProviderCliFailures,
+  tryInvalidateProviderCliFailures,
   type ProviderCliFailureInvalidation,
 } from "./provider-cli-invalidation.js";
 
@@ -41,6 +41,8 @@ export async function probeKnowledgeProviderAvailability(input: {
   resumed: boolean;
   observationHash: string;
   invalidated: ProviderCliFailureInvalidation | null;
+  /** Why `invalidated` is null: `not_resumed`, or the cleanup's failure code. */
+  invalidationReason: string | null;
 }> {
   const root = input.storage.paths.repositoryRoot;
   const authority = await loadConvergenceDelegation(root);
@@ -125,17 +127,23 @@ export async function probeKnowledgeProviderAvailability(input: {
       observationHash: proof.contentHash,
       ...directory,
     });
-    // A probe that did not resume lost to a newer failure, which the caches must keep.
-    const invalidated = resumed
-      ? await invalidateProviderCliFailures({
+    // A probe that did not resume lost to a newer failure, which the caches must keep. The
+    // cleanup is a best effort: its failure never turns the proven probe into a failed one.
+    const cleanup = resumed
+      ? await tryInvalidateProviderCliFailures({
           provider: input.provider,
           repositoryRoots: [root, ...(input.hostRepositoryRoots ?? [])],
           ...(input.admissionDirectory === undefined
             ? {}
             : { directory: resolve(input.admissionDirectory, "provider-clis") }),
         })
-      : null;
-    return { resumed, observationHash: proof.contentHash, invalidated };
+      : { invalidated: null, reason: "not_resumed" };
+    return {
+      resumed,
+      observationHash: proof.contentHash,
+      invalidated: cleanup.invalidated,
+      invalidationReason: cleanup.reason,
+    };
   } catch (error) {
     if (error instanceof KnowledgeProviderAvailabilityError)
       await pauseKnowledgeProvider({

@@ -1,7 +1,11 @@
 import { execFile } from "node:child_process";
 import { lstat } from "node:fs/promises";
-import { basename, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { promisify } from "node:util";
+
+import { shellWord } from "@lervo/repository-registry";
+
+import { hostGitLockObservation, type GitLockObservation } from "./git-lock-observation.js";
 
 const execute = promisify(execFile);
 
@@ -9,9 +13,10 @@ const execute = promisify(execFile);
 export const STALE_GIT_INDEX_LOCK_AGE_MS = 10 * 60_000;
 
 /**
- * An index lock no Git command holds: empty, older than the bound, while no `git` process runs.
- * Git leaves one behind when a command is killed, and every later commit then fails. It belongs to
- * the owner's repository, so Lervo reports it and never deletes it.
+ * An index lock no Git command visibly holds: empty, older than the bound, on local storage, while
+ * no Git process is visible on this host, Windows included under WSL. Git leaves one behind when a
+ * command is killed, and every later commit then fails. It belongs to the owner's repository, so
+ * Lervo reports it and never deletes it.
  */
 export interface StaleGitIndexLock {
   /** Relative to the repository root when inside it, as `.git/index.lock`; otherwise absolute. */
@@ -21,30 +26,14 @@ export interface StaleGitIndexLock {
   modifiedAt: string;
 }
 
-/** Whether any `git` process runs on this host, or null when the process list is unreadable. */
-export async function gitProcessRunning(): Promise<boolean | null> {
-  try {
-    const { stdout } = await execute("ps", ["-A", "-o", "comm="], {
-      encoding: "utf8",
-      maxBuffer: 4 * 1024 * 1024,
-    });
-    return stdout.split("\n").some((line) => {
-      const command = basename(line.trim());
-      return command === "git" || command.startsWith("git-");
-    });
-  } catch {
-    return null;
-  }
-}
-
 /**
  * The stale index lock of this checkout, or null when there is none or staleness is unproven: a
- * missing, non-empty, or recent lock, a running `git` process, or a process list Lervo cannot read
- * all leave the lock to the ordinary busy check.
+ * missing, non-empty, recent, or future-dated lock, a visible Git process, shared storage, or any
+ * check that cannot answer all leave the lock to the ordinary busy check.
  */
 export async function staleGitIndexLock(
   repositoryRoot: string,
-  options: { now?: number; gitRunning?: () => Promise<boolean | null> } = {},
+  options: { now?: number; observation?: GitLockObservation } = {},
 ): Promise<StaleGitIndexLock | null> {
   let absolute: string;
   try {
@@ -59,9 +48,15 @@ export async function staleGitIndexLock(
   }
   const stat = await lstat(absolute).catch(() => null);
   if (stat === null || !stat.isFile() || stat.size !== 0) return null;
+  // A future time, as from clock skew on shared storage, proves no age at all.
   const age = (options.now ?? Date.now()) - stat.mtimeMs;
   if (!(age >= STALE_GIT_INDEX_LOCK_AGE_MS)) return null;
-  if ((await (options.gitRunning ?? gitProcessRunning)()) !== false) return null;
+  const observation = options.observation ?? hostGitLockObservation;
+  const [local, visible] = await Promise.all([
+    observation.localStorage(dirname(absolute)),
+    observation.gitProcessVisible(),
+  ]);
+  if (local !== true || visible !== false) return null;
   const inside = relative(repositoryRoot, absolute);
   return {
     path: inside.startsWith("..") || isAbsolute(inside) ? absolute : inside,
@@ -70,8 +65,17 @@ export async function staleGitIndexLock(
   };
 }
 
-/** The exact owner step for a stale lock; Lervo itself never runs it. */
-export function staleGitIndexLockInstruction(lock: StaleGitIndexLock): string {
-  const minutes = Math.floor(lock.ageSeconds / 60);
-  return `Git index lock ${lock.path} is empty, ${minutes} minutes old (since ${lock.modifiedAt}), and no git process is running, so every Git commit in this repository fails. Lervo never deletes it. Remove it yourself with rm ${lock.path} from the repository root once no Git command of yours is still running.`;
+/**
+ * The exact owner step for a stale lock; Lervo itself never runs it. `withAge: false` leaves the
+ * changing age out, for text that feeds a stable identifier such as an upgrade plan ID.
+ */
+export function staleGitIndexLockInstruction(
+  lock: StaleGitIndexLock,
+  options: { withAge?: boolean } = {},
+): string {
+  const age =
+    options.withAge === false
+      ? `last modified ${lock.modifiedAt}`
+      : `${Math.floor(lock.ageSeconds / 60)} minutes old (since ${lock.modifiedAt})`;
+  return `Git index lock ${lock.path} is empty, ${age}, and no Git process is visible on this host, so every Git commit in this repository fails. Lervo never deletes it. First close any IDE, container, or other host that may be using this repository, then remove it from the repository root with rm ${shellWord(lock.path)}.`;
 }

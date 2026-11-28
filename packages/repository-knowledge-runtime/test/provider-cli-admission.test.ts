@@ -27,7 +27,11 @@ import {
   type ProviderCliDetectionPorts,
 } from "../src/provider-cli-detection.js";
 import { resolveAdmittedProviderCli } from "../src/provider-cli-admission.js";
-import { invalidateProviderCliFailures } from "../src/provider-cli-invalidation.js";
+import {
+  invalidateProviderCliFailures,
+  tryInvalidateProviderCliFailures,
+} from "../src/provider-cli-invalidation.js";
+import { openSqliteDatabase } from "@lervo/sqlite-connection";
 import { providerCliFindings, readProviderCliProjection } from "../src/provider-cli-findings.js";
 
 const roots: string[] = [];
@@ -654,4 +658,37 @@ it("keeps the hourly backoff when the provider fails again after an explicit pro
   expect(failing).toHaveBeenCalledTimes(8);
   await run(minutes + 60);
   expect(failing).toHaveBeenCalledTimes(9);
+});
+
+it("waits briefly for an admission holding the host cache lock, then reports instead of failing", async () => {
+  const f = await fixture();
+  await resolveAdmittedProviderCli(f.input);
+  // Another process's admission holds the host cache lock; this process is alive, so it counts.
+  const lock = openSqliteDatabase(resolve(f.input.directory, "cache-lock.sqlite"), {
+    busyTimeoutMs: 1000,
+  });
+  const hold = () =>
+    lock
+      .prepare("INSERT OR REPLACE INTO holder(id,pid,nonce) VALUES(1,?,?)")
+      .run(process.ppid, "x");
+  hold();
+  const input = {
+    provider: "claude" as const,
+    repositoryRoots: [f.home],
+    directory: f.input.directory,
+  };
+  try {
+    await expect(tryInvalidateProviderCliFailures(input, [5, 5])).resolves.toEqual({
+      invalidated: null,
+      reason: "knowledge_capacity_unavailable",
+    });
+    // A holder that finishes within the bound lets the cleanup run.
+    setTimeout(() => lock.prepare("DELETE FROM holder WHERE id=1").run(), 20);
+    await expect(tryInvalidateProviderCliFailures(input, [200])).resolves.toMatchObject({
+      invalidated: { hostCacheEntries: 0 },
+      reason: null,
+    });
+  } finally {
+    lock.close();
+  }
 });

@@ -13,8 +13,10 @@ export function knowledgeEffectHoldReason(hold: KnowledgeEffectHold): string {
 }
 
 /**
- * The blockers a held effect adds to its stage: a stale Git index lock names its path, its age,
- * and the owner's exact removal step, because it never clears by itself and Lervo never deletes it.
+ * The blockers a held effect adds to its stage: a stale Git index lock names its path, when it was
+ * last modified, and the owner's exact removal step, because it never clears by itself and Lervo
+ * never deletes it. The changing age stays out: the blocker is part of the plan body its ID
+ * hashes, and a per-minute ID would defeat `upgrade_plan_unchanged` on every follower pass.
  */
 export function knowledgeEffectHoldBlockers(hold: KnowledgeEffectHold): UpgradeStageBlocker[] {
   return hold.reason === "commit_unavailable" && hold.lock !== undefined
@@ -22,7 +24,7 @@ export function knowledgeEffectHoldBlockers(hold: KnowledgeEffectHold): UpgradeS
         {
           code: "git_index_lock_stale",
           path: hold.lock.path,
-          message: staleGitIndexLockInstruction(hold.lock),
+          message: staleGitIndexLockInstruction(hold.lock, { withAge: false }),
         },
       ]
     : [];

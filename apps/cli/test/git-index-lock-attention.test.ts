@@ -14,13 +14,24 @@ const lock = {
 };
 
 describe("a stale Git index lock", () => {
-  it("names its path and age as an upgrade stage blocker instead of a busy Git", () => {
+  it("names its path and modification time as an upgrade stage blocker instead of a busy Git", () => {
     const hold = { reason: "commit_unavailable" as const, detail: "git_index_lock_stale", lock };
     expect(knowledgeEffectHoldReason(hold)).toBe("git_index_lock_stale");
     const [blocker] = knowledgeEffectHoldBlockers(hold);
     expect(blocker).toMatchObject({ code: "git_index_lock_stale", path: ".git/index.lock" });
-    expect(blocker?.message).toContain("60480 minutes old (since 2026-10-29T08:00:00.000Z)");
-    expect(blocker?.message).toContain("rm .git/index.lock");
+    expect(blocker?.message).toContain("last modified 2026-10-29T08:00:00.000Z");
+    expect(blocker?.message).toContain("rm .git/index.lock.");
+    expect(blocker?.message).toContain("First close any IDE, container, or other host");
+    // The blocker feeds the plan ID, so a lock that only grew older keeps the same blocker.
+    expect(
+      knowledgeEffectHoldBlockers({ ...hold, lock: { ...lock, ageSeconds: lock.ageSeconds + 61 } }),
+    ).toEqual([blocker]);
+    // A worktree lock outside the repository root is quoted for the shell.
+    const [spaced] = knowledgeEffectHoldBlockers({
+      ...hold,
+      lock: { ...lock, path: "/home/o'wner/my repo/.git/worktrees/a/index.lock" },
+    });
+    expect(spaced?.message).toContain(`rm '/home/o'\\''wner/my repo/.git/worktrees/a/index.lock'.`);
     // A busy Git without a stale lock adds no blocker; its reason alone stays.
     expect(
       knowledgeEffectHoldBlockers({
