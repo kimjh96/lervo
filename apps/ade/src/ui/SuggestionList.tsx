@@ -99,11 +99,13 @@ export function SuggestionList(props: {
                 // The field keeps the focus and its keys choose; a pointer chooses on release.
                 onPointerUp={() => props.onChoose(item)}
               >
+                {/* motion: Fixed parts */}
                 {item.leading === undefined ? null : (
                   <span className={styles.leading}>{item.leading}</span>
                 )}
                 <span className={styles.texts}>
                   <span>{item.text}</span>
+                  {/* motion: Fixed parts */}
                   {item.detail === undefined ? null : (
                     <span className={styles.detail}>{item.detail}</span>
                   )}

@@ -7,6 +7,7 @@ import type {
 } from "@lervo/session-host-contract";
 
 import { RequestFailure, type SessionHost } from "../../../ports";
+import { forgetArrivals, withoutArrivals } from "./arrivals";
 import { DeltaBuffer } from "./deltas";
 import { dataUrl } from "./images";
 import { RecentWindows } from "./recent";
@@ -289,9 +290,17 @@ export class ConversationController implements ConversationSource {
     // Only items still in the window can animate, so the set stays within the window's bound.
     const kept = new Set(next.items.map((item) => item.itemId));
     const arrived = new Set([...state.arrived].filter((itemId) => kept.has(itemId)));
+    const added: string[] = [];
     for (const item of message.items)
-      if (!known.has(item.itemId) && item !== replacing && kept.has(item.itemId))
+      if (!known.has(item.itemId) && item !== replacing && kept.has(item.itemId)) {
         arrived.add(item.itemId);
+        added.push(item.itemId);
+      }
     useConversationStore.setState({ window: next, arrived });
+    forgetArrivals(added, (done) =>
+      useConversationStore.setState((current) => ({
+        arrived: withoutArrivals(current.arrived, done),
+      })),
+    );
   }
 }

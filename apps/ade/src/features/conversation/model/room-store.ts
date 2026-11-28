@@ -15,6 +15,11 @@ interface RoomStore {
   readonly unrouted: string | null;
   /** What the lead answered in other conversations, as quiet lines (`room.answers`). */
   readonly answers: readonly ConversationItem[];
+  /**
+   * The joined agents' items that arrived while the person watched, by their room ID
+   * (`<session>:<item>`), so they enter as the lead's do; each is forgotten once it has entered.
+   */
+  readonly arrived: ReadonlySet<string>;
 }
 
 /** The open conversation's agents beyond its lead (Lervo ADE rooms, "The ADE"). */
@@ -23,4 +28,5 @@ export const useRoomStore = create<RoomStore>(() => ({
   members: {},
   unrouted: null,
   answers: [],
+  arrived: new Set(),
 }));

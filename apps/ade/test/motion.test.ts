@@ -50,11 +50,12 @@ describe("the motion check", () => {
       [...catalog.matchAll(/^\| ([A-Z][^|]*?) +\|/gmu)].map((match) => match[1]),
     );
     const named: string[] = [];
-    for (const directory of ["src/features", "src/app"])
+    for (const directory of ["src/features", "src/app", "src/ui"])
       for (const entry of await readdir(join(root, directory), { recursive: true }))
         if (String(entry).endsWith(".tsx")) {
           const text = await readFile(join(root, directory, String(entry)), "utf8");
-          for (const match of text.matchAll(/motion:\s*([^*]+?)\s*\*\//gu))
+          // A motion comment starts with its pattern, as the lint rule reads it.
+          for (const match of text.matchAll(/\/\*\s*motion:\s*([^*]+?)\s*\*\//gu))
             named.push(match[1] ?? "");
         }
     expect(named.length).toBeGreaterThan(0);

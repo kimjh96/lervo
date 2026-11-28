@@ -15,6 +15,7 @@ export function SectionHeading(props: {
   return (
     <div className={styles.heading}>
       <h3 className={styles.label}>{props.label}</h3>
+      {/* motion: Fixed parts */}
       {props.add === undefined ? null : (
         <button
           type="button"
