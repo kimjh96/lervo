@@ -11,6 +11,28 @@ import { CommandFailure } from "./command-error-output.js";
 import type { ConversationRetirementEffects } from "./conversation-retirement-effects.js";
 import type { HostedLaunchRecord } from "./hosted-launch-records.js";
 
+/**
+ * How long retiring waits for processes to leave a worktree before it refuses. A session the ADE
+ * just stopped reports its end while its hooks and child processes are still finishing, so the
+ * first check would refuse work that is about to leave.
+ */
+const LEAVE_WAIT_MS = 5000;
+const LEAVE_POLL_MS = 250;
+
+/** Whether no process works in the worktree, waiting up to `waitMs` for the last ones to leave. */
+async function leftOrIdle(
+  effects: WorkspaceRetireEffects,
+  worktree: string,
+  waitMs: number,
+): Promise<boolean> {
+  const deadline = Date.now() + waitMs;
+  while (await effects.inUse(worktree)) {
+    if (Date.now() >= deadline) return false;
+    await new Promise((resolve) => setTimeout(resolve, Math.min(LEAVE_POLL_MS, waitMs)));
+  }
+  return true;
+}
+
 /** Branches Lervo creates for hosted workspaces; retiring never deletes any other branch. */
 const HOSTED_BRANCH = /^lervo\/[a-z0-9]+(?:-[a-z0-9]+)*-[a-f0-9]{6}$/u;
 
@@ -43,8 +65,12 @@ export interface WorkspaceRetireEffects {
 export async function retireHostedWorkspace(
   workspaceId: string,
   effects: WorkspaceRetireEffects,
-  /** Whether the owner chose to remove the workspace with its changes, keeping a copy of them. */
-  options: { discardChanges?: boolean } = {},
+  options: {
+    /** Whether the owner chose to remove the workspace with its changes, keeping a copy of them. */
+    discardChanges?: boolean;
+    /** How long to wait for processes to leave the worktree; tests shorten it. */
+    leaveWaitMs?: number;
+  } = {},
 ): Promise<WorkspaceRetireResult> {
   const launch = await effects.latestLaunch(workspaceId);
   const root = launch === null ? null : await effects.repositoryRoot(launch.projectId);
@@ -61,7 +87,7 @@ export async function retireHostedWorkspace(
     (await effects.conversation.worktreeOf(root, workspaceId));
   let keptChanges: KeptChanges | undefined;
   if (worktree !== null) {
-    if (await effects.inUse(worktree))
+    if (!(await leftOrIdle(effects, worktree, options.leaveWaitMs ?? LEAVE_WAIT_MS)))
       throw new CommandFailure(
         "workspace_in_use",
         "A process still runs in the workspace. Stop its session, leave the directory, and retry.",

@@ -37,15 +37,19 @@ function effects(state: {
   keepFails?: boolean | "nested";
   /** Whether a process starts in the worktree while the copy is made. */
   usedAfterKeep?: boolean;
+  /** How many checks see a process still leaving the worktree before it is gone. */
+  leavingChecks?: number;
 }) {
   let kept = false;
+  let leaving = state.leavingChecks ?? 0;
   const changes: string[] = [];
   const port: WorkspaceRetireEffects = {
     latestLaunch: async () => (state.launch === undefined ? launch : state.launch),
     sessionsOf: async () => ["session-a", "session-b"],
     repositoryRoot: async (projectId) => (projectId === "prj_1" ? "/repo" : null),
     worktreeOf: async () => (state.worktree === undefined ? "/repo-wt/fix" : state.worktree),
-    inUse: async () => (state.inUse ?? false) || (kept && state.usedAfterKeep === true),
+    inUse: async () =>
+      (state.inUse ?? false) || (kept && state.usedAfterKeep === true) || leaving-- > 0,
     hasChanges: async () => state.changes ?? false,
     keepChanges: async (_root, _worktree, workspaceId) => {
       if (state.keepFails === "nested") throw new NestedRepositoryChanges(["vendor/lib"]);
@@ -108,9 +112,17 @@ describe("retiring a hosted workspace", () => {
       [{ pending: true }, "workspace_integration_pending"],
     ] as const) {
       const { port, changes } = effects(state);
-      await expect(retireHostedWorkspace("wsp_a", port)).rejects.toMatchObject({ code });
+      await expect(retireHostedWorkspace("wsp_a", port, { leaveWaitMs: 20 })).rejects.toMatchObject(
+        { code },
+      );
       expect(changes).toEqual([]);
     }
+  });
+
+  it("waits for a stopped session's last processes to leave before it removes the worktree", async () => {
+    const { port, changes } = effects({ leavingChecks: 2 });
+    await retireHostedWorkspace("wsp_a", port, { leaveWaitMs: 2000 });
+    expect(changes).toContain("worktree /repo-wt/fix");
   });
 
   it("removes a worktree with its changes only when asked, after keeping a copy of them", async () => {
@@ -154,7 +166,7 @@ describe("retiring a hosted workspace", () => {
     // A process in the worktree still refuses first.
     const used = effects({ changes: true, inUse: true });
     await expect(
-      retireHostedWorkspace("wsp_a", used.port, { discardChanges: true }),
+      retireHostedWorkspace("wsp_a", used.port, { discardChanges: true, leaveWaitMs: 20 }),
     ).rejects.toMatchObject({ code: "workspace_in_use" });
     expect(used.changes).toEqual([]);
   });

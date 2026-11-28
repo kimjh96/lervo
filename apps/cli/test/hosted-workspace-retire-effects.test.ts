@@ -190,6 +190,27 @@ describe("when retiring may delete a hosted branch", () => {
   });
 });
 
+describe("a large workspace removed with its changes", () => {
+  it("keeps a copy when the repository's tree lists past a megabyte", async () => {
+    const { root, worktree } = await repository();
+    // 3,000 files with long paths list to about 1.2 MB, past a single call's default buffer.
+    const directory = join(worktree, "d".repeat(200), "e".repeat(150));
+    await mkdir(directory, { recursive: true });
+    await Promise.all(
+      Array.from({ length: 3000 }, (_, index) =>
+        writeFile(join(directory, `${String(index).padStart(4, "0")}.txt`), `${index}\n`),
+      ),
+    );
+    git(worktree, "add", ".");
+    git(worktree, "commit", "-q", "-m", "many files");
+    await writeFile(join(worktree, "new.txt"), "untracked\n");
+
+    const kept = await hostedWorkspaceRetireEffects().keepChanges(root, worktree, "wsp_large");
+    expect(git(root, "show", `${kept.ref}:new.txt`)).toBe("untracked");
+    expect(git(root, "rev-parse", `${kept.ref}^`)).toBe(git(worktree, "rev-parse", "HEAD"));
+  });
+});
+
 describe("nested repositories in a workspace removed with its changes", () => {
   it("refuse an embedded repository, whose objects a copy cannot hold", async () => {
     const { root, worktree } = await repository();
