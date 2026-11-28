@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_afd67b4edb67b76118f37336"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "lervo project add, and project.add from the ADE, package the repository skills of a folder that already has Lervo, such as a clone, as lervo init does, so its knowledge stages need no lervo upgrade first."
