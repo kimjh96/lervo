@@ -136,12 +136,56 @@ async function plainCheckoutInputs(root: string): Promise<string | null> {
   }
 }
 
+/**
+ * Restores a Lervo project's main checkout that Git reads as bare: its `.git` directory holds an
+ * index and its work tree holds the project manifest, yet `core.bare` is true, so Git refuses its
+ * work tree and the coordination home would fall back to an empty registry of its own. A Git
+ * command whose environment still pointed at the repository, such as `git init` in a test a
+ * commit hook ran, sets it (axli, 2026-11-28). Lervo sets it back and says so, since a checkout
+ * with files and an index is never meant to be bare; the change is one reversible config value.
+ */
+async function restoreBareCheckout(root: string): Promise<boolean> {
+  const gitDirectory = resolve(root, ".git");
+  try {
+    const [gitInfo, index, manifest] = await Promise.all([
+      lstat(gitDirectory),
+      lstat(resolve(gitDirectory, "index")),
+      lstat(resolve(root, ".lervo", "project.yaml")),
+    ]);
+    if (!gitInfo.isDirectory() || gitInfo.isSymbolicLink() || !index.isFile() || !manifest.isFile())
+      return false;
+    const environment = Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+    );
+    const bare = await execute("git", ["--git-dir", gitDirectory, "config", "--get", "core.bare"], {
+      encoding: "utf8",
+      env: environment,
+    }).then(
+      ({ stdout }) => stdout.trim() === "true",
+      () => false,
+    );
+    if (!bare) return false;
+    await execute("git", ["--git-dir", gitDirectory, "config", "core.bare", "false"], {
+      env: environment,
+    });
+    process.stderr.write(
+      `Lervo restored ${root} as a work tree: Git's core.bare was true in its checkout.\n`,
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function gitCoordinates(root: string): Promise<GitCoordinates | null> {
   const inputs = await plainCheckoutInputs(root);
   const prior = remembered.get(root);
   if (inputs !== null && prior?.inputs === inputs) return { ...prior.coordinates };
   remembered.delete(root);
-  const coordinates = await observeGit(root);
+  let coordinates = await observeGit(root);
+  // A project checkout Git reads as bare is restored, not taken for a checkout outside Git.
+  if (coordinates === null && (await restoreBareCheckout(root)))
+    coordinates = await observeGit(root);
   if (
     inputs === null ||
     coordinates === null ||
