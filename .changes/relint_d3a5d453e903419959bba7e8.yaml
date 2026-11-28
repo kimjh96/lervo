@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d3a5d453e903419959bba7e8"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A hosted conversation no longer shows a bare Yield line when the agent waits for its background work; the agent's own words already say what it waits for."
