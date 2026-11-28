@@ -97,7 +97,11 @@ export function commandAnswer(
     case "agent.mark.set":
     case "agent.mark.clear":
     case "agent.mark.read":
-    case "agent.context": {
+    case "agent.context":
+    case "agent.role":
+    case "role.add":
+    case "role.edit":
+    case "role.remove": {
       const run = handlers.runAgentCommand;
       return optional(
         run && ((args) => run(command, args)),

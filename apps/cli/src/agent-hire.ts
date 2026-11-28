@@ -1,7 +1,8 @@
 import { registerAgent, type WorkforceAgent, type WorkforceProvider } from "@lervo/agent-workforce";
-import { ensureTemplateRole, resolveRoleContract } from "@lervo/roles";
+import { ensureTemplateRole, HIRING_REQUEST_TYPE, resolveRoleContract } from "@lervo/roles";
 
 import { noticeEffect } from "./effect-notice.js";
+import { assertOrganizationAuthority } from "./organization-authority.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export interface AgentHireRequest {
@@ -11,14 +12,19 @@ export interface AgentHireRequest {
   responsibilityPaths: string[];
   capabilityPackageIds?: string[];
   parentAgentId?: string;
+  /** The hired agent that hires, from its own session; undefined is the owner (ADR-0662). */
+  actorAgentId?: string;
 }
 
 /**
  * Hires an agent, as `lervo agent hire` and the core link's `agent.hire` do. A project without a
  * template role, such as `product-owner`, gets it on its first hire, reported after the fact with
- * an undo that retires the agent.
+ * an undo that retires the agent. An agent hires only when its role carries `agent.hire`, and the
+ * agent it hires is its own subagent unless it names another parent (ADR-0662, ADR-0393).
  */
 export async function hireAgent(root: string, request: AgentHireRequest): Promise<WorkforceAgent> {
+  await assertOrganizationAuthority(root, request.actorAgentId, HIRING_REQUEST_TYPE);
+  const parentAgentId = request.parentAgentId ?? request.actorAgentId;
   const template = await ensureTemplateRole(root, request.roleId);
   await resolveRoleContract(root, request.roleId);
   const agent = await mutateWorkforceState(root, (recordEvent) =>
@@ -33,7 +39,7 @@ export async function hireAgent(root: string, request: AgentHireRequest): Promis
       ...(request.capabilityPackageIds === undefined
         ? {}
         : { capabilityPackageIds: request.capabilityPackageIds }),
-      ...(request.parentAgentId === undefined ? {} : { parentAgentId: request.parentAgentId }),
+      ...(parentAgentId === undefined ? {} : { parentAgentId }),
       recordEvent,
     }),
   );

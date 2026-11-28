@@ -16,6 +16,7 @@ import { RoleContractError } from "@lervo/roles";
 import { RepositoryRegistryError } from "@lervo/repository-registry";
 
 import { hireAgent } from "./agent-hire.js";
+import { moveAgentToRole } from "./agent-role-move.js";
 import {
   clearAgentMark,
   MAXIMUM_AGENT_MARK_CHARACTERS,
@@ -28,15 +29,19 @@ import { mutateWorkforceState } from "./workforce-mutation.js";
 import { CommandFailure } from "./command-error-output.js";
 import { locateProject } from "./project-service.js";
 import { roleCatalog } from "./role-catalog.js";
+import { coreLinkRoleCommands, runCoreLinkRoleCommand } from "./core-link-role-commands.js";
 
 /**
  * The agent commands of the core link (Lervo ADE agents, "Core link"): a project's agents with
  * whether each is the team's or Lervo's own, the roles it can hire, hiring for the owner, and the
- * model and effort a team agent runs with (ADR-0647), and its image.
+ * model and effort a team agent runs with (ADR-0647), its image, and its role and the project's
+ * own roles (ADR-0662).
  */
 export const coreLinkAgentCommands = new Set([
   "agents.list",
   "agent.hire",
+  "agent.role",
+  ...coreLinkRoleCommands,
   "agent.model",
   "agent.rename",
   "agent.status",
@@ -104,6 +109,8 @@ function modelView(agent: WorkforceAgent) {
 async function answer(command: string, arguments_: Record<string, unknown>): Promise<object> {
   const projectId = text(arguments_, "projectId", 64);
   const { root } = await locateProject(projectId);
+  if (coreLinkRoleCommands.has(command))
+    return runCoreLinkRoleCommand(root, projectId, command, arguments_);
   const { roles, names } = await roleCatalog(root);
   if (command === "agents.list") {
     // The sidebar lists agents in the order they were hired.
@@ -147,6 +154,18 @@ async function answer(command: string, arguments_: Record<string, unknown>): Pro
         expectedRevision,
         recordEvent,
       }),
+    );
+    return { projectId, agent: view(agent, names, new Set()) };
+  }
+  if (command === "agent.role") {
+    const agent = await moveAgentToRole(
+      root,
+      {
+        agentId: text(arguments_, "agentId", 64),
+        roleId: text(arguments_, "role", 64),
+        expectedRevision: revisionOf(arguments_),
+      },
+      undefined,
     );
     return { projectId, agent: view(agent, names, new Set()) };
   }

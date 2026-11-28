@@ -14,6 +14,7 @@ import {
 } from "./hosted-launch-records.js";
 import { learnedEntries } from "./core-link-agent-context.js";
 import { clipAtWord } from "./conversation-note-text.js";
+import { hiringGuidanceFor } from "./room-hiring-guidance.js";
 import type { RoomContext } from "./room-router.js";
 import { teamAgents, type TeamAgent } from "./workspace-participants.js";
 import { worktreesByBranch } from "./workspace-start-effects.js";
@@ -172,8 +173,8 @@ export function recalledNotes(
 
 /**
  * What a hosted session with an agent learns at its start (Lervo ADE rooms, "What each session
- * knows"): who it is, who else is in the conversation and on the team, how a mention works, and
- * its own newest notes from earlier conversations. Null for a session without an agent or a
+ * knows"): who it is, who else is in the conversation and on the team, how a mention works, how
+ * to hire when its role may (ADR-0662), and its own newest notes from earlier conversations. Null for a session without an agent or a
  * conversation.
  */
 export async function roomBlock(sessionId: string): Promise<string | null> {
@@ -185,6 +186,11 @@ export async function roomBlock(sessionId: string): Promise<string | null> {
   const notes = await ownNotes(context.repositoryRoot, self.agentId);
   const led = await teammateConversations(context, others).catch(() => []);
   const worktrees = await worktreeLines(context, context.team).catch(() => []);
+  const hiring = await hiringGuidanceFor(
+    context.repositoryRoot,
+    self.agentId,
+    context.provider,
+  ).catch(() => null);
   return [
     `Lervo room: you are ${self.displayName}, the ${self.roleName}, in this conversation${
       present.length === 0 ? "" : ` with ${named(present)}`
@@ -205,6 +211,7 @@ export async function roomBlock(sessionId: string): Promise<string | null> {
           `Work for a conversation a teammate already leads goes there, not to a new one: run \`lervo workspace send --workspace <workspace ID> --from ${self.agentId} --json <<'EOF'\`, then the request, then \`EOF\`. It reaches the lead as your message when your turn ends. Open conversations your teammates lead:`,
           ...led,
         ].join("\n"),
+    hiring,
     "Hand work over and ask only through these Lervo commands and mentions. Never message another session through a provider's own tools, and never stop a process Lervo runs; when a conversation is no longer needed, say so in your answer and the owner removes it.",
     notes.length === 0
       ? null
