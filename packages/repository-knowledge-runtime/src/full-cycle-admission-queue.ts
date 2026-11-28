@@ -179,6 +179,72 @@ export async function othersWaiting(
   }
 }
 
+/**
+ * ADR-0660: admits only while no live holder holds and no live waiter waits, and never inserts a
+ * waiter row, so a running holder is never asked to yield for it. Liveness is probed first, as
+ * for every attempt; a holder or waiter that appeared since counts as occupied. Null when
+ * occupied or contended.
+ */
+export async function admitImmediately(input: {
+  directory: string;
+  repositoryHash: string;
+  nonce: string;
+  now: number;
+  leaseMilliseconds: number;
+  presence: string | null;
+}): Promise<number | null> {
+  const { now } = input;
+  let db: DatabaseSync | null = null;
+  try {
+    db = await database(input.directory);
+    const holder = sqliteRow(db.prepare(HOLDER).get());
+    if (holder !== undefined && Number(holder.expires_at) > now && (await rowAlive(holder)))
+      return null;
+    const waiters = sqliteRows(db.prepare(WAITERS).all());
+    for (const row of waiters)
+      if (
+        (typeof row.presence === "string" ||
+          Number(row.heartbeat) >= now - WAITER_STALE_MILLISECONDS) &&
+        (await rowAlive(row))
+      )
+        return null;
+    const seen = new Set(waiters.map((row) => String(row.nonce)));
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const current = sqliteRow(db.prepare(HOLDER).get());
+      const arrived = sqliteRows(db.prepare("SELECT nonce FROM waiters").all()).some(
+        (row) => !seen.has(String(row.nonce)),
+      );
+      if (arrived || (current?.nonce ?? null) !== (holder?.nonce ?? null)) {
+        db.exec("ROLLBACK");
+        return null;
+      }
+      db.prepare("INSERT OR REPLACE INTO holder VALUES(1,?,?,?,?,?)").run(
+        process.pid,
+        input.nonce,
+        input.repositoryHash,
+        now,
+        now + input.leaseMilliseconds,
+      );
+      if (input.presence !== null)
+        db.prepare("INSERT OR REPLACE INTO admission_presence VALUES(?,?)").run(
+          input.nonce,
+          input.presence,
+        );
+      db.exec("COMMIT");
+      return now;
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  } catch (error) {
+    if (isSqliteLockContention(error)) return null;
+    throw identifiedFailure(error);
+  } finally {
+    db?.close();
+  }
+}
+
 /** Wakes every waiter's presence, so a release or a departure is seen at once. */
 export async function wakeWaiters(directory: string, except: string): Promise<void> {
   const db = await database(directory);

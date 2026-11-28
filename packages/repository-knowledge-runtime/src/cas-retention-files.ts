@@ -28,6 +28,8 @@ export interface CasReferenceFile {
 
 export const CAS_RETENTION_SCAN = "cas-retention-scan.json";
 export const CAS_RETENTION_OBSERVATION = "cas-retention-observation.json";
+/** ADR-0660: why the last retention-only attempt ran no slice. */
+export const CAS_RETENTION_WAIT = "cas-retention-wait.json";
 const MAXIMUM_FILES = 100_000;
 
 /** A path removed between listing and inspection: live writers replace and consume state files. */

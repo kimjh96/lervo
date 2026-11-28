@@ -9,6 +9,9 @@ import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
 type Issue = TerminalLifecycleInspection["issues"][number];
 
 const OBSERVATION = ".lervo/state/knowledge/cas-retention-observation.json";
+const WAIT = ".lervo/state/knowledge/cas-retention-wait.json";
+/** ADR-0660: work left and no slice for this long is named, well before the stale notice. */
+export const CAS_RETENTION_WAITING_MS = 6 * 60 * 60 * 1000;
 /** A worker cycle records a pass each time it runs; three days without one is not routine. */
 export const CAS_RETENTION_STALE_MS = 3 * 24 * 60 * 60 * 1000;
 /** Consecutive passes that reached their sweep with candidates and removed nothing. */
@@ -31,11 +34,34 @@ const COMMANDS: Record<string, (reference: string) => string> = {
 };
 
 const STALLS: Record<string, string> = {
+  read_budget_exhausted:
+    "a file in Lervo's state keeps changing faster than one retention slice can read it, so retention stopped asking for slices; stop whatever rewrites the named file, and retention resumes on the next worker cycle",
   inventory_changed:
     "Lervo state files keep changing between a pass's scan and its sweep; retention keeps trying each cycle, and a quieter period lets it finish",
   event_head_changed:
     "events keep arriving between a pass's scan and its sweep; retention keeps trying each cycle, and a quieter period lets it finish",
 };
+
+const WAITS: Record<string, string> = {
+  live_work:
+    "developer work has held this repository for hours, so retention waits; it resumes when the work's lease ends",
+  admission_busy:
+    "knowledge cycles of this host keep the host admission busy, so retention cannot start; check lervo doctor for a cycle that never ends",
+  retention_turn:
+    "other repositories on this host keep taking the retention turns; they share one slice every 30 seconds, so this one comes after them",
+  unknown:
+    "no retention slice has run although work is left; check that the knowledge worker runs (lervo doctor)",
+};
+
+/** ADR-0660: the last reason a retention-only attempt ran no slice, if it recorded one. */
+async function waitCause(root: string): Promise<string> {
+  try {
+    const wait = JSON.parse(await readFile(join(root, WAIT), "utf8")) as { cause?: unknown };
+    return typeof wait.cause === "string" && wait.cause in WAITS ? wait.cause : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
 
 interface Observation {
   observedAt?: unknown;
@@ -44,6 +70,8 @@ interface Observation {
   reference?: unknown;
   stalledPasses?: unknown;
   stallCause?: unknown;
+  stallReference?: unknown;
+  remaining?: unknown;
 }
 
 /** The retention outcome's attention issues, or none while retention runs as it should. */
@@ -64,6 +92,15 @@ export async function readCasRetentionAttention(root: string, now = new Date()):
         "check that the knowledge worker runs (lervo doctor), that the checkout is on its base branch, and that the disk has space; retention has not recorded a pass since then",
       detail: observedAt === "" ? "no valid observedAt" : observedAt,
     });
+  if (
+    observation.remaining === true &&
+    observation.status !== "unavailable" &&
+    age >= CAS_RETENTION_WAITING_MS &&
+    age < CAS_RETENTION_STALE_MS
+  ) {
+    const cause = await waitCause(root);
+    issues.push({ code: "cas_retention_waiting", command: WAITS[cause]!, detail: cause });
+  }
   const failure = typeof observation.failure === "string" ? observation.failure : null;
   if (
     failure !== null &&
@@ -83,7 +120,9 @@ export async function readCasRetentionAttention(root: string, now = new Date()):
     issues.push({
       code: "cas_retention_stalled",
       command: STALLS[cause]!,
-      detail: `${stalled} passes removed nothing: ${cause}`,
+      detail: `${stalled} passes removed nothing: ${cause}${
+        typeof observation.stallReference === "string" ? ` (${observation.stallReference})` : ""
+      }`,
     });
   return issues;
 }

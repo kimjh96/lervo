@@ -149,6 +149,12 @@
       "reason": "Rate limit for a retention probe inside one read; it is not a timer."
     },
     {
+      "path": "packages/repository-knowledge-runtime/src/cas-retention-sweep.ts",
+      "kind": "period",
+      "name": "YIELD_PROBE_INTERVAL_MS",
+      "reason": "Rate limit for the live-work probe between two unlinks of one sweep; it is not a timer."
+    },
+    {
       "path": "packages/repository-knowledge-runtime/src/convergence-assignment-lease.ts",
       "kind": "interval",
       "count": 1,
