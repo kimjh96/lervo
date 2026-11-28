@@ -16,7 +16,7 @@ export interface RoomEnvelope {
    * Why the turn came: a mention, the answer to the agent's own mention, the first turn of a
    * conversation the agent started for its own work, or of one a teammate handed it (ADR-0657).
    */
-  readonly reason: "mention" | "answer" | "start" | "handed";
+  readonly reason: "mention" | "answer" | "start" | "handed" | "sent";
 }
 
 const MARK = "[Lervo room]";
@@ -59,9 +59,11 @@ export function envelopeText(envelope: RoomEnvelope): string {
       ? `\n\n${MARK} Continue your work with this answer.`
       : envelope.reason === "start"
         ? `\n\n${MARK} You started this conversation for this work, and you lead it. Work here; mention @Name only when your work needs that agent's role or knowledge.`
-        : envelope.reason === "handed"
-          ? `\n\n${MARK} ${envelope.from} started this conversation for your work and handed it to you: you lead it and change the files here. Do the work yourself; mention @${envelope.from} when you need it or when the work is done, and @Name for another agent's role or knowledge.`
-          : `\n\n${MARK} Answer here; your answer returns to ${envelope.from}. Mention @Name only when your work needs that agent's role or knowledge.`;
+        : envelope.reason === "sent"
+          ? `\n\n${MARK} ${envelope.from} sent you this work from another conversation. Do it here, in the conversation you lead; mention @${envelope.from} when you need it or when the work is done.`
+          : envelope.reason === "handed"
+            ? `\n\n${MARK} ${envelope.from} started this conversation for your work and handed it to you: you lead it and change the files here. Do the work yourself; mention @${envelope.from} when you need it or when the work is done, and @Name for another agent's role or knowledge.`
+            : `\n\n${MARK} Answer here; your answer returns to ${envelope.from}. Mention @Name only when your work needs that agent's role or knowledge.`;
   return `${head}\n${envelope.message.trim()}${recalled}${guide}`;
 }
 

@@ -300,7 +300,7 @@ async function runRecover(args: string[], io: CliIo): Promise<number> {
 export async function runWorkspaceCommand(args: string[], io: CliIo): Promise<number> {
   try {
     const [action, ...rest] = args;
-    if (action === "start" || action === "open")
+    if (action === "start" || action === "open" || action === "send")
       return await runWorkspaceLaunchCommand(action, rest, io);
     if (action === "hook") return await runWorkspaceHookCommand(rest, io);
     if (action === "retire") return await runWorkspaceRetireCommand(rest, io);

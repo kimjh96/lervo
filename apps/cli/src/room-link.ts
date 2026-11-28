@@ -6,7 +6,15 @@ import { readEnvelope } from "./room-envelope.js";
 import type { ConversationNote } from "./conversation-notes.js";
 import type { RoomEvent } from "./room-events.js";
 import { RoomRouter, type RoomContext, type RoomDelivery } from "./room-router.js";
+import type { PendingSend } from "./room-sends.js";
 import type { PendingStart } from "./room-starts.js";
+
+/** Reading and settling the work agents sent to teammates' conversations (ADR-0657). */
+export interface RoomSends {
+  readonly load: (agentId: string) => Promise<readonly PendingSend[]>;
+  /** Drops a send once its delivery went out, so a restarted core never delivers it again. */
+  readonly settle: (sendId: string) => Promise<unknown>;
+}
 
 /** Opened conversations remembered so a start opens once; far more than starts can wait. */
 const OPENED_KEPT = 64;
@@ -24,6 +32,9 @@ export class RoomLink {
   private readonly starts = new Map<string, readonly PendingStart[]>();
   /** Conversations whose opening delivery went out, so a start opens once. */
   private readonly startsOpened = new Set<string>();
+  /** Each agent's pending sends, as last read, and those already delivered. */
+  private readonly sends = new Map<string, readonly PendingSend[]>();
+  private readonly sendsDelivered = new Set<string>();
 
   constructor(
     private readonly load: ((sessionId: string) => Promise<RoomContext | null>) | undefined,
@@ -34,6 +45,7 @@ export class RoomLink {
     recordEvents?: (repositoryRoot: string, events: readonly RoomEvent[]) => Promise<unknown>,
     /** Writes an agent's note after a turn a mention delivered; absent, no note is written. */
     writeNote?: (note: ConversationNote) => Promise<unknown>,
+    private readonly roomSends?: RoomSends,
   ) {
     // Records and notes go out off the decoder's path, and a failed one changes nothing here.
     const background = (work: Promise<unknown>) =>
@@ -93,16 +105,49 @@ export class RoomLink {
     );
   }
 
-  /** Rereads an agent's pending starts; a failed read keeps the last one. */
+  /** Rereads an agent's pending starts and sends; a failed read keeps the last one. */
   private refreshStarts(agentId: string): void {
     const loadStarts = this.loadStarts;
-    if (loadStarts === undefined) return;
-    this.track(
-      loadStarts(agentId).then(
-        (starts) => void this.starts.set(agentId, starts),
-        () => undefined,
-      ),
+    if (loadStarts !== undefined)
+      this.track(
+        loadStarts(agentId).then(
+          (starts) => void this.starts.set(agentId, starts),
+          () => undefined,
+        ),
+      );
+    const roomSends = this.roomSends;
+    if (roomSends !== undefined)
+      this.track(
+        roomSends.load(agentId).then(
+          (sends) => void this.sends.set(agentId, sends),
+          () => undefined,
+        ),
+      );
+  }
+
+  /** The sends of `agentId` its finished turn delivers, each once, settled off the path. */
+  private sendsToDeliver(agentId: string): PendingSend[] {
+    const waiting = (this.sends.get(agentId) ?? []).filter(
+      (send) => !this.sendsDelivered.has(send.sendId),
     );
+    for (const send of waiting) {
+      this.sendsDelivered.add(send.sendId);
+      const settle = this.roomSends?.settle(send.sendId);
+      if (settle !== undefined)
+        this.track(
+          settle.then(
+            () => undefined,
+            () => undefined,
+          ),
+        );
+    }
+    if (this.sendsDelivered.size > OPENED_KEPT)
+      for (const sendId of [...this.sendsDelivered].slice(
+        0,
+        this.sendsDelivered.size - OPENED_KEPT,
+      ))
+        this.sendsDelivered.delete(sendId);
+    return waiting;
   }
 
   sent(
@@ -140,10 +185,10 @@ export class RoomLink {
     const ended = events.some(
       (event) => event.kind === "status" && event.event === "turn_finished",
     );
+    if (!ended) return routed;
     const waiting = (this.starts.get(agentId) ?? []).filter(
       (start) => !this.startsOpened.has(start.workspaceId),
     );
-    if (!ended || waiting.length === 0) return routed;
     for (const start of waiting) this.startsOpened.add(start.workspaceId);
     if (this.startsOpened.size > OPENED_KEPT)
       for (const workspaceId of [...this.startsOpened].slice(
@@ -152,9 +197,10 @@ export class RoomLink {
       ))
         this.startsOpened.delete(workspaceId);
     const started = this.router.starts(sessionId, waiting);
+    const sent = this.router.sends(sessionId, this.sendsToDeliver(agentId));
     return {
-      events: [...routed.events, ...started.events],
-      deliveries: [...routed.deliveries, ...started.deliveries],
+      events: [...routed.events, ...started.events, ...sent.events],
+      deliveries: [...routed.deliveries, ...started.deliveries, ...sent.deliveries],
     };
   }
 }

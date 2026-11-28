@@ -2687,6 +2687,12 @@
       "value": "Retired unstarted workspaces"
     }
   ],
+  "lervo.command.workspace.send": [
+    {
+      "type": 0,
+      "value": "Sent work to a teammate's conversation"
+    }
+  ],
   "lervo.command.workspace.start": [
     {
       "type": 0,
@@ -3521,6 +3527,50 @@
     {
       "type": 0,
       "value": ")."
+    }
+  ],
+  "room.workSent": [
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " sent work to "
+    },
+    {
+      "type": 8,
+      "value": "link",
+      "children": [
+        {
+          "type": 1,
+          "value": "title"
+        }
+      ]
+    }
+  ],
+  "room.workSentFrom": [
+    {
+      "type": 0,
+      "value": "Sent by "
+    },
+    {
+      "type": 1,
+      "value": "agent"
+    },
+    {
+      "type": 0,
+      "value": " from "
+    },
+    {
+      "type": 8,
+      "value": "link",
+      "children": [
+        {
+          "type": 1,
+          "value": "title"
+        }
+      ]
     }
   ],
   "start.error.application_unavailable": [

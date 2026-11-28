@@ -31,7 +31,7 @@ The owner asked for the root cause to be fixed.
   - Without `--lead`, the caller leads, as before.
 - **Every agent can start one.** A read-access session's allowlist admits `lervo workspace start`. The command changes no worktree file: it records a pending start and prepares a new workspace.
 - **A backstop, not a gate.** An agent starts at most 12 conversations an hour. The guard only catches a runaway loop.
-- **Work for a teammate's existing conversation.** Work that belongs in a conversation the teammate already leads goes there, not to a new one. `lervo workspace send --workspace <id> --started-by <caller>` delivers the request to that conversation's lead when the caller's turn ends, as the caller's message. Its specification and the conversation's line for it follow this decision's first slice.
+- **Work for a teammate's existing conversation.** Work that belongs in a conversation the teammate already leads goes there, not to a new one. `lervo workspace send --workspace <id> --from <caller>` delivers the request to that conversation's lead when the caller's turn ends, as the caller's message. Each agent's room block lists the open conversations its teammates lead. A lead whose session stopped resumes as the conversation's own session to receive it. An agent sends at most 24 times an hour, as a backstop.
 - **Lervo's channels only.** The room block tells every agent:
   - hand work over with these commands;
   - ask and answer by mention;
@@ -45,13 +45,23 @@ The owner asked for the root cause to be fixed.
 ## State, events, privacy, and failure meaning
 
 - **Pending start.** It gains `startedBy`, the caller. Its `agentId` stays the agent that receives the first turn, now the lead. A start without `startedBy`, from before this decision, was made by its lead.
+- **Pending send.** Host-local owner-only state beside the pending starts, `room-sends.json`, holds at most 16 sends.
+  - Each send holds: `sendId`, `workspaceId`, the lead's `agentId` and `sessionId`, the conversation's `title`, `sentBy`, the request, and the time.
+  - The file also holds the past hour's send times per agent, for the backstop.
+  - A send is dropped once delivered, or after an hour.
 - **Launch record.** The lead's record keeps `startedBy`, the caller, beside `agentId`, the lead.
 - **No new event.** A delivery to the lead records the existing `room.mention.delivered`.
 - **Privacy.** The first turn stays in the host-local pending start and then in the provider's transcript, as before.
 - **Failure codes:**
   - `agent_not_caller`: `--started-by` is not the calling session's agent.
   - `participant_invalid`: `--started-by` or `--lead` names no active team agent.
-  - `conversation_start_limited`: the backstop tripped.
+  - `conversation_start_limited` and `conversation_send_limited`: a backstop tripped.
+  - `send_target_invalid`: no agent leads the conversation.
+  - `send_target_self`: the caller leads the conversation it sends to.
+- **Lines.**
+  - The sender's conversation shows "Bora sent work to <title>" (`work_sent`).
+  - The lead's conversation opens the turn with "Sent by Bora from <title>" (`work_sent_from`).
+  - Each title opens the other conversation.
 
 ## Consequences
 

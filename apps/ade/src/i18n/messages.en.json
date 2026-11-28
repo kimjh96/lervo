@@ -1207,6 +1207,10 @@
     "defaultMessage": "Retired unstarted workspaces",
     "description": "What Lervo did when the agent ran `lervo workspace retire-unstarted`, as a quiet line in the conversation."
   },
+  "lervo.command.workspace.send": {
+    "defaultMessage": "Sent work to a teammate's conversation",
+    "description": "What Lervo did when the agent ran `lervo workspace send`, as a quiet line in the conversation."
+  },
   "lervo.command.workspace.start": {
     "defaultMessage": "Started a workspace",
     "description": "What Lervo did when the agent ran `lervo workspace start`, as a quiet line in the conversation."
@@ -1498,6 +1502,14 @@
   "room.rejoinFailed": {
     "defaultMessage": "Lervo could not reopen an agent's session here ({code}).",
     "description": "A room line: a joined agent's session could not be resumed when the conversation opened; {code} is the protocol code."
+  },
+  "room.workSent": {
+    "defaultMessage": "{agent} sent work to <link>{title}</link>",
+    "description": "A room line: an agent sent work to a conversation a teammate already leads; the title opens it."
+  },
+  "room.workSentFrom": {
+    "defaultMessage": "Sent by {agent} from <link>{title}</link>",
+    "description": "A room line before work another agent sent to this conversation; the title opens the conversation it came from."
   },
   "start.error.application_unavailable": {
     "defaultMessage": "Lervo is not reachable on this computer.",

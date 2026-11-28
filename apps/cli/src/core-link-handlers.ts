@@ -17,6 +17,7 @@ import type { RoomAnswersResult } from "@lervo/session-host-contract";
 
 import type { ConversationNote } from "./conversation-notes.js";
 import type { RoomEvent } from "./room-events.js";
+import type { PendingSend } from "./room-sends.js";
 import type { PendingStart } from "./room-starts.js";
 
 /** What the core link asks of the Lervo core. Failures are thrown with a stable `code`. */
@@ -44,6 +45,10 @@ export interface CoreLinkHandlers {
   loadRoomContext?(sessionId: string): Promise<RoomContext | null>;
   /** The conversations an agent started that have not opened (Lervo ADE rooms, slice 2). */
   pendingStarts?(agentId: string): Promise<readonly PendingStart[]>;
+  /** The work an agent sent to teammates' conversations, not yet delivered (ADR-0657). */
+  pendingSends?(agentId: string): Promise<readonly PendingSend[]>;
+  /** Drops a send once its delivery went out. */
+  settleSend?(sendId: string): Promise<void>;
   /** Keeps a room's records in its repository (schema 15); it never throws. */
   recordRoomEvents?(repositoryRoot: string, events: readonly RoomEvent[]): Promise<unknown>;
   /** Writes an agent's note after a turn a mention delivered (schema 16); it never throws. */

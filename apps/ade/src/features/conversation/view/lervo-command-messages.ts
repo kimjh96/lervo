@@ -143,6 +143,7 @@ export const lervoCommandMessages: Readonly<Record<LervoCommandId, MessageDescri
   "workspace recover": { id: "lervo.command.workspace.recover" },
   "workspace retire": { id: "lervo.command.workspace.retire" },
   "workspace retire-unstarted": { id: "lervo.command.workspace.retire_unstarted" },
+  "workspace send": { id: "lervo.command.workspace.send" },
   "workspace start": { id: "lervo.command.workspace.start" },
   "workstream current": { id: "lervo.command.workstream.current" },
   "workstream reconcile": { id: "lervo.command.workstream.reconcile" },
