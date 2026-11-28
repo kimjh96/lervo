@@ -13,7 +13,12 @@ import {
 import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 import { homedir } from "node:os";
 
-import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
+import {
+  claudeShellOutput,
+  claudeToolAddsLine,
+  claudeToolDetail,
+  type ClaudeToolCall,
+} from "./hosted-tool-detail.js";
 import { ClaudeQuestions } from "./hosted-questions.js";
 import { compacted, peerMessage } from "./hosted-stream-items.js";
 import { CLAUDE_HOSTED_USAGE_ACCOUNTING, turnUsage } from "./hosted-usage.js";
@@ -274,7 +279,7 @@ export class ClaudeHostedStreamDecoder
       if (id === undefined || call === undefined) continue;
       this.tools.delete(id);
       // The question and the person's answer already show what the call did.
-      if (this.questions.showed(id)) continue;
+      if (this.questions.showed(id) || !claudeToolAddsLine(call.name)) continue;
       const failed = block.is_error === true;
       // The structured result belongs to the line's only result.
       const result = {

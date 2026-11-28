@@ -138,6 +138,17 @@ function withPreview(
 }
 
 /**
+ * Tools whose calls add no line. `Yield` only pauses the agent until its background work reports:
+ * the agent's own words say what it waits for, and the working status shows the turn goes on.
+ */
+const LINELESS_TOOLS: ReadonlySet<string> = new Set(["Yield"]);
+
+/** Whether a finished call of `name` reads as a tool line in the conversation. */
+export function claudeToolAddsLine(name: string): boolean {
+  return !LINELESS_TOOLS.has(name);
+}
+
+/**
  * The detail of one finished call, or undefined for a tool whose input names nothing to show.
  * A failed call previews its error.
  */

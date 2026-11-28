@@ -13,7 +13,12 @@ import {
 
 import { askedAndAnswered } from "./hosted-questions.js";
 import { compacted, peerMessage } from "./hosted-stream-items.js";
-import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
+import {
+  claudeShellOutput,
+  claudeToolAddsLine,
+  claudeToolDetail,
+  type ClaudeToolCall,
+} from "./hosted-tool-detail.js";
 import { asRecord } from "./normalization-utils.js";
 
 /** A line longer than this is skipped, so one bad line cannot grow memory. */
@@ -155,6 +160,7 @@ export class ClaudeTranscriptDecoder {
       const call = id === undefined ? undefined : this.tools.get(id);
       if (id === undefined || call === undefined) continue;
       this.tools.delete(id);
+      if (!claudeToolAddsLine(call.name)) continue;
       if (call.name === ASK_USER_QUESTION) {
         // The person's choices read as their message; a reply in their own words is its own line.
         const { said } = askedAndAnswered(call.input, results === 1 ? context.structured : null);

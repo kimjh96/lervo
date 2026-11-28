@@ -281,6 +281,46 @@ describe("Claude Code transcripts", () => {
 });
 
 describe("Claude Code transcripts with questions", () => {
+  it("reads no line for a call that only waits for the agent's background work", async () => {
+    const configuration = await mkdtemp(join(tmpdir(), "lervo-claude-yield-"));
+    try {
+      const path = claudeTranscriptPath(session, { CLAUDE_CONFIG_DIR: configuration });
+      await mkdir(join(path, ".."), { recursive: true });
+      const wait = "The wait has ended. The line after this result says why.";
+      await writeFile(
+        path,
+        [
+          {
+            type: "assistant",
+            timestamp: at(1),
+            message: {
+              content: [
+                { type: "text", text: "2 of 6 done." },
+                { type: "tool_use", id: "toolu_wait", name: "Yield", input: {} },
+              ],
+            },
+          },
+          {
+            type: "user",
+            timestamp: at(2),
+            message: {
+              content: [{ type: "tool_result", tool_use_id: "toolu_wait", content: wait }],
+            },
+            toolUseResult: { content: wait, eventCount: 0, remainingWakeCount: 0 },
+          },
+        ]
+          .map((line) => JSON.stringify(line))
+          .join("\n"),
+      );
+      const items = [];
+      for await (const item of readClaudeTranscript(session, { CLAUDE_CONFIG_DIR: configuration }))
+        items.push(item.content);
+      expect(items).toEqual([{ kind: "agent_message", text: "2 of 6 done." }]);
+    } finally {
+      await rm(configuration, { recursive: true, force: true });
+    }
+  });
+
   it("reads an AskUserQuestion call as the question and its answers as the person's message", async () => {
     const configuration = await mkdtemp(join(tmpdir(), "lervo-claude-questions-"));
     try {
