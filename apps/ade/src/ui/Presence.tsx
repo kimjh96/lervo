@@ -44,6 +44,11 @@ export function Presence(props: {
    * `center` a wait in the middle of a view.
    */
   justify?: "start" | "end" | "center" | undefined;
+  /**
+   * An inline place that fills the rest of its line, such as a row's name: it lays out as a block,
+   * so text that is too long ends in an ellipsis instead of being cut off.
+   */
+  fill?: boolean;
   className?: string | undefined;
   /**
    * Whether content present when the place first mounts fades in. A place inside loaded content,
@@ -102,6 +107,7 @@ export function Presence(props: {
       data-inline={Element === "span" ? "" : undefined}
       data-align={props.align}
       data-justify={props.justify}
+      data-fill={props.fill === true ? "" : undefined}
     >
       {layers.map((layer) => (
         <Element

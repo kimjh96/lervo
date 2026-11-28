@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { commandModifier } from "../../../platform/keyboard";
 import { PlusIcon } from "../../../ui/icons";
 import { Kbd } from "../../../ui/Kbd";
+import { useDepartingInPlace } from "../../../ui/departing";
 import { ListRow } from "../../../ui/ListRow";
 import { PopoverMenu } from "../../../ui/PopoverMenu";
 import { Presence } from "../../../ui/Presence";
+import { useItemSpace } from "../../../ui/space";
 import { StatusDot } from "../../../ui/StatusDot";
 import { type Repository, useWorkspaceStore } from "../../workspaces";
 import { selectProject } from "../model/controller";
@@ -35,65 +37,76 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
   const add = useAddProject();
   const [menuAt, setMenuAt] = useState<{ rect: DOMRect; byKey: boolean } | null>(null);
   const needing = projectsNeedingYou(workspaces, statuses);
-  const others = otherProjects(repositories, props.current.projectId);
+  const currentId = props.current.projectId;
+  const others = useMemo(() => otherProjects(repositories, currentId), [repositories, currentId]);
+  // A project removed while the list is open fades out where it was and closes its space; one
+  // added opens its space as it fades in (ADE motion, "Coming and going" and "Space").
+  const shown = useDepartingInPlace(others, entryKey);
+  const [initial] = useState(() => new Set(others.map(entryKey)));
   const rename = (project: Repository) => {
     if (context.managed) useProjectStore.setState({ renaming: project.projectId });
   };
   return (
     <div className={styles.list}>
-      {others.length === 0 ? null : (
-        <ul className={styles.projects}>
-          {others.map(({ project, index }) => (
-            <li key={project.projectId}>
-              {/* motion: Renaming in place */}
-              {renaming === project.projectId ? (
-                <RenameField
-                  project={project}
-                  leading={<ProjectMark project={project} size="sm" />}
-                  dependencies={context.dependencies}
-                />
-              ) : (
-                <ListRow
-                  current={false}
-                  // The second click of a double-click edits the name instead.
-                  onClick={(event) => {
-                    if (event.detail <= 1)
-                      selectProject(context.dependencies.memory, project.projectId);
-                  }}
-                  onDoubleClick={() => rename(project)}
-                  onContextMenu={(event) => {
-                    event.preventDefault();
-                    showProjectMenu(context, project);
-                  }}
-                  leading={<ProjectMark project={project} size="sm" />}
-                  label={projectName(project)}
-                  trailing={
-                    <span className={styles.trailing}>
-                      <Presence as="span">
-                        {needing.has(project.projectId) ? (
-                          <StatusDot
-                            label={intl.formatMessage({ id: "workspaces.status.needsYou" })}
-                          />
-                        ) : null}
-                      </Presence>
-                      <Presence as="span">
-                        {index < 9 ? (
-                          <Kbd>
-                            {intl.formatMessage(
-                              { id: "keyboard.command" },
-                              { modifier: commandModifier, key: String(index + 1) },
-                            )}
-                          </Kbd>
-                        ) : null}
-                      </Presence>
-                    </span>
-                  }
-                />
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <Presence>
+        {shown.length === 0 ? null : (
+          <ul className={styles.projects}>
+            {shown.map(({ item: { project, index }, leaving }) => (
+              <ProjectRow
+                key={project.projectId}
+                arrived={!initial.has(project.projectId)}
+                leaving={leaving}
+              >
+                {/* motion: Renaming in place */}
+                {renaming === project.projectId ? (
+                  <RenameField
+                    project={project}
+                    leading={<ProjectMark project={project} size="sm" />}
+                    dependencies={context.dependencies}
+                  />
+                ) : (
+                  <ListRow
+                    current={false}
+                    // The second click of a double-click edits the name instead.
+                    onClick={(event) => {
+                      if (event.detail <= 1)
+                        selectProject(context.dependencies.memory, project.projectId);
+                    }}
+                    onDoubleClick={() => rename(project)}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      showProjectMenu(context, project);
+                    }}
+                    leading={<ProjectMark project={project} size="sm" />}
+                    label={projectName(project)}
+                    trailing={
+                      <span className={styles.trailing}>
+                        <Presence as="span">
+                          {needing.has(project.projectId) ? (
+                            <StatusDot
+                              label={intl.formatMessage({ id: "workspaces.status.needsYou" })}
+                            />
+                          ) : null}
+                        </Presence>
+                        <Presence as="span">
+                          {index < 9 ? (
+                            <Kbd>
+                              {intl.formatMessage(
+                                { id: "keyboard.command" },
+                                { modifier: commandModifier, key: String(index + 1) },
+                              )}
+                            </Kbd>
+                          ) : null}
+                        </Presence>
+                      </span>
+                    }
+                  />
+                )}
+              </ProjectRow>
+            ))}
+          </ul>
+        )}
+      </Presence>
       <Presence>
         {context.managed ? (
           <ListRow
@@ -122,5 +135,23 @@ export function ProjectList(props: { context: ProjectMenuContext; current: Repos
         />
       )}
     </div>
+  );
+}
+
+const entryKey = (entry: { project: Repository }) => entry.project.projectId;
+
+/** A project's row in the open list, which opens and closes its space as it comes and goes. */
+function ProjectRow(props: { arrived: boolean; leaving: boolean; children: ReactNode }) {
+  const space = useItemSpace<HTMLLIElement>(props.arrived, props.leaving);
+  return (
+    <li
+      ref={space}
+      data-arrived={props.arrived ? "true" : undefined}
+      data-leaving={props.leaving ? "" : undefined}
+      aria-hidden={props.leaving ? true : undefined}
+      inert={props.leaving}
+    >
+      {props.children}
+    </li>
   );
 }

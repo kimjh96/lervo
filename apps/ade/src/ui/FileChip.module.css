@@ -129,11 +129,15 @@
   color: var(--color-text-secondary);
   background: var(--color-surface-opaque);
   cursor: pointer;
-  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-duration-leave) var(--motion-easing-fade);
 }
 
-/* As on an image thumbnail, the remove button shows at once on hover and on keyboard focus. */
+/* As on an image thumbnail, the remove button fades in on hover and on keyboard focus. */
 .chip:hover .remove,
 .chip:focus-within .remove {
-  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: var(--motion-duration-enter);
 }

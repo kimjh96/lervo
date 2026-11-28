@@ -97,10 +97,15 @@ export function LearnedSection(props: { projectId: string; agentId: string }) {
  * which this section reads.
  */
 export function ContextSections(props: { projectId: string; agentId: string }) {
+  // The held paths arrive with the core's answer and go with a failed reread, so the section
+  // fades in and out with its space, as the learned section's content does.
+  const held = useAgentStore(
+    (store) => store.learned?.agentId === props.agentId && store.learned.held !== null,
+  );
   return (
     <>
       <LearnedSection projectId={props.projectId} agentId={props.agentId} />
-      <HeldSection agentId={props.agentId} />
+      <Presence>{held ? <HeldSection agentId={props.agentId} /> : null}</Presence>
     </>
   );
 }

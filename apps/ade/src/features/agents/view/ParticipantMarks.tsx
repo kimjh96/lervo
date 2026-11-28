@@ -19,9 +19,10 @@ export function ParticipantMarks(props: { participants: readonly string[] | unde
   const names = new Intl.ListFormat(intl.locale, { type: "unit", style: "short" }).format(
     shown.map((agent) => agent.displayName),
   );
-  // The marks arrive with the agents' list, so the header never pops them in.
+  // The marks arrive with the agents' list, so the header never pops them in, and an agent that
+  // joins crossfades the cluster to its new width.
   return (
-    <Presence as="span" justify="end">
+    <Presence as="span" justify="end" contentKey={shown.map((agent) => agent.agentId).join(" ")}>
       {shown.length === 0 ? null : (
         <span
           className={styles.marks}

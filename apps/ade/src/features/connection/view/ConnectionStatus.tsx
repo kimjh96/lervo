@@ -26,7 +26,12 @@ export function ConnectionStatus() {
     state === "connected" || (restarting && state !== "unavailable") ? null : (
       <Status state={state} />
     );
-  return <Presence align="end">{content}</Presence>;
+  // A change from one wait or failure to another crossfades in place.
+  return (
+    <Presence align="end" contentKey={state}>
+      {content}
+    </Presence>
+  );
 }
 
 function Status(props: { state: Exclude<ConnectionState, "connected"> }) {

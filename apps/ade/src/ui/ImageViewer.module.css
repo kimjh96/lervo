@@ -116,8 +116,15 @@
   inset-inline-end: var(--space-16);
 }
 
+/* At the first or last image its arrow fades out, and back in when there is one to go to. */
+.arrow {
+  transition: opacity var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
 .arrow:disabled {
-  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: var(--motion-duration-leave);
 }
 
 .close:hover,

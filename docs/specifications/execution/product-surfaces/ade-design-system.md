@@ -89,7 +89,7 @@ The DTCG token file is the one source. `scripts/build-tokens.mjs` resolves its a
 ### Rules for values
 
 - Every color, size, radius, font size, weight, line height, shadow, opacity, duration, and easing in a component comes from a token. `scripts/check-literals.mjs` enforces this in every stylesheet and component, and the interface tests run it, as they run the motion check.
-- Allowed without a token: `0`, `1px` hairlines, `100%` and `0%`, `auto`, `transparent`, `currentColor`, alpha-only mask colors, and the collapse breakpoint in a media query, which CSS cannot read from a custom property. Components pass sizes, such as an icon's, as token names, never as numbers.
+- Allowed without a token: `0`, `1px` hairlines, `100%` and `0%`, `auto`, an opacity of `0` or `1` (hidden or shown, a state rather than a design value), `transparent`, `currentColor`, alpha-only mask colors, and the collapse breakpoint in a media query, which CSS cannot read from a custom property. Components pass sizes, such as an icon's, as token names, never as numbers.
 - A new token states its role in its `$description` and joins this specification's usage tables.
 
 ## Color

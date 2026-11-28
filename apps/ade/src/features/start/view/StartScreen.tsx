@@ -252,8 +252,17 @@ function StartForm() {
           noRepository={repositories.length === 0 && !firstRun.managed}
           olderProvider={registry.status === "older"}
         />
-        <Presence className={styles.error}>
-          {/* motion: Inline errors */}
+        {/* One alert replacing another crossfades in place (ADE motion, "Changing in place"). */}
+        <Presence
+          className={styles.error}
+          contentKey={
+            error !== null
+              ? `error:${error.code}`
+              : attachments.notice !== null
+                ? "attachments"
+                : "none"
+          }
+        >
           {attachments.notice !== null && error === null ? (
             <InlineAlert size="note">
               <FormattedMessage {...attachments.notice} values={attachmentNoticeValues} />

@@ -8,8 +8,18 @@
   animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
+.agent[data-leaving] {
+  pointer-events: none;
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .agent[data-arrived="true"] {
+    animation: none;
+  }
+
+  .agent[data-leaving] {
+    visibility: hidden;
     animation: none;
   }
 }

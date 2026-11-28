@@ -161,7 +161,13 @@ export function Composer(props: {
           onClick={stops ? stop : undefined}
         />
       </InputCard>
-      <Presence className={styles.error}>
+      {/* One alert replacing another crossfades in place (ADE motion, "Changing in place"). */}
+      <Presence
+        className={styles.error}
+        contentKey={
+          alert !== null ? alert.id : attachments.notice !== null ? "attachments" : "none"
+        }
+      >
         {alert === null ? (
           attachments.notice === null ? null : (
             <InlineAlert size="meta">

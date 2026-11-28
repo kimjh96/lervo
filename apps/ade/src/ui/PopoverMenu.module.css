@@ -45,9 +45,11 @@
   max-width: var(--layout-menu-wide-width);
 }
 
+/* Closing fades out over leave on the fade easing, as everything that leaves does (ADE motion,
+   principle 11). */
 .menu[data-closing] {
   pointer-events: none;
-  animation: menu-sink var(--motion-duration-exit) var(--motion-easing-exit) forwards;
+  animation: menu-sink var(--motion-duration-leave) var(--motion-easing-fade) forwards;
 }
 
 .item {
@@ -70,7 +72,7 @@
 }
 
 .menu[data-closing] .item {
-  animation: menu-fade var(--motion-duration-exit) var(--motion-easing-exit) forwards;
+  animation: menu-fade var(--motion-duration-leave) var(--motion-easing-fade) forwards;
 }
 
 .item[data-active] {
@@ -88,11 +90,12 @@
   flex: none;
   place-items: center;
   color: var(--color-accent);
-  transition: opacity var(--motion-duration-change) var(--motion-easing-standard);
+  transition: opacity var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
 .check:not([data-checked]) {
   opacity: 0;
+  transition-duration: var(--motion-duration-leave);
 }
 
 .leading {

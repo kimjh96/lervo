@@ -23,9 +23,21 @@
 
 /* An inline place's space moves along the line, so its layers never wrap: a leaving label would
    otherwise fold to the new label's narrower width, grow a line, and push the row while it fades. */
+/* An inline place that fills its line lays out as a block, so its text can shorten with an
+   ellipsis instead of being cut off. */
+.presence[data-inline][data-fill] {
+  display: grid;
+  align-items: stretch;
+  min-width: 0;
+}
+
 .presence[data-inline] > .layer {
   justify-self: start;
   white-space: nowrap;
+}
+
+.presence[data-inline][data-fill] > .layer {
+  justify-self: stretch;
 }
 
 /* In a place pinned to the bottom, layers keep the bottom edge, so new content stays where it

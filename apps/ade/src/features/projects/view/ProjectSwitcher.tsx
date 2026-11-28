@@ -150,8 +150,17 @@ export function ProjectSwitcher() {
             event.preventDefault();
             void ensure().then((module) => module.showProjectMenu(context, current));
           }}
-          leading={<ProjectMark project={current} size="md" />}
-          label={<span className={styles.name}>{projectName(current)}</span>}
+          // Switching projects crossfades the mark and name in place, as the lists below do.
+          leading={
+            <Presence as="span" contentKey={current.projectId}>
+              <ProjectMark project={current} size="md" />
+            </Presence>
+          }
+          label={
+            <Presence as="span" contentKey={current.projectId} fill>
+              <span className={styles.name}>{projectName(current)}</span>
+            </Presence>
+          }
           trailing={
             <span className={styles.trailing}>
               <Presence as="span">

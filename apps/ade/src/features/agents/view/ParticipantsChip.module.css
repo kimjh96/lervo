@@ -46,6 +46,7 @@
 }
 
 .names {
+  display: block;
   overflow: hidden;
   max-width: var(--layout-choice-width);
   white-space: nowrap;

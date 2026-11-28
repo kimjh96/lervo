@@ -1,5 +1,5 @@
 import type { AgentSummary } from "@lervo/session-host-contract";
-import { type KeyboardEvent, useMemo, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useMemo, useState } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
 import {
@@ -11,12 +11,14 @@ import {
   useMenus,
   useProjectMemory,
 } from "../../../ports";
+import { useDepartingInPlace } from "../../../ui/departing";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { ListRow } from "../../../ui/ListRow";
 import { AgentMark } from "./AgentMark";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
 import { Select } from "../../../ui/Select";
+import { useItemSpace } from "../../../ui/space";
 import { useWorkspaceStore } from "../../workspaces";
 import { renameAgent, setAgentModel, setAgentStatus } from "../model/controller";
 import { chooseAgentMark, clearAgentMark } from "../model/marks";
@@ -249,14 +251,7 @@ export function AgentProfile(props: { agentId: string }) {
             </p>
           ) : (
             <div className={styles.rows}>
-              {conversations.map((workspace) => (
-                <ListRow
-                  key={workspace.workspaceId}
-                  current={false}
-                  onClick={() => select(workspace.workspaceId)}
-                  label={workspace.title ?? workspace.branch}
-                />
-              ))}
+              <ConversationRows conversations={conversations} onSelect={select} />
             </div>
           )}
         </Presence>
@@ -279,6 +274,52 @@ export function AgentProfile(props: { agentId: string }) {
           </InlineAlert>
         )}
       </Presence>
+    </div>
+  );
+}
+
+type Conversation = { workspaceId: string; title?: string | null; branch: string };
+
+const conversationKey = (workspace: Conversation) => workspace.workspaceId;
+
+/**
+ * The agent's conversations in its profile: one it joins while the profile is open arrives with
+ * its space, and one it leaves or that is removed fades out where it was (ADE motion, "Coming and
+ * going").
+ */
+function ConversationRows<T extends Conversation>(props: {
+  conversations: readonly T[];
+  onSelect: (workspaceId: string) => void;
+}) {
+  const shown = useDepartingInPlace(props.conversations, conversationKey);
+  const [initial] = useState(() => new Set(props.conversations.map(conversationKey)));
+  return shown.map(({ item: workspace, leaving }) => (
+    <ConversationRow
+      key={workspace.workspaceId}
+      arrived={!initial.has(workspace.workspaceId)}
+      leaving={leaving}
+    >
+      <ListRow
+        current={false}
+        onClick={() => props.onSelect(workspace.workspaceId)}
+        label={workspace.title ?? workspace.branch}
+      />
+    </ConversationRow>
+  ));
+}
+
+function ConversationRow(props: { arrived: boolean; leaving: boolean; children: ReactNode }) {
+  const space = useItemSpace<HTMLDivElement>(props.arrived, props.leaving);
+  return (
+    <div
+      ref={space}
+      className={styles.conversation}
+      data-arrived={props.arrived ? "true" : undefined}
+      data-leaving={props.leaving ? "" : undefined}
+      aria-hidden={props.leaving ? true : undefined}
+      inert={props.leaving}
+    >
+      {props.children}
     </div>
   );
 }

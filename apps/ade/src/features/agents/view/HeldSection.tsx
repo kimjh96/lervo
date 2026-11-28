@@ -41,7 +41,7 @@ export function HeldSection(props: { agentId: string }) {
   );
   const held = learned?.held ?? null;
   const changed = learned?.changed ?? null;
-  // motion: History loads or a workspace reopens
+  // `ContextSections` shows this section only once the paths are known, and fades it.
   if (held === null) return null;
   const unsealed = changed !== null && changed.total > 0;
   return (

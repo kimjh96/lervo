@@ -48,10 +48,17 @@ export function SuggestionList(props: {
   if (props.open && !shown) setShown(true);
   if (!props.open && shown && matchMedia("(prefers-reduced-motion: reduce)").matches)
     setShown(false);
+  // A closing list sinks where it was, with what it last showed: the field drops its query as it
+  // closes, which would move the list to the window's corner and refill it with every agent.
+  const [last, setLast] = useState({ anchor: props.anchor, groups: props.groups });
+  if (props.open && (last.anchor !== props.anchor || last.groups !== props.groups))
+    setLast({ anchor: props.anchor, groups: props.groups });
   if (!shown) return null;
+  const anchor = props.open ? props.anchor : last.anchor;
+  const groups = props.open ? props.groups : last.groups;
   // Each suggestion's index across the groups, which the field's keys and the active choice use.
-  const offsets = props.groups.map((_, group) =>
-    props.groups.slice(0, group).reduce((count, earlier) => count + earlier.items.length, 0),
+  const offsets = groups.map((_, group) =>
+    groups.slice(0, group).reduce((count, earlier) => count + earlier.items.length, 0),
   );
   return createPortal(
     <div
@@ -63,8 +70,8 @@ export function SuggestionList(props: {
       data-wide=""
       data-closing={props.open ? undefined : ""}
       style={{
-        left: props.anchor.left,
-        bottom: window.innerHeight - props.anchor.top + LIST_GAP,
+        left: anchor.left,
+        bottom: window.innerHeight - anchor.top + LIST_GAP,
       }}
       onAnimationEnd={() => {
         if (!props.open) setShown(false);
@@ -72,7 +79,7 @@ export function SuggestionList(props: {
       // The field keeps the focus: a press on the list never takes it.
       onPointerDown={(event) => event.preventDefault()}
     >
-      {props.groups.map((group, groupIndex) => (
+      {groups.map((group, groupIndex) => (
         <div key={group.label} role="group" aria-label={group.label} className={styles.group}>
           <span className={styles.groupLabel} aria-hidden="true">
             {group.label}

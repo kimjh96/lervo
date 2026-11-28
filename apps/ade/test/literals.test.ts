@@ -22,6 +22,7 @@ describe("the design value check", () => {
       @media (width < 760px) { .d { gap: var(--space-8); } }
       @media (width < 500px) { .e { gap: var(--space-8); } }
       @keyframes in { from { opacity: 0; } }
+      .f { opacity: 0; } .f:hover { opacity: 1; }
     `;
     expect(stylesheetViolations(css, "x.css", new Set(["760px"]))).toEqual([
       "x.css: @media uses 500px, which is not a layout breakpoint",

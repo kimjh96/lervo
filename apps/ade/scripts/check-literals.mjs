@@ -1,8 +1,8 @@
 // The stylesheet and component check for the design system's value rule: every color, size,
 // radius, type value, weight, opacity, and offset in a component comes from a token (ADE design
 // system, "Rules for values"). Allowed without a token: 0, 1px hairlines, 100% and 0%, auto,
-// transparent, currentColor, alpha-only mask colors, and the collapse breakpoint in a media
-// query, which CSS cannot read from a custom property.
+// opacity 0 and 1, transparent, currentColor, alpha-only mask colors, and the collapse breakpoint
+// in a media query, which CSS cannot read from a custom property.
 import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 
@@ -42,7 +42,9 @@ export function stylesheetViolations(css, file, breakpoints) {
     if (
       NUMERIC.test(property) &&
       /^-?\d*\.?\d+$/u.test(plain) &&
-      !(keyframed && /^[01]$/u.test(plain))
+      !(keyframed && /^[01]$/u.test(plain)) &&
+      // Fully hidden and fully shown are states, not design values, as 0 is for a length.
+      !(property === "opacity" && /^[01]$/u.test(plain))
     )
       if (!(property === "line-height" && plain === "1"))
         violations.push(`${file}: ${property} uses ${plain}, which is not a token`);
