@@ -125,13 +125,20 @@
   pointer-events: auto;
 }
 
-/* "Jump to latest" floats centered just above the dock. */
-.jump {
+/* "Jump to latest" floats centered just above the dock. Its place is positioned, not the button:
+   the rise arrival moves the button's layer with a transform, and a transformed layer becomes the
+   box an absolutely placed button is laid out in, so the button started right of center and moved
+   back when the arrival ended (2026-11-28). */
+.dock > .jump {
   position: absolute;
   inset-block-end: calc(100% + var(--space-8));
   inset-inline: 0;
-  width: max-content;
-  margin-inline: auto;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.jump button {
+  pointer-events: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

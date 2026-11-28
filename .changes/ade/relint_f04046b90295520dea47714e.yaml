@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f04046b90295520dea47714e"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Jump to latest rises in place at the center instead of starting right of center, and a change of speaker keeps more room above it than any step within one agent's turn."

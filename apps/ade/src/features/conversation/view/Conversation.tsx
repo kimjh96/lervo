@@ -171,9 +171,9 @@ export function Conversation(props: {
           </div>
         </div>
         <div ref={dock} className={styles.dock}>
-          <Presence arrival="rise">
+          <Presence arrival="rise" className={styles.jump}>
             {live ? null : (
-              <FloatingButton className={styles.jump} onClick={jump}>
+              <FloatingButton onClick={jump}>
                 <FormattedMessage id="conversation.jumpToLatest" />
               </FloatingButton>
             )}
