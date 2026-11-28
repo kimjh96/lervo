@@ -137,7 +137,8 @@ describe("project roles", () => {
       provider: "claude",
       responsibilityPaths: ["*"],
     });
-    // A hire without a name gets a nickname, not a specialty or a suffix.
+    // A hire without a name gets a nickname, not a specialty or a suffix. The names hired below
+    // stay outside Lervo's nicknames, which this hire takes by its random ID.
     expect(developer.displayName).toMatch(/^[A-Z][a-z]+$/u);
     await expect(addProjectRole(root, machining, developer.agentId)).rejects.toMatchObject({
       code: "agent_not_authorized",
@@ -166,7 +167,7 @@ describe("project roles", () => {
     const hired = await hireAgent(root, {
       roleId: "machining",
       provider: "claude",
-      displayName: "Iris",
+      displayName: "Yuna",
       responsibilityPaths: ["*"],
       actorAgentId: owner.agentId,
     });
@@ -180,7 +181,7 @@ describe("project roles", () => {
     const hired = await hireAgent(root, {
       roleId: "machining",
       provider: "claude",
-      displayName: "Noel",
+      displayName: "Sora",
       responsibilityPaths: ["*"],
     });
     const assignment = await createAssignment({

@@ -66,7 +66,9 @@ it.each(["gap", "available", "fence_loss"])(
     const effect: SupervisedWorkerHireV1 = {
       schemaVersion: 1,
       kind: "work.worker_hire",
-      displayName: "Mira",
+      // Outside the nicknames Lervo gives unnamed hires (ADR-0662), which the staff above take
+      // by their random IDs; a planned name they could take made the check fail one run in 16.
+      displayName: "Mirae",
       requirement: {
         ...responsibility(),
         assignmentId: `asn_${"0".repeat(24)}`,
@@ -117,7 +119,7 @@ it.each(["gap", "available", "fence_loss"])(
     try {
       if (existingStaff) {
         await expect(runtime.runCycle()).rejects.toThrow(/Existing available/iu);
-        expect((await listAgents(f.root)).filter((agent) => agent.displayName === "Mira")).toEqual(
+        expect((await listAgents(f.root)).filter((agent) => agent.displayName === "Mirae")).toEqual(
           [],
         );
         return;
@@ -137,7 +139,7 @@ it.each(["gap", "available", "fence_loss"])(
       expect(cycle.disposition, JSON.stringify({ cycle, attention: f.attention })).toBe(
         "effect_confirmed",
       );
-      const hired = (await listAgents(f.root)).find((agent) => agent.displayName === "Mira")!;
+      const hired = (await listAgents(f.root)).find((agent) => agent.displayName === "Mirae")!;
       expect(hired).toMatchObject({
         parentAgentId: f.owner.agentId,
         responsibilityPaths: ["src"],
