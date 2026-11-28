@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_77510d7abb1a64b50ca67e76"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Content that comes back while it is still fading out, such as Jump to latest or a list closed and reopened at once, turns around where it is instead of flickering in again from nothing."

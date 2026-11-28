@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_df865f65bbc4362fa1e6fcd8"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Removing a workspace with its changes leaves one plain line, Removed. Lervo keeps its changes for up to 14 days, with Copy restore command and Dismiss, instead of a raw Git command."

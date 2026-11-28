@@ -1,12 +1,9 @@
-<!-- lervo-release package="@lervo/ade" version="0.13.1" schema="1" -->
+<!-- lervo-release package="@lervo/ade" version="0.13.2" schema="1" -->
 
 Needs the Lervo CLI 0.67.1 or later.
 
 ## What's changed
 
-- A write Lervo could not check in time reads Lervo could not check it in time in the conversation, instead of the bare claim_unverified code.
-- Content that came or went in one frame now fades and opens or closes its space, from the turn summary line and project switches to removed list items, closing menus, and status rings.
-- Launching shows the Lervo mark from the window's first visible frame: the window goes on screen transparent and turns opaque once the page has painted, instead of showing bare glass while WebKit drew its first frame.
-- The first run's three choices are parted by space instead of lines that vanished under the pointer, and rows and chips on filled surfaces show their hover and choice in light mode too.
-- The open project list shows only the other projects, since the row above already shows the selected one, and Escape closes the list.
-- The working line keeps one line while its words change, so Creating the workspace no longer folds onto two lines and jumps before Thinking.
+- A joined agent's items arrive with motion as the lead's do, the Add Project window closes with its motion when an add succeeds, and history scrolled back into view no longer replays entrances.
+- Content that comes back while it is still fading out, such as Jump to latest or a list closed and reopened at once, turns around where it is instead of flickering in again from nothing.
+- Removing a workspace with its changes leaves one plain line, Removed. Lervo keeps its changes for up to 14 days, with Copy restore command and Dismiss, instead of a raw Git command.
