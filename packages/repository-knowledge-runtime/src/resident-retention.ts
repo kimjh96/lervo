@@ -12,7 +12,9 @@ import {
 import {
   readRetentionWait,
   recordRetentionWait,
+  retentionFailureCode,
   type CasRetentionWaitCause,
+  type CasRetentionWaitDetail,
 } from "./cas-retention-wait.js";
 import { foregroundWorkPending } from "./foreground-admission.js";
 import { fullCycleAdmissionDirectory } from "./full-cycle-admission.js";
@@ -21,6 +23,16 @@ import { runRetentionOnlySlice, type RetentionOnlyOutcome } from "./retention-on
 
 /** While live work or full cycles hold, the wait between attempts doubles up to this ceiling. */
 export const RETENTION_BACKOFF_CEILING_MILLISECONDS = 10 * 60_000;
+/** After consecutive failed attempts, the wait doubles up to this ceiling. */
+export const RETENTION_FAILURE_BACKOFF_CEILING_MILLISECONDS = 60 * 60_000;
+
+/** The wait after `failures` consecutive failed attempts: 60 s, doubling, at most an hour. */
+export function retentionFailureBackoff(failures: number): number {
+  return Math.min(
+    PAUSE * 2 ** Math.min(Math.max(failures, 1), 20),
+    RETENTION_FAILURE_BACKOFF_CEILING_MILLISECONDS,
+  );
+}
 /** An observation this old predates the rescan a completed pass waits for; compared on read. */
 const RESCAN_AGE_MILLISECONDS = 24 * 60 * 60_000;
 const MINIMUM_DELAY_MILLISECONDS = 1_000;
@@ -70,7 +82,12 @@ export function nextRetentionWake(
     case "off_base":
       return { at: null, backoff };
     case "not_due":
-      return { at: null, backoff: PAUSE, wait: null };
+      // The rescan or the idle recheck makes a pass due then, with no change to wake for it.
+      return {
+        at: Math.max(outcome.dueAt, now + MINIMUM_DELAY_MILLISECONDS),
+        backoff: PAUSE,
+        wait: null,
+      };
     case "live_work":
       return backOff("live_work");
     case "admission_busy":
@@ -139,7 +156,11 @@ export function residentRetention(input: {
   liveWorkPending: () => Promise<boolean>;
   cycleRunning: () => boolean;
   arm: (at: number | null) => void;
-  recordWait: (cause: CasRetentionWaitCause | null, now: number, retryAt?: number) => Promise<void>;
+  recordWait: (
+    cause: CasRetentionWaitCause | null,
+    now: number,
+    detail?: CasRetentionWaitDetail,
+  ) => Promise<void>;
   stopped: () => boolean;
   onFailure: (error: unknown) => void;
   now?: () => number;
@@ -149,28 +170,37 @@ export function residentRetention(input: {
   const startDelay = input.startDelay ?? (() => retentionStartDelay());
   const now = input.now ?? Date.now;
   let backoff = PAUSE;
+  let failures = 0;
   let running: Promise<void> | null = null;
+  // A lost record costs only attention's detail, never the next slice.
+  const record = (cause: CasRetentionWaitCause | null, detail?: CasRetentionWaitDetail) =>
+    input.recordWait(cause, now(), detail).catch(() => undefined);
+  const arm = (at: number | null) => {
+    if (!input.cycleRunning() && !input.stopped()) input.arm(at);
+  };
   const slice = async () => {
     let outcome: RetentionOnlyOutcome;
     try {
       outcome = await input.runSlice();
     } catch (error) {
-      // A failure is reported and arms nothing: the next full cycle, or a restart, tries again.
-      if (!input.stopped()) input.onFailure(error);
+      if (input.stopped()) return;
+      // A failure never stops retention silently: it is reported, recorded with its code for
+      // attention, and retried after a wait that doubles up to an hour.
+      input.onFailure(error);
+      failures = Math.min(failures + 1, 64);
+      await record("failed", { code: retentionFailureCode(error), failures });
+      arm(now() + retentionFailureBackoff(failures));
       return;
     }
+    failures = 0;
     const next = nextRetentionWake(outcome, backoff, now());
     backoff = next.backoff;
-    // A lost record costs only attention's detail, never the next slice.
     if (next.wait !== undefined)
-      await input
-        .recordWait(
-          next.wait,
-          now(),
-          next.wait === "retention_turn" ? (next.at ?? undefined) : undefined,
-        )
-        .catch(() => undefined);
-    if (!input.cycleRunning()) input.arm(next.at);
+      await record(
+        next.wait,
+        next.wait === "retention_turn" && next.at !== null ? { retryAt: next.at } : {},
+      );
+    arm(next.at);
   };
   return {
     run() {
@@ -216,8 +246,8 @@ export function startResidentRetention(
     liveWorkPending,
     cycleRunning: wiring.cycleRunning,
     arm: wiring.arm,
-    recordWait: (cause, now, retryAt) =>
-      recordRetentionWait(input.storage.paths.knowledgeState, cause, now, retryAt),
+    recordWait: (cause, now, detail) =>
+      recordRetentionWait(input.storage.paths.knowledgeState, cause, now, detail),
     stopped: () => wiring.signal.aborted,
     onFailure: input.onFailure,
   });

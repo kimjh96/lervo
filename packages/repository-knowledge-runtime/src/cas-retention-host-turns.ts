@@ -27,8 +27,10 @@ const PAUSE = CAS_RETENTION_HOST_PAUSE_MILLISECONDS;
 const GRACE = CAS_RETENTION_TURN_GRACE_MILLISECONDS;
 
 /** A granted turn remembers the repository's previous slice, so an unused turn can be returned. */
+/** `contended`: the host database was locked, so the request could not even be recorded. */
 export type RetentionTurn =
-  { granted: true; previousSliceAt: number } | { granted: false; retryAt: number };
+  | { granted: true; previousSliceAt: number }
+  | { granted: false; retryAt: number; contended?: true };
 
 function repositoryHash(repositoryRoot: string): string {
   return sha256(resolve(repositoryRoot));
@@ -110,7 +112,8 @@ export async function requestRetentionTurn(input: {
       return { granted: true, previousSliceAt: Number(previous?.last_slice_at ?? 0) };
     });
   } catch (error) {
-    if (isSqliteLockContention(error)) return { granted: false, retryAt: now + PAUSE };
+    if (isSqliteLockContention(error))
+      return { granted: false, retryAt: now + PAUSE, contended: true };
     throw error;
   }
 }

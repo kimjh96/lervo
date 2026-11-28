@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,6 +12,7 @@ import type { ConvergenceOwnerVerdict } from "../src/convergence-owner-verdict.j
 import type { KnowledgeHubChangeTransport } from "../src/hub-knowledge-changes.js";
 import { startAutonomousKnowledgeWorker } from "../src/loop.js";
 import { runResidentCycle } from "../src/resident-cycle.js";
+import { RETENTION_START_DELAY_MILLISECONDS } from "../src/resident-retention.js";
 import { writeHostConfig } from "./convergence-owner-hosts.js";
 
 vi.mock("../src/resident-cycle.js", async (original) => ({
@@ -116,9 +118,25 @@ function pushingHub(): KnowledgeHubChangeTransport {
 it.each([
   ["a standalone owner", "standalone" as const],
   ["an owner on a Hub that pushes", "hub" as const],
-])("arms no timer once %s is idle (ADR-0602)", async (_name, mode) => {
+])("arms no timer once %s is idle (ADR-0602)", { timeout: 60_000 }, async (_name, mode) => {
   await writeHostConfig(root, { hostId: `hst_${"1".repeat(32)}`, label: "mac", mode });
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
+  // A checkout off its base branch, so the first retention slice decides at once and arms nothing.
+  const git = (...args: string[]) =>
+    execFileSync("git", [
+      "-C",
+      root,
+      "-c",
+      "user.name=Test",
+      "-c",
+      "user.email=test@lervo.invalid",
+      ...args,
+    ]);
+  git("init", "-q", "-b", "main");
+  git("commit", "-q", "--allow-empty", "-m", "base");
+  git("checkout", "-q", "-b", "feature");
+  vi.useFakeTimers({
+    toFake: ["Date", "setTimeout", "clearTimeout", "setInterval", "clearInterval"],
+  });
   const observe = vi.fn(async () => verdict("owner", mode));
   const stop = startAutonomousKnowledgeWorker({
     storage: storage(),
@@ -142,6 +160,14 @@ it.each([
     // its one timer is the first retention-only slice, armed once at start, which decides
     // whether a pass is due and arms nothing more when none is.
     expect(vi.getTimerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(RETENTION_START_DELAY_MILLISECONDS.maximum);
+    // The slice runs Git for real; wait in real time until it has decided.
+    const giveUpAt = performance.now() + 30_000;
+    while (vi.getTimerCount() > 0 && performance.now() < giveUpAt) {
+      await turns(20);
+      await vi.advanceTimersByTimeAsync(0);
+    }
+    expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
     await turns(20);
     expect(runResidentCycle).toHaveBeenCalledTimes(1);

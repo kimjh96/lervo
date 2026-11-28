@@ -29,7 +29,9 @@ The first design made remaining retention a due time in the change fence. Review
    - The turn comes first, so repositories that are not served never touch the admission.
    - The slice takes the admission with the new `retention` priority. It is admitted in one transaction only while no live holder holds and no live waiter waits. It never inserts a waiter row, because a waiter would make the running full cycle yield at its next stage. Refused, it gives the turn back and leaves the host's pause as it was. While it runs, a full cycle that arrives makes it yield.
    - A resident arms its first retention-only slice when it starts, at a random 30–90 s, so residents restarted together spread out. This happens whatever the change fence says, because a restarted resident with an unchanged fence skips its full cycle.
-   - The slice first checks whether a pass could find work, from the scan projection alone. A pass must be in progress or its rescan interval passed, with no idle answer still standing. Otherwise it returns `not_due`, takes no turn, reads no CAS body and arms nothing.
+   - The slice first checks whether a pass could find work, from the scan projection alone. A pass must be in progress or its rescan interval passed, with no idle answer still standing. Otherwise it returns `not_due`, takes no turn and reads no CAS body. It arms the deadline for the moment that answer expires: the rescan, or the idle answer's six-hour recheck. A quiet, healthy repository therefore records a pass at least that often and never shows `cas_retention_stale`.
+   - A slice that throws is reported, recorded in `cas-retention-wait.json` as `failed` with a short code (the error's code, or `sqlite_busy`) and its count of consecutive failures, and retried after a wait that doubles from 60 s up to an hour. After three consecutive failures, attention reports `cas_retention_failing` with the code, even before any observation exists. A slice that runs ends the streak.
+   - Lock contention on the host database while asking for the turn is not a failure: the slice backs off as for a busy admission. A turn that cannot be given back keeps its start as the host's last slice, so the pause holds.
    - After each full cycle, skipped or not, the deadline is armed in one of three ways, and never disarmed:
      - If the cycle's own retention was denied the turn, it is armed for the moment the denial named.
      - If the last recorded pass left work, is not `unavailable` and is less than a day old, it is armed 30 s later.
@@ -55,6 +57,8 @@ The first design made remaining retention a due time in the change fence. Review
    - A slice whose read budget ran out counts a stall with cause `read_budget_exhausted` if it advanced nothing. Advancing means classifying a record, caching a report, or reading further into a file at the identity it had before. The stall counts toward the same five-stall bound.
    - A slice that does advance ends any stall, including an `inventory_changed` or `event_head_changed` stall at its bound. A pass whose inventory or head keeps moving rereads only changed files, and their new identities count as no progress, so such a stall still reaches its bound.
    - An unchanged file resumes from its saved offset or SQLite cursor across slices, as before. A file that changes between slices restarts, and the stall names it in `stallReference`, relative to the repository. At the bound, `remaining` turns false, and attention reports `cas_retention_stalled` with the path.
+
+6. **The exception to ADR-0602's idle timers.** ADR-0602 lets an idle resident arm a timer only for a known deadline. ADR-0660 adds one such deadline, `retention`. It is armed at start, for a due rescan or idle recheck, after a failure, or while work is left. It is never a poll or an interval: each firing decides and arms at most the next known moment.
 
 ## Consequences
 

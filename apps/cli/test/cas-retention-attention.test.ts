@@ -131,3 +131,23 @@ it("names why retention with work left has run no slice for six hours (ADR-0660)
     await attention({ ...waiting, remaining: false, observedAt: "2026-11-28T05:00:00.000Z" }),
   ).toEqual([]);
 });
+
+it("names retention attempts that keep failing after three, with their code (ADR-0660)", async () => {
+  const root = await observed({ status: "collected", failure: null, remaining: true });
+  const fail = (failures: number) =>
+    writeFile(
+      join(root, ".lervo/state/knowledge/cas-retention-wait.json"),
+      JSON.stringify({ schemaVersion: 1, cause: "failed", code: "sqlite_busy", failures, at: NOW }),
+    );
+  await fail(2);
+  expect(await readCasRetentionAttention(root, NOW)).toEqual([]);
+  await fail(3);
+  expect(await readCasRetentionAttention(root, NOW)).toMatchObject([
+    { code: "cas_retention_failing", detail: "sqlite_busy (3 attempts)" },
+  ]);
+  // Without any observation yet, the failure still shows.
+  await rm(join(root, ".lervo/state/knowledge/cas-retention-observation.json"));
+  expect(await readCasRetentionAttention(root, NOW)).toMatchObject([
+    { code: "cas_retention_failing" },
+  ]);
+});

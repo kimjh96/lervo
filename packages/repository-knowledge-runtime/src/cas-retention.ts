@@ -1,4 +1,9 @@
-import { readRetentionScan, saveScan, type RetentionScan } from "./cas-retention-state.js";
+import {
+  RETENTION_IDLE_RECHECK_MILLISECONDS,
+  readRetentionScan,
+  saveScan,
+  type RetentionScan,
+} from "./cas-retention-state.js";
 import { memoizedConvergenceArtifactRoots, retentionStillIdle } from "./cas-retention-memo.js";
 import { resolve } from "node:path";
 
@@ -234,14 +239,19 @@ export async function runCasRetentionPass(
  * ADR-0660: whether a pass could find work, by the same two checks a pass makes first: the
  * rescan interval after a completed pass has passed, and no idle answer (ADR-0597) still stands.
  * It reads the scan projection and the events since the idle head, never a CAS body, so a
- * retention-only wake asks before it takes the host's turn. An unreadable projection is due.
+ * retention-only wake asks before it takes the host's turn. An unreadable projection is due. When
+ * nothing is due, `dueAt` is the moment one of those answers expires: the rescan, or the idle
+ * answer's recheck. A lifecycle event can end an idle answer sooner; a full cycle sees it.
  */
 export async function casRetentionPassMayBeDue(
   storage: ProjectStorage,
   now: number,
-): Promise<boolean> {
+): Promise<{ due: true } | { due: false; dueAt: number }> {
   const scan = await readRetentionScan(resolve(storage.paths.knowledgeState, CAS_RETENTION_SCAN));
-  return scan.nextScanAt <= now && !retentionStillIdle(scan, storage.events, now);
+  if (scan.nextScanAt > now) return { due: false, dueAt: scan.nextScanAt };
+  if (scan.idle !== undefined && retentionStillIdle(scan, storage.events, now))
+    return { due: false, dueAt: scan.idle.at + RETENTION_IDLE_RECHECK_MILLISECONDS };
+  return { due: true };
 }
 
 /** One pass with no host turn, as one-shot commands and tests run it. */
