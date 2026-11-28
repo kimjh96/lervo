@@ -43,7 +43,10 @@ export const workspaceSummarySchema = {
     projectId: identifierSchema,
     repositoryName: nameSchema,
     branch: nameSchema,
-    /** The workstream title, or null when the worktree's state is unreadable. */
+    /**
+     * The title the owner gave the conversation, or else its workstream title, which its agent
+     * keeps current; null when it has neither, as when the worktree's state is unreadable.
+     */
     title: { oneOf: [{ type: "string", maxLength: 1024 }, { type: "null" }] },
     provider: providerIdSchema,
     conversationMode: conversationModeSchema,
@@ -62,12 +65,20 @@ export const workspaceSummarySchema = {
     },
     /** Each participant's session, the lead's first (Lervo ADE rooms). An older core omits it. */
     sessions: { type: "array", maxItems: MAXIMUM_ROOM_AGENTS, items: roomSessionSchema },
+    /**
+     * The conversation's latest activity, which the list orders by: when it began or an agent
+     * last joined it. An older core omits it.
+     */
+    activeAt: timestampSchema,
+    /** When the owner pinned the conversation; absent when it is not pinned or the core is older. */
+    pinnedAt: timestampSchema,
   },
 } as const;
 
 /**
- * `workspace.list`: the workspaces with a hosted launch on this host, latest activity first: when
- * a conversation began or an agent joined it. Reopening a conversation does not move it.
+ * `workspace.list`: the workspaces with a hosted launch on this host, the pinned ones first, the
+ * latest pinned on top, then latest activity first: when a conversation began or an agent joined
+ * it. Reopening a conversation does not move it.
  */
 export const workspaceListResultSchema = {
   title: "WorkspaceListResult",
@@ -172,6 +183,31 @@ export const workspaceStartResultSchema = {
   },
 } as const;
 
+/** The most characters of a title the owner gives a conversation. */
+export const MAXIMUM_OWNER_TITLE_CHARACTERS = 256;
+
+/** `workspace.rename`: the title the owner gave the conversation, which its agent never changes. */
+export const workspaceRenameResultSchema = {
+  title: "WorkspaceRenameResult",
+  type: "object",
+  required: ["workspaceId", "title"],
+  properties: {
+    workspaceId: identifierSchema,
+    title: { type: "string", minLength: 1, maxLength: MAXIMUM_OWNER_TITLE_CHARACTERS },
+  },
+} as const;
+
+/** `workspace.pin`: when the owner pinned the conversation, or null once it is unpinned. */
+export const workspacePinResultSchema = {
+  title: "WorkspacePinResult",
+  type: "object",
+  required: ["workspaceId", "pinnedAt"],
+  properties: {
+    workspaceId: identifierSchema,
+    pinnedAt: { anyOf: [timestampSchema, { type: "null" }] },
+  },
+} as const;
+
 /** What a provider's hosted-session adapter supports (the adapter contract's capabilities). */
 export const providerCapabilitiesSchema = {
   title: "ProviderCapabilities",
@@ -271,3 +307,5 @@ export type ProviderCapabilities = FromSchema<typeof providerCapabilitiesSchema>
 export type ProviderSummary = FromSchema<typeof providerSummarySchema>;
 export type ProviderListResult = FromSchema<typeof providerListResultSchema>;
 export type WorkspaceRetireResult = FromSchema<typeof workspaceRetireResultSchema>;
+export type WorkspaceRenameResult = FromSchema<typeof workspaceRenameResultSchema>;
+export type WorkspacePinResult = FromSchema<typeof workspacePinResultSchema>;

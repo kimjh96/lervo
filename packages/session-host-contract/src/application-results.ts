@@ -55,11 +55,15 @@ import {
   repositoryListResultSchema,
   providerListResultSchema,
   workspaceRetireResultSchema,
+  workspaceRenameResultSchema,
+  workspacePinResultSchema,
   workspaceStartResultSchema,
   type WorkspaceListResult,
   type RepositoryListResult,
   type ProviderListResult,
   type WorkspaceRetireResult,
+  type WorkspaceRenameResult,
+  type WorkspacePinResult,
   type WorkspaceStartResult,
 } from "./application-workspace-results.js";
 
@@ -70,6 +74,8 @@ export const applicationCommandNames = [
   "repository.list",
   "provider.list",
   "workspace.retire",
+  "workspace.rename",
+  "workspace.pin",
   "turn.summary",
   "project.add",
   "project.rename",
@@ -106,6 +112,8 @@ export const applicationResultSchemas = {
   "repository.list": repositoryListResultSchema,
   "provider.list": providerListResultSchema,
   "workspace.retire": workspaceRetireResultSchema,
+  "workspace.rename": workspaceRenameResultSchema,
+  "workspace.pin": workspacePinResultSchema,
   "turn.summary": turnSummaryResultSchema,
   "project.add": projectAddResultSchema,
   "project.rename": projectRenameResultSchema,
@@ -137,6 +145,8 @@ export interface ApplicationResults {
   "repository.list": RepositoryListResult;
   "provider.list": ProviderListResult;
   "workspace.retire": WorkspaceRetireResult;
+  "workspace.rename": WorkspaceRenameResult;
+  "workspace.pin": WorkspacePinResult;
   "turn.summary": TurnSummaryResult;
   "project.add": ProjectAddResult;
   "project.rename": ProjectRenameResult;

@@ -36,6 +36,8 @@ import {
   repositorySummarySchema,
   workspaceListResultSchema,
   workspaceRetireResultSchema,
+  workspaceRenameResultSchema,
+  workspacePinResultSchema,
   workspaceStartResultSchema,
   workspaceSummarySchema,
 } from "./application-workspace-results.js";
@@ -112,6 +114,8 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     providerSummarySchema,
     providerListResultSchema,
     workspaceRetireResultSchema,
+    workspaceRenameResultSchema,
+    workspacePinResultSchema,
     turnSummarySchema,
     turnSummaryResultSchema,
     projectMarkSchema,
