@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d2f2012421d6d3515796717f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A shell line reads as Lervo's work when input is piped into a lervo command, when the call sits in a loop or after a here-document, and a command group alone reads as a help lookup."

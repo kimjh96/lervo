@@ -33,12 +33,40 @@ const MAX_TEXT_CHARACTERS = 512;
 const PRELUDE = new Set(["cd", "pushd"]);
 /** Commands that only print a message, such as a separator, and do no work of their own. */
 const MESSAGES = new Set(["echo", "true", "printf"]);
+/** Words that open a command's place in a compound command, before the command itself. */
+const KEYWORDS = new Set(["do", "then", "else", "elif", "if", "while", "until", "!", "{", "time"]);
+/** Compound command syntax that does no work of its own, such as a loop's header and end. */
+const SYNTAX = new Set(["for", "select", "case", "done", "fi", "esac", "}"]);
 /** How a kept command joins the one before it. */
 const JOINS: Readonly<Record<string, string>> = { "&&": " && ", "||": " || " };
 
+/** Where the line goes on after the here-documents that end at `from`, each up to its delimiter. */
+function afterHereDocuments(line: string, from: number, delimiters: readonly string[]): number {
+  let position = from;
+  for (const delimiter of delimiters)
+    while (position < line.length) {
+      const end = line.indexOf("\n", position);
+      const text = line.slice(position, end === -1 ? line.length : end);
+      position = end === -1 ? line.length : end + 1;
+      if (text.trim() === delimiter) break;
+    }
+  return position;
+}
+
+/** The delimiter of the here-document that `<<` at `index` opens, if it opens one. */
+function hereDocumentDelimiter(line: string, index: number): string | undefined {
+  if (line[index - 1] === "<" || line[index + 1] !== "<" || line[index + 2] === "<")
+    return undefined;
+  const rest = line.slice(index + 2).replace(/^-?[ \t]*/u, "");
+  const match = /^(?:'([^']*)'|"([^"]*)"|([A-Za-z0-9_]+))/u.exec(rest);
+  const delimiter = match?.[1] ?? match?.[2] ?? match?.[3];
+  return delimiter === undefined || delimiter === "" ? undefined : delimiter;
+}
+
 /**
  * The words and control operators of a shell line, with quotes removed. A quoted part marks its
- * word as quoted. An unclosed quote runs to the end, as a shortened command's might.
+ * word as quoted. An unclosed quote runs to the end, as a shortened command's might. A
+ * here-document's lines are the input of its command, never commands of their own.
  */
 function segments(line: string): Segment[] {
   const result: Segment[] = [];
@@ -48,6 +76,7 @@ function segments(line: string): Segment[] {
   let word = "";
   let quoted = false;
   let started = false;
+  const hereDocuments: string[] = [];
   const endWord = () => {
     if (started) words.push({ text: word, quoted });
     word = "";
@@ -64,6 +93,10 @@ function segments(line: string): Segment[] {
   for (let index = 0; index < line.length; index += 1) {
     const character = line[index] as string;
     const next = line[index + 1];
+    if (character === "<") {
+      const delimiter = hereDocumentDelimiter(line, index);
+      if (delimiter !== undefined) hereDocuments.push(delimiter);
+    }
     if (character === "'" || character === '"') {
       const close = line.indexOf(character, index + 1);
       const end = close === -1 ? line.length : close;
@@ -77,6 +110,10 @@ function segments(line: string): Segment[] {
       if (next !== "\n") word += next;
       started = started || next !== "\n";
       index += 1;
+    } else if (character === "\n" && hereDocuments.length > 0) {
+      endSegment(index, ";");
+      start = afterHereDocuments(line, index + 1, hereDocuments.splice(0));
+      index = start - 1;
     } else if (character === "\n" || character === ";") {
       endSegment(index, ";");
     } else if ((character === "&" || character === "|") && next === character) {
@@ -97,31 +134,54 @@ function segments(line: string): Segment[] {
   return result.filter((segment) => segment.words.length > 0);
 }
 
-/** A command and the filters its output is piped into, as the line spells them. */
+/** A command with what is piped into it and what its output is piped into, as the line spells it. */
 interface Pipeline {
   readonly operator: string;
-  /** The command's words, without the variables it assigns first. */
+  /** The first command's words, without the variables it assigns and the keywords before it. */
   readonly words: readonly Token[];
   readonly source: string;
+  /** The arguments of the pipeline's first `lervo` command, wherever in the pipeline it runs. */
+  readonly lervo?: readonly Token[];
+}
+
+const isLervo = (token: Token | undefined) =>
+  token !== undefined && token.text.split("/").at(-1) === "lervo";
+
+/** A segment's command: its words without the variables it assigns and the keywords before it. */
+function program(words: readonly Token[]): Token[] {
+  const rest = [...words];
+  while (
+    rest.length > 0 &&
+    !rest[0]!.quoted &&
+    (ASSIGNMENT.test(rest[0]!.text) || KEYWORDS.has(rest[0]!.text))
+  )
+    rest.shift();
+  return rest;
 }
 
 function pipelines(line: string): Pipeline[] {
   const result: Pipeline[] = [];
   for (const segment of segments(line)) {
+    const words = program(segment.words);
+    const lervo = isLervo(words[0]) ? words.slice(1) : undefined;
     const last = result.at(-1);
     if (segment.operator === "|" && last !== undefined) {
-      result[result.length - 1] = { ...last, source: `${last.source} | ${segment.source}` };
+      result[result.length - 1] = {
+        ...last,
+        source: `${last.source} | ${segment.source}`,
+        ...(last.lervo === undefined && lervo !== undefined ? { lervo } : {}),
+      };
       continue;
     }
-    const words = [...segment.words];
-    while (words.length > 0 && !words[0]!.quoted && ASSIGNMENT.test(words[0]!.text)) words.shift();
-    result.push({ operator: segment.operator, words, source: segment.source });
+    result.push({
+      operator: segment.operator,
+      words,
+      source: segment.source,
+      ...(lervo === undefined ? {} : { lervo }),
+    });
   }
   return result;
 }
-
-const isLervo = (token: Token | undefined) =>
-  token !== undefined && token.text.split("/").at(-1) === "lervo";
 
 const named = (token: Token | undefined, names: ReadonlySet<string>) =>
   token !== undefined && !token.quoted && names.has(token.text);
@@ -143,6 +203,14 @@ function call(arguments_: readonly Token[], commands: ReadonlySet<string>): Lerv
   }
   let length = words.length;
   while (length > 0 && !commands.has(words.slice(0, length).join(" "))) length -= 1;
+  // A command group alone, such as `lervo role`, prints its usage: a help lookup.
+  if (length === 0 && words.length <= 1) {
+    const group = words[0] ?? "";
+    if (group === "" || [...commands].some((path) => path.startsWith(`${group} `)))
+      return arguments_.some((token) => !token.quoted && token.text === "--version")
+        ? { command: "", flag: "version" }
+        : { command: group, flag: "help" };
+  }
   // A command the catalog does not know, such as a newer CLI's, keeps its first word.
   const command = words.slice(0, length === 0 ? Math.min(1, words.length) : length).join(" ");
   const flagged = (...names: string[]) =>
@@ -171,37 +239,35 @@ function call(arguments_: readonly Token[], commands: ReadonlySet<string>): Lerv
 
 /**
  * The Lervo call a shell line makes, or undefined when it runs no `lervo` command. The line's
- * first Lervo call is its call; later ones, the filters their output is piped into, and messages
- * such as a separator belong to it. Every other command is the line's own, kept in `others` as
- * the line spells it, with a directory change before it.
+ * first Lervo call is its call; what is piped into it or out of it, later calls, and messages such
+ * as a separator belong to it. Every other command is the line's own, kept in `others` as the line
+ * spells it, with the directory changes and the compound command syntax around it, such as a
+ * loop's header; a line whose only other commands are those has none.
  */
 export function readLervoShellLine(
   line: string,
   commands: ReadonlySet<string>,
 ): LervoShellLine | undefined {
   let found: LervoCall | undefined;
-  const others: string[] = [];
-  const moves: string[] = [];
-  const keep = (pipeline: Pipeline) =>
-    others.push(
-      others.length === 0
-        ? pipeline.source
-        : `${JOINS[pipeline.operator] ?? "; "}${pipeline.source}`,
-    );
+  const parts: { readonly pipeline: Pipeline; readonly work: boolean }[] = [];
   for (const pipeline of pipelines(line)) {
-    const first = pipeline.words[0];
-    if (first === undefined || named(first, MESSAGES)) continue;
-    if (isLervo(first)) found ??= call(pipeline.words.slice(1), commands);
-    else if (named(first, PRELUDE)) moves.push(pipeline.source);
-    else {
-      // A directory change matters only to the commands after it.
-      for (const move of moves.splice(0))
-        keep({ operator: others.length === 0 ? "" : ";", words: [], source: move });
-      keep(pipeline);
+    if (pipeline.lervo !== undefined) {
+      found ??= call(pipeline.lervo, commands);
+      continue;
     }
+    const first = pipeline.words[0];
+    if (named(first, MESSAGES)) continue;
+    parts.push({
+      pipeline,
+      work: first !== undefined && !named(first, PRELUDE) && !named(first, SYNTAX),
+    });
   }
   if (found === undefined) return undefined;
-  return others.length === 0
-    ? { call: found }
-    : { call: found, others: shortenedText(others.join("")) };
+  if (!parts.some((part) => part.work)) return { call: found };
+  const others = parts
+    .map(({ pipeline }, index) =>
+      index === 0 ? pipeline.source : `${JOINS[pipeline.operator] ?? "; "}${pipeline.source}`,
+    )
+    .join("");
+  return { call: found, others: shortenedText(others) };
 }
