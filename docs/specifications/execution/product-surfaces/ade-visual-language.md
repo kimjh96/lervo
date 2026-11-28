@@ -28,31 +28,34 @@ Values here supersede the mockup values where they differ. The glass follows the
 
 Each token is semantic. Components use tokens, never raw values.
 
-| Token                       | Dark                     | Light                    | Use                                                         |
-| --------------------------- | ------------------------ | ------------------------ | ----------------------------------------------------------- |
-| `color.surface.opaque`      | `#1A1C23`                | `#F4F5F8`                | The window when glass is off                                |
-| `color.surface.sidebar`     | `rgba(255,255,255,0.03)` | `rgba(255,255,255,0.35)` | The workspace list over the window surface                  |
-| `color.surface.input`       | `rgba(255,255,255,0.05)` | `rgba(255,255,255,0.80)` | Instruction and reply inputs                                |
-| `color.surface.floating`    | `rgba(30,32,40,0.62)`    | `rgba(255,255,255,0.62)` | The reply card and controls over the conversation           |
-| `color.surface.selected`    | `rgba(255,255,255,0.08)` | `rgba(255,255,255,0.85)` | The selected workspace                                      |
-| `color.surface.workspace`   | `rgba(255,255,255,0)`    | `rgba(255,255,255,0.35)` | The selected workspace's conversation over the window glass |
-| `color.surface.code`        | `rgba(255,255,255,0.06)` | `rgba(20,30,50,0.05)`    | Code blocks and inline code in agent messages               |
-| `color.surface.userMessage` | `rgba(255,255,255,0.08)` | `rgba(20,30,50,0.06)`    | The user's messages in the conversation                     |
-| `color.border.subtle`       | `rgba(255,255,255,0.06)` | `rgba(20,30,50,0.07)`    | Dividers                                                    |
-| `color.border.default`      | `rgba(255,255,255,0.12)` | `rgba(20,30,50,0.10)`    | Inputs and controls                                         |
-| `color.border.window`       | `rgba(255,255,255,0.10)` | `rgba(255,255,255,0.75)` | The window edge                                             |
-| `color.text.primary`        | `#ECEEF3`                | `#161B26`                | Body text and titles                                        |
-| `color.text.secondary`      | `#B4BAC7`                | `#454D5C`                | Supporting text                                             |
-| `color.text.tertiary`       | `#A3AAB7`                | `#4C5361`                | Labels, hints, and timestamps                               |
-| `color.text.highlight`      | `#ECEEF3`                | `#B4BAC7`                | The band of light that sweeps across a wait's words         |
-| `color.text.link`           | `#A9C1FF`                | `#2848AA`                | Inline actions such as "View diff"                          |
-| `color.accent`              | `#7AA2F7`                | `#3A64D8`                | The brand blue: primary buttons, focus, the logo's last bar |
-| `color.onAccent`            | `#0B1020`                | `#FFFFFF`                | Text and icons on the accent                                |
-| `color.status.working`      | `#7AA2F7`                | `#3A64D8`                | The agent is working                                        |
-| `color.status.needsYou`     | `#F2B661`                | `#975C06`                | The workspace needs the user                                |
-| `color.status.failed`       | `#F29A8E`                | `#B42318`                | A stage or session failed                                   |
-| `color.diff.added`          | `#8FD3B6`                | `#1A7F5A`                | Added lines                                                 |
-| `color.diff.removed`        | `#F29A8E`                | `#B42318`                | Removed lines                                               |
+| Token                          | Dark                      | Light                    | Use                                                                                |
+| ------------------------------ | ------------------------- | ------------------------ | ---------------------------------------------------------------------------------- |
+| `color.surface.opaque`         | `#1A1C23`                 | `#F4F5F8`                | The window when glass is off                                                       |
+| `color.surface.sidebar`        | `rgba(255,255,255,0.03)`  | `rgba(255,255,255,0.35)` | The workspace list over the window surface                                         |
+| `color.surface.input`          | `rgba(255,255,255,0.05)`  | `rgba(255,255,255,0.80)` | Instruction and reply inputs                                                       |
+| `color.surface.floating`       | `rgba(30,32,40,0.62)`     | `rgba(255,255,255,0.62)` | The reply card and controls over the conversation                                  |
+| `color.surface.selected`       | `rgba(255,255,255,0.08)`  | `rgba(255,255,255,0.85)` | The selected workspace                                                             |
+| `color.surface.hover`          | `rgba(255,255,255,0.048)` | `rgba(255,255,255,0.51)` | A row under the pointer on the window or the sidebar                               |
+| `color.surface.hoverFilled`    | `rgba(255,255,255,0.048)` | `rgba(20,30,50,0.04)`    | A row or control under the pointer on a filled surface, such as an input or a card |
+| `color.surface.selectedFilled` | `rgba(255,255,255,0.08)`  | `rgba(20,30,50,0.07)`    | A chosen row on a filled surface, such as a question's checked choice              |
+| `color.surface.workspace`      | `rgba(255,255,255,0)`     | `rgba(255,255,255,0.35)` | The selected workspace's conversation over the window glass                        |
+| `color.surface.code`           | `rgba(255,255,255,0.06)`  | `rgba(20,30,50,0.05)`    | Code blocks and inline code in agent messages                                      |
+| `color.surface.userMessage`    | `rgba(255,255,255,0.08)`  | `rgba(20,30,50,0.06)`    | The user's messages in the conversation                                            |
+| `color.border.subtle`          | `rgba(255,255,255,0.06)`  | `rgba(20,30,50,0.07)`    | Dividers                                                                           |
+| `color.border.default`         | `rgba(255,255,255,0.12)`  | `rgba(20,30,50,0.10)`    | Inputs and controls                                                                |
+| `color.border.window`          | `rgba(255,255,255,0.10)`  | `rgba(255,255,255,0.75)` | The window edge                                                                    |
+| `color.text.primary`           | `#ECEEF3`                 | `#161B26`                | Body text and titles                                                               |
+| `color.text.secondary`         | `#B4BAC7`                 | `#454D5C`                | Supporting text                                                                    |
+| `color.text.tertiary`          | `#A3AAB7`                 | `#4C5361`                | Labels, hints, and timestamps                                                      |
+| `color.text.highlight`         | `#ECEEF3`                 | `#B4BAC7`                | The band of light that sweeps across a wait's words                                |
+| `color.text.link`              | `#A9C1FF`                 | `#2848AA`                | Inline actions such as "View diff"                                                 |
+| `color.accent`                 | `#7AA2F7`                 | `#3A64D8`                | The brand blue: primary buttons, focus, the logo's last bar                        |
+| `color.onAccent`               | `#0B1020`                 | `#FFFFFF`                | Text and icons on the accent                                                       |
+| `color.status.working`         | `#7AA2F7`                 | `#3A64D8`                | The agent is working                                                               |
+| `color.status.needsYou`        | `#F2B661`                 | `#975C06`                | The workspace needs the user                                                       |
+| `color.status.failed`          | `#F29A8E`                 | `#B42318`                | A stage or session failed                                                          |
+| `color.diff.added`             | `#8FD3B6`                 | `#1A7F5A`                | Added lines                                                                        |
+| `color.diff.removed`           | `#F29A8E`                 | `#B42318`                | Removed lines                                                                      |
 
 Finished work has no status color. Every status, whether a dot, a ring, or a working title, has a text equivalent for assistive technology.
 

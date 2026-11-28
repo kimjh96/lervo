@@ -22,8 +22,9 @@
   transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
 }
 
+/* The chip sits in an input card, whose fill a lighter hover would not change in light mode. */
 .chip select:hover {
-  background: var(--color-surface-selected);
+  background: var(--color-surface-hover-filled);
 }
 
 .chip select:focus-visible {

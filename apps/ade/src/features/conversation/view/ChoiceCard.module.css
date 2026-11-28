@@ -65,12 +65,14 @@
   transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
 }
 
+/* The options sit on the card's input fill, so their hover and choice use the filled-surface
+   tints, which also show in light mode. */
 .option:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-surface-hover-filled);
 }
 
 .option[aria-checked="true"] {
-  background: var(--color-surface-selected);
+  background: var(--color-surface-selected-filled);
 }
 
 .option:disabled {

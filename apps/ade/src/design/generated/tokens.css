@@ -12,6 +12,8 @@
   --color-surface-workspace: rgba(255,255,255,0.35);
   --color-surface-floating: rgba(255,255,255,0.62);
   --color-surface-hover: rgba(255,255,255,0.51);
+  --color-surface-hover-filled: rgba(20,30,50,0.04);
+  --color-surface-selected-filled: rgba(20,30,50,0.07);
   --color-surface-code: rgba(20,30,50,0.05);
   --color-border-subtle: rgba(20,30,50,0.07);
   --color-border-default: rgba(20,30,50,0.10);
@@ -164,6 +166,8 @@
     --color-surface-workspace: rgba(255,255,255,0);
     --color-surface-floating: rgba(30,32,40,0.62);
     --color-surface-hover: rgba(255,255,255,0.048);
+    --color-surface-hover-filled: rgba(255,255,255,0.048);
+    --color-surface-selected-filled: rgba(255,255,255,0.08);
     --color-surface-code: rgba(255,255,255,0.06);
     --color-border-subtle: rgba(255,255,255,0.06);
     --color-border-default: rgba(255,255,255,0.12);
@@ -207,6 +211,8 @@
   --color-surface-workspace: rgba(255,255,255,0);
   --color-surface-floating: rgba(30,32,40,0.62);
   --color-surface-hover: rgba(255,255,255,0.048);
+  --color-surface-hover-filled: rgba(255,255,255,0.048);
+  --color-surface-selected-filled: rgba(255,255,255,0.08);
   --color-surface-code: rgba(255,255,255,0.06);
   --color-border-subtle: rgba(255,255,255,0.06);
   --color-border-default: rgba(255,255,255,0.12);
