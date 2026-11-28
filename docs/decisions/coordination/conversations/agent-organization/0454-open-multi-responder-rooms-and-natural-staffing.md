@@ -5,6 +5,7 @@ Decision date: 2026-10-04
 Supersedes in part: [ADR-0391](../0391-deterministic-multi-agent-turn-ownership.md) (single unaddressed owner), [ADR-0419](../0419-preserve-human-focus-and-real-agent-authorship.md) (acceptance item 3)
 Amends: [ADR-0395](../0395-resumable-native-repository-work-turns.md), [ADR-0408](../0408-conversation-task-delegation-to-hired-agents.md), [ADR-0411](0411-governed-agent-memory-and-autonomous-participation.md), [ADR-0418](../../../execution/applications/0418-retain-deliberation-as-bounded-decision-workflow.md), [ADR-0420](0420-bound-agent-conversation-and-deliberation-routes.md)
 Amended by: [ADR-0512](0512-keep-convergence-workers-out-of-owner-headcount-and-retire-superseded-ones.md)
+Amended by: [ADR-0648](0648-attest-a-conversation-note-by-its-delivery-receipt.md)
 Part of: [ADR-0452 open collaboration platform](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 
 ## Context
