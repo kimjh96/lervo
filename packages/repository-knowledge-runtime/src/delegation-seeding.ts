@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises";
+import type { ProjectStorage } from "@lervo/project-storage";
 import { resolve } from "node:path";
 
 import {
@@ -23,6 +23,12 @@ import {
   bindConvergenceDelegationScope,
   type ConvergenceDelegationScope,
 } from "./delegation-scope.js";
+import {
+  ensureSeedDefaultSuite,
+  repositorySuiteIds,
+  selectRepositoryDefaultSuite,
+  unboundSuiteFailure,
+} from "./default-knowledge-suite.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 
 const WORKER_ROLES: readonly ConvergenceWorkerRole[] = [
@@ -31,7 +37,6 @@ const WORKER_ROLES: readonly ConvergenceWorkerRole[] = [
   "writer",
   "integrator",
 ];
-const VERSIONED_DEFAULT_SUITE = /^repository\.default\.v([1-9][0-9]*)$/u;
 export const CONTINUITY_STEWARD_DISPLAY_NAME = "Knowledge Steward";
 
 /** Seeding failures name the missing local fact; none of them is retried within one cycle. */
@@ -108,29 +113,10 @@ export async function localRoleBinding(input: {
   };
 }
 
-/** The repository's latest `repository.default.vN`, else `repository.default`. */
+/** The suite seeding binds (`selectRepositoryDefaultSuite`), or the seed fails. */
 async function repositoryDefaultSuite(root: string): Promise<string> {
-  let names: string[];
-  try {
-    names = (await readdir(resolve(root, ".lervo/verifications"), { withFileTypes: true }))
-      .filter((entry) => entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith(".yaml"))
-      .map((entry) => entry.name.slice(0, -".yaml".length));
-  } catch {
-    return seedFailure("convergence_seed_verification_missing");
-  }
-  const versioned = names
-    .map((name) => ({ name, version: VERSIONED_DEFAULT_SUITE.exec(name)?.[1] }))
-    .filter((entry): entry is { name: string; version: string } => entry.version !== undefined)
-    .sort(
-      (left, right) =>
-        right.version.length - left.version.length || right.version.localeCompare(left.version),
-    );
-  if (versioned[0] !== undefined) return versioned[0].name;
-  if (names.includes("repository.default")) return "repository.default";
-  // The same fallback automatic deliberation uses: exactly one non-pilot suite is unambiguous.
-  const nonPilot = names.filter((name) => !name.startsWith("lervo.pilot."));
-  if (nonPilot.length === 1) return nonPilot[0]!;
-  return seedFailure("convergence_seed_verification_missing");
+  const names = await repositorySuiteIds(root);
+  return selectRepositoryDefaultSuite(names) ?? seedFailure(unboundSuiteFailure(names));
 }
 
 async function existingRoots(root: string, candidates: readonly string[]): Promise<string[]> {
@@ -152,19 +138,20 @@ async function existingRoots(root: string, candidates: readonly string[]): Promi
  * capability bindings resolved locally, and the repository's own default suite.
  */
 export async function seedDelegationFromTemplate(input: {
-  root: string;
+  storage: ProjectStorage;
   template: ConvergenceDelegationTemplate;
   expiresAt: string;
   now: Date;
 }): Promise<ConvergenceDelegation> {
-  const manifest = await loadProjectManifest(input.root);
+  const root = input.storage.paths.repositoryRoot;
+  const manifest = await loadProjectManifest(root);
   const projectId = manifest.projectId;
-  const canonicalRoots = await existingRoots(input.root, input.template.canonicalRoots);
-  const normalizationRoots = await existingRoots(input.root, input.template.normalizationRoots);
+  const canonicalRoots = await existingRoots(root, input.template.canonicalRoots);
+  const normalizationRoots = await existingRoots(root, input.template.normalizationRoots);
   if (canonicalRoots.length === 0 || normalizationRoots.length === 0)
     seedFailure("convergence_seed_roots_missing");
   const parent = await localParent({
-    root: input.root,
+    root: root,
     projectId,
     roleContractHash: null,
     roleId: input.template.parentRoleId,
@@ -174,14 +161,17 @@ export async function seedDelegationFromTemplate(input: {
   const roles = {} as Record<ConvergenceWorkerRole, ConvergenceRoleBinding>;
   for (const role of WORKER_ROLES)
     roles[role] = await localRoleBinding({
-      root: input.root,
+      root: root,
       projectId,
       roleId: input.template.roleIds[role],
       provider,
       parent,
       now: input.now,
     });
-  const suiteId = await repositoryDefaultSuite(input.root);
+  // ADR-0655: only once the roots and roles hold, a repository without a suite seeding can bind
+  // gets Lervo's default suite.
+  await ensureSeedDefaultSuite({ storage: input.storage, now: input.now });
+  const suiteId = await repositoryDefaultSuite(root);
   const scope: ConvergenceDelegationScope = {
     schemaVersion: 1,
     projectId,
@@ -193,7 +183,7 @@ export async function seedDelegationFromTemplate(input: {
     verification: [
       {
         suiteId,
-        suiteHash: verificationSuiteHash(await loadVerificationSuite(input.root, suiteId)),
+        suiteHash: verificationSuiteHash(await loadVerificationSuite(root, suiteId)),
       },
     ],
     integrationTarget: {

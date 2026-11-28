@@ -4,7 +4,7 @@ import { readRepositoryFile } from "@lervo/context";
 import { listAgents } from "@lervo/agent-workforce";
 import { sha256 } from "@lervo/repository-knowledge";
 import { resolveRoleContract, roleProfileHash } from "@lervo/roles";
-import { loadVerificationSuite, verificationSuiteHash } from "@lervo/verification";
+import { verificationSuiteHash } from "@lervo/verification";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { resolveConvergenceAssetDispositions } from "./asset-disposition-manifest.js";
 import {
@@ -16,6 +16,7 @@ import {
   parseConvergenceDelegation,
   type ConvergenceDelegation,
 } from "./delegation-contract.js";
+import { loadConvergenceSuite } from "./default-knowledge-suite.js";
 export * from "./delegation-contract.js";
 
 /** Absence grants inspection only. Existing provider settings and role templates grant no delegation. */
@@ -127,7 +128,8 @@ export async function assertConvergenceDelegationBindings(
   }
   for (const required of delegation.verification) {
     if (
-      verificationSuiteHash(await loadVerificationSuite(root, required.suiteId)) !==
+      // ADR-0655: a Lervo default suite that Lervo installed is put back before its check.
+      verificationSuiteHash(await loadConvergenceSuite(root, required.suiteId)) !==
       required.suiteHash
     )
       throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");

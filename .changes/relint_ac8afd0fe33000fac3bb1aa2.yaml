@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ac8afd0fe33000fac3bb1aa2"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A repository without a verification suite now gets the default lervo.default.knowledge suite when its knowledge delegation is seeded, so background knowledge maintenance starts for new projects."

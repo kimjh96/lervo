@@ -33,6 +33,7 @@ import {
 import type { ConvergenceDelegation } from "./delegation-contract.js";
 import { bindConvergenceDelegationScope } from "./delegation-scope.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { ensureSeedDefaultSuite } from "./default-knowledge-suite.js";
 import { recordConvergenceMaterialization } from "./materialization-event.js";
 
 function failure(code: string): never {
@@ -97,6 +98,13 @@ export async function installPeerScopeDefinitions(input: {
       calculateProjectIdentityHash(input.storage.manifest)
   )
     failure("convergence_seed_identity_mismatch");
+  // ADR-0655: Lervo's default suite has fixed bytes, so a checkout installs it itself, after the
+  // identity check.
+  await ensureSeedDefaultSuite({
+    storage: input.storage,
+    now: input.now,
+    peerScope: delegation.scope,
+  });
   return installBoundDefinitions({
     storage: input.storage,
     scope,

@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 const UNVERSIONED_DEFAULT_SUITE_ID = "repository.default";
 const VERSIONED_DEFAULT_SUITE_ID = /^repository\.default\.v([1-9][0-9]*)$/u;
 const SAFE_SUITE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
+/** Lervo's default knowledge suite (ADR-0655); never a deliberation or coordination suite. */
+const LERVO_DEFAULT_KNOWLEDGE_SUITE = "lervo.default.knowledge";
 
 function automaticSuiteError(code: string, message: string, options?: ErrorOptions): Error {
   return Object.assign(new Error(message, options), { code });
@@ -50,10 +52,16 @@ export async function resolveAutomaticVerificationSuite(repositoryRoot: string):
       { cause: error },
     );
   }
-  return selectAutomaticVerificationSuite(
-    entries
-      .filter((entry) => entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith(".yaml"))
-      .map((entry) => entry.name.slice(0, -".yaml".length))
-      .filter((suiteId) => SAFE_SUITE_ID.test(suiteId)),
-  );
+  // Lervo's default suite checks only knowledge (ADR-0655), never a deliberation's or a
+  // conversation's code change, so a directory holding only it configures nothing.
+  const suiteIds = entries
+    .filter((entry) => entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith(".yaml"))
+    .map((entry) => entry.name.slice(0, -".yaml".length))
+    .filter((suiteId) => SAFE_SUITE_ID.test(suiteId) && suiteId !== LERVO_DEFAULT_KNOWLEDGE_SUITE);
+  if (suiteIds.length === 0)
+    throw automaticSuiteError(
+      "deliberation_verification_unconfigured",
+      "Automatic deliberation has no configured verification suite. Add a .lervo/verifications/repository.default.vN.yaml or repository.default.yaml suite, or pass an explicit configured suite; provider execution has not started.",
+    );
+  return selectAutomaticVerificationSuite(suiteIds);
 }

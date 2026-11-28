@@ -1,0 +1,23 @@
+# ADR-0655: Give a repository without a suite a default knowledge suite
+
+Status: `accepted`
+Decision date: 2026-11-28
+Related: [ADR-0469](../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (template seeding, which this extends for a repository without a suite), [ADR-0477](../../coordination/sync/0477-carry-delegation-bound-definitions-across-hosts.md), [ADR-0536](../../execution/providers/admission/0536-admit-provider-clis-by-contract.md), [fleet continuity](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md)
+
+## Context
+
+Seeding a convergence delegation binds the repository's own default verification suite. Seeding accepts the latest `repository.default.vN`, `repository.default`, or exactly one other non-pilot suite. With none of these, the seed fails with `convergence_seed_verification_missing`, and nothing anywhere creates a suite. On 2026-11-28 the new Mac project `~/Lervo/axli` had no `.lervo/verifications/`, and neither had axli-lab before it. Background knowledge maintenance therefore never started for either repository, and the host reported `knowledge_authority_unavailable` indefinitely. The owner rule [rule_304aa2496fe08f7935fb1c8c](../../../instructions/generated/rule_304aa2496fe08f7935fb1c8c.md) requires that new projects receive automatic knowledge maintenance.
+
+## Decision
+
+1. **A default suite where none can be bound.** When a template seed finds no suite it can bind, the resident installs `.lervo/verifications/lervo.default.knowledge.yaml` and seeds with it. The suite has one command, `lervo knowledge lint`. The convergence worker changes only knowledge, the lint checks exactly that, and it needs no project toolchain. The install happens only once the seed's roots and roles hold, and, for a peer seed, after the repository identity check.
+2. **An owner suite always wins.** Seeding prefers `repository.default.vN`, then `repository.default`, then exactly one other non-pilot suite; the default is chosen only when the repository has no suite of its own. When there are several other suites and none is `repository.default*`, Lervo installs nothing and reports `convergence_seed_verification_ambiguous`, because only the owner can say which suite applies. A delegation bound to the default rebinds to the owner's suite once one exists: the rebind may replace the default's suite ID, and only that ID. Automatic deliberation and conversation coordination ignore the default, so a directory holding only it counts as unconfigured.
+3. **Installation follows ADR-0477.** The file is created only where none exists, recorded as Lervo-managed in `.lervo/state/knowledge/convergence-installed-definitions.json`, and written in one durable knowledge transaction. A `knowledge.materialization.applied` event announces it, with operation `convergence_default_verification_suite`. It is not committed. When the file Lervo installed disappears, as after `git clean -fdx`, the delegation's binding check and each verification put it back with the same bytes. A file someone edited, or that Lervo never installed, is left alone.
+4. **The suite runs the running CLI.** Every host binds the same fixed bytes, and a peer seed that binds the default installs it without a Hub copy. In convergence verification, `lervo` resolves to the CLI this process runs: a private directory ahead of the login-shell `PATH` holds a script that starts the `LERVO_CLI_ENTRY` entry with the same Node. A stale `lervo` that a version manager's directory puts earlier on the `PATH` is never used. Without an entry, the `PATH` lookup stands, and a missing `lervo` fails the suite as an `execution_error`.
+5. **The finding names the cause.** `convergence_seed_verification_missing`, `convergence_seed_verification_ambiguous`, and `knowledge_authority_unavailable` state the actual cause. Only the missing case says Lervo fixes it itself.
+
+## Consequences
+
+- A project that the ADE adds or creates, whether by `lervo project add` or by the follower's pass, reaches a seeded delegation on the resident's next cycle without an owner step. Nothing is written into `lervo init` or `lervo upgrade`; the resident's seeding is the one place that decides. A repository with several unnamed suites still needs the owner, and the finding says so.
+- Until the owner commits the suite, `git status` shows `.lervo/verifications/lervo.default.knowledge.yaml` as untracked, as it already shows other installed definitions.
+- A repository whose knowledge fails `lervo knowledge lint` keeps failing convergence verification until the lint passes. The verdict names the failing check.

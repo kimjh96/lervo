@@ -6,7 +6,6 @@ import {
   completeWorkspaceIntegration,
 } from "@lervo/orchestrator";
 import { GitWorkspaceIntegrationAdapter } from "@lervo/workspace-host-git";
-import { loadVerificationSuite } from "@lervo/verification";
 import { canonicalJson, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { provisionCanonicalWorkspace } from "./canonical-workspace.js";
 import { convergenceEffectCheckpoint } from "./effect-checkpoint.js";
@@ -26,6 +25,7 @@ import {
   runConvergenceVerificationSuite,
   verificationEnvironment,
 } from "./verification-environment.js";
+import { loadConvergenceSuite } from "./default-knowledge-suite.js";
 
 /**
  * A candidate that failed verification never moves the target, so its lease releases the attempt
@@ -58,7 +58,7 @@ export async function prepareCanonicalGitIntegration(
   const integrationHost = new GitWorkspaceIntegrationAdapter(provision.host);
   const suites = await Promise.all(
     authority.delegation.verification.map((required) =>
-      loadVerificationSuite(root, required.suiteId),
+      loadConvergenceSuite(root, required.suiteId),
     ),
   );
   const plan = await convergenceEffectCheckpoint({

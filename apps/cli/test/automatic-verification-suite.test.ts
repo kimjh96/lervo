@@ -55,6 +55,17 @@ describe("automatic verification suite resolution", () => {
     });
   });
 
+  it("treats Lervo's default knowledge suite as no configuration (ADR-0655)", async () => {
+    await expect(
+      resolveAutomaticVerificationSuite(await repositoryWithSuites("lervo.default.knowledge")),
+    ).rejects.toMatchObject({ code: "deliberation_verification_unconfigured" });
+    await expect(
+      resolveAutomaticVerificationSuite(
+        await repositoryWithSuites("lervo.default.knowledge", "project.checks"),
+      ),
+    ).resolves.toBe("project.checks");
+  });
+
   it("rejects a repository without verification configuration", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-automatic-verification-missing-"));
     roots.push(root);
