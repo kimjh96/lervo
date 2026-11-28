@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-28
 Amends: [ADR-0584](0584-let-cas-retention-finish-a-pass-on-a-live-host.md) (the observation names the stopping path; a changed file is read again within the cycle)
+Amended by: [ADR-0660](0660-keep-cas-retention-due-until-the-store-settles.md) (the observation's `remaining` keeps retention due; time-boxed slices)
 Related: [ADR-0534](0534-bound-installed-runtimes-and-convergence-artifacts.md), [ADR-0602](../../knowledge/maintenance/0602-wait-on-change-tokens-and-guard-idle-timers.md), [project CAS retention](../../../specs/background-knowledge-convergence/recovery-and-retention/project-cas.md)
 
 ## Context

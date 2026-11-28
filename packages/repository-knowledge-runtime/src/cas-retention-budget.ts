@@ -7,11 +7,20 @@ export interface ReferenceReadLimits {
 
 const MIB = 1024 * 1024;
 
-/** One cycle's body scan of reference files and CAS objects; a single read is at most one MiB. */
+/**
+ * ADR-0660: one retention slice's wall-clock box. The sweep removes until it passes, and the
+ * resident runs the next slice about 30 seconds later while work remains.
+ */
+export const CAS_RETENTION_SLICE_MS = 5_000;
+
+/**
+ * One slice's body scan of reference files and CAS objects; a single read is at most one MiB.
+ * Time binds first on a slow disk, bytes on a fast one; live work yields it at any read.
+ */
 export const REFERENCE_SCAN_LIMITS: ReferenceReadLimits = {
-  maximumReads: 1024,
-  maximumBytes: 64 * MIB,
-  maximumWorkMs: 1000,
+  maximumReads: 16_384,
+  maximumBytes: 512 * MIB,
+  maximumWorkMs: 4_000,
 };
 
 /** One cycle's immutable SQL report lookups, with the existing one-MiB per-report limit. */

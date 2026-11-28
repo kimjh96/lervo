@@ -14,6 +14,12 @@ import {
 import { CAS_RETENTION_OBSERVATION } from "./cas-retention-files.js";
 import { writeRetentionProjection } from "./cas-retention-state.js";
 
+/**
+ * Consecutive stalls after which attention reports `cas_retention_stalled` and retention stops
+ * asking for an early cycle. The CLI's attention reader uses the same bound.
+ */
+export const CAS_RETENTION_STALL_PASSES = 5;
+
 /** Why a pass that reached its sweep removed nothing although candidates were past grace. */
 export type CasRetentionStallCause = "inventory_changed" | "event_head_changed";
 
@@ -39,6 +45,12 @@ export interface CasRetentionObservation {
    */
   stalledPasses?: number;
   stallCause?: CasRetentionStallCause;
+  /**
+   * ADR-0660: the pass stopped with work left: unclassified records, unread references, eligible
+   * candidates, or a stall below `CAS_RETENTION_STALL_PASSES`. The resident keeps retention due
+   * while it is true. A pass that never looked, because it yielded first, carries the last answer.
+   */
+  remaining?: boolean;
   removedObjects: number;
   reclaimedBytes: number;
 }
@@ -61,7 +73,9 @@ export async function startObservation(storage: ProjectStorage): Promise<CasRete
     const previous = JSON.parse(await readFile(observationPath(storage), "utf8")) as {
       stalledPasses?: unknown;
       stallCause?: unknown;
+      remaining?: unknown;
     };
+    if (previous.remaining === true) observation.remaining = true;
     if (
       Number.isSafeInteger(previous.stalledPasses) &&
       (previous.stallCause === "inventory_changed" || previous.stallCause === "event_head_changed")
@@ -73,6 +87,15 @@ export async function startObservation(storage: ProjectStorage): Promise<CasRete
     // No readable previous observation: no stall to carry.
   }
   return observation;
+}
+
+/**
+ * ADR-0660: whether work is left after this pass. A stall counts only below its bound, after which
+ * attention owns it; a failure that stopped the pass needs the owner, never an early cycle.
+ */
+export function noteRemaining(observation: CasRetentionObservation, remaining: boolean) {
+  observation.remaining =
+    remaining && (observation.stalledPasses ?? 0) < CAS_RETENTION_STALL_PASSES;
 }
 
 /** A sweep that removed nothing because the head moved is a stall; any other sweep is progress. */
@@ -129,6 +152,7 @@ export async function recordCasRetentionFailure(
   await writeObservation(storage, {
     ...observation,
     status: "unavailable",
+    remaining: false,
     ...classifyRetentionFailure(error),
   }).catch(() => undefined);
 }

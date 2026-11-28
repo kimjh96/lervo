@@ -8,18 +8,23 @@ import { materializationTransactionState } from "./materialization-transaction.j
 import {
   classifyRetentionFailure,
   noteProgress,
+  noteRemaining,
   noteSweep,
   startObservation,
   writeObservation,
   type CasRetentionObservation,
 } from "./cas-retention-observation.js";
 import { expireTombstones } from "./cas-retention-tombstones.js";
-import { REFERENCE_SCAN_LIMITS, referenceReadBudget } from "./cas-retention-budget.js";
+import {
+  CAS_RETENTION_SLICE_MS,
+  REFERENCE_SCAN_LIMITS,
+  referenceReadBudget,
+} from "./cas-retention-budget.js";
 import {
   CONVERGENCE_ARTIFACT_GRACE_MS,
   eligibleConvergenceArtifacts,
-  retentionNamedAt,
 } from "./cas-retention-policy.js";
+import { sweepUnreachableObjects } from "./cas-retention-sweep.js";
 import { classifyConvergenceRecords } from "./cas-retention-records.js";
 import {
   releasedConvergenceRecords,
@@ -29,7 +34,6 @@ import { bindEventWriterBackups } from "./cas-retention-backups.js";
 import {
   CAS_RETENTION_SCAN,
   casReferenceFiles,
-  removeUnreachableCasObject,
   type CasReferenceFile,
 } from "./cas-retention-files.js";
 import { scanReferenceFile, settleReferenceInventory } from "./cas-retention-settle.js";
@@ -48,14 +52,18 @@ async function collect(
     (await shouldYield())
   )
     return;
+  const sliceEndsAt = Date.now() + CAS_RETENTION_SLICE_MS;
   const statePath = resolve(storage.paths.knowledgeState, CAS_RETENTION_SCAN);
   const scan = await readRetentionScan(statePath);
-  if (scan.nextScanAt > Date.now()) return;
+  // ADR-0660: from here on the pass knows whether work is left; each stop below says so.
+  noteRemaining(observation, true);
+  if (scan.nextScanAt > Date.now()) return noteRemaining(observation, false);
   // ADR-0597: replaying the event log found nothing eligible at this head; ADR-0601: events with
   // no artifact lifecycle since then leave that answer standing, and roots extend the last replay.
-  if (retentionStillIdle(scan, storage.events, Date.now())) return;
+  if (retentionStillIdle(scan, storage.events, Date.now()))
+    return noteRemaining(observation, false);
   const roots = memoizedConvergenceArtifactRoots(storage.events);
-  let files = await casReferenceFiles(storage);
+  const files = await casReferenceFiles(storage);
   await bindEventWriterBackups(storage, roots.headSeq, files);
   const before = Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS;
   // Probes of live work run between reads and never spend the read budget (ADR-0584).
@@ -85,6 +93,7 @@ async function collect(
     }
     if (!scan.eligible.length) {
       noteProgress(observation);
+      noteRemaining(observation, false);
       await saveScan(statePath, {
         ...scan,
         idle: { head: roots.head, at: Date.now(), seq: roots.headSeq },
@@ -115,44 +124,26 @@ async function collect(
     shouldYield,
   });
   if (settled === null) {
+    // Settling may have counted a stall; one at its bound is attention's, not an early cycle's.
+    noteRemaining(observation, true);
     await saveScan(statePath, scan);
     return;
   }
-  const { marked, released } = settled;
-  files = settled.files;
-  const deleted = new Set<string>();
-  let remaining = false;
-  let headMoved = false;
-  const headCurrent = () => (storage.events.latest()?.eventHash ?? null) === roots.head;
-  for (const file of files) {
-    if (
-      file.hash === null ||
-      !eligible.has(file.hash) ||
-      marked.has(file.hash) ||
-      file.modifiedAt >= before ||
-      retentionNamedAt(roots, released, file.hash) >= before
-    )
-      continue;
-    if (observation.removedObjects >= 32 || (await shouldYield()) || !headCurrent()) {
-      headMoved = !headCurrent();
-      remaining = true;
-      break;
-    }
-    if ((await materializationTransactionState(storage.paths.repositoryRoot)) !== "clear") {
-      remaining = true;
-      break;
-    }
-    // ADR-0658: the head is checked again after the tombstone, right before the unlink.
-    if (!(await removeUnreachableCasObject(file, headCurrent, storage.paths.cas))) {
-      headMoved = remaining = true;
-      break;
-    }
-    deleted.add(file.hash);
-    observation.removedObjects++;
-    observation.reclaimedBytes += file.size;
-  }
+  const { deleted, remaining, headMoved } = await sweepUnreachableObjects({
+    storage,
+    files: settled.files,
+    eligible,
+    marked: settled.marked,
+    released: settled.released,
+    roots,
+    before,
+    observation,
+    shouldYield,
+    sliceEndsAt,
+  });
   observation.status = "collected";
   noteSweep(observation, headMoved);
+  noteRemaining(observation, remaining);
   if (!remaining) await expireTombstones(storage.paths.cas, Date.now());
   // A completed pass starts with a fresh grace horizon next time. Interruption can only leak bytes.
   for (const hash of deleted) {
@@ -196,6 +187,7 @@ export async function compactProjectConvergenceArtifacts(
       await collect(storage, observation, shouldYield);
     } catch (error) {
       observation.status = "unavailable";
+      observation.remaining = false;
       Object.assign(observation, classifyRetentionFailure(error));
     }
     await writeObservation(storage, observation);
