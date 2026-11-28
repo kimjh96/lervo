@@ -144,7 +144,12 @@ const roomMessages: Readonly<Record<string, MessageDescriptor>> = {
 const startedMessages: Readonly<Record<string, MessageDescriptor>> = {
   conversation_started: { id: "room.conversationStarted" },
   conversation_started_by: { id: "room.conversationStartedBy" },
+  work_sent: { id: "room.workSent" },
+  work_sent_from: { id: "room.workSentFrom" },
 };
+
+/** The lines that carry the other conversation's title; the rest name it from the list. */
+const TITLED = new Set(["conversation_started", "work_sent"]);
 
 function StartedLine({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
   const workspaceId = String(item.parameters.workspace ?? "");
@@ -152,10 +157,9 @@ function StartedLine({ item }: { item: Extract<ConversationItem, { kind: "lervo_
     store.workspaces.find((workspace) => workspace.workspaceId === workspaceId),
   );
   const select = useWorkspaceStore((store) => store.select);
-  const title =
-    item.code === "conversation_started"
-      ? String(item.parameters.title ?? "")
-      : (known?.title ?? known?.branch ?? null);
+  const title = TITLED.has(item.code)
+    ? String(item.parameters.title ?? "")
+    : (known?.title ?? known?.branch ?? null);
   const agent = String(item.parameters.agent ?? "");
   if (title === null)
     return (

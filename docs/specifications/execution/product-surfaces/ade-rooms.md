@@ -43,6 +43,7 @@ Agents mention each other directly, choosing by role and by what each has learne
   - how a mention works: write `@Name` when the work needs that agent's role or knowledge, and its answer comes back as a turn.
   - that an agent it mentions joins able to read and answer, never to change files; and, in a session that joined by a mention, that the session reads only, so a request that needs changes belongs in a conversation the agent starts and leads, never in a request for write permission;
   - how to start a conversation, for itself or handed to the teammate whose work it is with `--lead`, and that each owner's work goes to that owner rather than being done by the agent itself (ADR-0657);
+  - the open conversations its teammates lead, and how to send work to one with `lervo workspace send`;
   - that work is handed over and asked for only through Lervo's commands and mentions, never through a provider's own messages to another session, and that no agent stops a process Lervo runs.
 - From slice 3, the block also says what each other agent knows from its reviewed expertise, so an agent can pick "the researcher who studied this API last week" by name. It never carries another agent's conversation notes: a session's block recalls only its own agent's notes ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)).
 
@@ -105,6 +106,23 @@ The resident core decodes every hosted session's output, so it sees each turn en
 5. **What the new conversation shows.** A quiet line, "Started by Ciel in Log format", which opens that conversation, and then the first turn as Ciel's message under Ciel's speaker line. The sidebar lists the conversation like any other, by its title.
 
 A start that fails after the command returned shows in the source conversation as "Lervo could not start Ciel's conversation (<code>)", and the pending start is dropped. A pending start whose source session ended before its turn ended is delivered at the next turn end of any of the agent's sessions, or dropped after an hour.
+
+### How an agent sends work to a teammate's conversation
+
+Work for a conversation a teammate already leads goes there rather than to a new conversation ([ADR-0657](../../../decisions/coordination/conversations/agent-organization/0657-let-an-agent-hand-work-to-a-teammates-own-conversation.md)).
+
+1. **The command.** The agent runs `lervo workspace send --workspace <workspace> --from <agent> --json`, with the request on standard input. The room block lists the open conversations each teammate leads, by lead, workspace ID, and branch, at most 12. A read-access session's allowlist admits the command.
+2. **The guard.**
+   - `--from` must be the calling session's agent (`agent_not_caller`).
+   - The conversation must have a lead (`send_target_invalid`) that is not the sender (`send_target_self`).
+   - Both must be active teammates (`participant_invalid`).
+   - An agent sends at most 24 times an hour (`conversation_send_limited`), a backstop.
+3. **The delivery.** The command records a pending send beside the pending starts: the lead, its session, and the conversation's title. When the sender's turn ends, the core delivers the request to the lead's session as the sender's message. The message tells the lead to do the work there and to mention the sender when it needs it or when the work is done. The resident drops the send once delivered, so a restarted core never delivers it twice.
+4. **A stopped lead.** A lead whose session stopped, such as one that rested, resumes through `room.join` as the conversation's own session, not as a joined agent's, and then receives the turn.
+5. **What the conversations show.**
+   - The sender's conversation shows "Bora sent work to Port the verifier".
+   - The lead's conversation opens the turn with "Sent by Bora from Rebuild plan", then the request as Bora's message.
+   - Each title opens the other conversation.
 
 ## Memory from conversation (slice 3)
 

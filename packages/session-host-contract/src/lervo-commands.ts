@@ -139,6 +139,7 @@ export const lervoCommandIds = [
   "workspace recover",
   "workspace retire",
   "workspace retire-unstarted",
+  "workspace send",
   "workspace start",
   "workstream current",
   "workstream reconcile",

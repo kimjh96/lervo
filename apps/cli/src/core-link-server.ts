@@ -68,6 +68,9 @@ export class CoreLinkServer {
       undefined,
       handlers.recordRoomEvents,
       handlers.writeConversationNote,
+      handlers.pendingSends === undefined || handlers.settleSend === undefined
+        ? undefined
+        : { load: handlers.pendingSends, settle: handlers.settleSend },
     );
   }
 

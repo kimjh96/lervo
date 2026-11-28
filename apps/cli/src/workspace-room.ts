@@ -38,7 +38,10 @@ export interface RoomJoinResult {
   transcript: boolean;
   launch: HostedLaunch;
   hostedEvents: HostedSessionEventOutcome | "unavailable";
-  /** The conversation's own session: the lead of a conversation it started, opening now. */
+  /**
+   * The conversation's own session: its lead, opening from the first turn of a conversation that
+   * started for it, or resuming to receive a turn, such as work a teammate sent (ADR-0657).
+   */
   lead?: true;
 }
 
@@ -158,7 +161,8 @@ export async function joinWorkspaceRoom(
     transcript: false,
     launch,
     hostedEvents,
-    ...(starting === null ? {} : { lead: true as const }),
+    // The lead's own session opens as the conversation's, whether it starts or resumes here.
+    ...(access === "write" && (starting !== null || resume) ? { lead: true as const } : {}),
   };
 }
 

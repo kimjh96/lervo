@@ -5,14 +5,17 @@ import {
 } from "@lervo/repository-registry";
 
 import {
+  conversationsLedBy,
   hostedLaunchRecordsPath,
+  latestHostedLaunch,
   latestHostedLaunchOfSession,
   roomSessionRecords,
 } from "./hosted-launch-records.js";
 import { learnedEntries } from "./core-link-agent-context.js";
 import { clipAtWord } from "./conversation-note-text.js";
 import type { RoomContext } from "./room-router.js";
-import { teamAgents } from "./workspace-participants.js";
+import { teamAgents, type TeamAgent } from "./workspace-participants.js";
+import { worktreesByBranch } from "./workspace-start-effects.js";
 
 /** A session's conversation, and whether the session joined it with read access only. */
 export interface SessionRoom extends RoomContext {
@@ -60,6 +63,35 @@ function namedWithIds(
     .map((agent) => `${agent.displayName} (${agent.roleName}, ${agent.agentId})`)
     .join(", ");
 }
+
+/** The most teammates' conversations a block names, so the block stays bounded. */
+const LISTED_CONVERSATIONS = 12;
+
+/**
+ * The open conversations the session's teammates lead, newest first, as `send` names them
+ * (ADR-0657): the lead, the workspace ID, and the branch. A conversation whose worktree is gone,
+ * such as a retired one, is not listed.
+ */
+async function teammateConversations(
+  context: RoomContextLike,
+  teammates: readonly TeamAgent[],
+): Promise<string[]> {
+  if (context.repositoryRoot === undefined || teammates.length === 0) return [];
+  const path = hostedLaunchRecordsPath();
+  const live = await worktreesByBranch(context.repositoryRoot);
+  const lines: string[] = [];
+  for (const teammate of teammates)
+    for (const workspaceId of await conversationsLedBy(path, teammate.agentId)) {
+      if (workspaceId === context.workspaceId) continue;
+      const record = await latestHostedLaunch(path, workspaceId);
+      if (record?.projectId !== context.projectId || !live.has(record.branch)) continue;
+      lines.push(`- ${teammate.displayName}: ${workspaceId} (${record.branch})`);
+      if (lines.length >= LISTED_CONVERSATIONS) return lines;
+    }
+  return lines;
+}
+
+type RoomContextLike = Pick<SessionRoom, "workspaceId" | "projectId" | "repositoryRoot">;
 
 /** The most of an agent's own notes its session's start recalls. */
 const RECALLED_NOTES = 3;
@@ -120,6 +152,7 @@ export async function roomBlock(sessionId: string): Promise<string | null> {
   const others = context.team.filter((agent) => agent.agentId !== self.agentId);
   const present = others.filter((agent) => context.sessions.has(agent.agentId));
   const notes = await ownNotes(context.repositoryRoot, self.agentId);
+  const led = await teammateConversations(context, others).catch(() => []);
   return [
     `Lervo room: you are ${self.displayName}, the ${self.roleName}, in this conversation${
       present.length === 0 ? "" : ` with ${named(present)}`
@@ -130,6 +163,12 @@ export async function roomBlock(sessionId: string): Promise<string | null> {
       ? "Your session in this conversation reads and answers; it cannot change files. When a request needs changes, start a conversation you lead for them, as below, and say so in your answer. Never ask anyone for write permission here."
       : null,
     `When work belongs apart from this conversation, start a conversation for it: run \`lervo workspace start --repository ${context.projectId} --started-by ${self.agentId} --title "<title>" --json <<'EOF'\`, then its first turn, then \`EOF\`. It opens when your turn ends. You lead it unless you add \`--lead <agent ID>\` to hand it to the teammate whose work it is: that teammate leads it and changes the files, your request is its first turn, and it mentions you when it needs you. Hand each owner its own work this way rather than doing it yourself. Never start one for work this conversation already covers.`,
+    led.length === 0
+      ? null
+      : [
+          `Work for a conversation a teammate already leads goes there, not to a new one: run \`lervo workspace send --workspace <workspace ID> --from ${self.agentId} --json <<'EOF'\`, then the request, then \`EOF\`. It reaches the lead as your message when your turn ends. Open conversations your teammates lead:`,
+          ...led,
+        ].join("\n"),
     "Hand work over and ask only through these Lervo commands and mentions. Never message another session through a provider's own tools, and never stop a process Lervo runs; when a conversation is no longer needed, say so in your answer and the owner removes it.",
     notes.length === 0
       ? null

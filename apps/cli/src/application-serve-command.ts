@@ -23,6 +23,7 @@ import { loadRoomContext } from "./room-context.js";
 import { writeConversationNote } from "./conversation-notes.js";
 import { roomAnswers } from "./room-answers.js";
 import { recordRoomEvents } from "./room-events.js";
+import { dropPendingSend, pendingSendsOf, pendingSendsPath } from "./room-sends.js";
 import { pendingStartsOf, pendingStartsPath } from "./room-starts.js";
 
 const transcripts = new WorkspaceTranscripts();
@@ -65,6 +66,8 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   joinRoom: joinWorkspaceRoom,
   loadRoomContext,
   pendingStarts: (agentId) => pendingStartsOf(pendingStartsPath(), agentId),
+  pendingSends: (agentId) => pendingSendsOf(pendingSendsPath(), agentId),
+  settleSend: (sendId) => dropPendingSend(pendingSendsPath(), sendId),
   recordRoomEvents,
   writeConversationNote: (note) => writeConversationNote(note),
   routeRoom: routeRoomTurn,

@@ -13,7 +13,9 @@ import { runCli } from "../src/main.js";
 import { listRepositories, listWorkspaces } from "../src/workspace-list-service.js";
 import { openWorkspace, startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
 import { joinWorkspaceRoom, routeRoomTurn } from "../src/workspace-room.js";
+import { pendingSendsOf, pendingSendsPath } from "../src/room-sends.js";
 import { pendingStartsOf, pendingStartsPath } from "../src/room-starts.js";
+import { sendToConversation } from "../src/workspace-agent-send.js";
 import { startAgentConversation } from "../src/workspace-agent-start.js";
 import { roomBlock } from "../src/room-context.js";
 
@@ -570,6 +572,39 @@ describe("conversations an agent starts", () => {
     expect(opened).toMatchObject({ lead: true, sessionId: started.sessionId });
     expect(opened.launch.arguments).not.toContain("dontAsk");
     expect(await pendingStartsOf(pendingStartsPath(), bora.agentId)).toEqual([]);
+
+    // Work for that conversation goes there, to Machining, when Bora's turn ends.
+    const queued = await sendToConversation(
+      { workspaceId: started.workspaceId, from: bora.agentId, text: "Then start step 2." },
+      as,
+    );
+    expect(queued).toMatchObject({ status: "queued", agentId: machining.agentId });
+    expect(await pendingSendsOf(pendingSendsPath(), bora.agentId)).toMatchObject([
+      {
+        workspaceId: started.workspaceId,
+        sessionId: started.sessionId,
+        text: "Then start step 2.",
+      },
+    ]);
+    await expect(
+      sendToConversation(
+        { workspaceId: started.workspaceId, from: machining.agentId, text: "Hi." },
+        { ...process.env, LERVO_AGENT_ID: machining.agentId },
+      ),
+    ).rejects.toMatchObject({ code: "send_target_self" });
+    await expect(
+      sendToConversation(
+        { workspaceId: started.workspaceId, from: bora.agentId, text: "Hi." },
+        { ...process.env, LERVO_AGENT_ID: machining.agentId },
+      ),
+    ).rejects.toMatchObject({ code: "agent_not_caller" });
+    // A lead whose session stopped resumes as the conversation's own session to receive it.
+    const resumed = await joinWorkspaceRoom({
+      workspaceId: started.workspaceId,
+      agentId: machining.agentId,
+      instruction: "[Lervo room] From Bora (Developer):\nThen start step 2.",
+    });
+    expect(resumed).toMatchObject({ lead: true, resumed: true, sessionId: started.sessionId });
 
     // Only the calling session's agent starts, and only for an active teammate.
     await expect(

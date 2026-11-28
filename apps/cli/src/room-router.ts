@@ -5,34 +5,20 @@ import { envelopeText, readEnvelope, type RoomTurn } from "./room-envelope.js";
 import type { RoomEvent } from "./room-events.js";
 import type { ConversationNote } from "./conversation-notes.js";
 import { RoomLedger, type RoomMention, type RoomReceipt } from "./room-ledger.js";
+import {
+  type HandOff,
+  type HandOffOrigin,
+  handOffOutput,
+  sendHandOffs,
+  startHandOffs,
+} from "./room-handoffs.js";
 import { mentionedAgents, turnTargets } from "./room-mentions.js";
-import { type PendingStart, starterOf } from "./room-starts.js";
+import type { PendingSend } from "./room-sends.js";
+import type { PendingStart } from "./room-starts.js";
+import type { RoomContext, RoomDelivery } from "./room-delivery.js";
 import type { TeamAgent } from "./workspace-participants.js";
 
-/** What the core knows of a session's conversation, loaded when the session host names it. */
-export interface RoomContext {
-  readonly workspaceId: string;
-  /** The project the conversation belongs to, which a conversation the agent starts shares. */
-  readonly projectId: string;
-  /** The registered repository, where the room's records go, when the core resolved it. */
-  readonly repositoryRoot?: string;
-  /** The session's provider, which a session's digest in the room's records names. */
-  readonly provider?: string;
-  /** The session's own agent. */
-  readonly agentId: string;
-  readonly team: readonly TeamAgent[];
-  /** Each agent's session in the conversation; an agent without one joins on delivery. */
-  readonly sessions: ReadonlyMap<string, string>;
-}
-
-/** A turn for the session host to give an agent, opening its session first when it has none. */
-export interface RoomDelivery {
-  readonly deliveryId: string;
-  readonly workspaceId: string;
-  readonly agentId: string;
-  readonly sessionId: string | null;
-  readonly text: string;
-}
+export type { RoomContext, RoomDelivery } from "./room-delivery.js";
 
 /** ADR-0454's exchange budget, and the depth of a chain from the turn that started it. */
 export const EXCHANGE_LIMIT = 12;
@@ -61,7 +47,8 @@ interface Room {
 interface Delivery {
   depth: number;
   from: string;
-  startedIn?: string;
+  /** Where work handed out here came from, which its first line names (ADR-0657). */
+  origin?: HandOffOrigin;
   mention?: RoomMention;
 }
 
@@ -121,42 +108,36 @@ export class RoomRouter {
     sessionId: string,
     starts: readonly PendingStart[],
   ): { events: HostedDecodedEvent[]; deliveries: RoomDelivery[] } {
+    return this.handOut(sessionId, (self, workspaceId) =>
+      startHandOffs(self, workspaceId, starts, this.newId),
+    );
+  }
+
+  /** The deliveries of the work a session's agent sent to teammates' conversations (ADR-0657). */
+  sends(
+    sessionId: string,
+    sends: readonly PendingSend[],
+  ): { events: HostedDecodedEvent[]; deliveries: RoomDelivery[] } {
+    return this.handOut(sessionId, (self, workspaceId) =>
+      sendHandOffs(self, workspaceId, sends, this.newId),
+    );
+  }
+
+  private handOut(
+    sessionId: string,
+    handOffs: (self: TeamAgent, workspaceId: string) => HandOff[],
+  ): { events: HostedDecodedEvent[]; deliveries: RoomDelivery[] } {
     const context = this.contexts.get(sessionId);
     const self = context?.team.find((agent) => agent.agentId === context.agentId);
     if (context === undefined || self === undefined) return { events: [], deliveries: [] };
-    const events: HostedDecodedEvent[] = [];
-    const deliveries: RoomDelivery[] = [];
-    for (const start of starts) {
-      // The starter's turn delivers the first turn to the lead, itself or a teammate (ADR-0657).
-      if (starterOf(start) !== self.agentId) continue;
-      const deliveryId = this.newId();
-      this.deliveries.set(deliveryId, {
+    const made = handOffs(self, context.workspaceId);
+    for (const handOff of made)
+      this.deliveries.set(handOff.delivery.deliveryId, {
         depth: 0,
         from: self.displayName,
-        startedIn: context.workspaceId,
+        origin: handOff.origin,
       });
-      events.push(
-        this.notice("conversation_started", {
-          agent: self.displayName,
-          title: start.title,
-          workspace: start.workspaceId,
-        }),
-      );
-      deliveries.push({
-        deliveryId,
-        workspaceId: start.workspaceId,
-        agentId: start.agentId,
-        sessionId: null,
-        text: envelopeText({
-          from: self.displayName,
-          role: self.roleName,
-          message: start.text,
-          recent: [],
-          reason: start.agentId === self.agentId ? "start" : "handed",
-        }),
-      });
-    }
-    return { events, deliveries };
+    return handOffOutput(made, (code, parameters) => this.notice(code, parameters));
   }
 
   /** Forgets a session whose decoder closed. */
@@ -215,13 +196,13 @@ export class RoomRouter {
           ...event,
           content: { kind: "peer_message", from: read.from, text: read.message },
         };
-        // A conversation an agent started opens with who started it, and from where.
-        return delivery?.startedIn === undefined
+        // Work handed out from another conversation opens with who handed it, and from where.
+        return delivery?.origin === undefined
           ? [peer]
           : [
-              this.notice("conversation_started_by", {
+              this.notice(delivery.origin.code, {
                 agent: read.from,
-                workspace: delivery.startedIn,
+                workspace: delivery.origin.workspace,
               }),
               peer,
             ];
