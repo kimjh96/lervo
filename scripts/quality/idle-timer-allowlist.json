@@ -215,6 +215,12 @@
       "reason": "Source and authority check while a provider call runs; it ends with the call."
     },
     {
+      "path": "packages/repository-knowledge-runtime/src/provider-cli-invalidation.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "Bounded retry after an explicit provider probe: at most four waits of 250, 500, 1000 and 2000 ms while another admission holds the host cache lock, then it reports why and returns. It never runs while idle."
+    },
+    {
       "path": "packages/repository-knowledge-runtime/src/provider-probe.ts",
       "kind": "interval",
       "count": 1,
