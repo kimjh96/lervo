@@ -12,7 +12,9 @@ import {
 import {
   readRetentionWait,
   recordRetentionWait,
+  retentionFailureCode,
   type CasRetentionWaitCause,
+  type CasRetentionWaitDetail,
 } from "./cas-retention-wait.js";
 import { foregroundWorkPending } from "./foreground-admission.js";
 import { fullCycleAdmissionDirectory } from "./full-cycle-admission.js";
@@ -21,9 +23,30 @@ import { runRetentionOnlySlice, type RetentionOnlyOutcome } from "./retention-on
 
 /** While live work or full cycles hold, the wait between attempts doubles up to this ceiling. */
 export const RETENTION_BACKOFF_CEILING_MILLISECONDS = 10 * 60_000;
-/** An observation older than this arms nothing; the next full cycle's pass looks afresh. */
-const OBSERVATION_STALE_MILLISECONDS = 24 * 60 * 60_000;
+/** After consecutive failed attempts, the wait doubles up to this ceiling. */
+export const RETENTION_FAILURE_BACKOFF_CEILING_MILLISECONDS = 60 * 60_000;
+
+/** The wait after `failures` consecutive failed attempts: 60 s, doubling, at most an hour. */
+export function retentionFailureBackoff(failures: number): number {
+  return Math.min(
+    PAUSE * 2 ** Math.min(Math.max(failures, 1), 20),
+    RETENTION_FAILURE_BACKOFF_CEILING_MILLISECONDS,
+  );
+}
+/** An observation this old predates the rescan a completed pass waits for; compared on read. */
+const RESCAN_AGE_MILLISECONDS = 24 * 60 * 60_000;
 const MINIMUM_DELAY_MILLISECONDS = 1_000;
+/**
+ * A resident's first retention-only slice, and one after a full cycle whose observation says
+ * nothing current, waits between these, at random, so residents restarted together spread out.
+ */
+export const RETENTION_START_DELAY_MILLISECONDS = { minimum: 30_000, maximum: 90_000 } as const;
+
+/** A delay within `RETENTION_START_DELAY_MILLISECONDS`, from `random` in [0, 1). */
+export function retentionStartDelay(random: () => number = Math.random): number {
+  const { minimum, maximum } = RETENTION_START_DELAY_MILLISECONDS;
+  return minimum + Math.floor(random() * (maximum - minimum));
+}
 
 export interface RetentionWake {
   /** Null waits for a full cycle. */
@@ -58,6 +81,13 @@ export function nextRetentionWake(
     case "held":
     case "off_base":
       return { at: null, backoff };
+    case "not_due":
+      // The rescan or the idle recheck makes a pass due then, with no change to wake for it.
+      return {
+        at: Math.max(outcome.dueAt, now + MINIMUM_DELAY_MILLISECONDS),
+        backoff: PAUSE,
+        wait: null,
+      };
     case "live_work":
       return backOff("live_work");
     case "admission_busy":
@@ -79,11 +109,17 @@ export function nextRetentionWake(
 
 /**
  * After a full cycle: when retention is due again. A turn the cycle's own retention was denied
- * names its moment, and the request holds its place only if the resident comes back then.
- * Otherwise the next slice follows while the last recorded pass left work; a failed pass, an
- * observation older than a day, or an unreadable one arms nothing.
+ * names its moment, and the request holds its place only if the resident comes back then. A pass
+ * that left work is followed after the pause. An observation that says nothing current is
+ * followed after `startDelay`: one that is missing or unreadable, one written before ADR-0660 (no
+ * `remaining`), or one older than the rescan interval. The slice itself then decides whether a
+ * pass is due. A current observation with no work left, or a failed pass, arms nothing.
  */
-export function retentionPendingAfterCycle(repositoryRoot: string, now: number): number | null {
+export function retentionPendingAfterCycle(
+  repositoryRoot: string,
+  now: number,
+  startDelay: number,
+): number | null {
   const wait = readRetentionWait(resolve(repositoryRoot, ".lervo/state/knowledge"));
   if (wait?.cause === "retention_turn" && wait.retryAt !== undefined && wait.retryAt >= now - GRACE)
     return wait.retryAt;
@@ -95,21 +131,20 @@ export function retentionPendingAfterCycle(repositoryRoot: string, now: number):
       ),
     ) as { observedAt?: unknown; status?: unknown; remaining?: unknown };
     const observedAt = Date.parse(String(observation.observedAt));
-    if (
-      observation.remaining !== true ||
-      observation.status === "unavailable" ||
-      !(now - observedAt < OBSERVATION_STALE_MILLISECONDS)
-    )
-      return null;
-    return now + PAUSE;
+    if (typeof observation.remaining !== "boolean" || !(now - observedAt < RESCAN_AGE_MILLISECONDS))
+      return now + startDelay;
+    return observation.remaining && observation.status !== "unavailable" ? now + PAUSE : null;
   } catch {
-    return null;
+    return now + startDelay;
   }
 }
 
 export interface ResidentRetention {
   /** One retention-only slice, unless a full cycle runs; that cycle re-arms when it ends. */
   run(): Promise<void>;
+  /** A resident's start: the first slice after the start delay, whatever the fence says. */
+  start(): void;
+  /** Arms the next slice when the last pass or a denied turn asks for one; never disarms. */
   afterCycle(): Promise<void>;
   settled(): Promise<void>;
 }
@@ -117,39 +152,55 @@ export interface ResidentRetention {
 export function residentRetention(input: {
   runSlice: () => Promise<RetentionOnlyOutcome>;
   /** After a full cycle: when retention is due again, or null when no work is left. */
-  pendingAfterCycle: (now: number) => Promise<number | null>;
+  pendingAfterCycle: (now: number, startDelay: number) => Promise<number | null>;
   liveWorkPending: () => Promise<boolean>;
   cycleRunning: () => boolean;
   arm: (at: number | null) => void;
-  recordWait: (cause: CasRetentionWaitCause | null, now: number, retryAt?: number) => Promise<void>;
+  recordWait: (
+    cause: CasRetentionWaitCause | null,
+    now: number,
+    detail?: CasRetentionWaitDetail,
+  ) => Promise<void>;
   stopped: () => boolean;
   onFailure: (error: unknown) => void;
   now?: () => number;
+  /** The start delay; `retentionStartDelay` by default. */
+  startDelay?: () => number;
 }): ResidentRetention {
+  const startDelay = input.startDelay ?? (() => retentionStartDelay());
   const now = input.now ?? Date.now;
   let backoff = PAUSE;
+  let failures = 0;
   let running: Promise<void> | null = null;
+  // A lost record costs only attention's detail, never the next slice.
+  const record = (cause: CasRetentionWaitCause | null, detail?: CasRetentionWaitDetail) =>
+    input.recordWait(cause, now(), detail).catch(() => undefined);
+  const arm = (at: number | null) => {
+    if (!input.cycleRunning() && !input.stopped()) input.arm(at);
+  };
   const slice = async () => {
     let outcome: RetentionOnlyOutcome;
     try {
       outcome = await input.runSlice();
     } catch (error) {
       if (input.stopped()) return;
+      // A failure never stops retention silently: it is reported, recorded with its code for
+      // attention, and retried after a wait that doubles up to an hour.
       input.onFailure(error);
-      outcome = { kind: "live_work" };
+      failures = Math.min(failures + 1, 64);
+      await record("failed", { code: retentionFailureCode(error), failures });
+      arm(now() + retentionFailureBackoff(failures));
+      return;
     }
+    failures = 0;
     const next = nextRetentionWake(outcome, backoff, now());
     backoff = next.backoff;
-    // A lost record costs only attention's detail, never the next slice.
     if (next.wait !== undefined)
-      await input
-        .recordWait(
-          next.wait,
-          now(),
-          next.wait === "retention_turn" ? (next.at ?? undefined) : undefined,
-        )
-        .catch(() => undefined);
-    if (!input.cycleRunning()) input.arm(next.at);
+      await record(
+        next.wait,
+        next.wait === "retention_turn" && next.at !== null ? { retryAt: next.at } : {},
+      );
+    arm(next.at);
   };
   return {
     run() {
@@ -159,12 +210,15 @@ export function residentRetention(input: {
         });
       return running ?? Promise.resolve();
     },
+    start() {
+      if (!input.stopped()) input.arm(now() + startDelay());
+    },
     async afterCycle() {
-      const at = await input.pendingAfterCycle(now()).catch(() => null);
+      const at = await input.pendingAfterCycle(now(), startDelay()).catch(() => null);
+      if (at === null) return;
       // While live work holds, the backoff stands; a full cycle does not reset it.
-      const live = at !== null && (await input.liveWorkPending().catch(() => false));
-      if (!input.stopped())
-        input.arm(at === null ? null : Math.max(at, now() + (live ? backoff : 0)));
+      const live = await input.liveWorkPending().catch(() => false);
+      if (!input.stopped()) input.arm(Math.max(at, now() + (live ? backoff : 0)));
     },
     settled: () => running ?? Promise.resolve(),
   };
@@ -180,7 +234,7 @@ export function startResidentRetention(
   const root = input.storage.paths.repositoryRoot;
   const directory = fullCycleAdmissionDirectory(input.admissionDirectory);
   const liveWorkPending = foregroundWorkPending(root);
-  return residentRetention({
+  const retention = residentRetention({
     runSlice: () =>
       runRetentionOnlySlice({
         storage: input.storage,
@@ -188,13 +242,17 @@ export function startResidentRetention(
         signal: wiring.signal,
         liveWorkPending,
       }),
-    pendingAfterCycle: async (now) => retentionPendingAfterCycle(root, now),
+    pendingAfterCycle: async (now, startDelay) => retentionPendingAfterCycle(root, now, startDelay),
     liveWorkPending,
     cycleRunning: wiring.cycleRunning,
     arm: wiring.arm,
-    recordWait: (cause, now, retryAt) =>
-      recordRetentionWait(input.storage.paths.knowledgeState, cause, now, retryAt),
+    recordWait: (cause, now, detail) =>
+      recordRetentionWait(input.storage.paths.knowledgeState, cause, now, detail),
     stopped: () => wiring.signal.aborted,
     onFailure: input.onFailure,
   });
+  // ADR-0660: a restarted resident whose fence is unchanged skips its full cycle, so its first
+  // retention slice is armed here, never left to a full cycle that may not come for a day.
+  retention.start();
+  return retention;
 }

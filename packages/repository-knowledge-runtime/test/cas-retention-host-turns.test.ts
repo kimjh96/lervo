@@ -11,6 +11,7 @@ import {
   requestRetentionTurn,
   returnRetentionTurn,
 } from "../src/cas-retention-host-turns.js";
+import { database } from "../src/full-cycle-admission-store.js";
 
 // ADR-0660: one retention slice per host per pause, the longest-waiting repository first.
 const directories: string[] = [];
@@ -81,6 +82,29 @@ it("never lets a request whose owner did not come back block another", async () 
   // Past it, C's request is withdrawn and A is served.
   expect(await request("/repo/a", T + PAUSE + GRACE + 1_000)).toMatchObject({ granted: true });
 });
+
+it(
+  "answers a locked host database as contention, not as a failure",
+  { timeout: 30_000 },
+  async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), "lervo-retention-turns-"));
+    directories.push(directory);
+    expect(
+      await requestRetentionTurn({ directory, repositoryRoot: "/repo/a", now: T }),
+    ).toMatchObject({ granted: true });
+    const holder = await database(directory);
+    holder.exec("BEGIN IMMEDIATE");
+    try {
+      // The busy wait runs out while another process holds the write lock.
+      expect(
+        await requestRetentionTurn({ directory, repositoryRoot: "/repo/b", now: T + 2 * PAUSE }),
+      ).toEqual({ granted: false, retryAt: T + 3 * PAUSE, contended: true });
+    } finally {
+      holder.exec("ROLLBACK");
+      holder.close();
+    }
+  },
+);
 
 it("gives an unused turn back without moving the host's pause", async () => {
   const { request, giveBack, finish } = await host();

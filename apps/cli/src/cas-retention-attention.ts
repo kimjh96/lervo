@@ -49,17 +49,37 @@ const WAITS: Record<string, string> = {
     "knowledge cycles of this host keep the host admission busy, so retention cannot start; check lervo doctor for a cycle that never ends",
   retention_turn:
     "other repositories on this host keep taking the retention turns; they share one slice every 30 seconds, so this one comes after them",
+  failed:
+    "retention attempts keep failing; the code names why, and the resident retries with a wait that grows to an hour",
   unknown:
     "no retention slice has run although work is left; check that the knowledge worker runs (lervo doctor)",
 };
 
+/** ADR-0660: consecutive failed attempts after which attention names the failure. */
+export const CAS_RETENTION_FAILING_ATTEMPTS = 3;
+
+interface Wait {
+  cause: string;
+  code: string | null;
+  failures: number;
+}
+
 /** ADR-0660: the last reason a retention-only attempt ran no slice, if it recorded one. */
-async function waitCause(root: string): Promise<string> {
+async function readWait(root: string): Promise<Wait> {
   try {
-    const wait = JSON.parse(await readFile(join(root, WAIT), "utf8")) as { cause?: unknown };
-    return typeof wait.cause === "string" && wait.cause in WAITS ? wait.cause : "unknown";
+    const wait = JSON.parse(await readFile(join(root, WAIT), "utf8")) as {
+      cause?: unknown;
+      code?: unknown;
+      failures?: unknown;
+    };
+    return {
+      cause: typeof wait.cause === "string" && wait.cause in WAITS ? wait.cause : "unknown",
+      code:
+        typeof wait.code === "string" && /^[A-Za-z0-9_]{1,64}$/u.test(wait.code) ? wait.code : null,
+      failures: Number.isSafeInteger(wait.failures) ? (wait.failures as number) : 0,
+    };
   } catch {
-    return "unknown";
+    return { cause: "unknown", code: null, failures: 0 };
   }
 }
 
@@ -76,13 +96,21 @@ interface Observation {
 
 /** The retention outcome's attention issues, or none while retention runs as it should. */
 export async function readCasRetentionAttention(root: string, now = new Date()): Promise<Issue[]> {
+  const issues: Issue[] = [];
+  const wait = await readWait(root);
+  // ADR-0660: failing attempts are named after a few, not left to the six-hour or stale notice.
+  if (wait.cause === "failed" && wait.failures >= CAS_RETENTION_FAILING_ATTEMPTS)
+    issues.push({
+      code: "cas_retention_failing",
+      command: `run lervo doctor; retention-only attempts keep failing (${wait.code ?? "failed"}), and the resident retries with a wait that grows to an hour`,
+      detail: `${wait.code ?? "failed"} (${wait.failures} attempts)`,
+    });
   let observation: Observation;
   try {
     observation = JSON.parse(await readFile(join(root, OBSERVATION), "utf8")) as Observation;
   } catch {
-    return [];
+    return issues;
   }
-  const issues: Issue[] = [];
   const observedAt = typeof observation.observedAt === "string" ? observation.observedAt : "";
   const age = now.getTime() - Date.parse(observedAt);
   if (!(age < CAS_RETENTION_STALE_MS))
@@ -97,10 +125,8 @@ export async function readCasRetentionAttention(root: string, now = new Date()):
     observation.status !== "unavailable" &&
     age >= CAS_RETENTION_WAITING_MS &&
     age < CAS_RETENTION_STALE_MS
-  ) {
-    const cause = await waitCause(root);
-    issues.push({ code: "cas_retention_waiting", command: WAITS[cause]!, detail: cause });
-  }
+  )
+    issues.push({ code: "cas_retention_waiting", command: WAITS[wait.cause]!, detail: wait.cause });
   const failure = typeof observation.failure === "string" ? observation.failure : null;
   if (
     failure !== null &&

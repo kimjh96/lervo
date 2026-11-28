@@ -62,6 +62,8 @@ export async function runCasRetentionSlice(input: {
   const knowledgeState = input.storage.paths.knowledgeState;
   if (pass.outcome === "ran") await recordRetentionWait(knowledgeState, null, Date.now());
   if (pass.outcome === "deferred" && deferredUntil !== null)
-    await recordRetentionWait(knowledgeState, "retention_turn", Date.now(), deferredUntil);
+    await recordRetentionWait(knowledgeState, "retention_turn", Date.now(), {
+      retryAt: deferredUntil,
+    });
   return { ...pass, retryAt };
 }

@@ -28,7 +28,15 @@ The first design made remaining retention a due time in the change fence. Review
    - The slice applies the full cycle's rules. The owner hold and the ADR-0610 base-branch rule stop it. A current developer lease stops it before it starts. It then takes the host retention turn, then the host's full-cycle admission, then the repository's worker lock. The materialization check and every ADR-0658 step are unchanged: the settle loop, the head and identity re-check after the tombstone, the tombstones and the 14-day grace.
    - The turn comes first, so repositories that are not served never touch the admission.
    - The slice takes the admission with the new `retention` priority. It is admitted in one transaction only while no live holder holds and no live waiter waits. It never inserts a waiter row, because a waiter would make the running full cycle yield at its next stage. Refused, it gives the turn back and leaves the host's pause as it was. While it runs, a full cycle that arrives makes it yield.
-   - After each full cycle, the deadline is armed in one of two ways. If the cycle's own retention was denied the turn, it is armed for the moment the denial named. Otherwise it is armed 30 s later, if the last recorded pass left work, is not `unavailable` and is less than a day old. While live work holds, the current backoff applies there too. After a slice:
+   - A resident arms its first retention-only slice when it starts, at a random 30–90 s, so residents restarted together spread out. This happens whatever the change fence says, because a restarted resident with an unchanged fence skips its full cycle.
+   - The slice first checks whether a pass could find work, from the scan projection alone. A pass must be in progress or its rescan interval passed, with no idle answer still standing. Otherwise it returns `not_due`, takes no turn and reads no CAS body. It arms the deadline for the moment that answer expires: the rescan, or the idle answer's six-hour recheck. A quiet, healthy repository therefore records a pass at least that often and never shows `cas_retention_stale`.
+   - A slice that throws is reported, recorded in `cas-retention-wait.json` as `failed` with a short code (the error's code, or `sqlite_busy`) and its count of consecutive failures, and retried after a wait that doubles from 60 s up to an hour. After three consecutive failures, attention reports `cas_retention_failing` with the code, even before any observation exists. A slice that runs ends the streak.
+   - Lock contention on the host database while asking for the turn is not a failure: the slice backs off as for a busy admission. A turn that cannot be given back keeps its start as the host's last slice, so the pause holds.
+   - After each full cycle, skipped or not, the deadline is armed in one of three ways, and never disarmed:
+     - If the cycle's own retention was denied the turn, it is armed for the moment the denial named.
+     - If the last recorded pass left work, is not `unavailable` and is less than a day old, it is armed 30 s later.
+     - If the observation says nothing current, it is armed after another random 30–90 s. That covers an observation that is missing, written before this ADR (no `remaining`), or older than the 24-hour rescan interval.
+   - While live work holds, the current backoff applies there too. After a slice:
      - A slice with work left arms it again 30 s later. One without arms nothing.
      - A held or off-base checkout arms nothing; the full cycle that its release or checkout switch causes looks again.
      - A denied turn comes back exactly at the moment the denial named.
@@ -50,7 +58,11 @@ The first design made remaining retention a due time in the change fence. Review
    - A slice that does advance ends any stall, including an `inventory_changed` or `event_head_changed` stall at its bound. A pass whose inventory or head keeps moving rereads only changed files, and their new identities count as no progress, so such a stall still reaches its bound.
    - An unchanged file resumes from its saved offset or SQLite cursor across slices, as before. A file that changes between slices restarts, and the stall names it in `stallReference`, relative to the repository. At the bound, `remaining` turns false, and attention reports `cas_retention_stalled` with the path.
 
+6. **The exception to ADR-0602's idle timers.** ADR-0602 lets an idle resident arm a timer only for a known deadline. ADR-0660 adds one such deadline, `retention`. It is armed at start, for a due rescan or idle recheck, after a failure, or while work is left. It is never a poll or an interval: each firing decides and arms at most the next known moment.
+
 ## Consequences
+
+- The bootstrap gap seen on WSL after 0.69.1 is closed. Its Node services restarted at 14:31Z, but the resident skipped its full cycle on an unchanged fence, and the 10:33Z observation had no `remaining`. Nothing armed retention until the next day's reconcile. Now the start arms it, and so does that observation.
 
 - A quiet host, or one whose provider is unavailable, keeps pruning without any provider call. Each repository runs one slice about every 35 s while it alone has work. With several repositories, the host runs one slice every 35 s in turn.
 - Measured on the Mac with 3,001 eligible 64 KiB objects, each slice took 5.0 s of wall time and 0.6–0.8 s of CPU. A slice removed about 500 objects, bound by the fsync of each tombstone, and all 3,001 cleared in seven slices. Before this change each pass removed 32. WSL disks are slower. At 32 to 500 removals per slice, its roughly 15,000 removable objects clear in hours, not weeks, if it is the only repository with work.

@@ -12,11 +12,14 @@ import {
   nextRetentionWake,
   residentRetention,
   retentionPendingAfterCycle,
+  retentionFailureBackoff,
+  retentionStartDelay,
 } from "../src/resident-retention.js";
 import type { RetentionOnlyOutcome } from "../src/retention-only-slice.js";
 
 // ADR-0660: when the resident asks for its next retention-only slice.
 const NOW = Date.parse("2026-11-28T12:00:00.000Z");
+const START = 45_000;
 const directories: string[] = [];
 afterEach(async () => {
   for (const directory of directories.splice(0))
@@ -83,52 +86,109 @@ it("backs off to ten minutes behind live work or busy cycles, and resumes after 
   });
 });
 
-it("arms after a full cycle only for a recent pass that left work", async () => {
+it("arms after a full cycle for a pass that left work, or an observation that says nothing current", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-resident-retention-"));
   directories.push(root);
   const state = resolve(root, ".lervo/state/knowledge");
   await mkdir(state, { recursive: true });
   const record = (observation: Record<string, unknown>) =>
     writeFile(resolve(state, "cas-retention-observation.json"), JSON.stringify(observation));
-  expect(retentionPendingAfterCycle(root, NOW)).toBeNull();
+  const pending = () => retentionPendingAfterCycle(root, NOW, START);
+  // Missing: the slice decides whether a pass is due, after the start delay.
+  expect(pending()).toBe(NOW + START);
   const observedAt = new Date(NOW - 60_000).toISOString();
   await record({ status: "collected", observedAt, remaining: true });
-  expect(retentionPendingAfterCycle(root, NOW)).toBe(NOW + PAUSE);
+  expect(pending()).toBe(NOW + PAUSE);
   await record({ status: "collected", observedAt, remaining: false });
-  expect(retentionPendingAfterCycle(root, NOW)).toBeNull();
-  await record({ status: "unavailable", observedAt, remaining: true });
-  expect(retentionPendingAfterCycle(root, NOW)).toBeNull();
+  expect(pending()).toBeNull();
+  await record({ status: "unavailable", observedAt, remaining: false });
+  expect(pending()).toBeNull();
+  // Written before ADR-0660, as on WSL after the upgrade: no `remaining`.
+  await record({ status: "yielded", observedAt, removedObjects: 0 });
+  expect(pending()).toBe(NOW + START);
+  // Older than the rescan interval.
   const stale = new Date(NOW - 25 * 60 * 60_000).toISOString();
-  await record({ status: "collected", observedAt: stale, remaining: true });
-  expect(retentionPendingAfterCycle(root, NOW)).toBeNull();
+  await record({ status: "collected", observedAt: stale, remaining: false });
+  expect(pending()).toBe(NOW + START);
   // A full cycle whose retention was denied the turn comes back exactly when the denial said,
   // even though its last pass left nothing.
   await record({ status: "collected", observedAt, remaining: false });
-  await recordRetentionWait(state, "retention_turn", NOW - 5_000, NOW + 12_000);
-  expect(retentionPendingAfterCycle(root, NOW)).toBe(NOW + 12_000);
+  await recordRetentionWait(state, "retention_turn", NOW - 5_000, { retryAt: NOW + 12_000 });
+  expect(pending()).toBe(NOW + 12_000);
   // A denial whose moment passed long ago no longer speaks.
-  await recordRetentionWait(state, "retention_turn", NOW - 60_000, NOW - 30_000);
-  expect(retentionPendingAfterCycle(root, NOW)).toBeNull();
+  await recordRetentionWait(state, "retention_turn", NOW - 60_000, { retryAt: NOW - 30_000 });
+  expect(pending()).toBeNull();
+});
+
+it("spreads a resident's first slice over 30 to 90 seconds", () => {
+  expect(retentionStartDelay(() => 0)).toBe(30_000);
+  expect(retentionStartDelay(() => 0.5)).toBe(60_000);
+  expect(retentionStartDelay(() => 0.999_999)).toBeLessThan(90_000);
+});
+
+it("comes back when a pass that is not due yet falls due", () => {
+  // The rescan, or the idle answer's recheck: no change would wake a quiet repository for it.
+  expect(
+    nextRetentionWake({ kind: "not_due", dueAt: NOW + 6 * 60 * 60_000 }, 4 * PAUSE, NOW),
+  ).toEqual({
+    at: NOW + 6 * 60 * 60_000,
+    backoff: PAUSE,
+    wait: null,
+  });
 });
 
 function controller(overrides: Partial<Parameters<typeof residentRetention>[0]> = {}) {
   const armed: (number | null)[] = [];
   const waits: unknown[] = [];
   const failures: unknown[] = [];
+  const details: unknown[] = [];
   const retention = residentRetention({
     runSlice: async () => ran(true),
     pendingAfterCycle: async () => NOW + PAUSE,
     liveWorkPending: async () => false,
     cycleRunning: () => false,
     arm: (at) => armed.push(at),
-    recordWait: async (cause) => void waits.push(cause),
+    recordWait: async (cause, _now, detail) => {
+      waits.push(cause);
+      details.push(detail);
+    },
     stopped: () => false,
     onFailure: (error) => failures.push(error),
     now: () => NOW,
     ...overrides,
   });
-  return { retention, armed, waits, failures };
+  return { retention, armed, waits, details, failures };
 }
+
+it("records a failing attempt with its code and retries it, waiting up to an hour", async () => {
+  let fail = true;
+  const { retention, armed, waits, details, failures } = controller({
+    runSlice: async () => {
+      if (fail) throw Object.assign(new Error("database is locked"), { errcode: 5 });
+      return ran(false);
+    },
+  });
+  for (let attempt = 0; attempt < 8; attempt++) await retention.run();
+  expect(failures).toHaveLength(8);
+  expect(armed.map((at) => at! - NOW)).toEqual([
+    2 * PAUSE,
+    4 * PAUSE,
+    8 * PAUSE,
+    16 * PAUSE,
+    32 * PAUSE,
+    64 * PAUSE,
+    60 * 60_000,
+    60 * 60_000,
+  ]);
+  expect(retentionFailureBackoff(64)).toBe(60 * 60_000);
+  expect(waits.every((cause) => cause === "failed")).toBe(true);
+  expect(details.at(-1)).toEqual({ code: "sqlite_busy", failures: 8 });
+  // A slice that runs ends the streak and clears the record.
+  fail = false;
+  await retention.run();
+  expect(waits.at(-1)).toBeNull();
+  expect(armed.at(-1)).toBeNull();
+});
 
 it("runs no slice and arms nothing while a full cycle runs", async () => {
   let cycleRunning = true;
@@ -176,4 +236,14 @@ it("reports no failure for a slice cut short by the resident stopping", async ()
   await retention.run();
   expect(failures).toEqual([]);
   expect(armed).toEqual([]);
+});
+
+it("arms its first slice at start, and a full cycle with nothing to say never disarms it", async () => {
+  const { retention, armed } = controller({
+    pendingAfterCycle: async () => null,
+    startDelay: () => START,
+  });
+  retention.start();
+  await retention.afterCycle();
+  expect(armed).toEqual([NOW + START]);
 });
