@@ -1,9 +1,12 @@
-<!-- lervo-release package="@lervo/ade" version="0.13.2" schema="1" -->
+<!-- lervo-release package="@lervo/ade" version="0.13.3" schema="1" -->
 
-Needs the Lervo CLI 0.67.1 or later.
+Needs the Lervo CLI 0.68.1 or later.
 
 ## What's changed
 
-- A joined agent's items arrive with motion as the lead's do, the Add Project window closes with its motion when an add succeeds, and history scrolled back into view no longer replays entrances.
-- Content that comes back while it is still fading out, such as Jump to latest or a list closed and reopened at once, turns around where it is instead of flickering in again from nothing.
-- Removing a workspace with its changes leaves one plain line, Removed. Lervo keeps its changes for up to 14 days, with Copy restore command and Dismiss, instead of a raw Git command.
+- A run of tool lines reads as one block, with the same room before and after the messages around it, instead of a message hugging the run above it.
+- A shell line that runs a Lervo command among other commands reads as what Lervo did, then the other commands as code, instead of the whole raw command line.
+- A tool call with nothing to show, such as TaskStop, lines up with the other tool lines, its name in the same place and face, instead of a plain line of its own.
+- An agent that joined a conversation shows its work in the sidebar, the conversation list and the project switcher, as the agent that leads it does.
+- Jump to latest rises in place at the center instead of starting right of center, and a change of speaker keeps more room above it than any step within one agent's turn.
+- Switching between agent profiles keeps the leaving profile's model and effort as they were, instead of showing the first model and Low while it fades.

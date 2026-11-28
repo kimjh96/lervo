@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9160a59262790244b6cc0a8b"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "An agent that joined a conversation shows its work in the sidebar, the conversation list and the project switcher, as the agent that leads it does."
