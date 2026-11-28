@@ -262,7 +262,7 @@ function Card({ summary }: { summary: TurnSummary }) {
 /**
  * The quiet line at a turn's end: what Lervo gave, what the agent used, and what changed, from
  * the core's records, read once the turn is over (approved mockup 3, "The Lervo turn summary").
- * It fades in when the core answers and opens at once to the card; its height never animates.
+ * It fades in when the core answers, and its card opens and closes like a disclosure.
  */
 export function TurnSummaryLine(props: {
   turn: string;
@@ -310,8 +310,9 @@ export function TurnSummaryLine(props: {
               ) : null}
             </span>
           </button>
-          {/* motion: Disclosure: tool activity, details */}
-          {opened ? <Card summary={summary} /> : null}
+          {/* The card opens its space and fades in, and closes it as it fades out; a card open in
+              loaded history shows at once (ADE motion, "Disclosure"). */}
+          <Presence enterOnMount={false}>{opened ? <Card summary={summary} /> : null}</Presence>
         </div>
       )}
     </Presence>

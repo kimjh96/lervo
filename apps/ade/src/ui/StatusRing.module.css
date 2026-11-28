@@ -11,22 +11,32 @@
   inset: calc(var(--size-ring-gap) * -1);
   border: var(--size-ring-width) solid transparent;
   border-radius: var(--radius-full);
-  transition: border-color var(--motion-duration-leave) var(--motion-easing-standard);
+  opacity: 0;
+  /* The ring's opacity fades on the fade easing, so leaving mid-breath continues from the
+     breath's current strength instead of snapping to full; its color changes as a control's. */
+  transition:
+    opacity var(--motion-duration-leave) var(--motion-easing-fade),
+    border-color var(--motion-duration-change) var(--motion-easing-standard);
   content: "";
   pointer-events: none;
 }
 
 .ring[data-shown]::after {
-  transition-duration: var(--motion-duration-enter);
+  opacity: 1;
+  transition-duration: var(--motion-duration-enter), var(--motion-duration-change);
 }
 
-.ring[data-shown][data-tone="attention"]::after {
+/* The tone keeps its color while the ring fades out, so it leaves in its last color. */
+.ring[data-tone="attention"]::after {
   border-color: var(--color-status-needs-you);
+}
+
+.ring[data-tone="working"]::after {
+  border-color: var(--color-status-working);
 }
 
 /* Breathing starts once the ring has faded in, from full strength, so it never jumps. */
 .ring[data-shown][data-tone="working"]::after {
-  border-color: var(--color-status-working);
   animation: breathe var(--motion-duration-breathe) var(--motion-easing-breathe)
     var(--motion-duration-enter) infinite alternate-reverse;
 }

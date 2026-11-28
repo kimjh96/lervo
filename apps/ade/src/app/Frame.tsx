@@ -9,6 +9,7 @@ import { StartScreen, type Surface, useFirstRun, useSurface } from "../features/
 import { WorkspaceHeader } from "../features/workspace-header";
 import { useWorkspaceStore, WorkspaceList } from "../features/workspaces";
 import { motion } from "../design/generated/motion";
+import { Presence } from "../ui/Presence";
 import { moveSpace } from "../ui/space";
 import { ViewPresence } from "../ui/ViewPresence";
 import styles from "./Frame.module.css";
@@ -117,7 +118,9 @@ export function Frame() {
       <nav ref={sidebar} className={styles.sidebar}>
         {/* The macOS window controls sit over this strip, which also moves the window. */}
         <div className={styles.titlebar} data-tauri-drag-region />
-        <ProjectSwitcher />
+        {/* The switcher row comes with the first project and goes with the last, as the
+            sidebar's other rows do. */}
+        <Presence>{project === null ? null : <ProjectSwitcher />}</Presence>
         <WorkspaceList
           projectId={project?.projectId ?? null}
           beforeRows={<AgentList projectId={project?.projectId ?? null} />}

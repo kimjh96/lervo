@@ -88,7 +88,6 @@
   font-size: var(--type-meta-size);
   line-height: var(--type-meta-line-height);
   background: var(--color-surface-floating);
-  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
 .section {

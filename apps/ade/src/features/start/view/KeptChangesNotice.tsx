@@ -31,12 +31,16 @@ export function KeptChangesNotice() {
           <p className={styles.text}>
             <FormattedMessage id="start.keptChanges" />
           </p>
-          <code className={styles.command}>{restore}</code>
+          <Presence contentKey={restore}>
+            <code className={styles.command}>{restore}</code>
+          </Presence>
           <span className={styles.actions}>
             <Button variant="quiet" onClick={() => copy(restore)}>
-              {copied
-                ? intl.formatMessage({ id: "start.keptChanges.copied" })
-                : intl.formatMessage({ id: "start.keptChanges.copy" })}
+              <Presence as="span" contentKey={copied ? "copied" : "copy"}>
+                {copied
+                  ? intl.formatMessage({ id: "start.keptChanges.copied" })
+                  : intl.formatMessage({ id: "start.keptChanges.copy" })}
+              </Presence>
             </Button>
             <Button variant="quiet" onClick={dismiss}>
               <FormattedMessage id="start.keptChanges.dismiss" />

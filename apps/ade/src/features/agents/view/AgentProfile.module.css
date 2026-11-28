@@ -127,3 +127,25 @@
 .label {
   white-space: nowrap;
 }
+
+/* A conversation the agent joins or leaves while its profile is open enters or leaves like a
+   workspace row. */
+.conversation[data-arrived="true"] {
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.conversation[data-leaving] {
+  pointer-events: none;
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conversation[data-arrived="true"] {
+    animation: none;
+  }
+
+  .conversation[data-leaving] {
+    visibility: hidden;
+    animation: none;
+  }
+}

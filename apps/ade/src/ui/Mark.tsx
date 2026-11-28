@@ -1,4 +1,5 @@
 import styles from "./Mark.module.css";
+import { Presence } from "./Presence";
 
 /** How many mark colors the tokens define (`color.mark.1` to `color.mark.6`). */
 export const MARK_COLORS = 6;
@@ -34,14 +35,25 @@ export function Mark(props: {
       className={styles.mark}
       data-size={props.size}
       data-shape={props.shape ?? "square"}
-      data-color={props.src === null ? markColor(props.id) : undefined}
       aria-hidden="true"
     >
-      {props.src === null ? (
-        markLetter(props.name)
-      ) : (
-        <img className={styles.image} src={props.src} alt={props.name} draggable={false} />
-      )}
+      {/* A letter that becomes an image, or the reverse, crossfades with its color; a mark that
+          mounts with either shows it at once. */}
+      <Presence
+        as="span"
+        className={styles.face}
+        contentKey={props.src ?? "letter"}
+        fill
+        enterOnMount={false}
+      >
+        {props.src === null ? (
+          <span className={styles.letter} data-color={markColor(props.id)}>
+            {markLetter(props.name)}
+          </span>
+        ) : (
+          <img className={styles.image} src={props.src} alt={props.name} draggable={false} />
+        )}
+      </Presence>
     </span>
   );
 }

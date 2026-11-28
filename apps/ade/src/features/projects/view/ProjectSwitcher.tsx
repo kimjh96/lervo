@@ -77,19 +77,7 @@ export function ProjectSwitcher() {
     return () => window.removeEventListener("keydown", shortcut);
   }, [memory]);
 
-  // Escape closes the open list, as it closes a menu. It listens on the window, since a click
-  // leaves no focus on the row in WebKit; a menu or name field handles its own Escape first.
-  useEffect(() => {
-    if (!expanded) return;
-    const close = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      if (useProjectStore.getState().renaming !== null) return;
-      event.preventDefault();
-      useProjectStore.setState({ expanded: false });
-    };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, [expanded]);
+  useEscapeCloses(expanded);
 
   // ⌘O opens a folder as a project, as "Open Folder" in the Add Project menu shows.
   const add = useAddProject();
@@ -150,8 +138,17 @@ export function ProjectSwitcher() {
             event.preventDefault();
             void ensure().then((module) => module.showProjectMenu(context, current));
           }}
-          leading={<ProjectMark project={current} size="md" />}
-          label={<span className={styles.name}>{projectName(current)}</span>}
+          // Switching projects crossfades the mark and name in place, as the lists below do.
+          leading={
+            <Presence as="span" contentKey={current.projectId}>
+              <ProjectMark project={current} size="md" />
+            </Presence>
+          }
+          label={
+            <Presence as="span" contentKey={current.projectId} fill>
+              <span className={styles.name}>{projectName(current)}</span>
+            </Presence>
+          }
           trailing={
             <span className={styles.trailing}>
               <Presence as="span">
@@ -180,4 +177,22 @@ export function ProjectSwitcher() {
       </Presence>
     </section>
   );
+}
+
+/**
+ * Escape closes the open list, as it closes a menu. It listens on the window, since a click leaves
+ * no focus on the row in WebKit; a menu or name field handles its own Escape first.
+ */
+function useEscapeCloses(expanded: boolean) {
+  useEffect(() => {
+    if (!expanded) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (useProjectStore.getState().renaming !== null) return;
+      event.preventDefault();
+      useProjectStore.setState({ expanded: false });
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [expanded]);
 }

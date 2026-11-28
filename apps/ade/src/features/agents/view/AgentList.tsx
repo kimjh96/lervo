@@ -1,5 +1,5 @@
 import type { AgentSummary } from "@lervo/session-host-contract";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useApplicationCommands } from "../../../ports";
@@ -11,6 +11,7 @@ import { PopoverMenu } from "../../../ui/PopoverMenu";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
 import { StatusRing } from "../../../ui/StatusRing";
+import { useDepartingInPlace } from "../../../ui/departing";
 import { useItemSpace } from "../../../ui/space";
 import { statusMessages, useWorkspaceStore } from "../../workspaces";
 import { hireAgent, showProjectAgents } from "../model/controller";
@@ -19,7 +20,7 @@ import { openProfile, useAgentStore } from "../model/store";
 import styles from "./AgentList.module.css";
 import { roleSummary } from "./role-summary";
 
-function AgentRow(props: { agent: AgentSummary }) {
+function AgentRow(props: { agent: AgentSummary; leaving: boolean }) {
   const intl = useIntl();
   const { agent } = props;
   const activity = useWorkspaceStore((store) =>
@@ -27,10 +28,18 @@ function AgentRow(props: { agent: AgentSummary }) {
   );
   const arrived = useAgentStore((store) => store.arrived.has(agent.agentId));
   const open = useAgentStore((store) => store.profile === agent.agentId);
-  // An agent hired while the person watches arrives with the space it takes (ADE motion, 12).
-  const space = useItemSpace<HTMLDivElement>(arrived, false);
+  // An agent hired while the person watches arrives with the space it takes, and one that leaves
+  // the team fades out where it was and gives its space back (ADE motion, 11 and 12).
+  const space = useItemSpace<HTMLDivElement>(arrived, props.leaving);
   return (
-    <div ref={space} data-arrived={arrived ? "true" : undefined} className={styles.agent}>
+    <div
+      ref={space}
+      data-arrived={arrived ? "true" : undefined}
+      data-leaving={props.leaving ? "" : undefined}
+      aria-hidden={props.leaving ? true : undefined}
+      inert={props.leaving}
+      className={styles.agent}
+    >
       <ListRow
         current={open}
         quiet={agent.status === "suspended"}
@@ -55,6 +64,19 @@ function AgentRow(props: { agent: AgentSummary }) {
     </div>
   );
 }
+
+/**
+ * The team's rows. Each project's list keeps its own departures, so switching projects, which
+ * crossfades the whole list, never reads as agents leaving.
+ */
+function AgentRows(props: { team: readonly AgentSummary[] }) {
+  const shown = useDepartingInPlace(props.team, agentKey);
+  return shown.map(({ item, leaving }) => (
+    <AgentRow key={item.agentId} agent={item} leaving={leaving} />
+  ));
+}
+
+const agentKey = (agent: AgentSummary) => agent.agentId;
 
 /**
  * The selected project's team under the switcher (Lervo ADE agents, "The sidebar"), in the order it
@@ -91,7 +113,8 @@ function Agents(props: { shown: string }) {
   const { agents, roles, failure } = useAgentStore();
   const [menuAt, setMenuAt] = useState<{ rect: DOMRect; byKey: boolean } | null>(null);
   const { shown } = props;
-  const team = teamAgents(agents);
+  // Kept as one array per change of the agents, so its rows can tell departures from renders.
+  const team = useMemo(() => teamAgents(agents), [agents]);
   const owner = productOwnerRole(roles);
   const hire = (roleId: string) => void hireAgent(commands, shown, roleId);
 
@@ -110,9 +133,7 @@ function Agents(props: { shown: string }) {
       />
       <Presence contentKey={shown}>
         <div className={styles.rows}>
-          {team.map((agent) => (
-            <AgentRow key={agent.agentId} agent={agent} />
-          ))}
+          <AgentRows team={team} />
           <Presence>
             {team.length === 0 && owner !== undefined ? (
               <ListRow

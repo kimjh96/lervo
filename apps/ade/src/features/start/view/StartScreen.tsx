@@ -110,7 +110,6 @@ function StartForm() {
   const input = useRef<HTMLTextAreaElement>(null);
   const registry = useProviderStore((store) => store.registry);
   const draft = useStartStore((store) => store.draft);
-  const error = useStartStore((store) => store.error);
   const setDraft = (next: StartDraft) => useStartStore.setState({ draft: next, error: null });
   // New work goes into the project the switcher shows.
   const project = useCurrentProject();
@@ -252,24 +251,38 @@ function StartForm() {
           noRepository={repositories.length === 0 && !firstRun.managed}
           olderProvider={registry.status === "older"}
         />
-        <Presence className={styles.error}>
-          {/* motion: Inline errors */}
-          {attachments.notice !== null && error === null ? (
-            <InlineAlert size="note">
-              <FormattedMessage {...attachments.notice} values={attachmentNoticeValues} />
-            </InlineAlert>
-          ) : error === null ? null : (
-            <InlineAlert size="note">
-              <FormattedMessage
-                {...(Object.hasOwn(errorMessages, error.code)
-                  ? errorMessages[error.code]
-                  : { id: "start.error.other" })}
-                values={{ code: error.code, stage: error.stage ?? "none" }}
-              />
-            </InlineAlert>
-          )}
-        </Presence>
+        <StartAlert notice={attachments.notice} />
       </div>
     </div>
+  );
+}
+
+/**
+ * The line under the start card: a failed start, else an attachment notice. One replacing another
+ * crossfades in place (ADE motion, "Changing in place").
+ */
+function StartAlert(props: { notice: MessageDescriptor | null }) {
+  const error = useStartStore((store) => store.error);
+  const { notice } = props;
+  return (
+    <Presence
+      className={styles.error}
+      contentKey={error !== null ? `error:${error.code}` : notice !== null ? "attachments" : "none"}
+    >
+      {notice !== null && error === null ? (
+        <InlineAlert size="note">
+          <FormattedMessage {...notice} values={attachmentNoticeValues} />
+        </InlineAlert>
+      ) : error === null ? null : (
+        <InlineAlert size="note">
+          <FormattedMessage
+            {...(Object.hasOwn(errorMessages, error.code)
+              ? errorMessages[error.code]
+              : { id: "start.error.other" })}
+            values={{ code: error.code, stage: error.stage ?? "none" }}
+          />
+        </InlineAlert>
+      )}
+    </Presence>
   );
 }

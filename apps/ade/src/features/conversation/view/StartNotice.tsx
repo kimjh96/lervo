@@ -3,6 +3,7 @@ import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
 import { BaseNotice } from "./BaseNotice";
 import styles from "./renderers.module.css";
+import { Presence } from "../../../ui/Presence";
 
 const messages = {
   product_owner: { id: "notice.start.hire_failed" },
@@ -33,18 +34,23 @@ export function startNotices(notices: {
 }): ReactNode {
   const { baseNotice, hireFailure, coordinationFailure } = notices;
   if (baseNotice === null && hireFailure === null && coordinationFailure === null) return null;
+  // Each notice fades in with its space as it arrives: the hire failure comes before the
+  // workspace starts, and the other two after it.
   return (
     <>
-      {/* motion: Lervo notices in the conversation */}
-      {hireFailure === null ? null : <StartNotice without="product_owner" code={hireFailure} />}
-      {/* motion: Lervo notices in the conversation */}
-      {coordinationFailure === null ? null : (
-        <StartNotice without="coordination" code={coordinationFailure} />
-      )}
-      {/* motion: Lervo notices in the conversation */}
-      {baseNotice === null ? null : (
-        <BaseNotice code={baseNotice.code} upstream={baseNotice.upstream} />
-      )}
+      <Presence>
+        {hireFailure === null ? null : <StartNotice without="product_owner" code={hireFailure} />}
+      </Presence>
+      <Presence>
+        {coordinationFailure === null ? null : (
+          <StartNotice without="coordination" code={coordinationFailure} />
+        )}
+      </Presence>
+      <Presence>
+        {baseNotice === null ? null : (
+          <BaseNotice code={baseNotice.code} upstream={baseNotice.upstream} />
+        )}
+      </Presence>
     </>
   );
 }

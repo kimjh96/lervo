@@ -1,9 +1,11 @@
 /* What waits in an input card: 56 px image thumbnails, then file chips of the same height, above
    its field; each remove button shows on hover and keyboard focus. */
+/* Items part by their own end margin rather than the row's gap, so a removed item's margin closes
+   with its width instead of jumping at the end. */
 .tray {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-8);
+  row-gap: var(--space-8);
   margin: 0;
   padding: var(--space-6) 0 var(--space-10);
   list-style: none;
@@ -13,12 +15,20 @@
   position: relative;
   width: var(--size-thumbnail);
   height: var(--size-thumbnail);
+  margin-inline-end: var(--space-8);
   animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
 .file {
   display: flex;
+  margin-inline-end: var(--space-8);
   animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.tile[data-leaving],
+.file[data-leaving] {
+  pointer-events: none;
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
 }
 
 .open {
@@ -53,12 +63,16 @@
 }
 
 /* A thumbnail still being prepared is faint, and the working line's sweep passes over it (ADE
-   motion, "Waiting"). */
+   motion, "Waiting"). Once it is ready, the faintness and the sweep fade out over leave. */
+.image {
+  transition: opacity var(--motion-duration-leave) var(--motion-easing-fade);
+}
+
 .tile[data-preparing] .image {
   opacity: var(--opacity-disabled);
 }
 
-.tile[data-preparing]::after {
+.tile::after {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-md);
@@ -69,9 +83,15 @@
       transparent 80%
     )
     0 0 / 200% 100%;
-  animation: sweep var(--motion-duration-shimmer) var(--motion-easing-shimmer) infinite;
+  opacity: 0;
+  transition: opacity var(--motion-duration-leave) var(--motion-easing-fade);
   content: "";
   pointer-events: none;
+}
+
+.tile[data-preparing]::after {
+  opacity: 1;
+  animation: sweep var(--motion-duration-shimmer) var(--motion-easing-shimmer) infinite;
 }
 
 @keyframes sweep {
@@ -98,20 +118,30 @@
   color: var(--color-text-secondary);
   background: var(--color-surface-opaque);
   cursor: pointer;
-  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-duration-leave) var(--motion-easing-fade);
 }
 
-/* The remove button shows at once on hover, and on keyboard focus within the thumbnail, so Tab
-   reaches it right after the thumbnail. */
+/* The remove button fades in on hover, and on keyboard focus within the thumbnail, so Tab
+   reaches it right after the thumbnail; it fades out as the pointer leaves. */
 .tile:hover .remove,
 .tile:focus-within .remove {
-  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: var(--motion-duration-enter);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tile,
   .file,
   .tile[data-preparing]::after {
+    animation: none;
+  }
+
+  .tile[data-leaving],
+  .file[data-leaving] {
+    visibility: hidden;
     animation: none;
   }
 }

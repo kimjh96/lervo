@@ -14,6 +14,11 @@
   font-size: var(--type-meta-size);
   background: transparent;
   cursor: pointer;
+  /* Hover and disabling change as a control's colors do, never at once. */
+  transition:
+    color var(--motion-duration-change) var(--motion-easing-standard),
+    background-color var(--motion-duration-change) var(--motion-easing-standard),
+    opacity var(--motion-duration-change) var(--motion-easing-standard);
 }
 
 .button[data-icon-only] {

@@ -5,6 +5,7 @@ import { useIntl } from "react-intl";
 import { ChevronDownIcon } from "../../../ui/icons";
 import { AgentMark } from "./AgentMark";
 import { PopoverMenu } from "../../../ui/PopoverMenu";
+import { Presence } from "../../../ui/Presence";
 import { HIRE_PRODUCT_OWNER, toggleParticipant } from "../model/decisions";
 import styles from "./ParticipantsChip.module.css";
 
@@ -45,6 +46,7 @@ export function ParticipantsChip(props: {
     .map((id) => candidates.find((agent) => agent.agentId === id))
     .filter((agent): agent is Candidate => agent !== undefined);
   if (chosen.length === 0) return null;
+  const chosenKey = chosen.map((agent) => agent.agentId).join(" ");
   const list = (agents: readonly Candidate[]) =>
     new Intl.ListFormat(intl.locale, { type: "unit", style: "short" }).format(
       agents.map((agent) => agent.displayName),
@@ -70,12 +72,17 @@ export function ParticipantsChip(props: {
           })
         }
       >
-        <span className={styles.marks}>
-          {chosen.slice(0, SHOWN_MARKS).map((agent) => (
-            <AgentMark key={agent.agentId} agent={agent} size="sm" />
-          ))}
-        </span>
-        <span className={styles.names}>{names}</span>
+        {/* Choosing another participant crossfades the marks and names to their new width. */}
+        <Presence as="span" contentKey={chosenKey}>
+          <span className={styles.marks}>
+            {chosen.slice(0, SHOWN_MARKS).map((agent) => (
+              <AgentMark key={agent.agentId} agent={agent} size="sm" />
+            ))}
+          </span>
+        </Presence>
+        <Presence as="span" contentKey={chosenKey}>
+          <span className={styles.names}>{names}</span>
+        </Presence>
         <ChevronDownIcon size="sm" />
       </button>
       {/* motion: Overlays: command palette, menus, popovers */}

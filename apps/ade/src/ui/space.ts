@@ -113,6 +113,8 @@ export function moveSpace(
 export function useItemSpace<T extends HTMLElement>(
   arrived: boolean,
   leaving: boolean,
+  /** The axis the item's space takes: `block` in a column, `inline` in a row such as a tray. */
+  axis: SpaceAxis = "block",
 ): RefObject<T | null> {
   const element = useRef<T>(null);
   const animation = useRef<Animation | null>(null);
@@ -122,28 +124,30 @@ export function useItemSpace<T extends HTMLElement>(
     const item = element.current;
     if (item === null || !arrivedOnMount.current) return;
     animation.current = moveSpace(item, {
-      axis: "block",
+      axis,
       from: 0,
-      to: sizeOf(item, "block"),
+      to: sizeOf(item, axis),
       duration: motion.enterMs,
       hold: false,
-      margins: { from: NO_MARGINS, to: marginsOf(item, "block") },
+      margins: { from: NO_MARGINS, to: marginsOf(item, axis) },
     });
+    // The axis is fixed for an item's life.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useLayoutEffect(() => {
     const item = element.current;
     if (item === null || !leaving) return;
-    const from = sizeOf(item, "block");
-    const margins = marginsOf(item, "block");
+    const from = sizeOf(item, axis);
+    const margins = marginsOf(item, axis);
     animation.current?.cancel();
     animation.current = moveSpace(item, {
-      axis: "block",
+      axis,
       from,
       to: 0,
       duration: motion.leaveMs,
       hold: true,
       margins: { from: margins, to: NO_MARGINS },
     });
-  }, [leaving]);
+  }, [leaving, axis]);
   return element;
 }

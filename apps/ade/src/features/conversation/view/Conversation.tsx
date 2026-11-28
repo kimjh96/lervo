@@ -142,27 +142,24 @@ export function Conversation(props: {
                   data-arrived={arrived.has(item.itemId) ? "true" : undefined}
                   style={{ transform: `translateY(${row.start}px)` }}
                 >
-                  {/* motion: A message arrives live */}
-                  {room.changes.has(item.itemId) ? (
-                    <SpeakerLine agentId={room.speakers.get(item.itemId) ?? ""} />
-                  ) : null}
+                  {/* A speaker line comes and goes with its space when agents join or a joined
+                      agent's item lands between others; a row that mounts with it shows it at
+                      once, since the row itself arrives or was already read. */}
+                  <Presence enterOnMount={false}>
+                    {room.changes.has(item.itemId) ? (
+                      <SpeakerLine agentId={room.speakers.get(item.itemId) ?? ""} />
+                    ) : null}
+                  </Presence>
                   <ConversationItemView item={item} />
-                  <Presence className={styles.queued}>
+                  <Presence className={styles.queued} enterOnMount={false}>
                     {queued.has(item.itemId) ? <FormattedMessage id="conversation.queued" /> : null}
                   </Presence>
-                  {/* motion: A message arrives live */}
-                  {ends.has(row.index) ? (
-                    <div className={styles.turnEnd}>
-                      <TurnSummaryLine
-                        turn={ends.get(row.index)!.turn}
-                        window={ends.get(row.index)!.window}
-                        elapsedMs={ends.get(row.index)!.elapsedMs}
-                      />
-                    </div>
-                  ) : null}
+                  <TurnEndLine end={ends.get(row.index)} />
                   {/* motion: Lervo notices in the conversation */}
                   {row.index === 0 && !window.hasEarlier ? (
-                    <Presence className={styles.lead}>{props.lead ?? null}</Presence>
+                    <Presence className={styles.lead} enterOnMount={false}>
+                      {props.lead ?? null}
+                    </Presence>
                   ) : null}
                 </div>
               );
@@ -181,5 +178,22 @@ export function Conversation(props: {
         </div>
       </div>
     </OpenQuestions>
+  );
+}
+
+/**
+ * A finished turn's line under its last item. It comes when the turn ends and goes if the turn
+ * opens again, fading with its space; a row that mounts with it shows it at once.
+ */
+function TurnEndLine(props: { end: TurnEnd | undefined }) {
+  const { end } = props;
+  return (
+    <Presence enterOnMount={false}>
+      {end === undefined ? null : (
+        <div className={styles.turnEnd}>
+          <TurnSummaryLine turn={end.turn} window={end.window} elapsedMs={end.elapsedMs} />
+        </div>
+      )}
+    </Presence>
   );
 }

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "./icons";
 import styles from "./ImageViewer.module.css";
+import { Presence } from "./Presence";
 
 /** Longer than the closing motion: a window that runs no animation closes after it. */
 const CLOSE_FALLBACK_MS = 400;
@@ -81,7 +82,9 @@ export function ImageViewer(props: {
           if (closing && event.target === event.currentTarget) onClose();
         }}
       />
-      <img className={styles.image} src={image.src} alt={image.alt} />
+      {/* Each image arrives with its own fade, so moving between images never swaps one in a
+          frame. */}
+      <img key={image.src} className={styles.image} src={image.src} alt={image.alt} />
       <button
         ref={close}
         type="button"
@@ -114,7 +117,11 @@ export function ImageViewer(props: {
           >
             <ChevronRightIcon size="lg" />
           </button>
-          <p className={styles.count}>{props.labels.count}</p>
+          <p className={styles.count}>
+            <Presence as="span" contentKey={props.labels.count}>
+              {props.labels.count}
+            </Presence>
+          </p>
         </>
       ) : null}
     </div>,
