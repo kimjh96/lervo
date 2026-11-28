@@ -18,27 +18,39 @@ The pass collapsed both into `failed`, and the worker's `.catch` swallowed it. T
 
 ## Decision
 
-1. **Pipes and sockets are skipped.** A FIFO or socket has no bytes, so it can name no object. Any other special file still stops the pass.
+1. **Pipes and sockets are skipped.** A FIFO or socket has no bytes, so it can name no object. Any other special file still stops the pass. `.lervo/run` itself stays in the walk; only its byte-less entries are skipped.
 2. **A stopping path is named.**
    - The observation's `failure` gains `unreadable_reference`, `unsafe_reference` (a link), `unsupported_reference` and `unstable_reference`.
    - A new `reference` field holds the path relative to the repository, never absolute, and never a hash or content.
    - A permission error anywhere in the pass is named by its own path.
 3. **A changed file is read again at once.**
-   - When a file changes while it is read, the pass reads it again from its new identity, up to three times in the same cycle, before it restarts the file next cycle.
+   - When a file changes while it is read, the pass waits 50, 100 and then 200 ms and reads it again from its new identity, up to three times in the same cycle, before it restarts the file next cycle. The wait lets a SQLite database settle between write-ahead-log commits, whose `-wal` file is part of its identity.
    - A file that still changes is reported as `unstable_reference`, with the pass `yielded`.
    - The final inventory comparison still binds every identity before any unlink, so a reference written during the pass always keeps its object.
 4. **A pruned object leaves a tombstone.**
-   - Before the unlink, the pass durably writes `<cas>/tombstones/sha256/<2>/<62>`: the file is written, fsynced and renamed, and its directory is fsynced. The tombstone holds `schemaVersion`, `prunedAt`, `size` and `policy`.
+   - Before the unlink, the pass durably writes `<cas>/tombstones/sha256/<2>/<62>`: the file is written, fsynced and renamed, and its directory and every directory `mkdir` created for it are fsynced. The tombstone holds `schemaVersion`, `prunedAt`, `size` and `policy`.
+   - After the tombstone is durable, the pass checks the event head and the object's identity again, right before the unlink. Writing the tombstone takes milliseconds, and an event can name the object meanwhile; a deduplicated `put` does not refresh the object's mtime. If the head moved, the pass withdraws the tombstone and keeps the object. A failed unlink withdraws it too.
    - The CAS reports a missing object that has a tombstone as `pruned`, never as `not_found` or corrupt. Convergence reads treat it as absent, and evidence reads treat it as unverifiable evidence.
    - Tombstones sit outside the scanned object shards and the reference walk.
+   - A completed pass removes tombstones older than 90 days, inspecting at most 4,096 entries. After that a reader sees `not_found`, which convergence and evidence reads already treat exactly like `pruned`; the tombstone only explains the absence while someone may still ask.
 5. **The outcome is attention.**
    - `lervo application attention` reads the observation. Any `unavailable` outcome, and `unstable_reference`, becomes the lifecycle issue `cas_retention_<failure>`, with the path as its detail and a remediation.
    - For an unreadable path, the remediation is that the owner makes the path readable or removes it. Lervo runs without root and never changes it.
+   - A full disk (`ENOSPC` or `EDQUOT`) is named `no_space`.
+   - A pass that throws past its own handling, such as a full disk while it writes the observation, is caught by the worker, which writes an `unavailable` observation instead of discarding the error.
+   - If even that write fails, the observation's age shows the stop: attention reports `cas_retention_stale` when `observedAt` is more than three days old. A worker cycle records a pass every time it runs, so a quiet but healthy host stays fresh.
+   - A pass that reaches its sweep with candidates past grace and removes nothing, because the reference inventory changed or the event head moved, is a stall. The observation carries `stalledPasses` and `stallCause` (`inventory_changed` or `event_head_changed`) from one pass to the next until a pass removes an object or finishes. Five consecutive stalls become `cas_retention_stalled`. A moved head is a stall, not a failure.
 6. **No new event.** An aggregate prune event would need a new event schema version. The observation file stays the bounded receipt, one file replaced per pass.
+
+7. **Every reference holder is in the walk.** No state outside `.lervo` can name a convergence artifact in this CAS:
+   - The Node runtime's `dataDirectory` is the project's `.lervo/data`, and each conversation's data directory sits inside it, so the walk covers both.
+   - The user state directory `~/.lervo/state` holds provider admission databases whose hashes identify repositories and provider observations, not CAS objects. No code reads a CAS object through it.
+   - The Hub and the sync packages never open the project CAS. Replica peers import events, which root what they name here, and keep their own CAS.
 
 ## Consequences
 
 - WSL retention can run once the root-owned leftover is removed or `chown`ed. Until then, attention names it. The FIFOs no longer stop it. The estimated reclaim is 13–15 GB.
 - On the Mac the old checkout was not livelocked. It was still reading eight large event-writer backup databases slowly. Keeping only the rollback point ([ADR-0651](0651-prune-superseded-event-writer-backups.md), amended the same day) leaves one.
-- Tombstones grow by about 100 bytes per pruned object, in the host-local CAS, never in the repository.
+- Each tombstone costs one inode and one 4 KiB block in the host-local CAS, never in the repository, and expires after 90 days. The WSL reclaim of about 3,600 objects leaves about 15 MB of tombstones.
+- On a host whose state changes continuously, passes may keep stalling. Attention reports this, but it does not make retention finish; tolerating unrelated changes between scan and sweep needs its own decision.
 - A follow-up remains: stage inputs and results could name the baseline by digest instead of copying it, which would cut growth by about 90%.

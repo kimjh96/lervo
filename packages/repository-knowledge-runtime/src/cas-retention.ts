@@ -1,17 +1,22 @@
 import { collectReportReferences } from "./cas-retention-reports.js";
-import { readRetentionScan, saveScan, writeRetentionProjection } from "./cas-retention-state.js";
+import { readRetentionScan, saveScan } from "./cas-retention-state.js";
 import { memoizedConvergenceArtifactRoots, retentionStillIdle } from "./cas-retention-memo.js";
-import { relative, resolve } from "node:path";
+import { resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import { materializationTransactionState } from "./materialization-transaction.js";
 import {
-  CasRetentionBoundError,
-  CasRetentionReferenceError,
-  type CasRetentionReferenceFailure,
-  unreadable,
-} from "./cas-retention-errors.js";
+  classifyRetentionFailure,
+  noteProgress,
+  noteStall,
+  noteSweep,
+  startObservation,
+  writeObservation,
+  type CasRetentionObservation,
+} from "./cas-retention-observation.js";
+import { expireTombstones } from "./cas-retention-tombstones.js";
 import {
   REFERENCE_SCAN_LIMITS,
   REPORT_READ_LIMITS,
@@ -31,7 +36,6 @@ import {
 } from "./cas-retention-record-shapes.js";
 import { bindEventWriterBackups } from "./cas-retention-backups.js";
 import {
-  CAS_RETENTION_OBSERVATION,
   CAS_RETENTION_SCAN,
   casReferenceFiles,
   referenceFile,
@@ -42,27 +46,14 @@ import {
   type ReferenceScan,
 } from "./cas-retention-files.js";
 
-export interface CasRetentionObservation {
-  schemaVersion: 1;
-  observedAt: string;
-  status: "yielded" | "collected" | "unavailable";
-  /**
-   * Set with `unavailable` (ADR-0584): `bound_exceeded` names a finite collector bound, a reference
-   * failure (ADR-0658) names the path that stopped the pass, and `failed` any other stop. With
-   * `yielded`, only `unstable_reference`: a file kept changing while it was read.
-   */
-  failure: "bound_exceeded" | "failed" | CasRetentionReferenceFailure | null;
-  /**
-   * ADR-0658: the repository-relative path a reference failure names. Never a hash, content or
-   * exception text.
-   */
-  reference?: string;
-  removedObjects: number;
-  reclaimedBytes: number;
-}
+export type { CasRetentionObservation } from "./cas-retention-observation.js";
 
-/** How often one cycle reads a file again that changed while it was read (ADR-0658). */
+/**
+ * How often one cycle reads a file again that changed while it was read, waiting 50, 100 and then
+ * 200 ms first so a database between write-ahead-log commits can settle (ADR-0658).
+ */
 const IMMEDIATE_RESCANS = 3;
+const RESCAN_BACKOFF_MS = 50;
 
 /** Called only while holding the worker lock. The public boundary below acquires it for every host. */
 async function collect(
@@ -112,6 +103,7 @@ async function collect(
       return;
     }
     if (!scan.eligible.length) {
+      noteProgress(observation);
       await saveScan(statePath, {
         ...scan,
         idle: { head: roots.head, at: Date.now(), seq: roots.headSeq },
@@ -162,11 +154,14 @@ async function collect(
     JSON.stringify(files.map((file) => [file.key, file.identity])) !==
     JSON.stringify(currentFiles.map((file) => [file.key, file.identity]))
   ) {
+    noteStall(observation, "inventory_changed");
     await saveScan(statePath, scan);
     return;
   }
   const deleted = new Set<string>();
   let remaining = false;
+  let headMoved = false;
+  const headCurrent = () => (storage.events.latest()?.eventHash ?? null) === roots.head;
   for (const file of files) {
     if (
       file.hash === null ||
@@ -176,11 +171,8 @@ async function collect(
       retentionNamedAt(roots, released, file.hash) >= before
     )
       continue;
-    if (
-      observation.removedObjects >= 32 ||
-      (await shouldYield()) ||
-      (storage.events.latest()?.eventHash ?? null) !== roots.head
-    ) {
+    if (observation.removedObjects >= 32 || (await shouldYield()) || !headCurrent()) {
+      headMoved = !headCurrent();
       remaining = true;
       break;
     }
@@ -188,19 +180,18 @@ async function collect(
       remaining = true;
       break;
     }
-    await removeUnreachableCasObject(
-      file,
-      () => {
-        if ((storage.events.latest()?.eventHash ?? null) !== roots.head)
-          throw new Error("CAS reference event head changed before unlink.");
-      },
-      storage.paths.cas,
-    );
+    // ADR-0658: the head is checked again after the tombstone, right before the unlink.
+    if (!(await removeUnreachableCasObject(file, headCurrent, storage.paths.cas))) {
+      headMoved = remaining = true;
+      break;
+    }
     deleted.add(file.hash);
     observation.removedObjects++;
     observation.reclaimedBytes += file.size;
   }
   observation.status = "collected";
+  noteSweep(observation, headMoved);
+  if (!remaining) await expireTombstones(storage.paths.cas, Date.now());
   // A completed pass starts with a fresh grace horizon next time. Interruption can only leak bytes.
   for (const hash of deleted) {
     delete scan.files[hash];
@@ -269,6 +260,7 @@ async function scanReferenceFile(
       scan.files[file.key] = entry;
       continue;
     }
+    if (rescans < IMMEDIATE_RESCANS) await delay(RESCAN_BACKOFF_MS * 2 ** rescans);
     const current =
       rescans < IMMEDIATE_RESCANS
         ? await referenceFile(file.path, file.hash).catch(() => null)
@@ -307,40 +299,14 @@ export async function compactProjectConvergenceArtifacts(
 ): Promise<CasRetentionObservation | null> {
   if (storage.readOnly) return null;
   const result = await withRepositoryKnowledgeWorkerLock(storage.paths.repositoryRoot, async () => {
-    const observation: CasRetentionObservation = {
-      schemaVersion: 1,
-      observedAt: new Date().toISOString(),
-      status: "yielded",
-      failure: null,
-      removedObjects: 0,
-      reclaimedBytes: 0,
-    };
+    const observation = await startObservation(storage);
     try {
       await collect(storage, observation, shouldYield);
     } catch (error) {
       observation.status = "unavailable";
-      // A permission error anywhere in the pass names its own path, as one in the walk does.
-      const named =
-        error instanceof CasRetentionReferenceError
-          ? error
-          : unreadable(error) && typeof (error as NodeJS.ErrnoException).path === "string"
-            ? new CasRetentionReferenceError(
-                "unreadable_reference",
-                (error as NodeJS.ErrnoException).path!,
-                { cause: error },
-              )
-            : null;
-      observation.failure =
-        error instanceof CasRetentionBoundError ? "bound_exceeded" : (named?.failure ?? "failed");
-      if (named !== null) observation.reference = named.path;
+      Object.assign(observation, classifyRetentionFailure(error));
     }
-    // ADR-0658: the path is recorded relative to the repository, never absolute.
-    if (observation.reference !== undefined)
-      observation.reference = relative(storage.paths.repositoryRoot, observation.reference);
-    await writeRetentionProjection(
-      resolve(storage.paths.knowledgeState, CAS_RETENTION_OBSERVATION),
-      observation,
-    );
+    await writeObservation(storage, observation);
     return observation;
   });
   return result.status === "busy" ? null : result.result;

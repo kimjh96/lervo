@@ -6,6 +6,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { compactProjectConvergenceArtifacts } from "../src/cas-retention.js";
 import * as files from "../src/cas-retention-files.js";
+import { casTombstonePath } from "../src/cas-retention-tombstones.js";
 import { finishRetention, retentionFixture } from "./cas-retention-fixture.js";
 
 // ADR-0658: the reference walk names what stops it, skips byte-less pipes, and prunes with a
@@ -39,7 +40,7 @@ it("skips the event channel's pipes and prunes behind a tombstone the CAS report
   expect(await f.artifacts.has(kept.uri)).toBe(true);
   const hash = obsolete.contentHash.slice(7);
   const tombstone = JSON.parse(
-    await readFile(files.casTombstonePath(f.storage.paths.cas, hash), "utf8"),
+    await readFile(casTombstonePath(f.storage.paths.cas, hash), "utf8"),
   ) as { prunedAt: string; size: number; policy: string };
   expect(tombstone).toMatchObject({
     size: obsolete.byteCount,

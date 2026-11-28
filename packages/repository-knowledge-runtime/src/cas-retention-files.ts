@@ -6,12 +6,13 @@ import {
   unreadable,
 } from "./cas-retention-errors.js";
 import { constants, type Dirent } from "node:fs";
-import { lstat, mkdir, open, readdir, realpath, rename, unlink } from "node:fs/promises";
+import { lstat, open, readdir, realpath, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import { inspectRepositoryCoordinationHome } from "@lervo/project-storage";
 import { casReferences } from "./cas-retention-references.js";
+import { recordTombstone, withdrawTombstone } from "./cas-retention-tombstones.js";
 import type { EventWriterBackupMirror } from "./cas-retention-backups.js";
 
 export interface CasReferenceFile {
@@ -268,53 +269,33 @@ async function readReferenceChunk(
 }
 
 /**
- * ADR-0658: where a pruned object's tombstone lives, beside the objects under the CAS root. The
- * CAS reads it to report a pruned object as pruned, never as missing or corrupt
- * (`packages/cas/src/cas.ts` keeps the same layout).
- */
-export function casTombstonePath(casRoot: string, hash: string): string {
-  return resolve(casRoot, "tombstones", "sha256", hash.slice(0, 2), hash.slice(2));
-}
-
-/** Writes the tombstone whole and durably before the object goes; a crash leaves only a tombstone. */
-async function recordTombstone(casRoot: string, file: CasReferenceFile): Promise<void> {
-  const target = casTombstonePath(casRoot, file.hash!);
-  await mkdir(dirname(target), { recursive: true, mode: 0o700 });
-  const temporary = `${target}.${process.pid}.tmp`;
-  const handle = await open(temporary, "w", 0o600);
-  try {
-    await handle.writeFile(
-      `${JSON.stringify({ schemaVersion: 1, prunedAt: new Date().toISOString(), size: file.size, policy: "convergence_artifact_retention" })}\n`,
-    );
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-  await rename(temporary, target);
-  const directory = await open(dirname(target), constants.O_RDONLY);
-  try {
-    await directory.sync();
-  } finally {
-    await directory.close();
-  }
-}
-
-/**
- * The tombstone, then a single unlink, is the crash boundary; no reachable object or reference
- * record is mutated.
+ * The durable tombstone, then a single unlink, is the crash boundary; no reachable object or
+ * reference record is mutated. `isCurrent` runs again after the tombstone, right before the unlink,
+ * so an event that named the object while the tombstone was written keeps it (ADR-0658). Returns
+ * whether the object was removed.
  */
 export async function removeUnreachableCasObject(
   file: CasReferenceFile,
-  assertCurrent: () => void = () => {},
+  isCurrent: () => boolean = () => true,
   casRoot: string = resolve(dirname(file.path), "..", ".."),
-): Promise<void> {
+): Promise<boolean> {
   if (file.hash === null || !/^[a-f0-9]{64}$/u.test(file.hash))
     throw new Error("Invalid CAS collection target.");
   if ((await realpath(dirname(file.path))) !== dirname(file.path))
     throw new Error("CAS collection shard changed.");
   if ((await referenceFile(file.path, file.hash)).identity !== file.identity)
     throw new Error("CAS collection target changed.");
-  assertCurrent();
-  await recordTombstone(casRoot, file);
-  await unlink(file.path);
+  if (!isCurrent()) return false;
+  await recordTombstone(casRoot, file.hash, file.size);
+  try {
+    if (!isCurrent() || (await referenceFile(file.path, file.hash)).identity !== file.identity) {
+      await withdrawTombstone(casRoot, file.hash);
+      return false;
+    }
+    await unlink(file.path);
+    return true;
+  } catch (error) {
+    await withdrawTombstone(casRoot, file.hash);
+    throw error;
+  }
 }

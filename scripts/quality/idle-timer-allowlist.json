@@ -149,6 +149,12 @@
       "reason": "Rate limit for a retention probe inside one read; it is not a timer."
     },
     {
+      "path": "packages/repository-knowledge-runtime/src/cas-retention.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "At most three backoff waits (50, 100, 200 ms) before rereading a reference file that changed while it was read; armed only after a change, never while idle (ADR-0658)."
+    },
+    {
       "path": "packages/repository-knowledge-runtime/src/convergence-assignment-lease.ts",
       "kind": "interval",
       "count": 1,

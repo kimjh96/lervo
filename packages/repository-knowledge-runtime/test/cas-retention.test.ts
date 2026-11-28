@@ -130,7 +130,7 @@ it("leaves only unreachable objects after a crash and safely resumes the remaini
   let attempts = 0;
   vi.spyOn(files, "removeUnreachableCasObject").mockImplementation(async (file) => {
     if (++attempts === 2) throw new Error("power loss");
-    await unlink(file);
+    return unlink(file);
   });
   expect(await finishRetention(f.storage)).toMatchObject({
     status: "unavailable",
@@ -204,13 +204,16 @@ it("rechecks the canonical event head after the final filesystem observation and
   const f = await fixture();
   const { obsolete } = await f.settled("head-fence");
   const unlink = files.removeUnreachableCasObject;
-  vi.spyOn(files, "removeUnreachableCasObject").mockImplementation(async (file, assertCurrent) => {
+  vi.spyOn(files, "removeUnreachableCasObject").mockImplementation(async (file, isCurrent) => {
     f.event("other.subsystem.recorded", { evidenceHash: obsolete.contentHash });
-    await unlink(file, assertCurrent);
+    return unlink(file, isCurrent);
   });
+  // ADR-0658: a moved head keeps the object and is recorded as a stall, not a failure.
   expect(await finishRetention(f.storage)).toMatchObject({
-    status: "unavailable",
+    status: "collected",
     removedObjects: 0,
+    stalledPasses: 1,
+    stallCause: "event_head_changed",
   });
   expect(await f.artifacts.has(obsolete.uri)).toBe(true);
 });

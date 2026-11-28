@@ -98,7 +98,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       ),
       readHeldEffectsWithRepositoryHold(input.repositoryRoot),
       readWakeChannelAttention(input.repositoryRoot, storage.events),
-      readCasRetentionAttention(input.repositoryRoot),
+      readCasRetentionAttention(input.repositoryRoot, observedAt),
     ]);
     const workstream = workstreamObservation.snapshot;
     const workstreamFreshness =
