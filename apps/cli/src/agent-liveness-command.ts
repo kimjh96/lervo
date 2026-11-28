@@ -7,6 +7,7 @@ import {
   listAgents,
   observeRootAgentLiveness,
   type RootAgentReportingProvider,
+  type WorkforceAgent,
 } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import { sha256 } from "@lervo/repository-knowledge";
@@ -16,7 +17,7 @@ import type { CliIo } from "./types.js";
 
 export const agentLivenessUsage = [
   "  lervo agent heartbeat --agent <agent-id> --revision <n> --provider <codex|claude> --session <id> --write [--root <path>] [--json]",
-  "  lervo agent inspect --agent <agent-id> [--stale-after-ms <ms>] [--root <path>] [--json]",
+  "  lervo agent inspect --agent <agent-id> [--stale-after-ms <ms>] [--root <path>] [--json]  (a child agent shows its root agent's liveness)",
 ].join("\n");
 
 function integer(value: string | undefined, fallback?: number): number {
@@ -43,6 +44,18 @@ function parse(args: string[]) {
       help: { type: "boolean", short: "h" },
     },
   });
+}
+
+/** The root agent above `agent` (itself for a root); a broken or cyclic chain fails visibly. */
+function rootAncestor(agent: WorkforceAgent, agents: readonly WorkforceAgent[]): WorkforceAgent {
+  let current = agent;
+  for (let depth = 0; current.parentAgentId !== null; depth += 1) {
+    const parent = agents.find((candidate) => candidate.agentId === current.parentAgentId);
+    if (parent === undefined || depth >= agents.length)
+      throw new Error(`The root agent above ${agent.agentId} cannot be found.`);
+    current = parent;
+  }
+  return current;
 }
 
 function output(io: CliIo, value: unknown, json: boolean | undefined, message: string): void {
@@ -123,22 +136,33 @@ export async function runAgentLivenessCommand(args: string[], io: CliIo): Promis
       parsed.values.session !== undefined
     )
       throw new Error("Agent liveness inspection is read-only and rejects heartbeat options.");
+    // A child agent reports no heartbeat of its own: its root ancestor's liveness stands for it.
+    const rootAgent = rootAncestor(agent, agents);
     const storage = await openProjectStorage(root);
     try {
-      const observations = readLatestRootAgentLivenessObservations(storage.events, agent.agentId);
+      const observations = readLatestRootAgentLivenessObservations(
+        storage.events,
+        rootAgent.agentId,
+      );
       const liveness = observeRootAgentLiveness({
-        agent,
+        agent: rootAgent,
         observations,
         observedAt: new Date(),
         ...(parsed.values["stale-after-ms"] === undefined
           ? {}
           : { staleAfterMs: integer(parsed.values["stale-after-ms"]) }),
       });
+      const via = rootAgent === agent ? "" : ` (of root ${rootAgent.agentId})`;
       output(
         io,
-        { schemaVersion: 1, agent, liveness },
+        {
+          schemaVersion: 1,
+          agent,
+          liveness,
+          ...(rootAgent === agent ? {} : { livenessAgentId: rootAgent.agentId }),
+        },
         parsed.values.json,
-        `${agent.agentId} · ${agent.status} · liveness ${liveness.status}${liveness.ageMs === null ? "" : ` · age ${liveness.ageMs}ms`}`,
+        `${agent.agentId} · ${agent.status} · liveness${via} ${liveness.status}${liveness.ageMs === null ? "" : ` · age ${liveness.ageMs}ms`}`,
       );
       return 0;
     } finally {
