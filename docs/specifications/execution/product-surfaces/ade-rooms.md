@@ -39,9 +39,11 @@ Agents mention each other directly, choosing by role and by what each has learne
 - At its start and at each turn, Lervo's hook context gives the session a room block:
   - who it is;
   - the conversation's participants;
-  - the project's team agents with their roles;
+  - the project's team agents with their roles and IDs;
   - how a mention works: write `@Name` when the work needs that agent's role or knowledge, and its answer comes back as a turn.
-  - that an agent it mentions joins able to read and answer, never to change files; and, in a session that joined by a mention, that the session reads only, so a request that needs changes belongs in a conversation the agent starts and leads, never in a request for write permission.
+  - that an agent it mentions joins able to read and answer, never to change files; and, in a session that joined by a mention, that the session reads only, so a request that needs changes belongs in a conversation the agent starts and leads, never in a request for write permission;
+  - how to start a conversation, for itself or handed to the teammate whose work it is with `--lead`, and that each owner's work goes to that owner rather than being done by the agent itself (ADR-0657);
+  - that work is handed over and asked for only through Lervo's commands and mentions, never through a provider's own messages to another session, and that no agent stops a process Lervo runs.
 - From slice 3, the block also says what each other agent knows from its reviewed expertise, so an agent can pick "the researcher who studied this API last week" by name. It never carries another agent's conversation notes: a session's block recalls only its own agent's notes ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)).
 
 ## The core link and the session host
@@ -89,10 +91,17 @@ The resident core decodes every hosted session's output, so it sees each turn en
 
 ### How an agent starts a conversation
 
-1. **The command.** In its session, the agent runs `lervo workspace start --repository <project> --started-by <agent> --title <title> --json`, with the first turn on standard input, as the room block tells it with its own IDs filled in. The command prepares the worktree and the lead's write launch with the agent as the only participant, and records `startedBy` and `startedFrom`, the conversation the agent was in, in the hosted launch record. It opens no session. It records a pending start, which holds the first turn until the session opens, and returns the new conversation's workspace ID.
-2. **The guard.** `--started-by` must name an active team agent of the project and equal the calling session's `LERVO_AGENT_ID` (`agent_not_caller`), so an agent starts conversations only as itself. An agent starts at most 4 conversations an hour (`conversation_start_limited`), a loop guard that keeps a misreading agent from filling the sidebar; it is a backstop, not an approval.
-3. **The delivery.** When the starting agent's turn ends, the core reads its pending starts and adds one delivery for each: the new `workspaceId`, the agent, no session, the first turn, and the calling session as the source. The source conversation shows a quiet line, "Ciel started Fix retry budget", which opens the new conversation.
-4. **The lead's session.** For a delivery to the lead of a conversation the lead started, which has no session yet, `room.join` returns the prepared write launch with `lead: true` instead of preparing a read-access one. The session host starts it as the workspace's own session, with the delivery as its first turn, so the owner opening the conversation finds it already running.
+1. **The command.** In its session, the agent runs `lervo workspace start --repository <project> --started-by <agent> [--lead <teammate>] --title <title> --json`, with the first turn on standard input, as the room block tells it with its own IDs and the team's filled in.
+   - Without `--lead`, the agent leads. With it, the agent hands the conversation to the teammate whose work it is ([ADR-0657](../../../decisions/coordination/conversations/agent-organization/0657-let-an-agent-hand-work-to-a-teammates-own-conversation.md)).
+   - The command prepares the worktree and the lead's write launch, with the lead as the only participant, and records `startedBy` in the hosted launch record.
+   - It opens no session. It records a pending start that holds the first turn until the session opens: the lead as `agentId`, and the starter as `startedBy` when the starter is not the lead. It returns the new conversation's workspace ID.
+   - A read-access session's allowlist admits the command, since it changes no file in the worktree.
+2. **The guard.**
+   - `--started-by` and `--lead` must each name an active team agent of the project (`participant_invalid`).
+   - `--started-by` must equal the calling session's `LERVO_AGENT_ID` (`agent_not_caller`), so an agent starts conversations only as itself, for itself or for any teammate.
+   - An agent starts at most 12 conversations an hour (`conversation_start_limited`). This is a backstop that keeps a runaway loop from filling the sidebar, never a gate on handing work out (ADR-0657).
+3. **The delivery.** When the starting agent's turn ends, the core reads the pending starts that agent made and adds one delivery for each: the new `workspaceId`, the lead, no session, the first turn as the starter's message, and the calling session as the source. A handed conversation's first turn tells the lead that it leads, changes the files, and mentions the starter when it needs it or when the work is done. The source conversation shows a quiet line, "Ciel started Fix retry budget", which opens the new conversation.
+4. **The lead's session.** For a delivery to the lead of a conversation that started for it, which has no session yet, `room.join` returns the prepared write launch with `lead: true` instead of preparing a read-access one. The session host starts it as the workspace's own session, with the delivery as its first turn, so the owner opening the conversation finds it already running.
 5. **What the new conversation shows.** A quiet line, "Started by Ciel in Log format", which opens that conversation, and then the first turn as Ciel's message under Ciel's speaker line. The sidebar lists the conversation like any other, by its title.
 
 A start that fails after the command returned shows in the source conversation as "Lervo could not start Ciel's conversation (<code>)", and the pending start is dropped. A pending start whose source session ended before its turn ended is delivered at the next turn end of any of the agent's sessions, or dropped after an hour.

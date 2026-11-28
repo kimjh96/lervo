@@ -52,6 +52,15 @@ function named(agents: readonly { displayName: string; roleName: string }[]): st
   return agents.map((agent) => `${agent.displayName} (${agent.roleName})`).join(", ");
 }
 
+/** The team with each agent's ID, which a conversation handed to a teammate names (ADR-0657). */
+function namedWithIds(
+  agents: readonly { agentId: string; displayName: string; roleName: string }[],
+): string {
+  return agents
+    .map((agent) => `${agent.displayName} (${agent.roleName}, ${agent.agentId})`)
+    .join(", ");
+}
+
 /** The most of an agent's own notes its session's start recalls. */
 const RECALLED_NOTES = 3;
 /** The most UTF-8 bytes the recalled notes take in the block, so the block stays bounded. */
@@ -115,12 +124,13 @@ export async function roomBlock(sessionId: string): Promise<string | null> {
     `Lervo room: you are ${self.displayName}, the ${self.roleName}, in this conversation${
       present.length === 0 ? "" : ` with ${named(present)}`
     }.`,
-    others.length === 0 ? null : `The project's team: ${named(others)}.`,
+    others.length === 0 ? null : `The project's team: ${namedWithIds(others)}.`,
     "When your work needs another agent's role or what it knows, write @Name in your reply. Your message reaches that agent, and its answer comes back to you as a turn. Mention the product owner only for priorities and decisions; never route work through it. A mention grants no access beyond your own: an agent you mention joins this conversation able to read and answer, never to change files.",
     context.readOnly === true
       ? "Your session in this conversation reads and answers; it cannot change files. When a request needs changes, start a conversation you lead for them, as below, and say so in your answer. Never ask anyone for write permission here."
       : null,
-    `When work is your own and belongs apart from this conversation, start a conversation you lead: run \`lervo workspace start --repository ${context.projectId} --started-by ${self.agentId} --title "<title>" --json\` with its first turn on standard input. It opens when your turn ends. Never start one for work this conversation already covers.`,
+    `When work belongs apart from this conversation, start a conversation for it: run \`lervo workspace start --repository ${context.projectId} --started-by ${self.agentId} --title "<title>" --json <<'EOF'\`, then its first turn, then \`EOF\`. It opens when your turn ends. You lead it unless you add \`--lead <agent ID>\` to hand it to the teammate whose work it is: that teammate leads it and changes the files, your request is its first turn, and it mentions you when it needs you. Hand each owner its own work this way rather than doing it yourself. Never start one for work this conversation already covers.`,
+    "Hand work over and ask only through these Lervo commands and mentions. Never message another session through a provider's own tools, and never stop a process Lervo runs; when a conversation is no longer needed, say so in your answer and the owner removes it.",
     notes.length === 0
       ? null
       : [

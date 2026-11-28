@@ -104,7 +104,10 @@ export interface WorkspaceStartOptions {
   readonly participants?: unknown;
   /** The conversation's title, instead of the instruction's first line. */
   readonly title?: string;
-  /** The team agent that started the conversation and leads it (Lervo ADE rooms, slice 2). */
+  /**
+   * The team agent that started the conversation (Lervo ADE rooms, slice 2): its lead, or the
+   * teammate that handed it to the lead (ADR-0657).
+   */
   readonly startedBy?: string;
   /**
    * Whether the session host answers the agents' questions with choices. A provider that cannot
@@ -145,6 +148,9 @@ export async function startWorkspaceFromInstruction(
       "Workspaces would land inside a Git repository. Set LERVO_WORKSPACES_HOME to a folder outside every repository.",
     );
   const participants = await resolveParticipants(repository.repositoryRoot, options.participants);
+  // The agent that starts a conversation is an active teammate as well (ADR-0657).
+  if (options.startedBy !== undefined)
+    await resolveParticipants(repository.repositoryRoot, [options.startedBy]);
   // The writing agent's model and effort, unless the request named a model.
   const chosen =
     options.model === undefined

@@ -383,7 +383,7 @@ The [craft rules](ade-craft.md) apply: finished work shows nothing, and only wha
 ## Read-access participants
 
 - A joined agent's session runs with read access ([Lervo ADE rooms](ade-rooms.md)). It claims nothing and holds no assignment or lease: its launch record says `access: read`, and its tool allowlist already refuses writes. A read-only lease would grant nothing and block nothing.
-- A joined agent that needs to write does not become a second writer; ADR-0222 keeps one writer per generation. It mentions the lead with the change it needs. When the work is its own, it starts its own conversation, as rooms slice 2 defines (`workspace.start` with `startedBy`). That conversation gets its own workspace generation, assignment, and growing lease, and its claims conflict with the first conversation's like any other's.
+- A joined agent that needs to write does not become a second writer; ADR-0222 keeps one writer per generation. It mentions the lead with the change it needs. When the work is its own, it starts its own conversation, as rooms slice 2 defines (`workspace.start` with `startedBy`), which its read-access allowlist admits. Any agent can also hand work to the teammate whose work it is, as a conversation that teammate leads (`--lead`, ADR-0657). That conversation gets its own workspace generation, assignment, and growing lease, and its claims conflict with the first conversation's like any other's.
 - A test run writes build output that Git ignores, which claims nothing. Whether a read-access session may run tests is therefore a question of its tool allowlist alone, which settles S2h's part of the [rooms open item](ade-rooms.md#open-items).
 
 ## State, events, privacy, and failure meaning

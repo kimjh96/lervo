@@ -49,7 +49,10 @@ export interface HostedLaunchRecord {
    */
   agentId?: string;
   participants?: string[];
-  /** The team agent that started the conversation and leads it (Lervo ADE rooms, slice 2). */
+  /**
+   * The team agent that started the conversation (Lervo ADE rooms, slice 2): its lead, or the
+   * teammate that handed it to the lead (ADR-0657).
+   */
   startedBy?: string;
   /**
    * `read` for an agent that joined the conversation (Lervo ADE rooms, "Participants and their

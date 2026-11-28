@@ -11,7 +11,7 @@ import {
 
 const MAX_INSTRUCTION_BYTES = 256 * 1024;
 
-export const workspaceStartUsage = `  lervo workspace start --repository <project-id> [--provider <provider>] [--mode native|cli] [--model <model>] [--title <title>] [--started-by <agent-id>] --json < instruction
+export const workspaceStartUsage = `  lervo workspace start --repository <project-id> [--provider <provider>] [--mode native|cli] [--model <model>] [--title <title>] [--started-by <agent-id> [--lead <agent-id>]] --json < instruction
   lervo workspace open --workspace <workspace-id> [--mode native|cli] --json`;
 
 async function runStart(args: string[], io: CliIo): Promise<number> {
@@ -25,6 +25,7 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
       model: { type: "string" },
       title: { type: "string" },
       "started-by": { type: "string" },
+      lead: { type: "string" },
       json: { type: "boolean" },
     },
   });
@@ -44,11 +45,18 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
       ...(values.title === undefined ? {} : { title: values.title }),
     };
     const startedBy = values["started-by"];
-    // An agent's own conversation opens when its turn ends (Lervo ADE rooms, slice 2).
+    if (startedBy === undefined && values.lead !== undefined)
+      throw new CommandFailure("launch_intent_invalid", "--lead needs --started-by.");
+    // A conversation an agent starts, for itself or a teammate to lead, opens when its turn ends
+    // (Lervo ADE rooms, slice 2; ADR-0657).
     const result =
       startedBy === undefined
         ? await startWorkspaceFromInstruction(options)
-        : await startAgentConversation({ ...options, startedBy });
+        : await startAgentConversation({
+            ...options,
+            startedBy,
+            ...(values.lead === undefined ? {} : { lead: values.lead }),
+          });
     io.stdout(
       json
         ? `${JSON.stringify(result, null, 2)}\n`

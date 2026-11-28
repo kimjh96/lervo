@@ -12,13 +12,22 @@ import { hostedLaunchRecordsPath } from "./hosted-launch-records.js";
 export const PENDING_START_LIMIT = 16;
 /** How long a start waits for its agent's turn to end before it is dropped. */
 export const PENDING_START_MS = 60 * 60 * 1000;
-/** How many conversations one agent may start in an hour, a loop guard, not an approval. */
-export const AGENT_STARTS_PER_HOUR = 4;
+/**
+ * How many conversations one agent may start in an hour: a backstop against a runaway loop, never
+ * a gate on handing work out (ADR-0657).
+ */
+export const AGENT_STARTS_PER_HOUR = 12;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
 export interface PendingStart {
   readonly workspaceId: string;
+  /** The agent the first turn goes to: the conversation's lead. */
   readonly agentId: string;
+  /**
+   * The agent that started it, whose turn's end delivers it; absent for a start from before
+   * ADR-0657, which its lead made.
+   */
+  readonly startedBy?: string;
   readonly title: string;
   readonly text: string;
   readonly preparedAt: string;
@@ -36,7 +45,8 @@ function isStart(value: unknown): value is PendingStart {
     typeof start.agentId === "string" &&
     typeof start.title === "string" &&
     typeof start.text === "string" &&
-    typeof start.preparedAt === "string"
+    typeof start.preparedAt === "string" &&
+    (start.startedBy === undefined || typeof start.startedBy === "string")
   );
 }
 
@@ -60,13 +70,16 @@ export async function recordPendingStart(
   await writePrivateJsonFile(path, { schemaVersion: 1, starts });
 }
 
-/** The starts of `agentId` still waiting, oldest first. */
+/** The agent that made `start`: its starter, or its lead for a start from before ADR-0657. */
+export const starterOf = (start: PendingStart): string => start.startedBy ?? start.agentId;
+
+/** The starts `agentId` made that still wait, oldest first, for its turn's end to deliver. */
 export async function pendingStartsOf(
   path: string,
   agentId: string,
   now = new Date(),
 ): Promise<PendingStart[]> {
-  return (await readStarts(path, now)).filter((start) => start.agentId === agentId);
+  return (await readStarts(path, now)).filter((start) => starterOf(start) === agentId);
 }
 
 /** The waiting start of `agentId` in `workspaceId`, or null when there is none. */

@@ -178,6 +178,40 @@ describe("routing between a conversation's agents", () => {
     ]);
   });
 
+  it("hands a conversation it started to the teammate that leads it", () => {
+    const room = router();
+    const handed = room.starts("s-ciel", [
+      {
+        workspaceId: "wsp_handed",
+        agentId: "agt_elio",
+        startedBy: "agt_ciel",
+        title: "Port the verifier",
+        text: "Port the verifier.",
+        preparedAt: "2026-11-27T00:00:00.000Z",
+      },
+    ]);
+    // Ciel's turn delivers it, to Elio, who leads it.
+    expect(handed.deliveries).toMatchObject([
+      { workspaceId: "wsp_handed", agentId: "agt_elio", sessionId: null },
+    ]);
+    const text = handed.deliveries[0]?.text ?? "";
+    expect(text).toContain("[Lervo room] From Ciel (Developer):\nPort the verifier.");
+    expect(text).toContain("Ciel started this conversation for your work and handed it to you");
+    // The lead's own start is never another session's to deliver.
+    expect(
+      room.starts("s-elio", [
+        {
+          workspaceId: "wsp_handed",
+          agentId: "agt_elio",
+          startedBy: "agt_ciel",
+          title: "Port the verifier",
+          text: "Port the verifier.",
+          preparedAt: "2026-11-27T00:00:00.000Z",
+        },
+      ]).deliveries,
+    ).toEqual([]);
+  });
+
   it("leaves a session outside any conversation untouched", () => {
     const room = router();
     const events = said("@Ciel hello");
