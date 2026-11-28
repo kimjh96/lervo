@@ -170,7 +170,7 @@ export function Conversation(props: {
             })}
           </div>
         </div>
-        <div ref={dock} className={styles.dock}>
+        <div ref={dock} className={styles.dock} data-live={live ? "true" : undefined}>
           <Presence arrival="rise" className={styles.jump}>
             {live ? null : (
               <FloatingButton onClick={jump}>

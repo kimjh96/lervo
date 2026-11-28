@@ -97,7 +97,7 @@ export function ConversationPane(props: {
                   <>
                     {/* The working line keeps its row, so the conversation never moves as work starts
                 or ends. */}
-                    <div className={styles.working}>
+                    <div className={styles.working} data-working-line="">
                       <Presence>
                         {props.working === null ? null : <WorkingLine label={props.working} />}
                       </Presence>
