@@ -26,7 +26,7 @@ describe("what removing a workspace says when the core refuses", () => {
     expect(say("workspace.retire.failed.workspace_nested_repository")).toBe(
       "A nested repository or submodule here has work Lervo cannot keep. Commit and push it, or remove it, first.",
     );
-    expect(say("start.keptChanges")).toContain("Lervo keeps them for up to 14 days");
+    expect(say("start.keptChanges")).toBe("Removed. Lervo keeps its changes for up to 14 days.");
     expect(say("workspace.retire.failed.workspace_changes_not_kept")).toBe(
       "Lervo could not keep a copy of the changes, so it removed nothing.",
     );

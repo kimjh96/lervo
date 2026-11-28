@@ -8,9 +8,10 @@ import { useKeptChanges } from "../../workspaces";
 import styles from "./KeptChangesNotice.module.css";
 
 /**
- * After a workspace was removed with its changes (Lervo ADE sessions, "Retiring a workspace"):
- * where Lervo kept them, and the Git command that brings them back, which one press copies. It
- * stays until the person dismisses it or removes another workspace.
+ * After a workspace was removed with its changes (Lervo ADE sessions, "Retiring a workspace"): one
+ * plain sentence that Lervo kept them, and a press that copies the command that brings them back,
+ * so the notice never shows a raw Git command. It stays until the person dismisses it or removes
+ * another workspace.
  */
 export function KeptChangesNotice() {
   const restore = useKeptChanges((state) => state.restore);
@@ -31,9 +32,6 @@ export function KeptChangesNotice() {
           <p className={styles.text}>
             <FormattedMessage id="start.keptChanges" />
           </p>
-          <Presence contentKey={restore}>
-            <code className={styles.command}>{restore}</code>
-          </Presence>
           <span className={styles.actions}>
             <Button variant="quiet" onClick={() => copy(restore)}>
               <Presence as="span" contentKey={copied ? "copied" : "copy"}>
