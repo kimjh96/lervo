@@ -1,7 +1,7 @@
 import { workspaceStartCoordinationSchema } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
-import { COORDINATION_STAGE_ENABLED, coordinationStageEnabled } from "../src/coordination-gate.js";
+import { COORDINATION_STAGE_ENABLED, coordinationStageOverride } from "../src/coordination-gate.js";
 import {
   coordinateConversationWorkspace,
   type WorkspaceCoordinationPorts,
@@ -48,17 +48,18 @@ describe("the coordination stage", () => {
       });
       expect(below.established).toBe(0);
     }
-    // The gate stays closed until claims are complete, whatever the writer selects.
+    // A closed gate records nothing, whatever the writer selects.
     const closed = ports({ stageEnabled: async () => false });
     expect(await coordinateConversationWorkspace(request, closed)).toEqual({
       status: "inactive",
       code: "coordination_inactive",
     });
     expect(closed.established).toBe(0);
-    expect(COORDINATION_STAGE_ENABLED).toBe(false);
-    expect(coordinationStageEnabled({})).toBe(false);
-    expect(coordinationStageEnabled({ LERVO_COORDINATION: "1" })).toBe(true);
-    expect(coordinationStageEnabled({ LERVO_COORDINATION: "true" })).toBe(false);
+    expect(COORDINATION_STAGE_ENABLED).toBe(true);
+    expect(coordinationStageOverride({})).toBeNull();
+    expect(coordinationStageOverride({ LERVO_COORDINATION: "1" })).toBe(true);
+    expect(coordinationStageOverride({ LERVO_COORDINATION: "0" })).toBe(false);
+    expect(coordinationStageOverride({ LERVO_COORDINATION: "true" })).toBeNull();
 
     // A host whose installed hook runtime predates conversation workspaces records nothing: its
     // hooks would read the record as a worker's and block the first prompt.
