@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_14febaa831eabb4a36dfe7c9"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "CAS retention skips the event channel's pipes, names the path that stops it in application attention, reads a changing file again within the cycle, and leaves a tombstone so a pruned object reads as pruned."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_49f7c892d0589b497746b0a4"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "lervo workspace send hands work to a conversation a teammate already leads, delivered to its lead when the sender's turn ends, and a lead whose session stopped resumes as the conversation's own session to receive it."

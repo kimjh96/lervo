@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_bda159ad38e44363292bb8cb"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Comments and documents cite the byte-bounded review context decision as ADR-0659, which had collided with another ADR-0657."

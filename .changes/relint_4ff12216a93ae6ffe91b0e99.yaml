@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4ff12216a93ae6ffe91b0e99"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "room.answers leaves out answers in conversations the lead itself leads and finds the lead by its writing record, so a product owner's conversations stop repeating a line for each turn of the others."
