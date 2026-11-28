@@ -17,15 +17,33 @@ import {
 } from "./provider-admission.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { providerOutputSchema } from "@lervo/schemas";
+import { resolve } from "node:path";
+import {
+  tryInvalidateProviderCliFailures,
+  type ProviderCliFailureInvalidation,
+} from "./provider-cli-invalidation.js";
 
-/** Explicitly requested native observation: one capability-free call, shared admission, observed usage and exact nonce. */
+/**
+ * Explicitly requested native observation: one capability-free call, shared admission, observed
+ * usage and exact nonce. A probe that resumes the provider also forgets its recorded failures in
+ * the host cache and in this and every other given repository's admission projection, so no
+ * repository waits out a failure observed before the provider was logged back in.
+ */
 export async function probeKnowledgeProviderAvailability(input: {
   storage: ProjectStorage;
   provider: "codex" | "claude";
   executable?: string;
   admissionDirectory?: string;
+  /** Every other repository root on this host whose admission projection may hold a failure. */
+  hostRepositoryRoots?: readonly string[];
   signal?: AbortSignal;
-}): Promise<{ resumed: boolean; observationHash: string }> {
+}): Promise<{
+  resumed: boolean;
+  observationHash: string;
+  invalidated: ProviderCliFailureInvalidation | null;
+  /** Why `invalidated` is null: `not_resumed`, or the cleanup's failure code. */
+  invalidationReason: string | null;
+}> {
   const root = input.storage.paths.repositoryRoot;
   const authority = await loadConvergenceDelegation(root);
   const validate = () =>
@@ -102,15 +120,29 @@ export async function probeKnowledgeProviderAvailability(input: {
         observedAt: new Date().toISOString(),
       }),
     );
-    return {
-      resumed: await settleKnowledgeProviderProbe({
-        provider: input.provider,
-        priorObservationHash: prior.observationHash,
-        priorObservedAt: prior.observedAt,
-        observationHash: proof.contentHash,
-        ...directory,
-      }),
+    const resumed = await settleKnowledgeProviderProbe({
+      provider: input.provider,
+      priorObservationHash: prior.observationHash,
+      priorObservedAt: prior.observedAt,
       observationHash: proof.contentHash,
+      ...directory,
+    });
+    // A probe that did not resume lost to a newer failure, which the caches must keep. The
+    // cleanup is a best effort: its failure never turns the proven probe into a failed one.
+    const cleanup = resumed
+      ? await tryInvalidateProviderCliFailures({
+          provider: input.provider,
+          repositoryRoots: [root, ...(input.hostRepositoryRoots ?? [])],
+          ...(input.admissionDirectory === undefined
+            ? {}
+            : { directory: resolve(input.admissionDirectory, "provider-clis") }),
+        })
+      : { invalidated: null, reason: "not_resumed" };
+    return {
+      resumed,
+      observationHash: proof.contentHash,
+      invalidated: cleanup.invalidated,
+      invalidationReason: cleanup.reason,
     };
   } catch (error) {
     if (error instanceof KnowledgeProviderAvailabilityError)

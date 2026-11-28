@@ -1,14 +1,39 @@
 import {
   knowledgeEffectPreflight,
   repositoryCommittable,
+  staleGitIndexLockInstruction,
   type KnowledgeEffectHold,
 } from "@lervo/repository-knowledge-runtime";
 
-import type { KnowledgeStage } from "./upgrade-stage-inspection.js";
+import type { KnowledgeStage, UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 
 /** The debt reason an upgrade stage shows for a held effect: the exact cause, not its class. */
 export function knowledgeEffectHoldReason(hold: KnowledgeEffectHold): string {
   return hold.reason === "commit_unavailable" ? hold.detail : hold.reason;
+}
+
+/**
+ * The blockers a held effect adds to its stage: a stale Git index lock names its path, when it was
+ * last modified, and the owner's exact removal step, because it never clears by itself and Lervo
+ * never deletes it. The changing age stays out: the blocker is part of the plan body its ID
+ * hashes, and a per-minute ID would defeat `upgrade_plan_unchanged` on every follower pass.
+ */
+export function knowledgeEffectHoldBlockers(hold: KnowledgeEffectHold): UpgradeStageBlocker[] {
+  return hold.reason === "commit_unavailable" && hold.lock !== undefined
+    ? [
+        {
+          code: "git_index_lock_stale",
+          path: hold.lock.path,
+          message: staleGitIndexLockInstruction(hold.lock, { withAge: false }),
+        },
+      ]
+    : [];
+}
+
+/** Why the knowledge stage waits in this checkout now, with the blockers that wait carries. */
+export interface KnowledgeStageWait {
+  reason: string;
+  blockers: UpgradeStageBlocker[];
 }
 
 /**
@@ -20,10 +45,10 @@ export function knowledgeEffectHoldReason(hold: KnowledgeEffectHold): string {
  * first commit; a reviewed plan always needs its undo commit. This is the preflight each effect
  * of the stage runs, so the apply skips the stage exactly where its effects would be refused.
  */
-export async function knowledgeStageWaitReason(
+export async function knowledgeStageWait(
   repositoryRoot: string,
   stage: Pick<KnowledgeStage, "status">,
-): Promise<string | null> {
+): Promise<KnowledgeStageWait | null> {
   const generated = stage.status === "ready";
   const hold = await knowledgeEffectPreflight(repositoryRoot, [], { generated });
   if (hold === null) return null;
@@ -33,8 +58,16 @@ export async function knowledgeStageWaitReason(
     hold.reason === "commit_unavailable" &&
     !(await repositoryCommittable(repositoryRoot))
   )
-    return "repository_not_committable";
-  return knowledgeEffectHoldReason(hold);
+    return { reason: "repository_not_committable", blockers: [] };
+  return { reason: knowledgeEffectHoldReason(hold), blockers: knowledgeEffectHoldBlockers(hold) };
+}
+
+/** The reason alone of {@link knowledgeStageWait}, or null when the effect may land. */
+export async function knowledgeStageWaitReason(
+  repositoryRoot: string,
+  stage: Pick<KnowledgeStage, "status">,
+): Promise<string | null> {
+  return (await knowledgeStageWait(repositoryRoot, stage))?.reason ?? null;
 }
 
 /**

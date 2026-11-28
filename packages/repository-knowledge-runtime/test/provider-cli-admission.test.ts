@@ -27,6 +27,11 @@ import {
   type ProviderCliDetectionPorts,
 } from "../src/provider-cli-detection.js";
 import { resolveAdmittedProviderCli } from "../src/provider-cli-admission.js";
+import {
+  invalidateProviderCliFailures,
+  tryInvalidateProviderCliFailures,
+} from "../src/provider-cli-invalidation.js";
+import { openSqliteDatabase } from "@lervo/sqlite-connection";
 import { providerCliFindings, readProviderCliProjection } from "../src/provider-cli-findings.js";
 
 const roots: string[] = [];
@@ -567,4 +572,123 @@ it("projects the worker observation separately when preferred and delegation ord
     admissionMode: "cached",
   });
   expect(observed.projection.selected).toEqual({ provider: "claude", version: "2.1.308" });
+});
+
+it("forgets a provider's recorded failures after an explicit probe, host-wide and per repository", async () => {
+  const f = await fixture();
+  // Claude was logged out: its probe failed, and this repository's record says none is admitted.
+  const failing = vi.fn(async () => ({
+    admitted: false as const,
+    reason: "probe_failed" as const,
+    exposedTools: [],
+  }));
+  await resolveAdmittedProviderCli({ ...f.input, allowed: ["claude"], probe: failing });
+  const projectionPath = resolve(f.home, ".lervo/state/knowledge/provider-clis.json");
+  expect(JSON.parse(await readFile(projectionPath, "utf8"))).toMatchObject({ waiting: true });
+  // Another repository on the host whose record shows Claude admitted keeps it.
+  const other = await mkdtemp(resolve(tmpdir(), "lervo-cli-admission-other-"));
+  roots.push(other);
+  await mkdir(resolve(other, ".lervo/state/knowledge"), { recursive: true });
+  const kept = JSON.parse(await readFile(projectionPath, "utf8")) as {
+    providers: { admitted: boolean; reason: string | null }[];
+  };
+  kept.providers = kept.providers.map((cli) => ({ ...cli, admitted: true, reason: null }));
+  await writeFile(
+    resolve(other, ".lervo/state/knowledge/provider-clis.json"),
+    JSON.stringify(kept),
+  );
+
+  expect(
+    await invalidateProviderCliFailures({
+      provider: "claude",
+      repositoryRoots: [f.home, other],
+      directory: f.input.directory,
+    }),
+  ).toEqual({ hostCacheEntries: 1, repositoryProjections: 1 });
+  await expect(stat(projectionPath)).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(
+    stat(resolve(other, ".lervo/state/knowledge/provider-clis.json")),
+  ).resolves.toBeDefined();
+  // A minute later, inside the failure's backoff, the next admission probes Claude again once.
+  const passing = vi.fn(async () => ({ admitted: true as const, probeResultHash: sha256("ok") }));
+  const later = new Date(f.input.now.getTime() + 60_000);
+  const admitted = await resolveAdmittedProviderCli({
+    ...f.input,
+    allowed: ["claude"],
+    probe: passing,
+    now: later,
+  });
+  expect(passing).toHaveBeenCalledTimes(1);
+  expect(admitted.selected?.provider).toBe("claude");
+  // Every other repository then reuses that one host result instead of probing again.
+  await resolveAdmittedProviderCli({ ...f.input, allowed: ["claude"], probe: passing, now: later });
+  expect(passing).toHaveBeenCalledTimes(1);
+});
+
+it("keeps the hourly backoff when the provider fails again after an explicit probe", async () => {
+  const f = await fixture();
+  const failing = vi.fn(async () => ({
+    admitted: false as const,
+    reason: "probe_failed" as const,
+    exposedTools: [],
+  }));
+  const at = (minutes: number) => new Date(f.input.now.getTime() + minutes * 60_000);
+  const run = (minutes: number) =>
+    resolveAdmittedProviderCli({
+      ...f.input,
+      allowed: ["claude"],
+      probe: failing,
+      now: at(minutes),
+    });
+  // Seven failures climb the backoff to its one-hour cap: 1, 2, 4, 8, 16, 32, then 60 minutes.
+  let minutes = 0;
+  await run(minutes);
+  for (const delay of [1, 2, 4, 8, 16, 32]) await run((minutes += delay));
+  expect(failing).toHaveBeenCalledTimes(7);
+  await invalidateProviderCliFailures({
+    provider: "claude",
+    repositoryRoots: [f.home],
+    directory: f.input.directory,
+  });
+  // The invalidated entry is probed at once; failing again keeps it an hour away, not a minute.
+  await run((minutes += 1));
+  expect(failing).toHaveBeenCalledTimes(8);
+  await run(minutes + 2);
+  await run(minutes + 59);
+  expect(failing).toHaveBeenCalledTimes(8);
+  await run(minutes + 60);
+  expect(failing).toHaveBeenCalledTimes(9);
+});
+
+it("waits briefly for an admission holding the host cache lock, then reports instead of failing", async () => {
+  const f = await fixture();
+  await resolveAdmittedProviderCli(f.input);
+  // Another process's admission holds the host cache lock; this process is alive, so it counts.
+  const lock = openSqliteDatabase(resolve(f.input.directory, "cache-lock.sqlite"), {
+    busyTimeoutMs: 1000,
+  });
+  const hold = () =>
+    lock
+      .prepare("INSERT OR REPLACE INTO holder(id,pid,nonce) VALUES(1,?,?)")
+      .run(process.ppid, "x");
+  hold();
+  const input = {
+    provider: "claude" as const,
+    repositoryRoots: [f.home],
+    directory: f.input.directory,
+  };
+  try {
+    await expect(tryInvalidateProviderCliFailures(input, [5, 5])).resolves.toEqual({
+      invalidated: null,
+      reason: "knowledge_capacity_unavailable",
+    });
+    // A holder that finishes within the bound lets the cleanup run.
+    setTimeout(() => lock.prepare("DELETE FROM holder WHERE id=1").run(), 20);
+    await expect(tryInvalidateProviderCliFailures(input, [200])).resolves.toMatchObject({
+      invalidated: { hostCacheEntries: 0 },
+      reason: null,
+    });
+  } finally {
+    lock.close();
+  }
 });

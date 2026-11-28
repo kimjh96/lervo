@@ -24,7 +24,12 @@ it("clears an unknown reset only after one native no-capability probe with obser
       executable: f.executable,
       admissionDirectory: f.admissionDirectory,
     });
-    expect(result).toMatchObject({ resumed: true });
+    // Nothing recorded a failure here, so the resumed probe had nothing to forget.
+    expect(result).toMatchObject({
+      resumed: true,
+      invalidated: { hostCacheEntries: 0, repositoryProjections: 0 },
+      invalidationReason: null,
+    });
     expect(await knowledgeProviderAdmissionState(authority)).toMatchObject({
       paused: false,
       activeCalls: 0,

@@ -27,7 +27,7 @@ import {
   type RepositoryReplicaServiceStage,
 } from "./repository-replica-service.js";
 import { upgradeHost, type UpgradeHost } from "./upgrade-host.js";
-import { knowledgeStageWaitReason } from "./upgrade-knowledge-gate.js";
+import { knowledgeStageWait } from "./upgrade-knowledge-gate.js";
 import { inspectRegisteredNodeUpgrade, type NodeUpgradeStage } from "./upgrade-node.js";
 import {
   inspectKnowledge,
@@ -263,7 +263,7 @@ export async function createRepositoryUpgradePlan(
   // else they wait as Lervo debt, with the reason the apply would skip them for.
   const knowledgeWait =
     held(knowledge).disposition === "safe_apply"
-      ? await knowledgeStageWaitReason(repositoryRoot, knowledge)
+      ? await knowledgeStageWait(repositoryRoot, knowledge)
       : null;
   const heldStages = {
     capabilities: held({ disposition: capabilityDisposition }).disposition,
@@ -272,7 +272,12 @@ export async function createRepositoryUpgradePlan(
     knowledge:
       knowledgeWait === null
         ? held(knowledge)
-        : { ...knowledge, disposition: "lervo_debt" as const, reason: knowledgeWait },
+        : {
+            ...knowledge,
+            disposition: "lervo_debt" as const,
+            reason: knowledgeWait.reason,
+            blockers: [...knowledge.blockers, ...knowledgeWait.blockers],
+          },
     node: held(nodeStage),
     eventWriter: held(eventWriter),
     eventWriterBackupRetention: held(backupRetention),

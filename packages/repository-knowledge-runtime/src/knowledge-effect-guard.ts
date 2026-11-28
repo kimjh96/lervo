@@ -14,6 +14,7 @@ import { knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 import { commitKnowledgeEffect, type KnowledgeEffectNotice } from "./knowledge-effect-commit.js";
 import { knowledgeOutputCommitSafe } from "./knowledge-output-commit.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
+import { staleGitIndexLock, type StaleGitIndexLock } from "./git-index-lock.js";
 
 const execute = promisify(execFile);
 const MAXIMUM_SNAPSHOT_BYTES = 256 * 1024 * 1024;
@@ -21,7 +22,8 @@ const MAXIMUM_SNAPSHOT_BYTES = 256 * 1024 * 1024;
 /** Why Lervo does not apply an effect it could otherwise apply, held as its own debt. */
 export type KnowledgeEffectHold =
   | { reason: "owner_hold" }
-  | { reason: "commit_unavailable"; detail: string }
+  /** `lock` is set only with detail `git_index_lock_stale`: the stale lock and its age. */
+  | { reason: "commit_unavailable"; detail: string; lock?: StaleGitIndexLock }
   | { reason: "paths_uncommitted"; paths: string[] };
 
 /** Paths whose bytes a person may edit: everything outside Lervo's own `.lervo` and outputs. */
@@ -64,8 +66,13 @@ export async function knowledgeEffectPreflight(
   // ADR-0610: Lervo's effect never lands in the owner's feature-branch or detached work.
   if (!(await checkoutOnBaseBranch(repositoryRoot)).onBase)
     return { reason: "commit_unavailable", detail: "not_on_base" };
-  if (!(await knowledgeOutputCommitSafe(repositoryRoot)))
-    return { reason: "commit_unavailable", detail: "git_unavailable_or_busy" };
+  if (!(await knowledgeOutputCommitSafe(repositoryRoot))) {
+    // A lock no Git command holds never clears by itself, so it is named, not reported as busy.
+    const lock = await staleGitIndexLock(repositoryRoot);
+    return lock === null
+      ? { reason: "commit_unavailable", detail: "git_unavailable_or_busy" }
+      : { reason: "commit_unavailable", detail: "git_index_lock_stale", lock };
+  }
   const grant = await knowledgeOutputCommitGrant(repositoryRoot);
   if (!grant.allowed) return { reason: "commit_unavailable", detail: grant.reason };
   const user = knowledgeEffectUserPaths(paths);

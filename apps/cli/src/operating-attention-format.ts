@@ -37,6 +37,8 @@ const DESCRIBE: { [K in AttentionKind]: (item: AttentionOf<K>) => string } = {
     `${item.reasonCode} · queued ${item.queuedCount} · since ${item.since}`,
   held_effect: (item) =>
     `${item.effect} · ${item.subject} · ${item.reasonCode} · attempts ${item.attempts} · since ${item.since}`,
+  git_index_lock_stale: (item) =>
+    `${item.path} · empty · ${Math.floor(item.ageSeconds / 60)} minutes old · since ${item.since}`,
   knowledge_convergence_owner: (item) =>
     `${item.role} · ${item.reason}${item.failureCode === null ? "" : ` · ${item.failureCode}${item.httpStatus === null ? "" : ` HTTP ${item.httpStatus}`}`}${item.holderLabel === null ? "" : ` · holder ${item.holderLabel}`}`,
   knowledge_publication: (item) =>

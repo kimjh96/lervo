@@ -5,6 +5,7 @@ import {
   knowledgeEffectUndoCommand,
   KnowledgeEffectOwnerHoldError,
   KnowledgeEffectUncommittedError,
+  staleGitIndexLockInstruction,
   type KnowledgeCommitResult,
   type KnowledgeEffectNotice,
 } from "@lervo/repository-knowledge-runtime";
@@ -30,8 +31,16 @@ export async function assertKnowledgeEffectApplicable(
       "knowledge_effect_commit_unavailable",
       hold.detail === "not_on_base"
         ? `Plan ${planId} was not applied, because this checkout is not on its base branch; Lervo writes its own changes only there (ADR-0610), so it applies once the checkout is back on it.`
-        : `Plan ${planId} was not applied, because Lervo cannot commit it here (${hold.detail}) and an effect without its undo commit never applies.`,
-      { planId, reason: hold.detail },
+        : hold.lock !== undefined
+          ? `Plan ${planId} was not applied. ${staleGitIndexLockInstruction(hold.lock)}`
+          : `Plan ${planId} was not applied, because Lervo cannot commit it here (${hold.detail}) and an effect without its undo commit never applies.`,
+      {
+        planId,
+        reason: hold.detail,
+        ...(hold.lock === undefined
+          ? {}
+          : { path: hold.lock.path, ageSeconds: hold.lock.ageSeconds }),
+      },
     );
   if (hold?.reason === "paths_uncommitted")
     throw new CommandFailure(
