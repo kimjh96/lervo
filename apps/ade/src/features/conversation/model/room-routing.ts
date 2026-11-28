@@ -53,3 +53,27 @@ async function delivered(host: SessionHost, sessionId: string, text: string): Pr
     return false;
   }
 }
+
+/**
+ * Gives a new conversation's first turn to the agents it mentions beyond the lead, as any later
+ * turn of the owner's (Lervo ADE rooms, "Routing"). The lead's session starts from the turn
+ * itself; each other mentioned agent joins with it as a member (ADR-0661). A core that cannot
+ * route leaves the turn with the lead, and the room store keeps its code.
+ */
+export async function routeFirstTurn(input: {
+  commands: ApplicationCommands;
+  workspaceId: string;
+  leadAgentId: string;
+  text: string;
+}): Promise<void> {
+  const { commands, workspaceId, leadAgentId, text } = input;
+  let agents: readonly string[];
+  try {
+    ({ agents } = await commands.run("room.route", { workspaceId, text }));
+  } catch (failure) {
+    useRoomStore.setState({ unrouted: failureCode(failure) });
+    return;
+  }
+  for (const agentId of agents.filter((agent) => agent !== leadAgentId))
+    await commands.run("room.join", { workspaceId, agentId, instruction: text });
+}
