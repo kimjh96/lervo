@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4015fe6a04ee6faff83c449e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Removing a workspace with its changes keeps the copy in a large repository too: the gitlink check streams the tree listing, which ran past Git output limits in a repository of thousands of files."

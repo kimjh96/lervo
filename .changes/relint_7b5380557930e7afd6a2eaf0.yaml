@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7b5380557930e7afd6a2eaf0"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A claim or a turn's reconciliation Lervo could not finish now refuses the write or blocks the turn with a visible reason, instead of letting the change pass unchecked."
