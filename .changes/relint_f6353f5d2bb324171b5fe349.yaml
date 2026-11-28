@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f6353f5d2bb324171b5fe349"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Every member of a conversation works in it from its own worktree: a mentioned agent gets a member workspace with its own branch and claims, and its session writes there and keeps its context for the life of the conversation."
