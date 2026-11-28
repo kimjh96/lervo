@@ -129,6 +129,31 @@ describe("tool lines", () => {
     );
   });
 
+  it("names a line's other commands after what Lervo did, as the agent's own", () => {
+    const text =
+      "lervo workstream current --context 2>&1 | head -80; echo ---; ls -la; ls docs; git log -5";
+    const mixed = (status: "succeeded" | "failed") =>
+      tool({
+        name: "Bash",
+        status,
+        detail: {
+          subject: { kind: "command", text },
+          lervo: { command: "workstream current" },
+          preview: { format: "output", lines: ["Revision 3"], omittedLines: 0, omittedAt: 1 },
+        },
+      });
+    const closed = render(mixed("succeeded"));
+    expect(closed).toMatch(/Read the workstream.*Bash.*ls -la; ls docs; git log -5/su);
+    expect(closed).not.toContain("head -80");
+    expect(closed).toContain("data-shared");
+    // Opened, the line shows the exact command it ran.
+    expect(render(mixed("succeeded"), ["i1"])).toContain("| head -80; echo ---; ls -la");
+    // A failure is the line's, since either part may have failed.
+    const failed = render(mixed("failed"));
+    expect(failed).not.toMatch(/lervo workstream current<\/span> failed/u);
+    expect(failed).toMatch(/data-status="failed">failed/u);
+  });
+
   it("shows what a Lervo search found: its count on the line, its documents when opened", () => {
     const search = tool({
       name: "Bash",

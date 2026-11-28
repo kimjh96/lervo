@@ -395,6 +395,31 @@ describe("Claude Code questions with choices", () => {
     ).toEqual(["Bash"]);
   });
 
+  it("shows no line for a call that only waits for the agent's background work", () => {
+    const decoder = new ClaudeHostedStreamDecoder(() => 7);
+    const call = (id: string, name: string) => ({
+      type: "assistant",
+      message: { content: [{ type: "tool_use", id, name, input: {} }] },
+    });
+    const result = (id: string) => ({
+      type: "user",
+      message: { content: [{ type: "tool_result", tool_use_id: id, content: "done" }] },
+    });
+    const events = decoder.output(
+      bytes([
+        call("toolu_wait", "Yield"),
+        result("toolu_wait"),
+        call("toolu_ls", "Bash"),
+        result("toolu_ls"),
+      ]),
+    );
+    expect(
+      events.flatMap((event) =>
+        event.kind === "item" && event.content.kind === "tool_activity" ? [event.content.name] : [],
+      ),
+    ).toEqual(["Bash"]);
+  });
+
   it("allows other tools it asks about and refuses other requests, without showing them", () => {
     const decoder = new ClaudeHostedStreamDecoder(() => 7);
     const events = decoder.output(
