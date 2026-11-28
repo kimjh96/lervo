@@ -1,4 +1,9 @@
-import type { ConversationItem, ToolDetail } from "@lervo/session-host-contract";
+import {
+  type ConversationItem,
+  lervoCommandIds,
+  readLervoShellLine,
+  type ToolDetail,
+} from "@lervo/session-host-contract";
 import { Fragment } from "react";
 import { FormattedMessage } from "react-intl";
 
@@ -11,6 +16,8 @@ import { useToolLine } from "./ToolLinesProvider";
 
 type ToolItem = Extract<ConversationItem, { kind: "tool_activity" }>;
 type Preview = NonNullable<ToolDetail["preview"]>;
+
+const LERVO_COMMANDS: ReadonlySet<string> = new Set(lervoCommandIds);
 
 /** Subjects shown in the mono face, and those shown in quotes. */
 const MONO = new Set(["path", "command", "pattern", "url"]);
@@ -152,6 +159,44 @@ function PreviewLines(props: {
 }
 
 /**
+ * What a closed line says. A Lervo command reads as what Lervo did, and opens to the exact command
+ * it ran. A line that also ran other commands names them after it as the agent's own, in the mono
+ * face, and a failure is the line's, since either part may have failed.
+ */
+function Summary({ tool, detail }: { tool: ToolItem["tool"]; detail: ToolDetail }) {
+  const lervo = detail.lervo;
+  if (lervo === undefined)
+    return (
+      <>
+        <span className={styles.name}>{tool.name}</span>
+        <Subject subject={detail.subject} />
+        <Result tool={tool} />
+      </>
+    );
+  const others = readLervoShellLine(detail.subject.text, LERVO_COMMANDS)?.others;
+  if (others !== undefined)
+    return (
+      <>
+        <LervoSentence lervo={lervo} failed={false} shared />
+        <span className={styles.name}>{tool.name}</span>
+        <Subject subject={{ kind: "command", text: others }} />
+        <Result tool={tool} />
+      </>
+    );
+  return (
+    <>
+      <LervoSentence lervo={lervo} failed={tool.status === "failed"} />
+      {/* motion: A message arrives live */}
+      {lervo.found === undefined || tool.status === "failed" ? null : (
+        <span className={styles.result}>
+          <FormattedMessage id="conversation.lervo.found" values={{ count: lervo.found }} />
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
  * One tool call as a quiet line: the tool, what it acted on, and its result. A call with output
  * or a change opens to its preview. Opening and closing move the details' space with their fade
  * (ADE motion, "Disclosure"). A line without detail, such as one stored before details existed, shows
@@ -171,25 +216,7 @@ export function ToolLine({ item }: { item: ToolItem }) {
       </p>
     );
   const lervo = detail.lervo;
-  // A Lervo command reads as what Lervo did, and opens to the exact command it ran.
-  const summary =
-    lervo === undefined ? (
-      <>
-        <span className={styles.name}>{tool.name}</span>
-        <Subject subject={detail.subject} />
-        <Result tool={tool} />
-      </>
-    ) : (
-      <>
-        <LervoSentence lervo={lervo} failed={tool.status === "failed"} />
-        {/* motion: A message arrives live */}
-        {lervo.found === undefined || tool.status === "failed" ? null : (
-          <span className={styles.result}>
-            <FormattedMessage id="conversation.lervo.found" values={{ count: lervo.found }} />
-          </span>
-        )}
-      </>
-    );
+  const summary = <Summary tool={tool} detail={detail} />;
   if (detail.preview === undefined && lervo === undefined)
     return (
       <div className={styles.tool}>

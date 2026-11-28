@@ -94,6 +94,12 @@ button.summary:focus-visible {
   white-space: nowrap;
 }
 
+/* Before the line's other commands, the commands shorten first and the sentence only once they
+   are gone: shrinking is weighted by these factors. */
+.said[data-shared] ~ .subject {
+  flex-shrink: 1000;
+}
+
 .said[data-status="failed"] {
   color: var(--color-status-failed);
 }

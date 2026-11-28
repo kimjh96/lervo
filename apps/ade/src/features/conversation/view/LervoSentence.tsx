@@ -13,9 +13,9 @@ const knows = (command: string): command is LervoCommandId =>
  * What Lervo did, in its own words, for a Lervo command the agent ran (approved mockup 3, "Lervo's
  * own work", 2026-11-25). The agent's tools read as code; this reads as a plain sentence a step
  * quieter. A failure, a help lookup, and a command this app has no sentence for name the command
- * itself in the mono face.
+ * itself in the mono face. A `shared` sentence keeps its width before the line's other commands.
  */
-export function LervoSentence(props: { lervo: LervoCall; failed: boolean }) {
+export function LervoSentence(props: { lervo: LervoCall; failed: boolean; shared?: boolean }) {
   const { lervo } = props;
   const command = (
     <span className={styles.inlineCommand}>
@@ -43,7 +43,11 @@ export function LervoSentence(props: { lervo: LervoCall; failed: boolean }) {
     );
   else sentence = <FormattedMessage id="conversation.lervo.unknown" values={{ command }} />;
   return (
-    <span className={styles.said} data-status={props.failed ? "failed" : undefined}>
+    <span
+      className={styles.said}
+      data-status={props.failed ? "failed" : undefined}
+      data-shared={props.shared === true ? "" : undefined}
+    >
       {sentence}
     </span>
   );

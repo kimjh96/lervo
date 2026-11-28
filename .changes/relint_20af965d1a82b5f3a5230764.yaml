@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_20af965d1a82b5f3a5230764"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A hosted session's shell line that runs a lervo command among other commands now carries its Lervo call, so the ADE shows what Lervo did beside the other commands."

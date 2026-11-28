@@ -11,6 +11,7 @@ export * from "./core-link-decoded.js";
 export * from "./handshake.js";
 export * from "./image.js";
 export * from "./lervo-commands.js";
+export * from "./lervo-shell-line.js";
 export * from "./messages.js";
 export * from "./primitives.js";
 export * from "./protocol-document.js";
