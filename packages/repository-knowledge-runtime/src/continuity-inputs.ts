@@ -57,6 +57,7 @@ export async function continuityInputFingerprint(input: {
     pauses,
     provider,
     modelSelection,
+    project,
   ] = await Promise.all([
     contentHash(resolve(root, CONVERGENCE_OWNER_HOST_PATH)),
     contentHash(input.policyPath),
@@ -96,6 +97,8 @@ export async function continuityInputFingerprint(input: {
     }),
     // ADR-0612 M3: a changed model selection is republished in this host's record.
     settled(() => contentHash(modelSelectionPath(hostModelSelectionDirectory()))),
+    // ADR-0656: a changed data policy re-derives the owner host without waiting for a commit.
+    contentHash(resolve(root, ".lervo/project.yaml")),
   ]);
   return sha256(
     canonicalJson({
@@ -109,6 +112,7 @@ export async function continuityInputFingerprint(input: {
       pauses,
       provider,
       modelSelection,
+      project,
       hubCandidates: input.hubCandidates,
     }),
   );

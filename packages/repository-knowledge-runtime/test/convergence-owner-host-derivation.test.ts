@@ -135,87 +135,90 @@ describe("owner-host derivation", () => {
     expect(accepted.derivation).toMatchObject({ mode: "hub" });
   });
 
-  it("never pins another project's refused token, only this project's own token path (ADR-0654)", async () => {
-    const root = await checkout();
-    const foreign = { ...hub, bearerTokenFile: "/other-project/hub-sync.token" };
-    const ownPath = { ...hub, bearerTokenFile: "/nodes/prj_this/secrets/hub-sync.token" };
-    const refused = await derive(root, {
-      candidates: [
-        { source: "host_repository", hub: ownPath, credential: "absent" },
-        { source: "host_repository", hub: foreign, credential: "foreign" },
-      ],
-      probe: async (coordinates) =>
-        coordinates.bearerTokenFile === foreign.bearerTokenFile
-          ? { failureCode: "hub_forbidden", httpStatus: 403 }
-          : { failureCode: "token_file_unreadable", httpStatus: null },
-    });
-    expect(refused).toMatchObject({
-      derivation: { mode: "hub" },
-      credentialAbsent: true,
-    });
-    expect((await readConvergenceOwnerHost(root))?.config.coordination).toEqual({
-      mode: "hub",
-      hub: ownPath,
-    });
+  const foreignToken = "/state/nodes/prj_other/secrets/hub-sync.token";
+  const ownToken = "/state/nodes/prj_this/secrets/hub-sync.token";
 
-    // A foreign token the Hub proves for this project is usable, as before.
-    const proven = await checkout();
-    const accepted = await derive(proven, {
-      candidates: [{ source: "host_repository", hub: foreign, credential: "foreign" }],
-      probe: async () => null,
+  /** A configuration an earlier release derived from another project's coordinates and token. */
+  async function borrowed(root: string, unproven: boolean) {
+    await derive(root, {
+      candidates: [{ source: "host_repository", hub: { ...hub, bearerTokenFile: foreignToken } }],
+      probe: async () => (unproven ? { failureCode: "hub_forbidden", httpStatus: 403 } : null),
     });
-    expect(accepted.credentialAbsent).toBeUndefined();
-    expect((await readConvergenceOwnerHost(proven))?.config.coordination).toEqual({
-      mode: "hub",
-      hub: foreign,
-    });
+  }
 
-    // Only refused foreign coordinates: nothing is pinned, and the host has no Hub coordinates.
-    const onlyForeign = await checkout();
-    expect(
-      (
-        await derive(onlyForeign, {
-          candidates: [{ source: "host_repository", hub: foreign, credential: "foreign" }],
-          probe: async () => ({ failureCode: "hub_forbidden", httpStatus: 403 }),
-        })
-      ).derivation,
-    ).toEqual({ status: "derived", mode: "standalone", source: "none" });
+  it("moves another project's pinned token to this project's own path, read-only (ADR-0656)", async () => {
+    for (const unproven of [true, false]) {
+      const root = await checkout();
+      await borrowed(root, unproven);
+      const result = await derive(root, {
+        project: { projectId: "prj_this", hubSyncEnabled: true },
+        candidates: [],
+      });
+      expect(result).toMatchObject({ derivation: { mode: "hub" }, credentialAbsent: true });
+      expect((await readConvergenceOwnerHost(root))?.config.coordination).toEqual({
+        mode: "hub",
+        hub: { ...hub, bearerTokenFile: ownToken },
+      });
+    }
   });
 
-  it("maintains a project without Hub sync standalone when it has no credential of its own", async () => {
+  it("stays read-only, never standalone, when Hub sync is on and no own candidate exists", async () => {
     const root = await checkout();
-    const foreign = { ...hub, bearerTokenFile: "/other-project/hub-sync.token" };
-    // An earlier release pinned another project's refused token here, unproven.
-    const pinned = await derive(root, {
-      candidates: [{ source: "host_repository", hub: foreign }],
-      probe: async () => ({ failureCode: "hub_forbidden", httpStatus: 403 }),
-    });
-    expect(pinned.derivation).toMatchObject({ mode: "hub" });
-    let probes = 0;
-    const local = await derive(root, {
-      hubSyncEnabled: false,
+    await derive(root, {
       candidates: [
         {
           source: "host_repository",
-          hub: { ...hub, bearerTokenFile: "/nodes/x" },
+          hub: { ...hub, bearerTokenFile: ownToken },
           credential: "absent",
         },
-        { source: "host_repository", hub: foreign, credential: "foreign" },
       ],
-      probe: async () => {
-        probes += 1;
-        return { failureCode: "hub_forbidden", httpStatus: 403 };
-      },
+      probe: async () => ({ failureCode: "token_file_unreadable", httpStatus: null }),
     });
-    expect(probes).toBe(0);
-    expect(local).toMatchObject({
-      derivation: { status: "derived", mode: "standalone", source: "none" },
-      hubFailure: null,
+    const kept = await derive(root, {
+      project: { projectId: "prj_this", hubSyncEnabled: true },
+      candidates: [],
     });
+    expect(kept).toMatchObject({
+      derivation: { status: "unchanged", mode: "hub" },
+      credentialAbsent: true,
+    });
+  });
+
+  it("maintains a project without Hub sync standalone when it has no credential of its own", async () => {
+    for (const unproven of [true, false]) {
+      const root = await checkout();
+      // Even coordinates a borrowed token once proved are another project's, so they never stay.
+      await borrowed(root, unproven);
+      let probes = 0;
+      const local = await derive(root, {
+        project: { projectId: "prj_this", hubSyncEnabled: false },
+        candidates: [
+          {
+            source: "host_repository",
+            hub: { ...hub, bearerTokenFile: ownToken },
+            credential: "absent",
+          },
+        ],
+        probe: async () => {
+          probes += 1;
+          return null;
+        },
+      });
+      expect(probes).toBe(0);
+      expect(local).toMatchObject({
+        derivation: { status: "derived", mode: "standalone", source: "none" },
+        hubFailure: null,
+      });
+    }
     // The project's own credential still coordinates it through the Hub.
     const coordinated = await checkout();
     expect(
-      (await derive(coordinated, { hubSyncEnabled: false, probe: async () => null })).derivation,
+      (
+        await derive(coordinated, {
+          project: { projectId: "prj_this", hubSyncEnabled: false },
+          probe: async () => null,
+        })
+      ).derivation,
     ).toMatchObject({ mode: "hub", source: "node_runtime" });
   });
 

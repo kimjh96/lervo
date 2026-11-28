@@ -140,7 +140,7 @@ describe("continuity findings", () => {
       { code: "owner_host_hub_unusable", severity: "attention", detail: "hub_forbidden" },
       { code: "lease_unverifiable", severity: "attention", detail: "hub_unreachable" },
       { code: "publication_failed", severity: "attention", detail: "failed" },
-      // ADR-0654: the unusable owner-host coordinates already explain the failed exchange.
+      // ADR-0656: the unusable owner-host coordinates already explain the failed exchange.
       { code: "peer_unreported", severity: "info", detail: "wsl" },
       { code: "peer_delegation_expiring", severity: "attention", detail: "mac" },
     ]);

@@ -458,14 +458,22 @@ describe("two hosts of one repository", () => {
   });
 });
 
-describe("a project without a Hub credential of its own (ADR-0654)", () => {
-  const borrowed = [
-    {
-      source: "host_repository" as const,
-      hub: { ...hub, bearerTokenFile: "/nodes/prj_other/secrets/hub-sync.token" },
-      credential: "foreign" as const,
+describe("a project without a Hub credential of its own (ADR-0656)", () => {
+  /** This project's own token path, which holds no token on this host. */
+  const ownPath = (f: Fixture) => ({
+    source: "host_repository" as const,
+    hub: {
+      ...hub,
+      bearerTokenFile: resolve(
+        f.directory,
+        "nodes",
+        f.storage.manifest.projectId,
+        "secrets",
+        "hub-sync.token",
+      ),
     },
-  ];
+    credential: "absent" as const,
+  });
 
   it("is maintained standalone on this host when it does not sync through the Hub", async () => {
     const f = await tracked(true);
@@ -476,7 +484,7 @@ describe("a project without a Hub credential of its own (ADR-0654)", () => {
       f,
       policyPath: path,
       hosts,
-      candidates: borrowed,
+      candidates: [ownPath(f)],
     }).reconcile();
     expect(state?.ownerHost).toMatchObject({ state: "standalone", hubFailureCode: null });
     expect(state?.findings.map((finding) => finding.code)).not.toContain("owner_host_hub_unusable");
@@ -485,22 +493,55 @@ describe("a project without a Hub credential of its own (ADR-0654)", () => {
     });
   });
 
-  it("stays read-only behind its own missing token, one notice, when it syncs through the Hub", async () => {
+  it("follows a data policy changed after the resident started, without a restart", async () => {
     const f = await tracked(true);
-    (f.storage.manifest.dataPolicy as { hubSyncEnabled: boolean }).hubSyncEnabled = true;
     const path = await policyFile(f, templatePolicy());
     const hosts = new FakeHostRecordHub();
     hosts.refuse = { failureCode: "hub_forbidden", httpStatus: 403 };
-    const own = {
-      source: "host_repository" as const,
-      hub: { ...hub, bearerTokenFile: "/nodes/prj_this/secrets/hub-sync.token" },
-      credential: "absent" as const,
-    };
+    const manifestPath = resolve(f.root, ".lervo/project.yaml");
+    const original = await readFile(manifestPath, "utf8");
+    await writeFile(
+      manifestPath,
+      original.replace(/hubSyncEnabled: false/u, "hubSyncEnabled: true"),
+    );
+    const synced = await continuity({
+      f,
+      policyPath: path,
+      hosts,
+      candidates: [ownPath(f)],
+    }).reconcile();
+    expect(synced?.ownerHost).toMatchObject({
+      state: "hub",
+      hubFailureCode: "hub_credential_absent",
+    });
+    await writeFile(manifestPath, original);
+    const local = await continuity({
+      f,
+      policyPath: path,
+      hosts,
+      candidates: [ownPath(f)],
+    }).reconcile();
+    expect(local?.ownerHost).toMatchObject({ state: "standalone" });
+  });
+
+  it("stays read-only behind its own missing token, one notice, when it syncs through the Hub", async () => {
+    const f = await tracked(true);
+    const manifestPath = resolve(f.root, ".lervo/project.yaml");
+    await writeFile(
+      manifestPath,
+      (await readFile(manifestPath, "utf8")).replace(
+        /hubSyncEnabled: false/u,
+        "hubSyncEnabled: true",
+      ),
+    );
+    const path = await policyFile(f, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    hosts.refuse = { failureCode: "hub_forbidden", httpStatus: 403 };
     const state = await continuity({
       f,
       policyPath: path,
       hosts,
-      candidates: [own, ...borrowed],
+      candidates: [ownPath(f)],
     }).reconcile();
     expect(state?.ownerHost).toMatchObject({
       state: "hub",
@@ -515,7 +556,7 @@ describe("a project without a Hub credential of its own (ADR-0654)", () => {
     ]);
     expect((await readConvergenceOwnerHost(f.root))?.config.coordination).toEqual({
       mode: "hub",
-      hub: own.hub,
+      hub: ownPath(f).hub,
     });
   });
 });

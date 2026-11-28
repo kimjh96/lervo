@@ -13,40 +13,53 @@ The project's `.lervo/project.yaml` sets `dataPolicy.hubSyncEnabled: false`, the
 
 ## Decision
 
-1. **Another project's token is never pinned.** Candidates record whose credential they carry.
-   - Another repository's coordinates, as written, are `foreign`. A probe that proves them for this project still makes them usable, as before. A refused foreign candidate is never written unproven.
-   - Without a token of its own, the project is offered the Hub that another repository uses, paired with the path where its own token belongs (`nodes/<projectId>/secrets/hub-sync.token`). That candidate is marked `absent`.
-   - The unproven fallback takes only an own or `absent` candidate. Coordinates that Lervo wrote unproven earlier are replaced, so a borrowed token does not stay.
-2. **A project that does not sync through the Hub is maintained standalone without its own credential.**
-   - When `dataPolicy.hubSyncEnabled` is `false`, only the project's own credentials (its Node, or its `nodes/<projectId>` configuration or token) are candidates.
-   - Without one, the host derives standalone and owns the project's knowledge maintenance locally, as a host without any Hub coordinates does (invariant 1).
-   - Proven coordinates stay as written, as ADR-0471 requires.
-3. **A project that syncs through the Hub stays read-only without its own credential.**
-   - When `hubSyncEnabled` is `true`, another host may hold the project's Hub lease, so ADR-0471's rule stands: no standalone fallback.
-   - The coordinates name the project's own token path. They start working as soon as the operator places the token; no further derivation is needed.
+1. **Another project's token is never used.**
+   - Owner-host candidates are only the project's own credentials: its Node, its `nodes/<projectId>` configuration, or its token paired with a Hub another repository on the host uses.
+   - Without a token, the project is offered that Hub paired with the path where its own token belongs, `nodes/<projectId>/secrets/hub-sync.token` (`absent`).
+   - A probe reads host records, which `workspace.read` allows, while the lease needs coordination scope. So no foreign token is used even when the probe succeeds.
+   - A configuration that an earlier release derived with another project's `nodes/<projectId>/` token path, proven or not, is moved to this project's own path.
+2. **Without Hub sync and its own credential, the host maintains the project standalone.**
+   - When the project's `dataPolicy.hubSyncEnabled` is `false` (the `lervo init` default), only its own credentials are candidates. Without one, the host derives standalone and owns the project's knowledge maintenance locally, like a host without any Hub coordinates (invariant 1).
+   - Proven own coordinates stay as written, as ADR-0471 requires.
+   - The resident reads the project manifest at every reconciliation, and the manifest is part of the inputs that trigger one. A changed data policy therefore applies without a restart or a commit.
+3. **With Hub sync on and no credential of its own, the host stays read-only.**
+   - When `hubSyncEnabled` is `true`, another host may hold the project's Hub lease, so ADR-0471's rule stands: the host never falls back to standalone while it has Hub coordinates.
+   - The host writes its own token path unproven.
+   - Without any own candidate, it keeps Hub coordinates it wrote unproven earlier instead of falling back.
+   - The coordinates start working once the operator places the token.
 4. **One notice names the exact fix.**
-   - The finding is `owner_host_hub_unusable` with the detail `hub_credential_absent`. A failed host-record exchange through the same unusable coordinates no longer adds `hub_unavailable`.
-   - The continuity attention item for a credential detail (`hub_credential_absent`, `hub_forbidden`, `hub_unauthorized`, `token_file_unreadable`) is `credentials_missing`, with `requiresUserAction: false` and `blocking: false`.
+   - The finding is `owner_host_hub_unusable` with detail `hub_credential_absent`, raised when the coordinates name this project's own token path and that file does not exist.
+   - A failed host-record exchange through the same unusable coordinates no longer adds `hub_unavailable`.
+   - A continuity attention item for a credential detail (`hub_credential_absent`, `hub_forbidden`, `hub_unauthorized`, `token_file_unreadable`) is `credentials_missing`. Like every credential notice, including `knowledge_convergence_owner`, it has `requiresUserAction: true`, because only the operator can issue a credential, and `blocking: false`, so every stage that does not need it continues.
    - The remediation names the fix:
      1. On the Hub host, add a principal whose projects list `{destinationId, projectId}` with `sync.write`.
      2. Reload the Hub (SIGHUP, ADR-0159).
      3. Put the token at `nodes/<projectId>/secrets/hub-sync.token`, mode 0600.
-   - The remediation also offers the alternative of setting `hubSyncEnabled` to `false`. It no longer suggests upgrading the Hub.
+   - The alternative is setting `hubSyncEnabled` to `false`. The remediation no longer suggests upgrading the Hub.
 
-## Two hosts without credentials
+## Two owners are possible, and visible
 
-A project with `hubSyncEnabled: false` that is cloned on two hosts without its own credential is maintained standalone on both. That is the case ADR-0466 already covers for hosts without a Hub:
+The standalone fence does not give a project a single owner across hosts:
 
-- Each host commits its knowledge outputs to its own checkout's base branch, with the `Lervo-Convergence-Host` trailer.
-- Once one host's commit reaches the other's base branch, the other host's standalone fence sees a fresh knowledge commit from another host. It turns `contended` and stays read-only, which `convergence-owner.test.ts` covers.
-- Until the commits meet, both hosts can produce outputs. Their commits integrate like any two developers' work, and each can be reverted on its own. Duplicate work is possible; silent overwrites are not.
-- A project that wants one owner across hosts sets `hubSyncEnabled: true` and gives each host its own credential.
+- It reads only this checkout's `HEAD`.
+- It counts another host's knowledge commit only within one lease lifetime (30 minutes).
+- After that window, the host owns again.
 
-A host with its own credential for a `hubSyncEnabled: false` project keeps Hub coordination. While another host maintains the same project standalone, the standalone host yields after it sees the coordinated host's commits.
+So a project maintained standalone on two hosts keeps two owners. Each host commits its outputs with the `Lervo-Convergence-Host` trailer, and the outputs can conflict when the branches meet. Each output is its own revertible commit, so nothing is overwritten silently, but work is duplicated.
+
+The same happens when Hub sync is off and one host has its own credential. That host coordinates through the Hub, and a host without a credential maintains the project standalone.
+
+Lervo makes this visible instead of changing the fence:
+
+- **`standalone_peer_active` (attention, not blocking).** A standalone host inspects its branch and its upstream's last fetch, without fetching. If another host's knowledge commits appear within the last 7 days, it reports this finding.
+- **Remediation for a single owner.** Set `hubSyncEnabled` to `true` and issue every host that runs the project its own Hub credential.
+
+A permanent yield or a tie-break between hosts would change ADR-0466's lease semantics for every standalone host. A host could yield forever to one that had stopped, and it would rely on history that can be stale without a fetch. That is why the fence is unchanged.
 
 ## Consequences
 
 - A project added from the ADE with the default data policy gets background knowledge maintenance on its host, with no Hub credential.
 - No repository's state names another project's token.
-- A project that syncs through the Hub but has no credential is reported once, as a notice with the exact fix, and nothing else waits on it.
+- A project that syncs through the Hub but has no credential of its own is reported once, as a credential notice with the exact fix. Nothing else waits on it.
+- Two hosts maintaining one project are reported, together with the configuration that gives the project one owner.
 - `lervo hub credential grant` was not added: issuing a principal needs the Hub host's administrator authority, which this change does not take.

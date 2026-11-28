@@ -16,6 +16,8 @@ export async function foreignKnowledgeCommits(input: {
   repositoryRoot: string;
   hostHash: string;
   since: number;
+  /** The history to read; `@{upstream}` reads the last fetch of the branch's upstream. */
+  revision?: "HEAD" | "@{upstream}";
 }): Promise<{ hostHash: string; committedAt: number }[]> {
   let stdout: string;
   try {
@@ -29,7 +31,7 @@ export async function foreignKnowledgeCommits(input: {
         `--since=${Math.floor(input.since / 1_000)}`,
         `--author=${KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email}`,
         `--format=%ct%x09%(trailers:key=${CONVERGENCE_HOST_TRAILER},valueonly,separator=%x2C)`,
-        "HEAD",
+        input.revision ?? "HEAD",
         "--",
       ],
       { maxBuffer: 1024 * 1024 },
@@ -48,4 +50,27 @@ export async function foreignKnowledgeCommits(input: {
     }
   }
   return commits;
+}
+
+/** How far back another host's knowledge commits mean it maintains the project too (ADR-0656). */
+export const STANDALONE_PEER_WINDOW_MS = 7 * 24 * 60 * 60_000;
+
+/**
+ * ADR-0656: the other hosts whose knowledge commits reached this checkout's branch or its upstream's
+ * last fetch within the window. Reads local history only; it never fetches.
+ */
+export async function standalonePeerHosts(input: {
+  repositoryRoot: string;
+  hostHash: string;
+  now: number;
+}): Promise<string[]> {
+  const since = input.now - STANDALONE_PEER_WINDOW_MS;
+  const commits = (
+    await Promise.all(
+      (["HEAD", "@{upstream}"] as const).map((revision) =>
+        foreignKnowledgeCommits({ ...input, since, revision }),
+      ),
+    )
+  ).flat();
+  return [...new Set(commits.map((commit) => commit.hostHash))].sort();
 }

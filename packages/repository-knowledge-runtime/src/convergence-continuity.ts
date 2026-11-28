@@ -18,7 +18,12 @@ import {
 } from "@lervo/sync-contract";
 
 import { continuityNextDeadline } from "./continuity-deadline.js";
-import { continuityHostPort, listContinuityHosts, probeOwnerHub } from "./continuity-hub-port.js";
+import {
+  continuityHostPort,
+  listContinuityHosts,
+  probeOwnerHub,
+  reconciledProject,
+} from "./continuity-hub-port.js";
 import {
   hostModelSelectionDirectory,
   publishedModelSelection,
@@ -198,7 +203,7 @@ export class ConvergenceContinuity {
       publication: this.input.publication,
       hostLabel: this.input.hostLabel,
       now: startedAt,
-      hubSyncEnabled: this.input.storage.manifest.dataPolicy.hubSyncEnabled,
+      project: await reconciledProject(this.root, this.input.storage.manifest),
     }).catch(() => null);
     const host = await readConvergenceOwnerHost(this.root).catch(() => null);
     const { port, failureCode: portFailure } = await continuityHostPort(

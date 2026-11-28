@@ -35,7 +35,7 @@ export function continuityAttentionItems(
     const itemId = `knowledge_convergence_continuity_${finding.code}${finding.detail === null ? "" : `_${finding.detail.replace(/[^a-z0-9_]/gu, "_")}`}`;
     if (items.has(itemId)) continue;
     const debt = finding.severity === "lervo_debt";
-    // ADR-0654: Hub coordinates refused for want of a credential Lervo cannot create are a notice.
+    // ADR-0656: Hub coordinates refused for want of a credential Lervo cannot create are a notice.
     const credentials =
       finding.code === "owner_host_hub_unusable" && CREDENTIAL_DETAILS.has(finding.detail ?? "");
     items.set(itemId, {
@@ -54,7 +54,8 @@ export function continuityAttentionItems(
           : debt || finding.code === "hook_runtime_unavailable"
             ? "host resident"
             : "user",
-      requiresUserAction: false,
+      // ADR-0656: like every credential notice, it names the owner's step and never blocks.
+      requiresUserAction: credentials,
       blocking: false,
       instruction: continuityRemediation(finding),
     });

@@ -41,7 +41,7 @@ async function host() {
 }
 
 describe("host Hub candidates (ADR-0470)", () => {
-  it("prefers this project's own credential over another repository's token", async () => {
+  it("offers this project's own credential, never another repository's token (ADR-0656)", async () => {
     const { state, checkout } = await host();
     const lervo = await checkout("lervo", "prj_candidates_lervo");
     const plen = await checkout("plen", "prj_candidates_plen");
@@ -63,11 +63,6 @@ describe("host Hub candidates (ADR-0470)", () => {
       {
         source: "host_repository",
         hub: { ...hub, bearerTokenFile: resolve(own, "hub-sync.token") },
-      },
-      {
-        source: "host_repository",
-        hub: { ...hub, bearerTokenFile: "/secrets/lervo.token" },
-        credential: "foreign",
       },
     ]);
   });
@@ -100,11 +95,6 @@ describe("host Hub candidates (ADR-0470)", () => {
           ),
         },
         credential: "absent",
-      },
-      {
-        source: "host_repository",
-        hub: { ...hub, bearerTokenFile: "/secrets/lervo.token" },
-        credential: "foreign",
       },
     ]);
   });

@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 
 import { ownerHostObservation } from "../src/continuity-owner-host-observation.js";
 
-it("names a missing own Hub credential, never the refused probe of a borrowed token (ADR-0654)", () => {
+it("names a missing own Hub credential, never the refused probe of a borrowed token (ADR-0656)", () => {
   const host = {
     config: {
       coordination: {

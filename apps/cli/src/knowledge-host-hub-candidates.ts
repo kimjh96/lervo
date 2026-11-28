@@ -95,9 +95,9 @@ async function projectCredential(
 /**
  * ADR-0469/0470 Hub coordinates for a CLI-hosted resident, most specific first: the Node
  * registered for this exact checkout, this project's own credential (its per-project Node
- * configuration, or its token paired with a Hub another repository on this host uses), then
- * other repositories' Hub configurations as written. A candidate is only a proposal; continuity
- * probes it for this project before using it, and another repository's token is never pinned.
+ * configuration, or its token paired with a Hub another repository on this host uses), or, without
+ * a token, that Hub paired with the path where its own token belongs. Another repository's token is
+ * never offered (ADR-0656). A candidate is only a proposal; continuity probes it before using it.
  */
 export async function knowledgeHostHubCandidates(
   repositoryRoot: string,
@@ -139,17 +139,21 @@ export async function knowledgeHostHubCandidates(
   }
   if (own.tokenFile !== null)
     for (const hub of others) add({ ...hub, bearerTokenFile: own.tokenFile }, "host_repository");
-  // ADR-0654: without its own token, the project is offered the Hub another repository uses with
-  // the path where its own token belongs, so the coordinates Lervo writes unproven never borrow
-  // another project's credential and start working once the operator places that token.
-  else if (projectId !== null && others[0] !== undefined && nodeDirectories[0] !== undefined)
+  // ADR-0656: another repository's token is never offered. Without a token of its own, the
+  // project is offered the Hub other repositories use with the path where its own token belongs,
+  // so the coordinates start working once the operator places that token.
+  else if (projectId !== null && others[0] !== undefined)
     add(
-      { ...others[0], bearerTokenFile: resolve(nodeDirectories[0], projectId, ...PROJECT_TOKEN) },
+      {
+        ...others[0],
+        bearerTokenFile: resolve(
+          nodeDirectories[0] ?? resolve(homedir(), ".lervo", "nodes"),
+          projectId,
+          ...PROJECT_TOKEN,
+        ),
+      },
       "host_repository",
       "absent",
     );
-  // Another repository's coordinates as written carry its own token: only a probe that proves
-  // them for this project makes them usable, and they are never written unproven.
-  for (const hub of others) add(hub, "host_repository", "foreign");
   return candidates;
 }

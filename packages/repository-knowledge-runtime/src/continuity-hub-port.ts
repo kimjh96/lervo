@@ -1,3 +1,4 @@
+import { loadProjectManifest } from "@lervo/project";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   calculateProjectIdentityHash,
@@ -132,4 +133,16 @@ export async function probeOwnerHub(
   } catch (error) {
     return knowledgeConvergenceOwnerFailureOf(error);
   }
+}
+
+/**
+ * ADR-0656: the project as tracked now. A resident keeps the manifest it started with, so the
+ * data policy is read again at every reconciliation; an unreadable manifest keeps that one.
+ */
+export async function reconciledProject(
+  root: string,
+  started: ProjectStorage["manifest"],
+): Promise<{ projectId: string; hubSyncEnabled: boolean }> {
+  const manifest = await loadProjectManifest(root).catch(() => started);
+  return { projectId: manifest.projectId, hubSyncEnabled: manifest.dataPolicy.hubSyncEnabled };
 }
