@@ -45,12 +45,17 @@ function launch(
   launcher: string,
   input: string,
   extra: NodeJS.ProcessEnv = {},
+  flags: string[] = [],
 ) {
-  const child = spawn(process.execPath, [launcher, "--provider", "claude", "--contract", "2"], {
-    cwd: f.cwd,
-    env: { ...f.environment, ...extra },
-    stdio: "pipe",
-  });
+  const child = spawn(
+    process.execPath,
+    [launcher, "--provider", "claude", "--contract", "2", ...flags],
+    {
+      cwd: f.cwd,
+      env: { ...f.environment, ...extra },
+      stdio: "pipe",
+    },
+  );
   let stdout = "";
   child.stdout.on("data", (chunk) => (stdout += chunk.toString()));
   child.stdin.end(input);
@@ -73,7 +78,12 @@ it("hands the hook to the host's launcher when it is this user's, owner-only, an
   expect(await launch(f, source, start)).toEqual({ code: 0, stdout: "host launcher ran" });
   // A newer host launcher is used too.
   await writeFile(f.host, hostLauncher(current + 6), { mode: 0o600 });
-  expect((await launch(f, source, start)).stdout).toBe("host launcher ran");
+  expect((await launch(f, source, start)).stdout).toBe("host launcher ran"); // A claim the host launcher answered is no unanswered claim.
+  const claim = JSON.stringify({ hook_event_name: "PreToolUse", session_id: "s" });
+  expect(await launch(f, source, claim, {}, ["--claim"])).toEqual({
+    code: 0,
+    stdout: "host launcher ran",
+  });
 });
 
 it("runs itself, exactly as before, when the host's launcher is older, open to others, absent, or switched off", async () => {

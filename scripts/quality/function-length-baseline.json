@@ -27,7 +27,7 @@
     "apps/cli/src/repository-replica-service.ts:prepareReplicaService": 169,
     "apps/cli/src/state-command.ts:runStateCommand": 159,
     "apps/cli/src/terminal-compact-context.ts:prepareCompactTerminalPromptContext": 191,
-    "apps/cli/src/terminal-context-server.ts:startTerminalContextServer": 187,
+    "apps/cli/src/terminal-context-server.ts:startTerminalContextServer": 183,
     "apps/cli/src/terminal-declaration-command.ts:runTerminalDeclareCommand": 162,
     "apps/cli/src/terminal-hook-command.ts:executeTerminalHookCommand": 234,
     "apps/cli/src/terminal-lifecycle-inspection.ts:inspectTerminalLifecycle": 179,

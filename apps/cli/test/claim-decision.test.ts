@@ -347,17 +347,19 @@ describe("claims at first write in a conversation's worktree", () => {
     expect(widening.calls).toBe(1);
   });
 
-  it("defers when the workforce stays busy, and the write goes ahead", async () => {
+  it("refuses as unverified when the workforce stays busy, never letting the write through", async () => {
     const { first } = app;
     widening.failure = new AgentWorkforceError("workforce_busy", "busy");
-    expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/a.ts`)).toBe("{}\n");
+    expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/a.ts`)).toMatch(
+      /could not check in time whether `src\/a\.ts` is free .*\(workforce_busy\)/u,
+    );
     expect(claimLogEntries(first.sessionId)).toMatchObject([
-      { decision: "defer", code: "workforce_busy", paths: ["src/a.ts"] },
+      { decision: "deny", code: "claim_unverified", paths: ["src/a.ts"], holder: null },
     ]);
     expect((await conversationAssignment(first.leadAgentId)).expectedPaths).toEqual([]);
   });
 
-  it("defers as workforce_busy when another writer holds the event store", async () => {
+  it("refuses as unverified, workforce_busy, when another writer holds the event store", async () => {
     const { first } = app;
     const storage = await openProjectStorage(app.repository);
     const path = storage.paths.eventDatabase;
@@ -366,8 +368,8 @@ describe("claims at first write in a conversation's worktree", () => {
     writer.exec("BEGIN IMMEDIATE");
     try {
       const started = performance.now();
-      expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/a.ts`)).toBe(
-        "{}\n",
+      expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/a.ts`)).toMatch(
+        /\(workforce_busy\)/u,
       );
       expect(performance.now() - started).toBeLessThan(1_500);
     } finally {
@@ -375,9 +377,32 @@ describe("claims at first write in a conversation's worktree", () => {
       writer.close();
     }
     expect(claimLogEntries(first.sessionId)).toMatchObject([
-      { decision: "defer", code: "workforce_busy", paths: ["src/a.ts"] },
+      { decision: "deny", code: "claim_unverified", paths: ["src/a.ts"] },
     ]);
     expect((await conversationAssignment(first.leadAgentId)).expectedPaths).toEqual([]);
+  });
+
+  it("refuses a claim whose hook input it cannot read, and prints an empty answer for a prompt", async () => {
+    const { first } = app;
+    const run = async (args: string[], input: string) => {
+      const stdout: string[] = [];
+      const exitCode = await runTerminalHookCommand(
+        ["--provider", "claude", "--contract", "2", ...args],
+        {
+          cwd: first.worktree,
+          stdout: (message) => stdout.push(message),
+          stderr: () => undefined,
+          stdin: async () => input,
+        },
+        { createTerminalStageObservation },
+      );
+      return { exitCode, stdout: stdout.join("") };
+    };
+    const refused = await run(["--claim"], "{not json");
+    expect(refused.exitCode).toBe(0);
+    expect(refused.stdout).toMatch(/"permissionDecision":"deny"/u);
+    expect(refused.stdout).toContain("could not check in time");
+    expect(await run([], "{not json")).toEqual({ exitCode: 0, stdout: "{}\n" });
   });
 
   it("keeps the hook for a claim under the lock and shows it to the server's drain", async () => {

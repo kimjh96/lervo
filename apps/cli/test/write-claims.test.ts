@@ -10,9 +10,26 @@ import type { WriteClaimRequest, WritingSession } from "../src/claim-contract.js
 import type { HostedLaunchRecord } from "../src/hosted-launch-records.js";
 import { parseTerminalHookIngress, parseTerminalHookInput } from "../src/terminal-hook-input.js";
 import { terminalWriterSessionId } from "../src/terminal-workspace-boundary.js";
-import { answerClaimHook, answerPreToolUse, claimReading } from "../src/write-claims.js";
+import {
+  answerClaimHook,
+  answerPreToolUse,
+  CLAIM_HOOK_BUDGET_MS,
+  claimReading,
+} from "../src/write-claims.js";
 
 const answering = claimReading("claude");
+
+/** The refusal reason of an unverified claim's answer, or null for any other answer. */
+function unverifiedReason(answer: string): string | null {
+  const output = JSON.parse(answer) as {
+    hookSpecificOutput?: { permissionDecision?: string; permissionDecisionReason?: string };
+  };
+  const reason = output.hookSpecificOutput?.permissionDecisionReason ?? "";
+  return output.hookSpecificOutput?.permissionDecision === "deny" &&
+    reason.includes("could not check")
+    ? reason
+    : null;
+}
 const lead: WritingSession = { workspaceId: "wsp_1", agentId: "agt_1" };
 const hook = (tool_name: string, tool_input: object) => {
   const parsed = parseTerminalHookIngress(
@@ -127,7 +144,7 @@ describe("claims at first write", () => {
     expect([claimed, looked]).toEqual([0, 0]);
   });
 
-  it("defers when the claim fails or takes too long, so the write goes ahead", async () => {
+  it("refuses as unverified a claim that fails or takes too long, never letting it through", async () => {
     const base = {
       hook: hook("Edit", { file_path: "a.ts" }),
       answering,
@@ -135,8 +152,13 @@ describe("claims at first write", () => {
       writing: () => Promise.resolve(lead),
     };
     expect(
-      await answerPreToolUse({ ...base, claim: () => Promise.reject(new Error("busy")) }),
-    ).toBe("{}\n");
+      unverifiedReason(
+        await answerPreToolUse({
+          ...base,
+          claim: () => Promise.reject(Object.assign(new Error("busy"), { code: "workforce_busy" })),
+        }),
+      ),
+    ).toContain("(workforce_busy)");
     const started = performance.now();
     expect(
       await answerPreToolUse({
@@ -157,8 +179,24 @@ describe("claims at first write", () => {
             ),
           ),
       }),
-    ).toBe("{}\n");
+    ).toMatch(/claim_deferred/u);
     expect(performance.now() - started).toBeLessThan(400);
+  });
+
+  it("counts the claim's budget from the hook's start, so the provider never times it out", async () => {
+    const started = performance.now();
+    const answer = await answerPreToolUse({
+      hook: hook("Edit", { file_path: "a.ts" }),
+      answering,
+      fallbackDirectory: "/",
+      writing: () => Promise.resolve(lead),
+      // The launcher already waited out the whole budget for a server.
+      hookStartedAt: performance.now() - CLAIM_HOOK_BUDGET_MS,
+      claim: () =>
+        new Promise((resolve) => setTimeout(() => resolve({ decision: "allow" }), 1_000)),
+    });
+    expect(unverifiedReason(answer)).toContain("(claim_deferred)");
+    expect(performance.now() - started).toBeLessThan(500);
   });
 
   it("finds the conversation from the lead's launch record, never a joined reader's", async () => {
@@ -263,7 +301,7 @@ describe("claims at first write", () => {
       },
     });
     // The hook answered at its deadline, and the work it holds settles once the claim finished.
-    expect([locked, finished, tracked.length]).toEqual(["{}\n", false, 1]);
+    expect([unverifiedReason(locked) !== null, finished, tracked.length]).toEqual([true, false, 1]);
     await Promise.all(tracked);
     expect(finished).toBe(true);
 

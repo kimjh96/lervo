@@ -316,7 +316,7 @@ it("sends only prompts and Stops, and nothing when the socket is switched off", 
   expect(server.requests).toHaveLength(0);
 });
 
-it("serves a claim as the tool kind, and defers an unserved one without loading the runtime", async () => {
+it("serves a claim as the tool kind, and decides an unserved one in process", async () => {
   const f = await fixture();
   const claim = JSON.stringify({
     hook_event_name: "PreToolUse",
@@ -324,11 +324,11 @@ it("serves a claim as the tool kind, and defers an unserved one without loading 
     tool_name: "Edit",
     tool_input: { file_path: "a.ts" },
   });
-  // No server: the fixture runtime would echo the input, so an empty answer shows it never ran.
-  expect(await launch(f, claim, {}, ["--claim"])).toEqual({ code: 0, stdout: "", stderr: "" });
+  // No server: the fixture runtime echoes the input, so the claim was decided in process.
+  expect(await launch(f, claim, {}, ["--claim"])).toEqual({ code: 0, stdout: claim, stderr: "" });
   expect(await launch(f, claim, { LERVO_TERMINAL_CONTEXT_SOCKET: "0" }, ["--claim"])).toEqual({
     code: 0,
-    stdout: "",
+    stdout: claim,
     stderr: "",
   });
   const server = await listen(
@@ -349,6 +349,45 @@ it("never falls back once committed: a lost answer prints an empty context", asy
   const f = await fixture();
   await listen(f.store, commitThen(null));
   expect(await launch(f, prompt)).toEqual({ code: 0, stdout: "{}\n", stderr: "" });
+});
+
+it("decides a claim a committed server lost in process, never letting it through unchecked", async () => {
+  const f = await fixture();
+  const claim = JSON.stringify({
+    hook_event_name: "PreToolUse",
+    session_id: "s",
+    tool_name: "Edit",
+    tool_input: { file_path: "a.ts" },
+  });
+  await listen(f.store, commitThen(null));
+  expect(await launch(f, claim, {}, ["--claim"])).toEqual({ code: 0, stdout: claim, stderr: "" });
+  const failed = await fixture();
+  await listen(failed.store, commitThen({ ok: false }));
+  expect(await launch(failed, claim, {}, ["--claim"])).toEqual({
+    code: 0,
+    stdout: claim,
+    stderr: "",
+  });
+});
+
+it("refuses a claim whose runtime is missing or fails, never letting it through", async () => {
+  const claim = JSON.stringify({
+    hook_event_name: "PreToolUse",
+    session_id: "s",
+    tool_name: "Edit",
+    tool_input: { file_path: "a.ts" },
+  });
+  const refused = { code: 2, stdout: "", stderr: "Lervo could not check this write; retry it.\n" };
+  const crashing = await fixture('#!/usr/bin/env node\nthrow new Error("broken");\n');
+  expect(await launch(crashing, claim, {}, ["--claim"])).toMatchObject({
+    code: 2,
+    stderr: expect.stringContaining("Lervo could not check this write; retry it."),
+  });
+  const absent = await fixture();
+  await rm(resolve(absent.store, "current.json"));
+  expect(await launch(absent, claim, {}, ["--claim"])).toEqual(refused);
+  // A prompt without a runtime still prints nothing and exits 0.
+  expect(await launch(absent, prompt)).toMatchObject({ code: 0, stdout: "" });
 });
 
 it("sends exactly the environment the server compares", async () => {

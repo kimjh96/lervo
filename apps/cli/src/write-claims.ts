@@ -21,6 +21,7 @@ import {
   type WritingSession,
 } from "./claim-contract.js";
 import { decideClaim } from "./claim-decision.js";
+import { deferralCode, unverifiedClaim } from "./claim-deferral.js";
 import { type NewClaimLogEntry, recordClaimLogEntry } from "./claim-log.js";
 import type { ParsedPreToolUseInput } from "./terminal-hook-contract.js";
 
@@ -42,8 +43,19 @@ export function hookDecision(decision: ClaimDecision): HostedClaimDecision {
     : { decision: decision.decision };
 }
 
-/** How long a claim may hold a tool call before the write goes ahead, claimed at the turn's end. */
-export const CLAIM_DECISION_MS = 2000;
+/**
+ * How long a claim may hold a tool call before Lervo refuses it as unverified. With the refusal's
+ * record and a widening's settle it stays below the context server's 20-second run limit, so a
+ * served claim is answered, never cut off by the server's exit.
+ */
+export const CLAIM_DECISION_MS = 12_000;
+
+/**
+ * How long after the hook started a claim may still decide, including a server the launcher
+ * waited for first. With the record and settle after it, the answer stays below the provider's
+ * 60-second claim hook timeout, so the provider never lets a write go ahead on its own timeout.
+ */
+export const CLAIM_HOOK_BUDGET_MS = 45_000;
 
 /** How long the hook may spend recording a refusal or a deferral after deciding it. */
 const CLAIM_RECORD_MS = 500;
@@ -122,8 +134,9 @@ async function repositoryPaths(
 /**
  * What the pre-tool hook prints for `input`. Only a session that writes for a conversation
  * claims; a call that writes nothing claimable answers before reading any state. Finding the
- * session and the claim share {@link CLAIM_DECISION_MS}: past it, or on any failure, the answer
- * defers, so Lervo never stops the owner's work for itself.
+ * session and the claim share {@link CLAIM_DECISION_MS}. Past it, or on any failure, the write is
+ * refused as unverified with its cause: Lervo never lets a write it could not check pass as
+ * checked, and the refusal tells the agent to retry.
  */
 export async function answerPreToolUse<Session extends WritingSession>(input: {
   readonly hook: ParsedPreToolUseInput;
@@ -144,6 +157,8 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
   readonly trackWork?: (work: Promise<unknown>) => void;
   readonly decisionMs?: number;
   readonly settleMs?: number;
+  /** When the hook started, on the `performance.now()` clock; the claim's budget counts from it. */
+  readonly hookStartedAt?: number;
 }): Promise<string> {
   const { hook, answering } = input;
   if (answering === null) return "{}\n";
@@ -151,7 +166,13 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
   const intent = answering.writeIntent(hook.toolName, hook.toolInput, workingDirectory);
   if (intent === null || (intent.targets.length === 0 && intent.detection !== "undetected"))
     return answering.claimAnswer({ decision: "allow" });
-  const decisionMs = input.decisionMs ?? CLAIM_DECISION_MS;
+  const decisionMs = Math.max(
+    0,
+    Math.min(
+      input.decisionMs ?? CLAIM_DECISION_MS,
+      (input.hookStartedAt ?? performance.now()) + CLAIM_HOOK_BUDGET_MS - performance.now(),
+    ),
+  );
   const deadline = performance.now() + decisionMs;
   const answered = new AbortController();
   let session: Session | null = null;
@@ -174,8 +195,11 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
   };
   const deferred: ClaimDecision = { decision: "defer", code: CLAIM_DEFERRED };
   let timer: NodeJS.Timeout | undefined;
-  deciding = decide().catch(() => deferred);
-  const decision = await Promise.race([
+  deciding = decide().catch((error: unknown): ClaimDecision => ({
+    decision: "defer",
+    code: deferralCode(error),
+  }));
+  const decided = await Promise.race([
     deciding,
     new Promise<ClaimDecision>((resolve) => {
       timer = setTimeout(() => {
@@ -188,6 +212,13 @@ export async function answerPreToolUse<Session extends WritingSession>(input: {
       }, decisionMs);
     }),
   ]).finally(() => clearTimeout(timer));
+  const decision =
+    decided.decision === "defer"
+      ? unverifiedClaim(
+          decided.code,
+          await repositoryPaths(intent.targets, workingDirectory).catch(() => []),
+        )
+      : decided;
   const writing = session as WritingSession | null;
   if (decision.decision !== "allow" && writing !== null && input.record !== undefined) {
     const record = input.record;
@@ -223,6 +254,7 @@ export function answerClaimHook(
   options: {
     readonly ports?: ClaimingConversationPorts;
     readonly trackWork?: (work: Promise<unknown>) => void;
+    readonly hookStartedAt?: number;
   } = {},
 ): Promise<string> {
   const workingDirectory = hook.workingDirectory ?? fallbackDirectory;
@@ -233,8 +265,20 @@ export function answerClaimHook(
     fallbackDirectory,
     record: (entry: NewClaimLogEntry) => recordClaimLogEntry(entry),
     ...(options.trackWork === undefined ? {} : { trackWork: options.trackWork }),
+    ...(options.hookStartedAt === undefined ? {} : { hookStartedAt: options.hookStartedAt }),
     writing: (providerSessionId) =>
       findClaimingConversation({ provider, providerSessionId, workingDirectory }, ports),
     claim: (request) => decideClaim(request),
   });
+}
+
+/**
+ * The claim hook's answer when the hook itself failed before a decision, such as on input it could
+ * not read: the write is refused as unverified with `cause`, never let through unchecked.
+ */
+export function unverifiedClaimAnswer(provider: string, cause: string): string {
+  const answering = claimReading(provider);
+  return answering === null
+    ? "{}\n"
+    : answering.claimAnswer(hookDecision(unverifiedClaim(cause, [])));
 }

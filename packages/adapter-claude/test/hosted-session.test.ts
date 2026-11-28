@@ -186,7 +186,7 @@ describe("Claude Code hosted sessions", () => {
           {
             type: "command",
             command: "lervo terminal hook --provider claude --contract 2 --claim",
-            timeout: 10,
+            timeout: 60,
           },
         ],
       },

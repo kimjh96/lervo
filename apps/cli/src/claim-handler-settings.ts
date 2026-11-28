@@ -21,8 +21,12 @@ import { claimReading } from "./write-claims.js";
 
 const run = promisify(execFile);
 
-/** How long the provider waits for a claim before it lets the write go ahead. */
-export const CLAIM_HOOK_TIMEOUT_SECONDS = 10;
+/**
+ * How long the provider waits for a claim. A served claim answers within `CLAIM_DECISION_MS`; one
+ * its server lost after 25 seconds decides again in process within that bound. Both fit, so the
+ * provider never lets a write go ahead because the hook ran out of time.
+ */
+export const CLAIM_HOOK_TIMEOUT_SECONDS = 60;
 /** Each provider's settings file that is local to one checkout. */
 const LOCAL_SETTINGS: Readonly<Partial<Record<TerminalIntegrationProvider, string>>> = {
   claude: ".claude/settings.local.json",

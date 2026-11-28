@@ -170,7 +170,7 @@ describe("the terminal hooks a hosted session adds", () => {
               {
                 type: "command",
                 command: "node '/h/launcher.mjs' --provider claude --contract 2 --claim",
-                timeout: 10,
+                timeout: 60,
               },
             ],
           },

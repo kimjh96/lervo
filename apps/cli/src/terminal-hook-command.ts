@@ -36,7 +36,7 @@ import {
 } from "./terminal-workspace-lifecycle.js";
 import type { CliIo, CliServices } from "./types.js";
 import { resolveTerminalRoots } from "./terminal-roots.js";
-import { answerClaimHook } from "./write-claims.js";
+import { answerClaimHook, unverifiedClaimAnswer } from "./write-claims.js";
 import { answerSessionStart } from "./terminal-session-start-hook.js";
 
 /**
@@ -49,9 +49,11 @@ async function answerClaimAndSettle(
   provider: TerminalIntegrationProvider,
   io: CliIo,
   observation: TerminalStageObservationPort,
+  startedAt: number,
 ): Promise<void> {
   const locked: Promise<unknown>[] = [];
   const answer = await answerClaimHook(input, provider, io.cwd, {
+    hookStartedAt: startedAt,
     trackWork: (work) => {
       locked.push(work);
       observation.trackWork?.(work);
@@ -60,6 +62,18 @@ async function answerClaimAndSettle(
   if (io.answer === undefined) io.stdout(answer);
   else io.answer(answer);
   await Promise.all(locked);
+}
+
+/**
+ * What a hook that failed before answering prints: an empty answer, or for a claim handler, the
+ * refusal of the write as unverified, never letting it through unchecked (ADR-0652).
+ */
+function failedHookAnswer(args: readonly string[], failureReason: string): string {
+  const at = args.indexOf("--provider");
+  const provider = at === -1 ? undefined : args[at + 1];
+  return args.includes("--claim") && provider !== undefined
+    ? unverifiedClaimAnswer(provider, failureReason)
+    : "{}\n";
 }
 
 /** A conversation's reconciliation at `Stop`: the block reason, or null to let the turn end. */
@@ -134,7 +148,7 @@ async function executeTerminalHookCommand(
       };
     });
     if (input.event === "PreToolUse") {
-      await answerClaimAndSettle(input, provider, io, observation);
+      await answerClaimAndSettle(input, provider, io, observation, startedAt);
       return 0;
     }
     if (input.event === "SessionStart") {
@@ -321,10 +335,10 @@ async function executeTerminalHookCommand(
         policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
       });
     }).catch(() => undefined);
-    // ADR-0635: an input Lervo cannot read never blocks the owner's prompt or forces a Stop to
-    // continue, which a nonzero exit does in both providers. The failure is recorded above.
+    // ADR-0635: unreadable input never blocks a prompt or forces a Stop to continue; a claim is
+    // refused instead (ADR-0652). The failure is recorded above.
     io.stderr(`Lervo terminal integration failed (${failureReason}).\n`);
-    io.stdout("{}\n");
+    io.stdout(failedHookAnswer(args, failureReason));
     return 0;
   }
 }

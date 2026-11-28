@@ -224,17 +224,19 @@ describe("reconciliation at the turn's end", () => {
     expect(await write(first.sessionId, first.worktree, "notes/other.md")).toBe("{}\n");
   });
 
-  it("resolves a deferred claim once the turn's end claims its path", async () => {
+  it("refuses an undecided claim as unverified, and the turn's end still claims what changed", async () => {
     const { first } = app;
     widening.failure = new AgentWorkforceError("workforce_busy", "busy");
-    expect(await write(first.sessionId, first.worktree, "src/e.ts")).toBe("{}\n");
+    expect(await write(first.sessionId, first.worktree, "src/e.ts")).toMatch(
+      /claim_unverified|workforce_busy/u,
+    );
+    // A change made another way, such as by the owner, is claimed at the turn's end.
     await writeFile(resolve(first.worktree, "src/e.ts"), "export const e = 1;\n");
     expect(claimLogStates(first.sessionId)).toMatchObject([
-      { decision: "defer", code: "workforce_busy", paths: ["src/e.ts"], state: "deferred" },
+      { decision: "deny", code: "claim_unverified", paths: ["src/e.ts"], state: "refused" },
     ]);
     expect(await stop(first.sessionId, first.worktree)).toEqual({});
     expect((await conversationAssignment(first.leadAgentId)).expectedPaths).toEqual(["src/e.ts"]);
-    expect(claimLogStates(first.sessionId)).toMatchObject([{ state: "resolved" }]);
   });
 });
 
@@ -345,10 +347,34 @@ describe("conflicts that persist, and changes that are not the conversation's", 
     expect(await changedPathsOf(second.workspaceId)).toEqual(["src/b.ts"]);
   });
 
+  it("blocks the first Stop when it could not check the turn's changes, and lets the second end it", async () => {
+    const { first } = app;
+    const turn = (final: boolean) =>
+      reconcileConversationTurn({
+        provider: "claude",
+        providerSessionId: first.sessionId,
+        workingDirectory: first.worktree,
+        final,
+        deadline: performance.now() + 3_000,
+        reconciliationPorts: { changedPaths: async () => null },
+      });
+    const blocked = await turn(false);
+    expect(blocked.reconciliation).toMatchObject({
+      status: "deferred",
+      code: "reconcile_unavailable",
+    });
+    expect(blocked.blockReason).toContain(
+      "Lervo could not finish checking this turn's changes against other conversations' work (reconcile_unavailable)",
+    );
+    expect((await turn(true)).blockReason).toBeNull();
+  });
+
   it("settles nothing against a reconciliation that overflowed, and reports the overflow", async () => {
     const { first } = app;
     widening.failure = new AgentWorkforceError("workforce_busy", "busy");
-    expect(await write(first.sessionId, first.worktree, "src/e.ts")).toBe("{}\n");
+    expect(await write(first.sessionId, first.worktree, "src/e.ts")).toMatch(
+      /claim_unverified|workforce_busy/u,
+    );
     const head = await git(first.worktree, "rev-parse", "HEAD");
     const flat = Array.from(
       { length: 10_001 },
@@ -367,7 +393,7 @@ describe("conflicts that persist, and changes that are not the conversation's", 
       overflow: true,
       claimedPaths: [],
     });
-    expect(claimLogStates(first.sessionId)).toMatchObject([{ state: "deferred" }]);
+    expect(claimLogStates(first.sessionId)).toMatchObject([{ state: "refused" }]);
     expect(await readConversationChangedPaths(app.repository, first.workspaceId)).toMatchObject({
       total: 10_001,
       heldEntries: 10_000,

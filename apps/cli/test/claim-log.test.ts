@@ -260,21 +260,22 @@ describe("recording claims from the pre-tool hook", () => {
     expect(await answer(worktree, { decision: "allow" })).toEqual([]);
   });
 
-  it("records a deferral with the paths relative to the worktree, and Lervo's own when late", async () => {
+  it("records an undecided claim as an unverified refusal with the paths relative to the worktree", async () => {
     const worktree = await folder();
     await mkdir(join(worktree, ".git"));
     await mkdir(join(worktree, "src"));
     const cwd = join(worktree, "src");
-    expect(await answer(cwd, { decision: "defer", code: "workforce_busy" })).toEqual([
+    const unverified = (paths: string[]) =>
       expect.objectContaining({
-        decision: "defer",
-        code: "workforce_busy",
-        paths: ["src/src/a.ts"],
-      }),
+        decision: "deny",
+        code: "claim_unverified",
+        paths,
+        holder: null,
+      });
+    expect(await answer(cwd, { decision: "defer", code: "workforce_busy" })).toEqual([
+      unverified(["src/src/a.ts"]),
     ]);
-    expect(await answer(worktree, "late")).toEqual([
-      expect.objectContaining({ decision: "defer", code: "claim_deferred", paths: ["src/a.ts"] }),
-    ]);
+    expect(await answer(worktree, "late")).toEqual([unverified(["src/a.ts"])]);
   });
 });
 
