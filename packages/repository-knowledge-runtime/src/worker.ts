@@ -1,5 +1,6 @@
 import { readRepositoryHold } from "@lervo/repository-registry";
 import { compactProjectConvergenceArtifacts } from "./cas-retention.js";
+import { recordCasRetentionFailure } from "./cas-retention-observation.js";
 import { checkoutOnBaseBranch } from "./checkout-base-branch.js";
 import { keepConvergenceDelegationHostLocal } from "./delegation-tracking.js";
 import { admittedBackgroundContext } from "./background-provider.js";
@@ -201,7 +202,7 @@ export async function runAutonomousKnowledgeWorker(input: {
       async () =>
         signal.aborted || (await liveWorkPending()) || ((await input.shouldYield?.()) ?? false),
     ),
-  ).catch(() => undefined);
+  ).catch((error: unknown) => recordCasRetentionFailure(input.storage, error));
   const upgradeWaiting = async () => (await input.yieldToUpgrade?.()) ?? false;
   const yieldedToUpgrade = {
     status: "busy",

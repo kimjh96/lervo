@@ -125,7 +125,6 @@
     "packages/repository-knowledge-runtime/src/canonical-assessment.ts:assessCanonicalBaseline.run": 156,
     "packages/repository-knowledge-runtime/src/canonical-integration-recovery.ts:inspectRetainedCanonicalIntegration": 171,
     "packages/repository-knowledge-runtime/src/canonical-integration-stage.ts:integrateCanonicalBaseline": 151,
-    "packages/repository-knowledge-runtime/src/cas-retention.ts:collect": 181,
     "packages/repository-knowledge-runtime/src/convergence-continuity.ts:ConvergenceContinuity.reconcileLocked": 202,
     "packages/repository-knowledge-runtime/src/delegation-continuity.ts:continueConvergenceDelegation": 155,
     "packages/repository-knowledge-runtime/src/freshness-assessment.ts:reviewPendingFreshnessAssessment": 213,

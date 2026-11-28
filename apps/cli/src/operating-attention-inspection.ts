@@ -20,6 +20,7 @@ import { readHealthWorkstream } from "./repository-health-workstream.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import { readTerminalKnowledgeLifecycleCacheEntry } from "./terminal-knowledge-lifecycle-cache.js";
 import { readRepositoryHealth } from "./repository-health-reader.js";
+import { readCasRetentionAttention } from "./cas-retention-attention.js";
 import { readWakeChannelAttention } from "./wake-channel-attention.js";
 
 export interface InspectOperatingAttentionInput {
@@ -56,6 +57,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       convergence,
       heldEffects,
       wakeChannel,
+      casRetention,
     ] = await Promise.all([
       input.cachedSourcesOnly
         ? readHealthWorkstream(storage)
@@ -96,6 +98,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       ),
       readHeldEffectsWithRepositoryHold(input.repositoryRoot),
       readWakeChannelAttention(input.repositoryRoot, storage.events),
+      readCasRetentionAttention(input.repositoryRoot, observedAt),
     ]);
     const workstream = workstreamObservation.snapshot;
     const workstreamFreshness =
@@ -133,6 +136,8 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
                 ...lifecycle.issues,
                 ...(replica.status === "invalid" ? [replica.issue] : []),
                 ...wakeChannel,
+                // ADR-0658: a retention pass that cannot finish lets the CAS grow without bound.
+                ...casRetention,
               ],
             },
       repositoryReplicaDivergence: replica.status === "observed" ? replica.divergence : null,

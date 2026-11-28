@@ -15,7 +15,8 @@ const EVIDENCE_CODES: Readonly<Record<string, ReadonlySet<string>>> = {
     "invalid_event",
     "report_corrupt",
   ]),
-  CasError: new Set(["not_found", "corrupt_object", "invalid_uri"]),
+  // ADR-0658: `pruned` evidence was removed by retention, so it is omitted, never corrupt.
+  CasError: new Set(["not_found", "pruned", "corrupt_object", "invalid_uri"]),
 };
 
 /**

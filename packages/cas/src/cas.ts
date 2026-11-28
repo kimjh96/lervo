@@ -283,17 +283,48 @@ export class FileSystemCas implements ArtifactStore {
     }
   }
 
+  /**
+   * ADR-0658: retention writes `tombstones/sha256/<2>/<62>` before it removes an object. The
+   * repository-knowledge runtime's `casTombstonePath` keeps the same layout.
+   */
+  private async pruned(hash: string): Promise<boolean> {
+    try {
+      const stats = await lstat(
+        resolve(this.root, "tombstones", "sha256", hash.slice(0, 2), hash.slice(2)),
+      );
+      return stats.isFile() && !stats.isSymbolicLink();
+    } catch {
+      return false;
+    }
+  }
+
+  /** A missing object that retention removed is `pruned`, never plain `not_found` or corrupt. */
+  private async verifyPresentObject(hash: string): Promise<Uint8Array> {
+    try {
+      return await this.verifyObject(hash);
+    } catch (error) {
+      const missing =
+        (error instanceof CasError && error.code === "not_found") ||
+        (error as NodeJS.ErrnoException | null)?.code === "ENOENT";
+      if (missing && (await this.pruned(hash)))
+        throw new CasError("pruned", `CAS object was pruned by retention: ${uriForDigest(hash)}`, {
+          cause: error,
+        });
+      throw error;
+    }
+  }
+
   async get(uri: string): Promise<Uint8Array> {
-    return this.verifyObject(this.hashFromUri(uri));
+    return this.verifyPresentObject(this.hashFromUri(uri));
   }
 
   async has(uri: string): Promise<boolean> {
     const hash = this.hashFromUri(uri);
     try {
-      await this.verifyObject(hash);
+      await this.verifyPresentObject(hash);
       return true;
     } catch (error) {
-      if (error instanceof CasError && error.code === "not_found") {
+      if (error instanceof CasError && (error.code === "not_found" || error.code === "pruned")) {
         return false;
       }
       throw error;
