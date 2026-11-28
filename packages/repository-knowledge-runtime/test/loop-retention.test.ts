@@ -43,8 +43,15 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
+/** Lets real file and database I/O finish; only timers and the clock are faked. */
+async function settle() {
+  for (let index = 0; index < 200; index++) await new Promise((resolve) => setImmediate(resolve));
+}
+
 it("runs only retention slices while work is left, then sleeps until a change", async () => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({
+    toFake: ["Date", "setTimeout", "clearTimeout", "setInterval", "clearInterval"],
+  });
   const state = join(root, ".lervo/state/knowledge");
   mkdirSync(state, { recursive: true });
   // The startup cycle's own pass left work behind.
@@ -74,26 +81,33 @@ it("runs only retention slices while work is left, then sleeps until a change", 
     .mockResolvedValueOnce(slice(true))
     .mockResolvedValueOnce(slice(false));
   const storage = {
-    paths: { repositoryRoot: root },
+    paths: { repositoryRoot: root, knowledgeState: state },
     manifest: { projectId: "prj_fixture" },
   } as unknown as ProjectStorage;
   const stop = startAutonomousKnowledgeWorker({
     storage,
     workerId: "resident",
     provider: "claude",
+    admissionDirectory: join(root, "admission"),
     subscribe: () => () => undefined,
     onFailure: () => undefined,
   });
   try {
     await vi.advanceTimersByTimeAsync(0);
+    await settle();
     expect(runResidentCycle).toHaveBeenCalledTimes(1);
     expect(runRetentionOnlySlice).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(PAUSE);
+    await settle();
     expect(runRetentionOnlySlice).toHaveBeenCalledTimes(1);
-    await vi.advanceTimersByTimeAsync(2 * PAUSE);
+    await vi.advanceTimersByTimeAsync(PAUSE);
+    await settle();
+    await vi.advanceTimersByTimeAsync(PAUSE);
+    await settle();
     expect(runRetentionOnlySlice).toHaveBeenCalledTimes(3);
     // The last slice left nothing, so nothing more is due; no retention wake ran a full cycle.
     await vi.advanceTimersByTimeAsync(60 * 60_000);
+    await settle();
     expect(runRetentionOnlySlice).toHaveBeenCalledTimes(3);
     expect(runResidentCycle).toHaveBeenCalledTimes(1);
   } finally {

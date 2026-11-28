@@ -9,7 +9,6 @@ import { scanAdvanced, scanProgressMark, type ScanProgressMark } from "./cas-ret
 import {
   classifyRetentionFailure,
   noteProgress,
-  noteReadProgress,
   noteRemaining,
   noteStall,
   noteSweep,
@@ -56,7 +55,7 @@ function noteReadBudget(
   scan: RetentionScan,
   reference?: string,
 ) {
-  if (scanAdvanced(mark, scan)) noteReadProgress(observation);
+  if (scanAdvanced(mark, scan)) noteProgress(observation);
   else noteStall(observation, "read_budget_exhausted", reference);
   noteRemaining(observation, true);
 }

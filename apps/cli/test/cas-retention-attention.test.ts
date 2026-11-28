@@ -110,3 +110,24 @@ it("stays quiet while retention works", async () => {
   ])
     expect(await attention(observation)).toEqual([]);
 });
+
+it("names why retention with work left has run no slice for six hours (ADR-0660)", async () => {
+  const waiting = { status: "collected", failure: null, remaining: true };
+  // An hour since the last slice is routine.
+  expect(await attention(waiting)).toEqual([]);
+  const root = await observed({ ...waiting, observedAt: "2026-11-28T05:00:00.000Z" });
+  expect(await readCasRetentionAttention(root, NOW)).toMatchObject([
+    { code: "cas_retention_waiting", detail: "unknown" },
+  ]);
+  await writeFile(
+    join(root, ".lervo/state/knowledge/cas-retention-wait.json"),
+    JSON.stringify({ schemaVersion: 1, cause: "admission_busy", at: NOW.toISOString() }),
+  );
+  expect(await readCasRetentionAttention(root, NOW)).toMatchObject([
+    { code: "cas_retention_waiting", detail: "admission_busy" },
+  ]);
+  // Without work left, an old observation is only stale once three days pass.
+  expect(
+    await attention({ ...waiting, remaining: false, observedAt: "2026-11-28T05:00:00.000Z" }),
+  ).toEqual([]);
+});

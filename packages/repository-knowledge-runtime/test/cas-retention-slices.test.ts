@@ -115,3 +115,23 @@ it("resumes a large unchanged file across slices without a stall", async () => {
   expect(await observation()).not.toHaveProperty("stalledPasses");
   expect(await f.artifacts.has(obsolete.uri)).toBe(false);
 });
+
+it("lets a slice that reads further end any stall, even one at its bound", async () => {
+  const { f, slice, observation } = await host();
+  await f.settled("carried");
+  const state = resolve(f.storage.paths.knowledgeState, "steady");
+  await mkdir(state, { recursive: true });
+  await writeFile(resolve(state, "large.json"), "x".repeat(3 * 1024 * 1024));
+  await writeFile(
+    resolve(f.storage.paths.knowledgeState, files.CAS_RETENTION_OBSERVATION),
+    JSON.stringify({
+      observedAt: new Date().toISOString(),
+      stalledPasses: 5,
+      stallCause: "inventory_changed",
+    }),
+  );
+  await slice();
+  const recorded = await observation();
+  expect(recorded).toMatchObject({ remaining: true });
+  expect(recorded).not.toHaveProperty("stalledPasses");
+});

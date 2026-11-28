@@ -7,22 +7,21 @@ import { readRepositoryHold } from "@lervo/repository-registry";
 
 import { runCasRetentionSlice, type CasRetentionSlice } from "./cas-retention-slice.js";
 import { checkoutOnBaseBranch } from "./checkout-base-branch.js";
+import { requestRetentionTurn, returnRetentionTurn } from "./cas-retention-host-turns.js";
 import { acquireFullCycleAdmission, fullCycleAdmissionDirectory } from "./full-cycle-admission.js";
-import { admissionOccupied } from "./full-cycle-admission-queue.js";
 
 /**
  * - `held`, `off_base`: the repository takes no Lervo effect now; a full cycle, which the release
  *   or checkout switch wakes, looks again.
- * - `admission_busy`: a full cycle holds or waits for the host admission.
  * - `live_work`: a developer lease is current, so the slice did not start.
+ * - `turn_deferred`: another repository's turn, or the host's pause; come back at `retryAt`.
+ * - `admission_busy`: this repository had the turn, but a full cycle holds or waits for the host
+ *   admission; the turn was given back.
  */
 export type RetentionOnlyOutcome =
   | { kind: "held" | "off_base" | "admission_busy" | "live_work" }
+  | { kind: "turn_deferred"; retryAt: number }
   | { kind: "slice"; slice: CasRetentionSlice };
-
-function cancelled(error: unknown): boolean {
-  return (error as { code?: unknown } | null)?.code === "knowledge_cancelled";
-}
 
 interface RetentionOnlyInput {
   storage: ProjectStorage;
@@ -42,25 +41,29 @@ async function retentionOnlySlice(input: RetentionOnlyInput): Promise<RetentionO
   if (!(await checkoutOnBaseBranch(root)).onBase) return { kind: "off_base" };
   if (await input.liveWorkPending()) return { kind: "live_work" };
   const directory = fullCycleAdmissionDirectory(input.admissionDirectory);
-  if (await admissionOccupied(directory, Date.now())) return { kind: "admission_busy" };
-  // Admitted at once or not at all: a slice never waits in the queue.
-  const notWaiting = new AbortController();
+  const turnInput = { directory, repositoryRoot: root };
+  // The turn comes first, so repositories that are not served never touch the admission.
+  const turn = await requestRetentionTurn({ ...turnInput, now: Date.now() });
+  if (!turn.granted) return { kind: "turn_deferred", retryAt: turn.retryAt };
   let admission: Awaited<ReturnType<typeof acquireFullCycleAdmission>>;
   try {
     admission = await acquireFullCycleAdmission({
       repositoryRoot: root,
-      signal: AbortSignal.any([input.signal, notWaiting.signal]),
+      signal: input.signal,
       directory,
-      onWait: () => notWaiting.abort(),
+      priority: "retention",
     });
   } catch (error) {
-    if (cancelled(error) && !input.signal.aborted) return { kind: "admission_busy" };
+    await returnRetentionTurn({ ...turnInput, previousSliceAt: turn.previousSliceAt });
+    if ((error as { code?: unknown } | null)?.code === "knowledge_admission_occupied")
+      return { kind: "admission_busy" };
     throw error;
   }
   try {
     const slice = await runCasRetentionSlice({
       storage: input.storage,
       directory,
+      turn,
       shouldYield: async () =>
         input.signal.aborted || (await input.liveWorkPending()) || (await admission.contended()),
     });

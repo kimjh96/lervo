@@ -117,7 +117,7 @@ function scanChecksum(scan: RetentionScan): string {
 
 /** Fixed owned temporary names keep interrupted projections out of the reference root inventory. */
 export async function writeRetentionProjection(path: string, value: unknown): Promise<void> {
-  if (!/^cas-retention-(?:scan|observation)\.json$/u.test(basename(path)))
+  if (!/^cas-retention-(?:scan|observation|wait)\.json$/u.test(basename(path)))
     throw new Error("Invalid retention projection path.");
   const directory = dirname(path);
   await mkdir(directory, { recursive: true, mode: 0o700 });

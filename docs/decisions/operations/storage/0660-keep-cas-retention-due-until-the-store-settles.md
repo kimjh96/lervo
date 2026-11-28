@@ -25,25 +25,29 @@ The first design made remaining retention a due time in the change fence. Review
    - A pass that did no work writes no observation. Such a pass either yielded at entry, to live work or a materialization, or found the host's retention turn taken. The last observation therefore keeps its `observedAt` and its answer. A host held by live work for three days shows `cas_retention_stale`, which is true: no pass ran.
 2. **A retention-only wake runs only retention.**
    - The resident keeps a `retention` deadline beside `reconcile`. When it falls due, the resident runs one retention slice and nothing else. It starts no worker cycle, no provider stage and no other stage, and it never changes the change fence. Only a fingerprint change or the existing reconcile deadline runs the full worker.
-   - The slice applies the full cycle's rules. The owner hold and the ADR-0610 base-branch rule stop it. A current developer lease stops it before it starts. It holds the host's full-cycle admission, the repository's worker lock and the host retention turn. The materialization check and every ADR-0658 step are unchanged: the settle loop, the head and identity re-check after the tombstone, the tombstones and the 14-day grace.
-   - The slice never queues for the admission. If a full cycle holds or waits for it, the slice does not start, because a waiter would make that cycle yield at its next stage. While it runs, a full cycle that arrives makes it yield.
-   - After each full cycle, a recorded pass that left work, is not `unavailable` and is less than a day old arms the deadline 30 s later. After a slice:
+   - The slice applies the full cycle's rules. The owner hold and the ADR-0610 base-branch rule stop it. A current developer lease stops it before it starts. It then takes the host retention turn, then the host's full-cycle admission, then the repository's worker lock. The materialization check and every ADR-0658 step are unchanged: the settle loop, the head and identity re-check after the tombstone, the tombstones and the 14-day grace.
+   - The turn comes first, so repositories that are not served never touch the admission.
+   - The slice takes the admission with the new `retention` priority. It is admitted in one transaction only while no live holder holds and no live waiter waits. It never inserts a waiter row, because a waiter would make the running full cycle yield at its next stage. Refused, it gives the turn back and leaves the host's pause as it was. While it runs, a full cycle that arrives makes it yield.
+   - After each full cycle, the deadline is armed in one of two ways. If the cycle's own retention was denied the turn, it is armed for the moment the denial named. Otherwise it is armed 30 s later, if the last recorded pass left work, is not `unavailable` and is less than a day old. While live work holds, the current backoff applies there too. After a slice:
      - A slice with work left arms it again 30 s later. One without arms nothing.
      - A held or off-base checkout arms nothing; the full cycle that its release or checkout switch causes looks again.
-     - A busy admission retries 30 s later. A taken turn retries when the host's turn opens.
-     - Live work, or a pass that yielded at entry, doubles the wait from 30 s up to 10 minutes. The next slice that does work restores 30 s.
+     - A denied turn comes back exactly at the moment the denial named.
+     - Live work, a pass that yielded at entry, or a busy admission doubles the wait from 30 s up to 10 minutes. The next slice that does work restores 30 s.
 3. **The host paces retention, not each repository.**
    - The host admission database holds one `retention_turns` row per repository.
-   - A pass that has work due asks for a turn before it reads anything. A turn starts only 30 s after the host's previous slice ended. It goes to the live request that has waited longest; a request counts as live while it was renewed within 60 s.
-   - A repository that finishes with work left queues again behind the others. One without work withdraws its request.
-   - Full cycles take their retention through the same turns. The whole host therefore reads at most one slice's budget per 30 s, however many repositories it serves. A repository that stops asking, for example behind live work, keeps its place for when it asks again.
+   - A pass that has work due asks for a turn before it reads anything. A turn starts only 30 s after the host's previous slice ended, and goes to the oldest ready request.
+   - A denial names when to come back (`retry_at`), and the request holds its place only around that moment. Within 15 s of it, the request is ready and blocks younger ones. Before then it blocks no one. More than 15 s past it, the request is withdrawn.
+   - A turn returned unused, after live work or a busy admission, keeps its place with no moment, so it never blocks anyone.
+   - A repository that finishes with work left queues again behind the others, due back when the pause ends. One without work withdraws its request.
+   - Full cycles take their retention through the same turns. A denial records its moment in `cas-retention-wait.json`, and the resident's deadline brings the repository back for it.
+   - No request blocks a turn for more than the 15 s grace, and a repository that comes back when told is served after at most every older request. The whole host therefore reads at most one slice's budget per 30 s, however many repositories it serves.
 4. **A slice is time-boxed, not counted.**
    - The sweep removes at least 32 objects, unless it yields or the head moves. It then continues until 5 s after the pass began, with a backstop of 4,096 unlinks.
    - The sweep probes live work at most once per 100 ms instead of before every unlink. The event head and the materialization state are still checked before each one.
    - One slice's body scan admits 16,384 reads, 512 MiB and 4 s of read time. Time binds first on a slow disk and bytes on a fast one. Yield probes still run between reads and still cost no read time.
 5. **A slice that reads without progress is a stall.**
    - A slice whose read budget ran out counts a stall with cause `read_budget_exhausted` if it advanced nothing. Advancing means classifying a record, caching a report, or reading further into a file at the identity it had before. The stall counts toward the same five-stall bound.
-   - A slice that does advance ends a read stall. Other stall causes still end only when a pass removes or finishes.
+   - A slice that does advance ends any stall, including an `inventory_changed` or `event_head_changed` stall at its bound. A pass whose inventory or head keeps moving rereads only changed files, and their new identities count as no progress, so such a stall still reaches its bound.
    - An unchanged file resumes from its saved offset or SQLite cursor across slices, as before. A file that changes between slices restarts, and the stall names it in `stallReference`, relative to the repository. At the bound, `remaining` turns false, and attention reports `cas_retention_stalled` with the path.
 
 ## Consequences
@@ -51,6 +55,7 @@ The first design made remaining retention a due time in the change fence. Review
 - A quiet host, or one whose provider is unavailable, keeps pruning without any provider call. Each repository runs one slice about every 35 s while it alone has work. With several repositories, the host runs one slice every 35 s in turn.
 - Measured on the Mac with 3,001 eligible 64 KiB objects, each slice took 5.0 s of wall time and 0.6–0.8 s of CPU. A slice removed about 500 objects, bound by the fsync of each tombstone, and all 3,001 cleared in seven slices. Before this change each pass removed 32. WSL disks are slower. At 32 to 500 removals per slice, its roughly 15,000 removable objects clear in hours, not weeks, if it is the only repository with work.
 - Inventory listing and the settle rounds sit outside the 5 s box. On a store of 20,000 objects they add a few seconds per slice, and so does the minimum of 32 unlinks on a very slow disk.
-- A retention-only attempt costs a hold read, one `git` call for the base branch, a lease listing and an admission read. While live work holds, attempts back off to one every 10 minutes.
-- A full cycle that finds the turn taken skips retention for that cycle; the retention deadline picks it up.
+- A retention-only attempt costs a hold read, one `git` call for the base branch, a lease listing and a turn transaction. While live work or full cycles hold, attempts back off to one every 10 minutes.
+- A full cycle that finds the turn taken skips retention for that cycle, and the retention deadline brings it back for the turn.
+- `cas-retention-wait.json` records why the last attempt ran no slice: `live_work`, `admission_busy` or `retention_turn`. Retention can have work left and run no slice for six hours. Attention then reports `cas_retention_waiting` with that cause, long before `cas_retention_stale` at three days.
 - A stall at the bound, or an `unavailable` pass, arms nothing. Attention reports both, and retention still runs whenever a full cycle starts and the turn is free.

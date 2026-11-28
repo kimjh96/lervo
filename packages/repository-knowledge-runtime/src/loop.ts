@@ -264,7 +264,7 @@ export function startAutonomousKnowledgeWorker(
       await refreshProjection();
     }
     if (!signal.aborted) deadlines.set("reconcile", at);
-    if (!signal.aborted) retention.afterCycle();
+    if (!signal.aborted) void retention.afterCycle();
     // The cycle has ended; a next one observes ownership again and re-arms the renewal.
     if (!signal.aborted) armOwnerRenewal(false);
     // A continuity turn that met this cycle's own lock runs once the cycle has fully ended.

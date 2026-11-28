@@ -80,12 +80,15 @@ it(
       directory: f.admissionDirectory,
     });
     try {
+      // It had the host's retention turn, met the running cycle, and gave the turn back.
       expect(await slice(f)).toEqual({ kind: "admission_busy" });
-      // It left no waiter behind, so the running full cycle is not asked to yield.
+      // It never queued, so the running full cycle is not asked to yield.
       expect(await held.contended()).toBe(false);
     } finally {
       await held.release();
     }
+    // The returned turn left the host's pause where it was, so the next attempt runs at once.
+    expect(await slice(f)).toMatchObject({ kind: "slice", slice: { outcome: "ran" } });
     await execute("git", ["-C", f.root, "checkout", "-q", "-b", "feature"]);
     expect(await slice(f)).toEqual({ kind: "off_base" });
   },

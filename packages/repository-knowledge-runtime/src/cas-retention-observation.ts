@@ -131,18 +131,15 @@ export function noteStall(
   else observation.stallReference = reference;
 }
 
+/**
+ * Progress ends any stall: a removal, a finished pass, or (ADR-0660) a slice that advanced a read.
+ * A pass whose inventory or head keeps moving rereads only changed files, whose new identities
+ * count as no progress, so such a stall still reaches its bound.
+ */
 export function noteProgress(observation: CasRetentionObservation) {
   delete observation.stalledPasses;
   delete observation.stallCause;
   delete observation.stallReference;
-}
-
-/**
- * ADR-0660: a slice that advanced a read ends a read stall. Other stalls end only when a pass
- * removes or finishes, since every pass rereads what changed before it can stall again.
- */
-export function noteReadProgress(observation: CasRetentionObservation) {
-  if (observation.stallCause === "read_budget_exhausted") noteProgress(observation);
 }
 
 /** Names a failure; a permission error anywhere in the pass names its own path. */

@@ -131,7 +131,7 @@
     "packages/repository-knowledge-runtime/src/freshness-candidate-generation.ts:generateFreshnessCandidate": 166,
     "packages/repository-knowledge-runtime/src/freshness-evidence-bundle.ts:buildFreshnessEvidenceBundle": 211,
     "packages/repository-knowledge-runtime/src/freshness-stage.ts:runDocumentFreshnessCycle": 320,
-    "packages/repository-knowledge-runtime/src/full-cycle-admission.ts:acquireFullCycleAdmission": 161,
+    "packages/repository-knowledge-runtime/src/full-cycle-admission.ts:acquireFullCycleAdmission": 162,
     "packages/repository-knowledge-runtime/src/host.ts:createConvergenceRuntimeHost": 285,
     "packages/repository-knowledge-runtime/src/host.ts:createConvergenceRuntimeHost.dependencyCurrent": 151,
     "packages/repository-knowledge-runtime/src/hub-knowledge-changes.ts:watchHubKnowledgeChanges": 163,
