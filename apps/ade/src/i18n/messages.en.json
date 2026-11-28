@@ -1658,5 +1658,29 @@
   "workspaces.unavailable": {
     "defaultMessage": "Lervo could not load the workspaces ({code}). It tries again on the next connection.",
     "description": "The workspace list could not reload; {code} is the protocol code."
+  },
+  "workspaces.changeFailed": {
+    "defaultMessage": "Lervo could not change the conversation ({code}).",
+    "description": "One line in the sidebar when renaming or pinning a conversation failed; code is the stable failure code."
+  },
+  "workspaces.menu.pin": {
+    "defaultMessage": "Pin",
+    "description": "Context menu item of a conversation: keep it at the top of the list."
+  },
+  "workspaces.menu.rename": {
+    "defaultMessage": "Rename",
+    "description": "Context menu item of a conversation: edit its title in place."
+  },
+  "workspaces.menu.unpin": {
+    "defaultMessage": "Unpin",
+    "description": "Context menu item of a pinned conversation: return it to its place in the list."
+  },
+  "workspaces.rename": {
+    "defaultMessage": "Rename",
+    "description": "The conversation's title in its header, which renames it in place when pressed."
+  },
+  "workspaces.rename.label": {
+    "defaultMessage": "Conversation title",
+    "description": "Accessible label of the field that edits a conversation's title in place."
   }
 }

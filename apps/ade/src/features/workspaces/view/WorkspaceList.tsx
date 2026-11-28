@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { conversationOrder } from "@lervo/session-host-contract";
+import { type ReactNode, useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { commandModifier } from "../../../platform/keyboard";
@@ -6,19 +7,31 @@ import { PlusIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { Kbd } from "../../../ui/Kbd";
 import { ListRow } from "../../../ui/ListRow";
-import { useDeparting } from "../../../ui/departing";
+import { type ShownItem, useDepartingInPlace } from "../../../ui/departing";
+import { useMoved } from "../../../ui/moving";
 import { useItemSpace } from "../../../ui/space";
 import { StatusDot } from "../../../ui/StatusDot";
 import { WorkingLabel } from "../../../ui/WorkingLabel";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
+import { useApplicationCommands, useListCache, useMenus } from "../../../ports";
+import { changesConversations, renameConversation } from "../model/changes";
 import { groupByRepository, workspaceStatus } from "../model/decisions";
 import { useWorkspaceStore } from "../model/store";
 import type { Workspace } from "../model/types";
+import { showConversationMenu } from "./conversation-menu";
 import { statusMessages } from "./messages";
+import { TitleField } from "./TitleField";
 import styles from "./WorkspaceList.module.css";
 
-const workspaceKey = (workspace: { workspaceId: string }) => workspace.workspaceId;
+/**
+ * A row's key for its place: a pinned conversation's row is another row than its unpinned one, so
+ * pinning leaves its place and arrives at the top, and unpinning the other way (ADE motion,
+ * "Moving a row").
+ */
+const placeKey = (workspace: Workspace) =>
+  `${workspace.pinnedAt === undefined ? "listed" : "pinned"}:${workspace.workspaceId}`;
+const workspaceKey = (workspace: Workspace) => workspace.workspaceId;
 
 /**
  * A workspace row: one that arrives while the person watches opens its space and enters; one that
@@ -54,54 +67,148 @@ function Heading(props: { arrived: boolean; leaving: boolean; children: ReactNod
   );
 }
 
-function WorkspaceRows(props: { workspaces: readonly Workspace[]; leaving: ReadonlySet<string> }) {
+/** A conversation's row, or its title's field while the person renames it in place. */
+function WorkspaceRow(props: { workspace: Workspace }) {
   const intl = useIntl();
-  const arrived = useWorkspaceStore((store) => store.arrived);
-  const statuses = useWorkspaceStore((store) => store.statuses);
-  const selected = useWorkspaceStore((store) => store.selected);
+  const commands = useApplicationCommands();
+  const lists = useListCache();
+  const menus = useMenus();
+  const { workspace } = props;
+  const status = useWorkspaceStore((store) => workspaceStatus(workspace, store.statuses));
+  const current = useWorkspaceStore((store) => store.selected === workspace.workspaceId);
+  const renaming = useWorkspaceStore((store) => store.renaming === workspace.workspaceId);
+  const advertised = useWorkspaceStore((store) => store.advertisedCommands);
   const select = useWorkspaceStore((store) => store.select);
+  const title = workspace.title ?? workspace.branch;
+  const changes = changesConversations(advertised);
+  // motion: Renaming in place
+  if (renaming)
+    return (
+      <div className={styles.renaming}>
+        <TitleField
+          title={title}
+          label={intl.formatMessage({ id: "workspaces.rename.label" })}
+          className={styles.input}
+          onDone={(renamed) => {
+            useWorkspaceStore.setState({ renaming: null });
+            if (renamed !== null)
+              void renameConversation({ commands, lists }, workspace.workspaceId, renamed);
+          }}
+        />
+      </div>
+    );
+  return (
+    <ListRow
+      current={current}
+      onClick={() => select(workspace.workspaceId)}
+      onContextMenu={(event) => {
+        if (!changes.renames && !changes.pins) return;
+        event.preventDefault();
+        showConversationMenu({ intl, menus, commands, lists, changes }, workspace);
+      }}
+      label={
+        <WorkingLabel
+          title={title}
+          working={status === "working" ? intl.formatMessage(statusMessages.working) : null}
+        />
+      }
+      trailing={
+        <Presence as="span">
+          {status === "needsYou" ? (
+            <StatusDot label={intl.formatMessage(statusMessages.needsYou)} />
+          ) : null}
+        </Presence>
+      }
+    />
+  );
+}
+
+function WorkspaceRows(props: {
+  rows: readonly ShownItem<Workspace>[];
+  moved: ReadonlySet<string>;
+}) {
+  const arrived = useWorkspaceStore((store) => store.arrived);
   return (
     <ul className={styles.rows}>
-      {props.workspaces.map((workspace) => {
-        const status = workspaceStatus(workspace, statuses);
-        const current = selected === workspace.workspaceId;
-        const gone = props.leaving.has(workspace.workspaceId);
-        return (
-          <Row
-            key={workspace.workspaceId}
-            arrived={arrived.has(workspace.workspaceId)}
-            leaving={gone}
-          >
-            <ListRow
-              current={current}
-              onClick={() => select(workspace.workspaceId)}
-              label={
-                <WorkingLabel
-                  title={workspace.title ?? workspace.branch}
-                  working={status === "working" ? intl.formatMessage(statusMessages.working) : null}
-                />
-              }
-              trailing={
-                <Presence as="span">
-                  {status === "needsYou" ? (
-                    <StatusDot label={intl.formatMessage(statusMessages.needsYou)} />
-                  ) : null}
-                </Presence>
-              }
-            />
-          </Row>
-        );
-      })}
+      {props.rows.map(({ item: workspace, leaving }) => (
+        <Row
+          key={placeKey(workspace)}
+          arrived={arrived.has(workspace.workspaceId) || props.moved.has(placeKey(workspace))}
+          leaving={leaving}
+        >
+          <WorkspaceRow workspace={workspace} />
+        </Row>
+      ))}
     </ul>
   );
 }
 
+/** "New work", the one row that starts a conversation, once the lists hold a project. */
+function NewWork() {
+  const intl = useIntl();
+  const selected = useWorkspaceStore((store) => store.selected);
+  const newWork = useWorkspaceStore((store) => store.newWork);
+  // Work starts in a project, so "New work" shows once the lists are known to hold one; with none,
+  // the start screen offers adding the first (ADE craft rules, 13).
+  const hasProject = useWorkspaceStore(
+    (store) => (store.loaded || store.cached) && store.repositories.length > 0,
+  );
+  return (
+    <Presence>
+      {hasProject ? (
+        <ListRow
+          current={selected === null}
+          onClick={newWork}
+          leading={<PlusIcon size="md" />}
+          label={<FormattedMessage id="workspaces.new" />}
+          trailing={
+            <Kbd>
+              {intl.formatMessage(
+                { id: "keyboard.command" },
+                {
+                  modifier: commandModifier,
+                  key: intl.formatMessage({ id: "workspaces.new.key" }),
+                },
+              )}
+            </Kbd>
+          }
+        />
+      ) : null}
+    </Presence>
+  );
+}
+
+/** A failed reload, or a refused rename or pin, as one line. */
+function Failures() {
+  const listFailure = useWorkspaceStore((store) => store.listFailure);
+  const changeFailure = useWorkspaceStore((store) => store.changeFailure);
+  return (
+    <>
+      <Presence className={styles.failure}>
+        {listFailure === null ? null : (
+          <InlineAlert size="caption">
+            <FormattedMessage id="workspaces.unavailable" values={{ code: listFailure }} />
+          </InlineAlert>
+        )}
+      </Presence>
+      <Presence className={styles.failure}>
+        {changeFailure === null ? null : (
+          <InlineAlert size="caption">
+            <FormattedMessage id="workspaces.changeFailed" values={{ code: changeFailure }} />
+          </InlineAlert>
+        )}
+      </Presence>
+    </>
+  );
+}
+
 /**
- * "New work" and the workspaces, with each workspace's live status. With a project selected in
- * the switcher, only its workspaces show, and selecting another project crossfades the rows in
- * place; without one, the workspaces group by repository. A row that arrived after the first load
- * enters with the arrival motion once, when it mounts; loaded rows stay still. A removed row fades
- * out where it was. A repository's name arrives with its first row and leaves with its last.
+ * "New work" and the workspaces, with each workspace's live status, the pinned ones first. With a
+ * project selected in the switcher, only its workspaces show, and selecting another project
+ * crossfades the rows in place; without one, the workspaces group by repository. A row that
+ * arrived after the first load enters with the arrival motion once, when it mounts; loaded rows
+ * stay still. A removed row fades out where it was, and a pinned or unpinned one moves to its new
+ * place. A repository's name arrives with its first row and leaves with its last.
  */
 export function WorkspaceList(props: {
   projectId: string | null;
@@ -114,52 +221,18 @@ export function WorkspaceList(props: {
   const intl = useIntl();
   const workspaces = useWorkspaceStore((store) => store.workspaces);
   const arrived = useWorkspaceStore((store) => store.arrived);
-  const listFailure = useWorkspaceStore((store) => store.listFailure);
-  const selected = useWorkspaceStore((store) => store.selected);
-  const newWork = useWorkspaceStore((store) => store.newWork);
-  // Work starts in a project, so "New work" shows once the lists are known to hold one; with none,
-  // the start screen offers adding the first (ADE craft rules, 13).
-  const hasProject = useWorkspaceStore(
-    (store) => (store.loaded || store.cached) && store.repositories.length > 0,
-  );
-  // Departures are tracked over every workspace, so switching projects never reads as removal.
-  const departed = useDeparting(workspaces, workspaceKey);
-  const leaving = new Set(departed.map(workspaceKey));
+  const ordered = useMemo(() => conversationOrder(workspaces), [workspaces]);
+  // Departures and moves are tracked over every workspace, so switching projects never reads as
+  // removal.
+  const all = useDepartingInPlace(ordered, placeKey);
+  const moved = useMoved(ordered, placeKey, workspaceKey);
   const { projectId } = props;
-  const shown = [...workspaces, ...departed].filter(
-    (workspace) => projectId === null || workspace.projectId === projectId,
-  );
+  const shown = all.filter(({ item }) => projectId === null || item.projectId === projectId);
 
   return (
     <section className={styles.list} aria-label={intl.formatMessage({ id: "workspaces.label" })}>
-      <Presence>
-        {hasProject ? (
-          <ListRow
-            current={selected === null}
-            onClick={newWork}
-            leading={<PlusIcon size="md" />}
-            label={<FormattedMessage id="workspaces.new" />}
-            trailing={
-              <Kbd>
-                {intl.formatMessage(
-                  { id: "keyboard.command" },
-                  {
-                    modifier: commandModifier,
-                    key: intl.formatMessage({ id: "workspaces.new.key" }),
-                  },
-                )}
-              </Kbd>
-            }
-          />
-        ) : null}
-      </Presence>
-      <Presence className={styles.failure}>
-        {listFailure === null ? null : (
-          <InlineAlert size="caption">
-            <FormattedMessage id="workspaces.unavailable" values={{ code: listFailure }} />
-          </InlineAlert>
-        )}
-      </Presence>
+      <NewWork />
+      <Failures />
       {props.beforeRows}
       <Presence>
         {props.conversationsHeading === true && projectId !== null && shown.length > 0 ? (
@@ -168,18 +241,18 @@ export function WorkspaceList(props: {
       </Presence>
       {projectId !== null ? (
         <Presence contentKey={projectId} className={styles.project}>
-          <WorkspaceRows workspaces={shown} leaving={leaving} />
+          <WorkspaceRows rows={shown} moved={moved} />
         </Presence>
       ) : (
-        groupByRepository(shown).map((group) => (
+        groupByRepository(shown, (row) => row.item.repositoryName).map((group) => (
           <div key={group.repositoryName}>
             <Heading
-              arrived={group.workspaces.every((workspace) => arrived.has(workspace.workspaceId))}
-              leaving={group.workspaces.every((workspace) => leaving.has(workspace.workspaceId))}
+              arrived={group.items.every(({ item }) => arrived.has(item.workspaceId))}
+              leaving={group.items.every((row) => row.leaving)}
             >
               {group.repositoryName}
             </Heading>
-            <WorkspaceRows workspaces={group.workspaces} leaving={leaving} />
+            <WorkspaceRows rows={group.items} moved={moved} />
           </div>
         ))
       )}

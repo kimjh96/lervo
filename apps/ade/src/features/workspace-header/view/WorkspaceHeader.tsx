@@ -2,15 +2,17 @@ import { ParticipantMarks } from "../../agents";
 import { PaneHeader } from "../../../ui/PaneHeader";
 import { Presence } from "../../../ui/Presence";
 import { useWorkspaceStore } from "../../workspaces";
+import { ConversationTitle } from "./ConversationTitle";
 import { WorkspaceControls } from "./WorkspaceControls";
 import styles from "./WorkspaceHeader.module.css";
 
 /**
- * The workspace's title (approved mockup "2a"), with its branch behind an icon. The workspace
- * list and the working line show the live status, so the header does not repeat it. Its other
- * control removes the workspace, when the core answers `workspace.retire`. While the core creates
- * the workspace of work just sent, it is that work's header: the instruction's first line and the
- * repository, which gives way to the controls in the same place once the workspace exists.
+ * The workspace's title (approved mockup "2a"), which the owner renames in place, with its branch
+ * behind an icon. The workspace list and the working line show the live status, so the header does
+ * not repeat it. Its other control removes the workspace, when the core answers `workspace.retire`.
+ * While the core creates the workspace of work just sent, it is that work's header: the
+ * instruction's first line and the repository, which gives way to the controls in the same place
+ * once the workspace exists.
  */
 export function WorkspaceHeader(props: {
   workspaceId: string | null;
@@ -24,7 +26,7 @@ export function WorkspaceHeader(props: {
     (store) => store.advertisedCommands?.includes("workspace.retire") === true,
   );
   const title =
-    workspace === undefined ? props.starting?.title : (workspace.title ?? workspace.branch);
+    workspace === undefined ? props.starting?.title : <ConversationTitle workspace={workspace} />;
   if (title === undefined) return null;
   // The repository and, once the workspace exists, its controls share the header's end: one gives
   // way to the other in place, and the place keeps the controls' width from the start, so the

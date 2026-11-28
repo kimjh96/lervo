@@ -3776,6 +3776,20 @@
       "value": "Remove with changes"
     }
   ],
+  "workspaces.changeFailed": [
+    {
+      "type": 0,
+      "value": "Lervo could not change the conversation ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
   "workspaces.conversations": [
     {
       "type": 0,
@@ -3788,6 +3802,24 @@
       "value": "Workspaces"
     }
   ],
+  "workspaces.menu.pin": [
+    {
+      "type": 0,
+      "value": "Pin"
+    }
+  ],
+  "workspaces.menu.rename": [
+    {
+      "type": 0,
+      "value": "Rename"
+    }
+  ],
+  "workspaces.menu.unpin": [
+    {
+      "type": 0,
+      "value": "Unpin"
+    }
+  ],
   "workspaces.new": [
     {
       "type": 0,
@@ -3798,6 +3830,18 @@
     {
       "type": 0,
       "value": "N"
+    }
+  ],
+  "workspaces.rename": [
+    {
+      "type": 0,
+      "value": "Rename"
+    }
+  ],
+  "workspaces.rename.label": [
+    {
+      "type": 0,
+      "value": "Conversation title"
     }
   ],
   "workspaces.status.needsYou": [

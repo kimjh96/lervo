@@ -1,0 +1,32 @@
+/* The conversation's title and its field share the header title's type, size, and place, so
+   renaming never moves the header (ADE craft rules, 12). */
+.title,
+.field {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font: inherit;
+  white-space: nowrap;
+  text-align: start;
+  text-overflow: ellipsis;
+  background: transparent;
+}
+
+.title {
+  cursor: text;
+}
+
+.title:focus-visible,
+.field {
+  border-radius: var(--radius-sm);
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* The field is as wide as its title, as the title it replaces was. */
+.field {
+  field-sizing: content;
+}

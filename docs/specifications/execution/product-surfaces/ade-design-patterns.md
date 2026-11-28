@@ -1,7 +1,7 @@
 # Lervo ADE patterns and content
 
 Status: `active`
-As of: 2026-11-23
+As of: 2026-11-28
 
 This specification is the patterns and content chapter of the [design system](ade-design-system.md). A pattern says how the ADE handles one recurring situation, with the components, copy, and motion it uses. Content rules say how the ADE writes. Both follow the design language. Components and their rules are in the design system, colors and type in the [visual language](ade-visual-language.md), and timing in the [motion principles](ade-motion.md).
 
@@ -73,7 +73,8 @@ Every wait in Lervo follows one system, so the person always reads a wait the sa
 
 - **The first click acts.** A click on the Lervo window while another app is in front presses what it lands on. Such a click reaches the page broken in one of two shapes, and the page completes it unless a real `click` arrives first. In the first, WebKit spends the whole click on bringing the window forward, so the shell reports an activation that followed a left mouse press within half a second, with the pointer over the window's content, and the page presses the control there. In the second, recorded from the owner's own clicks, WebKit hands the page the click's release before its press, so no `click` follows, and the page presses the control where the press landed. A click on empty space or the title bar presses nothing; Command-Tab and the Dock press nothing.
 - **The workspace list** is the one navigation. Selecting a row opens that workspace at once; selecting the open one changes nothing.
-- **The header** names the workspace by its title. The branch is a detail the person rarely needs, so it sits behind a quiet branch icon: hovering or focusing names it, and pressing copies it.
+- **The header** names the workspace by its title, which pressing renames in place ([Lervo ADE sessions](ade-sessions.md), "Renaming and pinning"). The branch is a detail the person rarely needs, so it sits behind a quiet branch icon: hovering or focusing names it, and pressing copies it.
+- **A conversation's row** offers "Rename" and "Pin" or "Unpin" in its context menu, as a project's row offers its own; the pinned conversations lead the list.
 - **What stays, stays still.** The workspace list, the header, and the reply card keep their places through every change, as the motion principles require.
 - **New work.** "New work" and its shortcut open the start screen with the instruction focused.
 - **Narrow and zoomed windows.** Below the breakpoint, the workspace list narrows to `layout.sidebarMinWidth` instead of hiding, so no navigation disappears. The macOS window controls keep the list's strip. Titles truncate before controls do.

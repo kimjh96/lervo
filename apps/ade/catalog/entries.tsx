@@ -4,6 +4,7 @@
 import type { ReactNode } from "react";
 
 import { feedbackEntries } from "./entries-feedback";
+import { MovingRowsDemo } from "./MovingRowsDemo";
 
 import { Button } from "../src/ui/Button";
 import { FloatingButton } from "../src/ui/FloatingButton";
@@ -129,6 +130,7 @@ export const entries: readonly Entry[] = [
           </div>
         ),
       },
+      { name: "Moving a row", render: () => <MovingRowsDemo /> },
     ],
   },
   {

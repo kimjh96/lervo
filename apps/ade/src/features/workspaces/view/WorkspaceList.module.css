@@ -64,3 +64,27 @@ li[data-leaving],
 .project {
   margin-block: var(--space-12) 0;
 }
+
+/* A conversation's title edited in its row: the row's own size and type, raised as the current
+   row is, so renaming never moves the list (ADE craft rules, 12). */
+.renaming {
+  display: flex;
+  align-items: center;
+  padding-block: var(--space-8);
+  padding-inline: var(--space-10);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-selected);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--type-list-size);
+  line-height: var(--type-list-line-height);
+  background: transparent;
+  outline: none;
+}

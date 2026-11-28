@@ -1,7 +1,7 @@
 # Lervo ADE core link
 
 Status: `proposed`
-As of: 2026-11-23
+As of: 2026-11-28
 
 This specification defines the core link: the protocol between the ADE session host and the resident Lervo application process. [ADR-0613](../../../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md) requires that resident process, so that no action pays for a Node start. `@lervo/session-host-contract` holds the link's JSON Schema beside the [session-host protocol](ade-session-host-protocol.md), and both sides validate against the same document.
 
@@ -41,8 +41,9 @@ Every request carries a positive integer `id`, and the resident process answers 
 | `transcript.read`   | Reads a page of the provider's own transcript of a workspace's session.    | `transcript.page` with items and `complete`, or `core.failed`        |
 | `session.exited`    | Reports that a hosted session's process ended, with its exit code.         | `core.result` with `status`, or `core.failed`                        |
 
-- `workspace.list` answers `{workspaces, commands}`. `workspaces` are the host's workspaces with a hosted launch whose worktree still exists, at most 100, latest activity first: when the conversation began, or when an agent last joined it. Reopening a conversation, or resuming a joined agent's session, keeps its place, so opening a conversation never moves it; each launch record keeps that time as `listedAt`. Each holds:
-  - `workspaceId`, `projectId`, `repositoryName`, `branch`, and `title` (the workstream title, or null);
+- `workspace.list` answers `{workspaces, commands}`. `workspaces` are the host's workspaces with a hosted launch whose worktree still exists, at most 100: the pinned ones first, the latest pinned on top, then latest activity first: when the conversation began, or when an agent last joined it. The bound counts in that order, so it never drops a pinned conversation. Reopening a conversation, or resuming a joined agent's session, keeps its place, so opening a conversation never moves it; each launch record keeps that time as `listedAt`. Each holds:
+  - `workspaceId`, `projectId`, `repositoryName`, `branch`, and `title`: the title the owner gave the conversation, else its workstream title, or null;
+  - `activeAt`, the latest activity the list orders by, and `pinnedAt` when the owner pinned it; an older core omits both, and `conversationOrder` in the contract package orders by them on both sides;
   - `provider` and `conversationMode`, the last mode;
   - `conversationModes`, the modes its provider offers, or only the last mode when no adapter admits the provider;
   - `sessionId` and `preparedAt`.
@@ -61,6 +62,7 @@ Every request carries a positive integer `id`, and the resident process answers 
   `defaultProvider` is the provider a workspace starts with when `workspace.start` names none.
 
 - `repository.list` answers `{repositories}`, each with `projectId` and `name`, sorted by name. It names no paths.
+- `workspace.rename` takes `workspaceId` and `title` and answers `{workspaceId, title}`; `workspace.pin` takes `workspaceId` and `pinned` and answers `{workspaceId, pinnedAt}`, null once unpinned. Both keep the owner's choice host-side ([Lervo ADE sessions](ade-sessions.md), "Renaming and pinning"). An invalid `workspaceId`, or one no kept launch record names, fails with `workspace_not_found`, and a title of no or more than 256 characters after its spaces collapse, or a `pinned` that is not a boolean, with `workspace_argument_invalid`.
 - `workspace.retire` takes `workspaceId` and answers `{workspaceId, worktree, branch}`. It removes the workspace as `lervo workspace retire` does ([Lervo ADE sessions](ade-sessions.md)). An invalid `workspaceId` fails that request alone with `workspace_not_found`.
 - `turn.summary` takes `workspaceId` and up to 20 `turns`, each with `startedAtMs` and an optional `endedAtMs`, and answers `{turns}`: each turn's summary in the order asked, or null for a turn the core did not record (sessions specification, "The turn summary"). It reads only the repository's records and calls no model.
 - `agents.list` takes `projectId` and answers `{projectId, agents, roles}`: the project's active and suspended agents, each marked as the team's or Lervo's own, and the roles it can hire. `agent.hire` takes `projectId`, `role`, and an optional `name`, and answers `{projectId, agent}`. Both are defined in [Lervo ADE agents](ade-agents.md).
@@ -98,7 +100,7 @@ Every request carries a positive integer `id`, and the resident process answers 
 
 ## Failure meaning
 
-- `core.failed` carries the core's code and, for `workspace.start`, the failed `stage`. The session host maps the code to a `request.failed` code of the session-host protocol and passes the core's code and stage as the `coreCode` and `stage` parameters. A code it has no name for becomes `application_failed`.
+- `core.failed` carries the core's code and, for `workspace.start`, the failed `stage`. The session host maps the code to a `request.failed` code of the session-host protocol and passes the core's code and stage as the `coreCode` and `stage` parameters. A code it has no name for becomes `application_failed`. The session host's diagnostics log records `coreCode` and `stage` with the failure, so an `application_failed` there says which core failure it was.
 - A process that cannot start, exits, or sends a message that fails validation fails every waiting request with `application_unavailable`. The next request starts the process again.
 - A request that gets no answer within its deadline fails alone with `application_timeout`. It leaves the table of waiting requests, so a late answer finds no entry and is dropped. Other waiting requests keep waiting, and the process keeps running.
 - A request meant for the resident process that advertised its command fails with `application_unavailable` and `reason: command_unsupported` once that process has ended, because its successor may not know the command.

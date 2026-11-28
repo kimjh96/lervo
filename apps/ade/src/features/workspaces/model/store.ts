@@ -13,6 +13,10 @@ interface WorkspaceStore {
   readonly arrived: ReadonlySet<string>;
   /** The code of the last failed reload, until a reload succeeds. */
   readonly listFailure: string | null;
+  /** The code of the owner's last refused rename or pin, until the next one. */
+  readonly changeFailure: string | null;
+  /** The conversation whose title the person edits in its sidebar row, or null. */
+  readonly renaming: string | null;
   /**
    * The application commands the core named in its last workspace list: empty for an older core
    * that names none, and null before the first list.
@@ -35,6 +39,8 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   cached: false,
   arrived: new Set(),
   listFailure: null,
+  changeFailure: null,
+  renaming: null,
   advertisedCommands: null,
   statuses: {},
   selected: null,
