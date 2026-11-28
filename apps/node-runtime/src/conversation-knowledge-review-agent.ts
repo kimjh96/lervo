@@ -19,6 +19,7 @@ import {
   type LeasedConversationKnowledgeReviewSource,
 } from "./conversation-knowledge-review-source.js";
 import {
+  MAXIMUM_CONTEXT_CANDIDATES,
   runConversationKnowledgeSemanticReview,
   type SemanticReviewCandidate,
 } from "./conversation-knowledge-semantic-review.js";
@@ -113,10 +114,12 @@ export async function runLeasedConversationKnowledgeReview(input: {
   if (firstCurrency.status !== "ready_for_review") return { ...firstCurrency, job: source.job };
   let contextDocuments: SemanticReviewContextDocument[];
   try {
-    contextDocuments = await loadConversationKnowledgeReviewContext({
-      repositoryRoot: input.repositoryRoot,
-      sourcePaths,
-    });
+    contextDocuments = providerContext(
+      await loadConversationKnowledgeReviewContext({
+        repositoryRoot: input.repositoryRoot,
+        sourcePaths,
+      }),
+    );
   } catch (error) {
     if (!(error instanceof ConversationKnowledgeReviewContextError)) throw error;
     return {
@@ -183,4 +186,19 @@ export async function runLeasedConversationKnowledgeReview(input: {
     };
   if (failure !== undefined) throw failure;
   return { status: "candidate", job, review: review! };
+}
+
+/**
+ * The context the provider review receives: every instruction, then the loader's highest-ranked
+ * candidates up to its candidate bound. Review context ranks candidates, so the lowest-ranked
+ * optional recommendations give way first, as at the byte bound (ADR-0657).
+ */
+function providerContext(
+  documents: SemanticReviewContextDocument[],
+): SemanticReviewContextDocument[] {
+  const candidates = documents.filter((document) => document.role === "canonical_candidate");
+  return [
+    ...documents.filter((document) => document.role === "instruction"),
+    ...candidates.slice(0, MAXIMUM_CONTEXT_CANDIDATES),
+  ];
 }

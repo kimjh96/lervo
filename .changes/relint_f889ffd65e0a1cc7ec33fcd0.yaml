@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f889ffd65e0a1cc7ec33fcd0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Background knowledge review no longer stops when a project has more than eight owner rules; instructions are bounded by bytes and low-ranked recommendations give way first."

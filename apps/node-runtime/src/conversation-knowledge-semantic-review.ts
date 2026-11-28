@@ -15,7 +15,12 @@ import type {
 import { providerOutputSchema } from "@lervo/schemas";
 
 const MAXIMUM_PROVIDER_INPUT_BYTES = 256 * 1024;
-const MAXIMUM_CONTEXT_DOCUMENTS = 8;
+/**
+ * Canonical candidates the provider receives. Instructions are all required and count only toward
+ * the provider input bytes, as in review context (ADR-0657); 256 is review context's own bound.
+ */
+export const MAXIMUM_CONTEXT_CANDIDATES = 8;
+const MAXIMUM_CONTEXT_INSTRUCTIONS = 256;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 
 const responseSchema = providerOutputSchema({
@@ -147,7 +152,9 @@ function sourcePayload(
 function validatedContext(documents: SemanticReviewContextDocument[]) {
   if (
     documents.length === 0 ||
-    documents.length > MAXIMUM_CONTEXT_DOCUMENTS ||
+    documents.filter((item) => item.role === "canonical_candidate").length >
+      MAXIMUM_CONTEXT_CANDIDATES ||
+    documents.filter((item) => item.role === "instruction").length > MAXIMUM_CONTEXT_INSTRUCTIONS ||
     new Set(documents.map((item) => item.path)).size !== documents.length ||
     documents.some(
       (item) =>

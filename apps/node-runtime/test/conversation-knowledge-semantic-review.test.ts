@@ -169,6 +169,39 @@ describe("conversation knowledge semantic review", () => {
     expect(review.openRunner).not.toHaveBeenCalled();
   });
 
+  it("sends every instruction, however many owner rules there are, but bounds candidates", async () => {
+    const document = (path: string, role: "instruction" | "canonical_candidate") => {
+      const content = `# ${path}\n`;
+      return { path, role, content, contentHash: hash(content) };
+    };
+    const instructions = [
+      document("AGENTS.md", "instruction"),
+      ...Array.from({ length: 14 }, (_, index) =>
+        document(`docs/instructions/generated/rule_${index}.md`, "instruction"),
+      ),
+    ];
+    const review = runner();
+    await expect(
+      runConversationKnowledgeSemanticReview({
+        provider: "codex",
+        snapshot: snapshot(),
+        contextDocuments: instructions,
+        openRunner: review.openRunner,
+      }),
+    ).resolves.toMatchObject({ provider: "codex" });
+    const candidates = Array.from({ length: 9 }, (_, index) =>
+      document(`docs/candidate-${index}.md`, "canonical_candidate"),
+    );
+    await expect(
+      runConversationKnowledgeSemanticReview({
+        provider: "codex",
+        snapshot: snapshot(),
+        contextDocuments: [...instructions, ...candidates],
+        openRunner: runner().openRunner,
+      }),
+    ).rejects.toMatchObject({ code: "review_context_invalid" });
+  });
+
   it("requires the selected provider and complete usage from its isolated runner", async () => {
     const mismatch = runner(decision(), "claude");
     await expect(

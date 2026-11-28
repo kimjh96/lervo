@@ -518,7 +518,7 @@ describe("canonical review context", () => {
     );
   });
 
-  it("refuses linked context above the aggregate byte bound", async () => {
+  it("fits the byte bound by leaving out the lowest-ranked recommendations, never a contract", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
     roots.push(root);
     await mkdir(resolve(root, ".lervo"));
@@ -544,13 +544,79 @@ describe("canonical review context", () => {
       hits.push({ path, contentHash: await fixtureFile(root, path, "c".repeat(120 * 1024)) });
     }
     await fixtureFile(root, "docs/reproduction/capture.md", "b".repeat(100 * 1024));
+    const skipped: { path: string; reason: string }[] = [];
+    const documents = await loadCanonicalReviewContext({
+      repositoryRoot: root,
+      sourcePaths: ["src/generate.mjs"],
+      queryKnowledge: async () => ({ hits }),
+      onSkipped: (skip) => skipped.push(skip),
+    });
+    const paths = documents.map((document) => document.path);
+    // The instruction, the recommended parent, and the contract it links stay.
+    expect(paths).toEqual(
+      expect.arrayContaining(["AGENTS.md", parent, "docs/reproduction/capture.md"]),
+    );
+    expect(skipped.filter((skip) => skip.reason === "context_budget")).toEqual([
+      { path: "docs/candidate-5.md", reason: "context_budget" },
+    ]);
+    expect(
+      documents.reduce((total, document) => total + Buffer.byteLength(document.content), 0),
+    ).toBeLessThanOrEqual(1024 * 1024);
+  });
+
+  it("gives the reviewer every applicable owner rule, however many accumulate", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".lervo"));
+    await fixtureFile(
+      root,
+      ".lervo/knowledge/policy.yaml",
+      serializeRepositoryKnowledgePolicy(defaultRepositoryKnowledgePolicy),
+    );
+    await fixtureFile(root, "AGENTS.md", "# Repository instructions\n");
+    const rules = Array.from(
+      { length: 14 },
+      (_, index) => `docs/instructions/generated/rule_${String(index).padStart(24, "0")}.md`,
+    );
+    for (const [index, path] of rules.entries())
+      await fixtureFile(root, path, `# Rule ${index}\n\nKeep rule ${index}.\n`);
+    const documents = await loadCanonicalReviewContext({
+      repositoryRoot: root,
+      sourcePaths: ["docs/guide.md"],
+      queryKnowledge: async () => ({ hits: [] }),
+    });
+    const instructions = documents.filter((document) => document.role === "instruction");
+    expect(instructions.map((document) => document.path).sort()).toEqual(
+      ["AGENTS.md", ...rules].sort(),
+    );
+  });
+
+  it("stops and names the largest instruction when instructions alone exceed the byte bound", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-review-context-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".lervo"));
+    await fixtureFile(
+      root,
+      ".lervo/knowledge/policy.yaml",
+      serializeRepositoryKnowledgePolicy(defaultRepositoryKnowledgePolicy),
+    );
+    await fixtureFile(root, "AGENTS.md", "# Repository instructions\n");
+    for (let index = 0; index < 9; index += 1)
+      await fixtureFile(
+        root,
+        `docs/instructions/generated/rule_${String(index).padStart(24, "0")}.md`,
+        `# Rule ${index}\n\n${"r".repeat(index === 4 ? 127 * 1024 : 120 * 1024)}\n`,
+      );
     await expect(
       loadCanonicalReviewContext({
         repositoryRoot: root,
-        sourcePaths: ["src/generate.mjs"],
-        queryKnowledge: async () => ({ hits }),
+        sourcePaths: ["docs/guide.md"],
+        queryKnowledge: async () => ({ hits: [] }),
       }),
-    ).rejects.toMatchObject({ code: "review_context_limit_exceeded" });
+    ).rejects.toMatchObject({
+      code: "review_context_limit_exceeded",
+      documentPath: "docs/instructions/generated/rule_000000000000000000000004.md",
+    });
   });
 
   it("loads directly linked canonical instructions needed to review a source", async () => {

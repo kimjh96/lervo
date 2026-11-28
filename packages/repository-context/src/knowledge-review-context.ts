@@ -10,6 +10,17 @@ import {
 } from "@lervo/repository-knowledge";
 import { productDefaultRepositoryKnowledgeRanker } from "./repository-knowledge-ranker.js";
 import { contextQuery, pathTerms, sourceSpecificQueries } from "./knowledge-review-queries.js";
+import {
+  contextBytes,
+  INSTRUCTIONS_WITHIN_CONTEXT_COUNT,
+  largestDocument,
+  MAXIMUM_CONTEXT_BYTES,
+  MAXIMUM_CONTEXT_DOCUMENTS,
+  MAXIMUM_INSTRUCTION_DOCUMENTS,
+  MAXIMUM_LINKED_DOCUMENTS,
+  withinContextBytes,
+} from "./knowledge-review-context-bounds.js";
+export { reviewContextCandidateLimit } from "./knowledge-review-context-bounds.js";
 
 import {
   KnowledgeReviewContextError,
@@ -29,10 +40,6 @@ type CanonicalReviewQuery = (
   input: Parameters<typeof queryRepositoryKnowledge>[0],
 ) => Promise<{ hits: { path: string; contentHash: string }[] }>;
 
-const MAXIMUM_CONTEXT_DOCUMENTS = 20;
-const MAXIMUM_INSTRUCTION_DOCUMENTS = 8;
-const MAXIMUM_LINKED_DOCUMENTS = 8;
-const MAXIMUM_CONTEXT_BYTES = 1024 * 1024;
 const MAXIMUM_RECOMMENDATIONS = 32;
 const GENERIC_DIRECTORY_TERMS = new Set([
   "apps",
@@ -100,16 +107,14 @@ function sourceRelevantInstructionReferences(
   });
 }
 
-/** Loads exact source-adjacent instructions and bounded current knowledge recommendations. */
-export async function loadCanonicalReviewContext(input: {
+/**
+ * Every applicable instruction, all required: the `AGENTS.md` chain and the owner rules. Bytes,
+ * not their count, bound them; over the bound the review stops and names the largest (ADR-0657).
+ */
+async function loadRequiredInstructions(input: {
   repositoryRoot: string;
   sourcePaths: readonly string[];
-  queryKnowledge?: CanonicalReviewQuery;
-  onSkipped?: (skip: ReviewContextSkip) => void;
-}): Promise<SemanticReviewContextDocument[]> {
-  const loadOptional = optionalReviewDocuments(input.onSkipped);
-  const loadQuerySource = (path: string, maximumBytes: number) =>
-    loadOptional({ repositoryRoot: input.repositoryRoot, path, maximumBytes });
+}): Promise<{ instructionPaths: string[]; documents: SemanticReviewContextDocument[] }> {
   let instructionPaths: string[];
   try {
     const registry = await loadDocumentRegistry(input.repositoryRoot);
@@ -127,13 +132,39 @@ export async function loadCanonicalReviewContext(input: {
   if (instructionPaths.length === 0)
     throw new KnowledgeReviewContextError("review_context_unavailable");
   if (instructionPaths.length > MAXIMUM_INSTRUCTION_DOCUMENTS)
-    throw new KnowledgeReviewContextError("review_context_limit_exceeded");
+    throw new KnowledgeReviewContextError("review_context_limit_exceeded", {
+      documentPath: instructionPaths[MAXIMUM_INSTRUCTION_DOCUMENTS]!,
+    });
 
   const documents: SemanticReviewContextDocument[] = [];
   for (const path of instructionPaths)
     documents.push(
       await loadReviewDocument({ repositoryRoot: input.repositoryRoot, path, role: "instruction" }),
     );
+  // Required instructions are never dropped: when they alone exceed the bound, the review stops
+  // and names the largest one, which the owner can shorten.
+  if (contextBytes(documents) > MAXIMUM_CONTEXT_BYTES)
+    throw new KnowledgeReviewContextError("review_context_limit_exceeded", {
+      documentPath: largestDocument(documents).path,
+    });
+  return { instructionPaths, documents };
+}
+
+/** Loads exact source-adjacent instructions and bounded current knowledge recommendations. */
+export async function loadCanonicalReviewContext(input: {
+  repositoryRoot: string;
+  sourcePaths: readonly string[];
+  queryKnowledge?: CanonicalReviewQuery;
+  onSkipped?: (skip: ReviewContextSkip) => void;
+}): Promise<SemanticReviewContextDocument[]> {
+  const loadOptional = optionalReviewDocuments(input.onSkipped);
+  const loadQuerySource = (path: string, maximumBytes: number) =>
+    loadOptional({ repositoryRoot: input.repositoryRoot, path, maximumBytes });
+  const { instructionPaths, documents } = await loadRequiredInstructions(input);
+  const contextLimit =
+    MAXIMUM_CONTEXT_DOCUMENTS +
+    Math.max(0, instructionPaths.length - INSTRUCTIONS_WITHIN_CONTEXT_COUNT);
+  const recommended: string[] = [];
 
   let policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;
   try {
@@ -148,7 +179,7 @@ export async function loadCanonicalReviewContext(input: {
     input.sourcePaths,
     loadOptional,
   )) {
-    if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
+    if (documents.length >= contextLimit) break;
     if (
       excluded.has(path) ||
       !repositoryPathCanRemainIncluded(path, policy) ||
@@ -168,7 +199,7 @@ export async function loadCanonicalReviewContext(input: {
   for (const source of input.sourcePaths.filter(
     (path) => path.startsWith(".") && !path.includes("/") && !path.endsWith(".md"),
   )) {
-    if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
+    if (documents.length >= contextLimit) break;
     let focused: Awaited<ReturnType<CanonicalReviewQuery>>;
     try {
       focused = await (input.queryKnowledge ?? queryRepositoryKnowledge)({
@@ -210,7 +241,7 @@ export async function loadCanonicalReviewContext(input: {
     throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
   }
   for (const focused of focusedQueries) {
-    if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
+    if (documents.length >= contextLimit) break;
     let result: Awaited<ReturnType<CanonicalReviewQuery>>;
     try {
       result = await (input.queryKnowledge ?? queryRepositoryKnowledge)({
@@ -269,7 +300,7 @@ export async function loadCanonicalReviewContext(input: {
     }))
     .sort((left, right) => right.affinity - left.affinity || left.index - right.index);
   for (const { hit } of rankedHits) {
-    if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
+    if (documents.length >= contextLimit) break;
     // ADR-0486: the publication root is a rebuildable projection that every refresh rewrites, so
     // binding its bytes made a waiting review stale without any canonical change.
     if (
@@ -287,6 +318,7 @@ export async function loadCanonicalReviewContext(input: {
     if (document === null) continue;
     documents.push(document);
     excluded.add(hit.path);
+    recommended.push(hit.path);
   }
   const sourceTerms = new Set(
     input.sourcePaths.flatMap((path) => [...pathTerms(path)]).filter((term) => term !== "md"),
@@ -311,7 +343,7 @@ export async function loadCanonicalReviewContext(input: {
     ...documents.flatMap(linkedInstructionDocuments),
   ];
   for (const path of linkedPaths) {
-    if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS + MAXIMUM_LINKED_DOCUMENTS) break;
+    if (documents.length >= contextLimit + MAXIMUM_LINKED_DOCUMENTS) break;
     if (excluded.has(path)) continue;
     if (
       !repositoryPathCanRemainIncluded(path, policy) ||
@@ -327,10 +359,5 @@ export async function loadCanonicalReviewContext(input: {
     documents.push(document);
     excluded.add(path);
   }
-  if (
-    documents.reduce((total, document) => total + Buffer.byteLength(document.content), 0) >
-    MAXIMUM_CONTEXT_BYTES
-  )
-    throw new KnowledgeReviewContextError("review_context_limit_exceeded");
-  return documents;
+  return withinContextBytes(documents, recommended, input.onSkipped);
 }
