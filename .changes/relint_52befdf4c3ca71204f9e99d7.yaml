@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_52befdf4c3ca71204f9e99d7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A conversation read back from Claude Code's transcript leaves out turns Claude Code itself sent the agent, such as a background task's notification, instead of showing them as the person's message."

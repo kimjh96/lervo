@@ -55,7 +55,8 @@ function Notice(props: { update: Exclude<HostUpdate, { kind: "none" }> }) {
   // Pressing Restart answers at once: the offer leaves.
   return (
     <div className={styles.notice} role="status">
-      <Presence as="span" className={styles.text} contentKey={update.kind}>
+      {/* A block, so the sentence wraps in the narrow sidebar instead of ending in an ellipsis. */}
+      <Presence className={styles.text} contentKey={update.kind}>
         {update.kind === "failed" ? (
           <FormattedMessage id="connection.update.failed" values={{ code: update.code }} />
         ) : (

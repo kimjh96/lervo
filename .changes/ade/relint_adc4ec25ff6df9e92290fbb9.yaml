@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_adc4ec25ff6df9e92290fbb9"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "The offer to restart an older session host wraps in the sidebar instead of ending its sentence in an ellipsis."

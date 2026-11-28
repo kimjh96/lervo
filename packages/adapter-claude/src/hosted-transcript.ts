@@ -106,11 +106,14 @@ export class ClaudeTranscriptDecoder {
       const at = Date.parse(text(line?.timestamp) ?? "");
       return Number.isNaN(at) ? [] : [item(peer, at)];
     }
-    // The summary Claude Code writes after a compaction is for the model, not the conversation.
+    // The summary Claude Code writes after a compaction is for the model, not the conversation, and
+    // so is a turn Claude Code itself sends the agent, such as a background task's notification:
+    // its `origin` names what sent it, and only another session's message is a person's to read.
     if (
       line === undefined ||
       line.isSidechain === true ||
       line.isMeta === true ||
+      (line.type === "user" && asRecord(line.origin)?.kind !== undefined) ||
       line.isCompactSummary === true ||
       line.isVisibleInTranscriptOnly === true
     )
