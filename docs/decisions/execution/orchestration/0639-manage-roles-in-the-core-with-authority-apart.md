@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-26
 Part of: [ADR-0637](../applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md)
+Amended by: [ADR-0662](../../coordination/conversations/agent-organization/0662-let-a-lead-shape-the-projects-roles-and-name-hires-like-people.md) (the ADE edits and removes project roles, an edit moves the role's agents, and an agent changes roles only when its role carries `organization.coordinate`)
 Related: [ADR-0205](0205-conflict-safe-repository-agent-workforce.md), [ADR-0209](0209-versioned-repository-role-contracts.md), [ADR-0386](../../coordination/conversations/0386-organization-teams-and-agent-identities.md), [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)
 
 ## Context

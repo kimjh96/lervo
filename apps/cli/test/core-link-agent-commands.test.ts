@@ -294,4 +294,55 @@ describe("the core link's agent commands", () => {
     expect(origins.get(steward.agentId)).toBe("lervo");
     expect(origins.get(hired.agent.agentId)).toBe("team");
   });
+
+  it("adds, edits, and removes the project's roles, and moves an agent between them", async () => {
+    const { projectId } = await project();
+    const added = (await runCoreLinkAgentCommand("role.add", {
+      projectId,
+      name: "Drawing Review",
+      description: "Reads drawings and owns their interpretation.",
+      from: "designer",
+    })) as { role: { roleId: string; name: string; source: string } };
+    expect(added.role).toEqual({
+      roleId: "drawing-review",
+      name: "Drawing Review",
+      description: "Reads drawings and owns their interpretation.",
+      source: "repository",
+    });
+    const hired = (await runCoreLinkAgentCommand("agent.hire", {
+      projectId,
+      role: "drawing-review",
+      name: "Lumi",
+    })) as { agent: { agentId: string; revision: number; roleName: string } };
+    expect(hired.agent.roleName).toBe("Drawing Review");
+    const edited = (await runCoreLinkAgentCommand("role.edit", {
+      projectId,
+      role: "drawing-review",
+      name: "Drawing Understanding",
+    })) as { role: { name: string }; changed: boolean };
+    expect(edited).toMatchObject({ changed: true, role: { name: "Drawing Understanding" } });
+    const listed = (await runCoreLinkAgentCommand("agents.list", { projectId })) as Listed;
+    expect(listed.agents.find((agent) => agent.displayName === "Lumi")?.roleName).toBe(
+      "Drawing Understanding",
+    );
+    await expect(
+      runCoreLinkAgentCommand("role.remove", { projectId, role: "drawing-review" }),
+    ).rejects.toMatchObject({ code: "role_in_use" });
+    await expect(
+      runCoreLinkAgentCommand("role.edit", { projectId, role: "developer", name: "Dev" }),
+    ).rejects.toMatchObject({ code: "role_built_in" });
+    const moved = (await runCoreLinkAgentCommand("agent.role", {
+      projectId,
+      agentId: hired.agent.agentId,
+      revision: hired.agent.revision + 1,
+      role: "designer",
+    })) as { agent: { roleId: string; status: string } };
+    expect(moved.agent).toMatchObject({ roleId: "designer", status: "active" });
+    expect(
+      await runCoreLinkAgentCommand("role.remove", { projectId, role: "drawing-review" }),
+    ).toEqual({ projectId, roleId: "drawing-review" });
+    await expect(
+      runCoreLinkAgentCommand("role.add", { projectId, name: "No Template", description: "x" }),
+    ).rejects.toMatchObject({ code: "role_argument_missing" });
+  });
 });

@@ -42,6 +42,16 @@ import {
   agentsListResultSchema,
 } from "./application-agent-results.js";
 import {
+  agentRoleResultSchema,
+  roleAddResultSchema,
+  roleEditResultSchema,
+  roleRemoveResultSchema,
+  type AgentRoleResult,
+  type RoleAddResult,
+  type RoleEditResult,
+  type RoleRemoveResult,
+} from "./application-role-results.js";
+import {
   roomJoinResultSchema,
   roomAnswersResultSchema,
   roomRouteResultSchema,
@@ -55,11 +65,15 @@ import {
   repositoryListResultSchema,
   providerListResultSchema,
   workspaceRetireResultSchema,
+  workspaceRenameResultSchema,
+  workspacePinResultSchema,
   workspaceStartResultSchema,
   type WorkspaceListResult,
   type RepositoryListResult,
   type ProviderListResult,
   type WorkspaceRetireResult,
+  type WorkspaceRenameResult,
+  type WorkspacePinResult,
   type WorkspaceStartResult,
 } from "./application-workspace-results.js";
 
@@ -70,6 +84,8 @@ export const applicationCommandNames = [
   "repository.list",
   "provider.list",
   "workspace.retire",
+  "workspace.rename",
+  "workspace.pin",
   "turn.summary",
   "project.add",
   "project.rename",
@@ -87,6 +103,10 @@ export const applicationCommandNames = [
   "agent.mark.clear",
   "agent.mark.read",
   "agent.context",
+  "agent.role",
+  "role.add",
+  "role.edit",
+  "role.remove",
   "room.join",
   "room.route",
   "room.answers",
@@ -106,6 +126,8 @@ export const applicationResultSchemas = {
   "repository.list": repositoryListResultSchema,
   "provider.list": providerListResultSchema,
   "workspace.retire": workspaceRetireResultSchema,
+  "workspace.rename": workspaceRenameResultSchema,
+  "workspace.pin": workspacePinResultSchema,
   "turn.summary": turnSummaryResultSchema,
   "project.add": projectAddResultSchema,
   "project.rename": projectRenameResultSchema,
@@ -123,6 +145,10 @@ export const applicationResultSchemas = {
   "agent.mark.clear": agentMarkClearResultSchema,
   "agent.mark.read": agentMarkReadResultSchema,
   "agent.context": agentContextResultSchema,
+  "agent.role": agentRoleResultSchema,
+  "role.add": roleAddResultSchema,
+  "role.edit": roleEditResultSchema,
+  "role.remove": roleRemoveResultSchema,
   "room.join": roomJoinResultSchema,
   "room.route": roomRouteResultSchema,
   "room.answers": roomAnswersResultSchema,
@@ -137,6 +163,8 @@ export interface ApplicationResults {
   "repository.list": RepositoryListResult;
   "provider.list": ProviderListResult;
   "workspace.retire": WorkspaceRetireResult;
+  "workspace.rename": WorkspaceRenameResult;
+  "workspace.pin": WorkspacePinResult;
   "turn.summary": TurnSummaryResult;
   "project.add": ProjectAddResult;
   "project.rename": ProjectRenameResult;
@@ -154,6 +182,10 @@ export interface ApplicationResults {
   "agent.mark.clear": AgentMarkClearResult;
   "agent.mark.read": AgentMarkReadResult;
   "agent.context": AgentContextResult;
+  "agent.role": AgentRoleResult;
+  "role.add": RoleAddResult;
+  "role.edit": RoleEditResult;
+  "role.remove": RoleRemoveResult;
   "room.join": RoomJoinResult;
   "room.route": RoomRouteResult;
   "room.answers": RoomAnswersResult;

@@ -11,8 +11,8 @@ import { workforceLimits } from "./limits.js";
 import { resolveAgentCapabilityBinding } from "./agent-capability-binding.js";
 import { randomUUID } from "node:crypto";
 import {
+  availableAgentNickname,
   validAgentDisplayName,
-  generateAgentDisplayName,
   withAgentDisplayIdentity,
 } from "./agent-display-identity.js";
 import { transition, retryConcurrent } from "./workforce-state-io.js";
@@ -91,7 +91,12 @@ export async function registerAgentOnce(input: {
   if (input.displayName !== undefined && !validAgentDisplayName(input.displayName)) {
     fail("agent_invalid", "The agent display name is invalid.");
   }
-  const displayName = input.displayName ?? generateAgentDisplayName(agentId);
+  const displayName =
+    input.displayName ??
+    availableAgentNickname(
+      agentId,
+      current.value.agents.map((existing) => withAgentDisplayIdentity(existing).displayName),
+    );
   if (
     current.value.agents.some(
       (existing) =>

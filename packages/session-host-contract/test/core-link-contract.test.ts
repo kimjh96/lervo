@@ -137,6 +137,9 @@ describe("core-link protocol contract", () => {
       ["workspace-list", "workspace.list"],
       ["workspace-list-older-core", "workspace.list"],
       ["workspace-start", "workspace.start"],
+      ["workspace-rename", "workspace.rename"],
+      ["workspace-pin", "workspace.pin"],
+      ["workspace-unpin", "workspace.pin"],
     ]);
     const results = await fixtures("results");
     expect(results.map(([name]) => name.replace(/\.json$/u, "")).toSorted()).toEqual(

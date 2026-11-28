@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { mentionablesOf } from "../src/features/conversation/model/mentionables";
 import type { RoomMembers } from "../src/features/conversation/model/room-members";
-import { routeTurn } from "../src/features/conversation/model/room-routing";
+import { routeFirstTurn, routeTurn } from "../src/features/conversation/model/room-routing";
 import { useRoomStore } from "../src/features/conversation/model/room-store";
 import { type ApplicationCommands, RequestFailure, type SessionHost } from "../src/ports";
 
@@ -113,5 +113,33 @@ describe("the agents the reply card's @ offers", () => {
       ["agt_a", false],
       ["agt_b", false],
     ]);
+  });
+});
+
+describe("routing a new conversation's first turn (ADR-0661)", () => {
+  it("joins each mentioned agent but the lead, whose session starts from the turn", async () => {
+    const { commands, calls } = core({ agents: ["agt_lead", "agt_arin", "agt_iris"] });
+    await routeFirstTurn({
+      commands,
+      workspaceId: "wsp_1",
+      leadAgentId: "agt_lead",
+      text: "@Arin and @Iris, split this",
+    });
+    expect(calls.filter((call) => call.command === "room.join").map((call) => call.input)).toEqual([
+      { workspaceId: "wsp_1", agentId: "agt_arin", instruction: "@Arin and @Iris, split this" },
+      { workspaceId: "wsp_1", agentId: "agt_iris", instruction: "@Arin and @Iris, split this" },
+    ]);
+  });
+
+  it("keeps the core's code when it cannot route, and joins no one", async () => {
+    const { commands, calls } = core({ failing: "command_unsupported" });
+    await routeFirstTurn({
+      commands,
+      workspaceId: "wsp_1",
+      leadAgentId: "agt_lead",
+      text: "@Arin",
+    });
+    expect(useRoomStore.getState().unrouted).toBe("command_unsupported");
+    expect(calls.some((call) => call.command === "room.join")).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import { MAXIMUM_ROOM_ANSWERS, type RoomAnswersResult } from "@lervo/session-hos
 import {
   conversationsLedBy,
   hostedLaunchRecordsPath,
+  isConversationLead,
   roomSessionRecords,
 } from "./hosted-launch-records.js";
 
@@ -77,8 +78,8 @@ export async function roomAnswers(arguments_: Record<string, unknown>): Promise<
     return { answers: [] };
   const path = hostedLaunchRecordsPath();
   // The lead is the session that writes; a joined agent's newer record never stands in for it.
-  const lead = (await roomSessionRecords(path, workspaceId)).find(
-    (record) => record.access === undefined,
+  const lead = (await roomSessionRecords(path, workspaceId)).find((record) =>
+    isConversationLead(record, workspaceId),
   );
   if (lead?.agentId === undefined) return { answers: [] };
   const led = new Set(await conversationsLedBy(path, lead.agentId));

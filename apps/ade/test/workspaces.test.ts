@@ -120,16 +120,16 @@ describe("workspace decisions", () => {
   it("groups by repository and keeps the core's order in each group", () => {
     // The core lists latest activity first; "a" was reopened since, so its launch is the newest,
     // and it keeps its place.
-    const groups = groupByRepository([
-      workspace("c", "web", "2026-11-23T03:00:00Z"),
-      workspace("b", "api", "2026-11-23T02:00:00Z"),
-      workspace("a", "web", "2026-11-23T04:00:00Z"),
-    ]);
+    const groups = groupByRepository(
+      [
+        workspace("c", "web", "2026-11-23T03:00:00Z"),
+        workspace("b", "api", "2026-11-23T02:00:00Z"),
+        workspace("a", "web", "2026-11-23T04:00:00Z"),
+      ],
+      (item) => item.repositoryName,
+    );
     expect(
-      groups.map((group) => [
-        group.repositoryName,
-        group.workspaces.map((item) => item.workspaceId),
-      ]),
+      groups.map((group) => [group.repositoryName, group.items.map((item) => item.workspaceId)]),
     ).toEqual([
       ["api", ["b"]],
       ["web", ["c", "a"]],

@@ -2,10 +2,46 @@ import { ASSIGNMENT_ID, fail, validAssignment } from "./workforce-state-validati
 import { state, readBounded } from "./workforce-state-io.js";
 import { inspectRepositoryCoordinationHome } from "@lervo/project-storage";
 import { resolve } from "node:path";
-import { type WorkforceAssignment } from "./types.js";
-import { createRoleContractResolver, type RoleContractResolver } from "@lervo/roles";
+import { type AssignmentStatus, type WorkforceAssignment } from "./types.js";
+import {
+  createRoleContractResolver,
+  RoleContractError,
+  type ResolvedRoleContract,
+  type RoleContractResolver,
+} from "@lervo/roles";
 import { readdir } from "node:fs/promises";
 import { workforceLimits } from "./limits.js";
+
+/** Assignment states that end its work; a record in one grants nothing and only keeps history. */
+export const TERMINAL_ASSIGNMENT_STATUSES: ReadonlySet<AssignmentStatus> = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+/**
+ * The role an assignment binds, or null for an ended assignment with an exact stored binding
+ * whose role source was removed: ADR-0209 keeps a retired agent inspectable after its role goes,
+ * and ADR-0662 keeps an ended assignment the same way. Every live assignment still resolves.
+ */
+export async function archivalAwareRole(
+  assignment: WorkforceAssignment,
+  resolveRole: RoleContractResolver,
+): Promise<ResolvedRoleContract | null> {
+  try {
+    return await resolveRole(assignment.roleId);
+  } catch (error) {
+    if (
+      error instanceof RoleContractError &&
+      error.code === "role_not_found" &&
+      TERMINAL_ASSIGNMENT_STATUSES.has(assignment.status) &&
+      assignment.roleVersion !== undefined &&
+      assignment.roleContractHash !== undefined
+    )
+      return null;
+    throw error;
+  }
+}
 
 export async function assignmentPath(
   root: string,
@@ -40,7 +76,8 @@ async function readAssignmentAt(
   const value = JSON.parse(source) as WorkforceAssignment;
   if (!validAssignment(value, target.projectId) || value.assignmentId !== assignmentId)
     fail("workforce_state_invalid", "The assignment state is invalid.");
-  const contract = await resolveRole(value.roleId);
+  const contract = await archivalAwareRole(value, resolveRole);
+  if (contract === null) return { source, value };
   if (value.roleVersion === undefined || value.roleContractHash === undefined) {
     if (contract.sourceKind !== "built_in")
       fail("workforce_state_invalid", "A legacy assignment cannot bind to a repository role.");

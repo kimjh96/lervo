@@ -6,10 +6,18 @@ import {
   listRegisteredRepositories,
 } from "@lervo/repository-registry";
 import { readPrivateJsonFile } from "@lervo/repository-knowledge-runtime";
+import { conversationOrder } from "@lervo/session-host-contract";
 
 import {
+  type HostedConversationProfile,
+  hostedConversationProfilesPath,
+  readHostedConversationProfiles,
+} from "./hosted-conversation-profiles.js";
+import {
+  conversationOf,
   type HostedLaunchRecord,
   hostedLaunchRecordsPath,
+  isConversationLead,
   listedTime,
 } from "./hosted-launch-records.js";
 import { hostedProviderModes } from "./hosted-session-adapters.js";
@@ -42,6 +50,10 @@ export interface WorkspaceSummary {
   participants?: string[];
   /** Each participant's session, the lead's first (Lervo ADE rooms). */
   sessions?: { agentId: string; sessionId: string; access: "write" | "read" }[];
+  /** The latest activity the list orders by. */
+  activeAt: string;
+  /** When the owner pinned the conversation (Lervo ADE sessions, "Renaming and pinning"). */
+  pinnedAt?: string;
 }
 
 /**
@@ -52,6 +64,9 @@ interface ListedWorkspace {
   lead: HostedLaunchRecord;
   agents: Map<string, HostedLaunchRecord>;
   activeAt: string;
+  /** What the owner set for the conversation: its title and pin. */
+  profile?: HostedConversationProfile;
+  pinnedAt?: string;
 }
 
 /** The host's registered repositories, by name. */
@@ -89,22 +104,26 @@ async function latestRecords(): Promise<ListedWorkspace[]> {
   const records = (file.value as { records?: HostedLaunchRecord[] }).records ?? [];
   const listed = new Map<string, ListedWorkspace>();
   for (const record of records) {
-    const known = listed.get(record.workspaceId);
-    // A joined agent's record never leads; the workspace lists once its lead's record is read.
-    const lead = record.access === "read" ? known?.lead : record;
+    // A member's record belongs to its conversation, never lists on its own (ADR-0661).
+    const conversation = conversationOf(record);
+    const known = listed.get(conversation);
+    // Only the lead's record leads; the conversation lists once its lead's record is read.
+    const lead = isConversationLead(record, conversation) ? record : known?.lead;
     if (lead === undefined) continue;
     const agents = known?.agents ?? new Map<string, HostedLaunchRecord>();
     if (record.agentId !== undefined) agents.set(record.agentId, record);
     const listedAt = listedTime(record);
     const activeAt = known === undefined || listedAt > known.activeAt ? listedAt : known.activeAt;
-    listed.set(record.workspaceId, { lead, agents, activeAt });
+    listed.set(conversation, { lead, agents, activeAt });
   }
   return [...listed.values()].sort((left, right) => right.activeAt.localeCompare(left.activeAt));
 }
 
 /** The conversation's agents and their sessions: the lead first, then those who joined. */
 function roomOf(workspace: ListedWorkspace): Pick<WorkspaceSummary, "participants" | "sessions"> {
-  const joined = [...workspace.agents.values()].filter((record) => record.access === "read");
+  const joined = [...workspace.agents.values()].filter(
+    (record) => !isConversationLead(record, workspace.lead.workspaceId),
+  );
   const started = workspace.lead.participants ?? [];
   const participants = [
     ...started,
@@ -115,10 +134,11 @@ function roomOf(workspace: ListedWorkspace): Pick<WorkspaceSummary, "participant
     ...(lead === undefined
       ? []
       : [{ agentId: lead, sessionId: workspace.lead.sessionId, access: "write" as const }]),
+    // A member writes in its own workspace (ADR-0661); an agent that joined before it reads.
     ...joined.map((record) => ({
       agentId: record.agentId as string,
       sessionId: record.sessionId,
-      access: "read" as const,
+      access: record.access === "read" ? ("read" as const) : ("write" as const),
     })),
   ];
   return {
@@ -128,8 +148,29 @@ function roomOf(workspace: ListedWorkspace): Pick<WorkspaceSummary, "participant
 }
 
 /**
- * The workspaces with a hosted launch on this host whose worktree still exists, newest first. It
- * reads one worktree listing per repository and one workstream file per workspace.
+ * The listed workspaces in the list's order: pinned first, then latest activity first, so the
+ * bound never drops a pinned conversation.
+ */
+async function listedInOrder(): Promise<ListedWorkspace[]> {
+  const profiles = await readHostedConversationProfiles(hostedConversationProfilesPath());
+  return conversationOrder(
+    (await latestRecords()).map((listed) => {
+      const profile = profiles.get(listed.lead.workspaceId);
+      return profile === undefined
+        ? listed
+        : {
+            ...listed,
+            profile,
+            ...(profile.pinnedAt === undefined ? {} : { pinnedAt: profile.pinnedAt }),
+          };
+    }),
+  );
+}
+
+/**
+ * The workspaces with a hosted launch on this host whose worktree still exists, pinned first and
+ * then newest first. It reads one worktree listing per repository and one workstream file per
+ * workspace whose owner gave it no title.
  */
 export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[] }> {
   const registrations = new Map(
@@ -140,7 +181,7 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
   );
   const worktrees = new Map<string, Promise<Map<string, string>>>();
   const workspaces: WorkspaceSummary[] = [];
-  for (const listed of await latestRecords()) {
+  for (const listed of await listedInOrder()) {
     if (workspaces.length >= MAX_LISTED_WORKSPACES) break;
     const record = listed.lead;
     const repository = registrations.get(record.projectId);
@@ -154,7 +195,7 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
       projectId: record.projectId,
       repositoryName: repository.name,
       branch: record.branch,
-      title: await workstreamTitle(worktree),
+      title: listed.profile?.title ?? (await workstreamTitle(worktree)),
       provider: record.provider,
       conversationMode: record.conversationMode,
       conversationModes: hostedProviderModes(record.provider) ?? [record.conversationMode],
@@ -162,6 +203,8 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
       preparedAt: record.preparedAt,
       ...(record.agentId === undefined ? {} : { agentId: record.agentId }),
       ...roomOf(listed),
+      activeAt: listed.activeAt,
+      ...(listed.pinnedAt === undefined ? {} : { pinnedAt: listed.pinnedAt }),
     });
   }
   return { workspaces };

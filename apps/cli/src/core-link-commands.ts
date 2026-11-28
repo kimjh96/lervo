@@ -66,6 +66,15 @@ export function commandAnswer(
       return { kind: "result", run: () => handlers.listProviders() };
     case "turn.summary":
       return optional(handlers.summarizeTurns, arguments_, "This core keeps no turn records.");
+    case "workspace.rename":
+    case "workspace.pin": {
+      const run = handlers.runWorkspaceCommand;
+      return optional(
+        run && ((args) => run(command, workspaceIdArgument(args), args)),
+        arguments_,
+        "This core keeps no conversation titles or pins.",
+      );
+    }
     case "project.add":
     case "project.rename":
     case "project.mark.set":
@@ -88,7 +97,11 @@ export function commandAnswer(
     case "agent.mark.set":
     case "agent.mark.clear":
     case "agent.mark.read":
-    case "agent.context": {
+    case "agent.context":
+    case "agent.role":
+    case "role.add":
+    case "role.edit":
+    case "role.remove": {
       const run = handlers.runAgentCommand;
       return optional(
         run && ((args) => run(command, args)),

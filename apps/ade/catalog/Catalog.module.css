@@ -171,3 +171,25 @@
   border-radius: var(--radius-full);
   background: var(--color-accent);
 }
+
+/* The moving-row demo's rows arrive and leave as the workspace list's rows do (ADE motion,
+   "Moving a row"). */
+.movingRow[data-arrived="true"] {
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.movingRow[data-leaving] {
+  pointer-events: none;
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .movingRow[data-arrived="true"] {
+    animation: none;
+  }
+
+  .movingRow[data-leaving] {
+    visibility: hidden;
+    animation: none;
+  }
+}

@@ -1,7 +1,7 @@
 # Lervo ADE sessions
 
 Status: `proposed`
-As of: 2026-11-23
+As of: 2026-11-28
 
 This specification defines the sessions of the Lervo ADE that [ADR-0613](../../../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md) proposes: session kinds, launch options, conversation modes, hosted observations, and the commands, events, and failure meanings they use.
 
@@ -213,6 +213,17 @@ The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/exec
 - The session host ends a native session's provider with SIGTERM, so Claude Code runs its own shutdown and its `SessionEnd` hook. It kills the provider 8 seconds later if it still runs, which stays below the 10 seconds a mode switch waits. When the process has ended, the session host reports its exit code, or none after a signal, with `session.exited` to a core that advertises it ([core link](ade-core-link.md)).
 - The terminal and its renderer load on first use, so the start screen does not pay for them.
 - When the session host cannot be reached, the interface's reconnection makes the shell start it again (session-host protocol, "Transport").
+
+## Renaming and pinning
+
+The owner names a conversation and keeps the ones that matter at the top of the list.
+
+- **Renaming.** Pressing the conversation's title in its header, or "Rename" in its sidebar row's context menu, edits the title in place (ADE craft rules, 12): Return or leaving the field renames, and Escape keeps the title. The title's spaces collapse, and it holds 1 to 256 characters. The owner's title replaces the workstream title wherever the list names the conversation, and its agent's workstream updates never change it, since the title is the owner's.
+- **Pinning.** "Pin" in the row's context menu keeps the conversation at the top of the list, the latest pinned first; "Unpin" returns it to its place by activity. Pinning moves the row before the core answers: it leaves its place and arrives at the top with its space, so the rows around it slide (ADE motion, "Moving a row").
+- **A change shows at once** (ADE craft rules, 22). The list takes the title or the pin before the core answers and lists again once it does; a refusal lists again too, which shows the conversation as it was, with one line in the sidebar: "Lervo could not change the conversation (<code>)."
+- **Where the choices live.** The core keeps them in `hosted-conversations.json` beside the launch records in the user state directory, owner-only (mode 0600): `{schemaVersion: 1, conversations}`, each `{workspaceId, title?, pinnedAt?}`. Not in browser storage, so they survive a reinstalled interface. The workstream title belongs to the agent and launch records are added per launch, so neither holds a choice that must outlast both. A conversation without a choice has no entry, and each change drops the entries of conversations no kept launch record names, so the file holds at most 256.
+- **Commands.** `workspace.rename` and `workspace.pin` ([core link](ade-core-link.md)); a core that does not advertise them offers neither, and the header's title stays text. Sending work to a conversation names it by the owner's title too.
+- **Privacy and events.** The title is the owner's text and stays in the owner-only file and the list it answers; no event records it, as no event records the workstream title's changes in the list.
 
 ## Reopening a conversation
 

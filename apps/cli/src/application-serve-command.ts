@@ -4,6 +4,7 @@ import { type CoreLinkHandlers, CoreLinkServer } from "./core-link-server.js";
 import { createHostedStreamDecoder, listHostedProviders } from "./hosted-session-adapters.js";
 import { runCoreLinkAgentCommand } from "./core-link-agent-commands.js";
 import { runCoreLinkProjectCommand } from "./core-link-project-commands.js";
+import { runCoreLinkWorkspaceCommand } from "./core-link-workspace-commands.js";
 import { listRepositories, listWorkspaces } from "./workspace-list-service.js";
 import {
   openWorkspace,
@@ -61,6 +62,7 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   listWorkspaces,
   listRepositories,
   listProviders: () => listHostedProviders(),
+  runWorkspaceCommand: runCoreLinkWorkspaceCommand,
   runProjectCommand: runCoreLinkProjectCommand,
   runAgentCommand: runCoreLinkAgentCommand,
   joinRoom: joinWorkspaceRoom,

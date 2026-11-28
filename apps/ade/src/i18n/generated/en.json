@@ -19,6 +19,18 @@
       "value": "Hire an Agent"
     }
   ],
+  "agents.hire.newRole": [
+    {
+      "type": 0,
+      "value": "New Role"
+    }
+  ],
+  "agents.hire.newRole.detail": [
+    {
+      "type": 0,
+      "value": "A role this project needs, started from a template"
+    }
+  ],
   "agents.hireProductOwner": [
     {
       "type": 0,
@@ -71,12 +83,6 @@
     {
       "type": 0,
       "value": "Hired when the work starts"
-    }
-  ],
-  "agents.profile.changed": [
-    {
-      "type": 0,
-      "value": "Changed, not yet sealed"
     }
   ],
   "agents.profile.conversations": [
@@ -135,50 +141,6 @@
       "value": ")."
     }
   ],
-  "agents.profile.held": [
-    {
-      "type": 0,
-      "value": "Paths it holds"
-    }
-  ],
-  "agents.profile.held.more": [
-    {
-      "type": 6,
-      "value": "count",
-      "options": {
-        "one": {
-          "value": [
-            {
-              "type": 7
-            },
-            {
-              "type": 0,
-              "value": " more path"
-            }
-          ]
-        },
-        "other": {
-          "value": [
-            {
-              "type": 7
-            },
-            {
-              "type": 0,
-              "value": " more paths"
-            }
-          ]
-        }
-      },
-      "offset": 0,
-      "pluralType": "cardinal"
-    }
-  ],
-  "agents.profile.held.none": [
-    {
-      "type": 0,
-      "value": "It holds no paths. The paths it writes in a conversation are leased to it and show here."
-    }
-  ],
   "agents.profile.image.choose": [
     {
       "type": 0,
@@ -213,94 +175,6 @@
     {
       "type": 1,
       "value": "name"
-    }
-  ],
-  "agents.profile.learned": [
-    {
-      "type": 0,
-      "value": "What it has learned"
-    }
-  ],
-  "agents.profile.learned.failed": [
-    {
-      "type": 0,
-      "value": "Lervo could not read what it has learned ("
-    },
-    {
-      "type": 1,
-      "value": "code"
-    },
-    {
-      "type": 0,
-      "value": ")."
-    }
-  ],
-  "agents.profile.learned.kind.conversation_note": [
-    {
-      "type": 0,
-      "value": "Conversation note"
-    }
-  ],
-  "agents.profile.learned.kind.decision_rationale": [
-    {
-      "type": 0,
-      "value": "Decision"
-    }
-  ],
-  "agents.profile.learned.kind.expertise": [
-    {
-      "type": 0,
-      "value": "Expertise"
-    }
-  ],
-  "agents.profile.learned.kind.other": [
-    {
-      "type": 0,
-      "value": "Note"
-    }
-  ],
-  "agents.profile.learned.kind.relationship": [
-    {
-      "type": 0,
-      "value": "Relationship"
-    }
-  ],
-  "agents.profile.learned.kind.work_outcome": [
-    {
-      "type": 0,
-      "value": "Work outcome"
-    }
-  ],
-  "agents.profile.learned.kind.working_preference": [
-    {
-      "type": 0,
-      "value": "Working preference"
-    }
-  ],
-  "agents.profile.learned.meta": [
-    {
-      "type": 1,
-      "value": "kind"
-    },
-    {
-      "type": 0,
-      "value": " · "
-    },
-    {
-      "type": 1,
-      "value": "date"
-    }
-  ],
-  "agents.profile.learned.none": [
-    {
-      "type": 0,
-      "value": "Nothing yet. What the agent learns in its conversations appears here."
-    }
-  ],
-  "agents.profile.learned.restricted": [
-    {
-      "type": 0,
-      "value": "Kept to the agent's own sessions."
     }
   ],
   "agents.profile.model": [
@@ -365,6 +239,24 @@
       "value": "Resume agent"
     }
   ],
+  "agents.profile.role": [
+    {
+      "type": 0,
+      "value": "Role"
+    }
+  ],
+  "agents.profile.role.edit": [
+    {
+      "type": 0,
+      "value": "Edit Role"
+    }
+  ],
+  "agents.profile.role.note": [
+    {
+      "type": 0,
+      "value": "Choosing another role pauses the agent for a moment. Its name and what it learned stay."
+    }
+  ],
   "agents.role": [
     {
       "type": 0,
@@ -423,10 +315,191 @@
       "value": "Writes docs and release notes"
     }
   ],
-  "agents.thisProject": [
+  "agents.sheet.cancel": [
     {
       "type": 0,
-      "value": "This Project"
+      "value": "Cancel"
+    }
+  ],
+  "agents.sheet.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not hire the agent ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "agents.sheet.from": [
+    {
+      "type": 0,
+      "value": "Starts from"
+    }
+  ],
+  "agents.sheet.hire.hiring": [
+    {
+      "type": 0,
+      "value": "Hiring"
+    }
+  ],
+  "agents.sheet.hire.submit": [
+    {
+      "type": 0,
+      "value": "Hire"
+    }
+  ],
+  "agents.sheet.hire.subtitle": [
+    {
+      "type": 0,
+      "value": "Name them like a person, such as Bora. Their role says what they do."
+    }
+  ],
+  "agents.sheet.hire.title": [
+    {
+      "type": 0,
+      "value": "Hire an Agent"
+    }
+  ],
+  "agents.sheet.name": [
+    {
+      "type": 0,
+      "value": "Name"
+    }
+  ],
+  "agents.sheet.name.placeholder": [
+    {
+      "type": 0,
+      "value": "Bora"
+    }
+  ],
+  "agents.sheet.role": [
+    {
+      "type": 0,
+      "value": "Role"
+    }
+  ],
+  "agents.sheet.role.edit": [
+    {
+      "type": 0,
+      "value": "Edit Role"
+    }
+  ],
+  "agents.sheet.role.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not change the role ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    },
+    {
+      "type": 5,
+      "value": "code",
+      "options": {
+        "role_in_use": {
+          "value": [
+            {
+              "type": 0,
+              "value": " Move its agents to another role first."
+            }
+          ]
+        },
+        "role_extended": {
+          "value": [
+            {
+              "type": 0,
+              "value": " Another role starts from it; change that role first."
+            }
+          ]
+        },
+        "role_name_conflict": {
+          "value": [
+            {
+              "type": 0,
+              "value": " Another role has that name."
+            }
+          ]
+        },
+        "other": {
+          "value": []
+        }
+      }
+    }
+  ],
+  "agents.sheet.role.new": [
+    {
+      "type": 0,
+      "value": "A new role"
+    }
+  ],
+  "agents.sheet.role.remove": [
+    {
+      "type": 0,
+      "value": "Remove Role"
+    }
+  ],
+  "agents.sheet.role.removing": [
+    {
+      "type": 0,
+      "value": "Removing the role"
+    }
+  ],
+  "agents.sheet.role.save": [
+    {
+      "type": 0,
+      "value": "Save"
+    }
+  ],
+  "agents.sheet.role.saving": [
+    {
+      "type": 0,
+      "value": "Saving the role"
+    }
+  ],
+  "agents.sheet.role.subtitle": [
+    {
+      "type": 0,
+      "value": "Changes apply to every agent with this role, from their next session."
+    }
+  ],
+  "agents.sheet.role.title": [
+    {
+      "type": 0,
+      "value": "Edit Role"
+    }
+  ],
+  "agents.sheet.roleDescription": [
+    {
+      "type": 0,
+      "value": "What it does"
+    }
+  ],
+  "agents.sheet.roleDescription.placeholder": [
+    {
+      "type": 0,
+      "value": "Owns machining feasibility and reviews every toolpath."
+    }
+  ],
+  "agents.sheet.roleName": [
+    {
+      "type": 0,
+      "value": "Role name"
+    }
+  ],
+  "agents.sheet.roleName.placeholder": [
+    {
+      "type": 0,
+      "value": "Machining"
     }
   ],
   "app.name": [
@@ -2473,10 +2546,28 @@
       "value": "Verified a research result"
     }
   ],
+  "lervo.command.role.add": [
+    {
+      "type": 0,
+      "value": "Added a role"
+    }
+  ],
+  "lervo.command.role.edit": [
+    {
+      "type": 0,
+      "value": "Changed a role"
+    }
+  ],
   "lervo.command.role.list": [
     {
       "type": 0,
       "value": "Listed the roles"
+    }
+  ],
+  "lervo.command.role.remove": [
+    {
+      "type": 0,
+      "value": "Removed a role"
     }
   ],
   "lervo.command.role.show": [
@@ -3920,6 +4011,20 @@
       "value": "Remove with changes"
     }
   ],
+  "workspaces.changeFailed": [
+    {
+      "type": 0,
+      "value": "Lervo could not change the conversation ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
   "workspaces.conversations": [
     {
       "type": 0,
@@ -3932,6 +4037,24 @@
       "value": "Workspaces"
     }
   ],
+  "workspaces.menu.pin": [
+    {
+      "type": 0,
+      "value": "Pin"
+    }
+  ],
+  "workspaces.menu.rename": [
+    {
+      "type": 0,
+      "value": "Rename"
+    }
+  ],
+  "workspaces.menu.unpin": [
+    {
+      "type": 0,
+      "value": "Unpin"
+    }
+  ],
   "workspaces.new": [
     {
       "type": 0,
@@ -3942,6 +4065,18 @@
     {
       "type": 0,
       "value": "N"
+    }
+  ],
+  "workspaces.rename": [
+    {
+      "type": 0,
+      "value": "Rename"
+    }
+  ],
+  "workspaces.rename.label": [
+    {
+      "type": 0,
+      "value": "Conversation title"
     }
   ],
   "workspaces.status.needsYou": [

@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use lervo_session_core::budget::{Admission, ClientBudget};
 use lervo_session_protocol::codec::encode;
-use lervo_session_protocol::{HostMessage, Identifier};
+use lervo_session_protocol::{HostMessage, Identifier, RequestFailedMessage};
 use tokio::sync::mpsc;
 
 use crate::messages;
@@ -78,14 +78,7 @@ impl Output {
     /// so far behind that it must close.
     pub(crate) fn send(&self, message: &HostMessage) -> bool {
         if let HostMessage::RequestFailedMessage(failed) = message {
-            let code = serde_json::to_value(failed.code).unwrap_or_default();
-            self.diagnostics.record(
-                "request.failed",
-                &[
-                    ("connection", Field::Number(self.connection)),
-                    ("code", Field::Code(code.as_str().unwrap_or("unknown"))),
-                ],
-            );
+            self.record_failure(failed);
         }
         let Some(payload) = encoded(message) else {
             return !self.sender.is_closed();
@@ -102,6 +95,24 @@ impl Output {
         self.sender
             .send(Outgoing::Control { payload, budget })
             .is_ok()
+    }
+
+    /// Records a failed request by its code and, when the core failed it, the core's own code
+    /// and stage, so an `application_failed` says why (session-host protocol, "Privacy and
+    /// failure"). Both are codes, never text.
+    fn record_failure(&self, failed: &RequestFailedMessage) {
+        let code = serde_json::to_value(failed.code).unwrap_or_default();
+        let parameters = serde_json::to_value(&failed.parameters).unwrap_or_default();
+        let mut fields = vec![
+            ("connection", Field::Number(self.connection)),
+            ("code", Field::Code(code.as_str().unwrap_or("unknown"))),
+        ];
+        for name in ["coreCode", "stage"] {
+            if let Some(value) = parameters.get(name).and_then(serde_json::Value::as_str) {
+                fields.push((name, Field::Code(value)));
+            }
+        }
+        self.diagnostics.record("request.failed", &fields);
     }
 
     /// Whether the connection fell too far behind and must close.
@@ -192,10 +203,11 @@ mod tests {
 
     use lervo_session_core::budget::CLIENT_BUFFER_LIMIT;
     use lervo_session_protocol::codec::MessageCodec;
-    use lervo_session_protocol::{HostMessage, Identifier};
+    use lervo_session_protocol::{HostMessage, Identifier, RequestFailedMessageCode};
     use tokio::sync::mpsc;
 
     use super::{Outgoing, Output, REPLY_BUFFER_LIMIT, Subscriber};
+    use crate::diagnostics::Diagnostics;
     use crate::messages;
 
     fn session() -> Identifier {
@@ -248,5 +260,39 @@ mod tests {
         }
         assert!(output.overflowed());
         assert!(output.is_closed());
+    }
+
+    #[test]
+    fn records_a_failure_with_the_cores_code_and_stage() -> std::io::Result<()> {
+        let directory = tempfile::tempdir()?;
+        let path = directory.path().join("diagnostics.log");
+        let diagnostics = Diagnostics::open(path.clone(), 64 * 1024);
+        let (sender, _queue) = mpsc::unbounded_channel();
+        let output = Output::new(4, sender).with_diagnostics(diagnostics);
+        let request = Identifier::try_from("req_1").unwrap();
+        output.send(&messages::failed_with(
+            &request,
+            RequestFailedMessageCode::ApplicationFailed,
+            &[
+                ("coreCode", Some("workforce_busy")),
+                ("stage", Some("list")),
+            ],
+        ));
+        // The writer thread owns the file, so the entry lands shortly after the send.
+        let mut written = String::new();
+        for _ in 0..200 {
+            written = std::fs::read_to_string(&path)?;
+            if !written.is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        let entry: serde_json::Value = serde_json::from_str(written.trim()).unwrap_or_default();
+        assert_eq!(entry["event"], "request.failed");
+        assert_eq!(entry["connection"], 4);
+        assert_eq!(entry["code"], "application_failed");
+        assert_eq!(entry["coreCode"], "workforce_busy");
+        assert_eq!(entry["stage"], "list");
+        Ok(())
     }
 }

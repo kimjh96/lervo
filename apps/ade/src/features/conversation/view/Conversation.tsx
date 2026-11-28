@@ -1,3 +1,4 @@
+import type { ConversationItem } from "@lervo/session-host-contract";
 import {
   type CSSProperties,
   type ReactNode,
@@ -24,6 +25,23 @@ import { useShowsTurnSummaries } from "./TurnSummariesProvider";
 import { TurnSummaryLine } from "./TurnSummaryLine";
 import { SpeakerLine } from "./SpeakerLine";
 import { useFollowLatest } from "./follow-latest";
+
+/**
+ * The items a window shows. A row depends on the items before it: its spacing and speaker line on
+ * the one just before, and a turn's closing line on the turn's first message. So a window with
+ * earlier history shows from its first whole turn, and keeps what comes before only as context.
+ * The rows shown then never change when the page before them lands; they did, and their words
+ * moved while the virtualizer held their tops in place (2026-11-28).
+ */
+function useShownItems(window: { items: readonly ConversationItem[]; hasEarlier: boolean }) {
+  const behind = useMemo(() => {
+    if (!window.hasEarlier || window.items.length < 2) return 0;
+    const turn = window.items.findIndex((item, index) => index > 0 && item.kind === "user_message");
+    return turn === -1 ? 1 : turn;
+  }, [window.items, window.hasEarlier]);
+  const shown = useMemo(() => window.items.slice(behind), [window.items, behind]);
+  return { behind, shown };
+}
 
 /**
  * An item's speaker line. It comes and goes with its space when agents join or a joined agent's
@@ -77,6 +95,7 @@ export function Conversation(props: {
     return { ...view, window: withAnswers(view.window, answers) };
   }, [lead, leadAgentId, members, answers]);
   const window = room.window;
+  const { behind, shown } = useShownItems(window);
   // The questions whose choices still wait for the person (Lervo ADE sessions, "Questions").
   const openNow = useMemo(() => openQuestions(window.items, !window.hasLater), [window]);
   const arrived = useConversationStore((store) => store.arrived);
@@ -111,7 +130,7 @@ export function Conversation(props: {
 
   const { virtualizer, live, placed, follow } = useFollowLatest({
     scroller,
-    items: window.items,
+    items: shown,
     hasEarlier: window.hasEarlier,
     hasLater: window.hasLater,
     continues: props.continues === true,
@@ -145,7 +164,7 @@ export function Conversation(props: {
             style={{ height: totalSize }}
           >
             {virtualizer.getVirtualItems().map((row) => {
-              const item = window.items[row.index];
+              const item = shown[row.index];
               if (item === undefined) return null;
               return (
                 <div
@@ -153,7 +172,7 @@ export function Conversation(props: {
                   ref={virtualizer.measureElement}
                   data-index={row.index}
                   data-kind={item.kind}
-                  data-follows={window.items[row.index - 1]?.kind}
+                  data-follows={window.items[row.index + behind - 1]?.kind}
                   className={styles.row}
                   data-arrived={
                     arrived.has(item.itemId) || roomArrived.has(item.itemId) ? "true" : undefined
@@ -172,7 +191,7 @@ export function Conversation(props: {
                   <Presence className={styles.queued} enterOnMount={false}>
                     {queued.has(item.itemId) ? <FormattedMessage id="conversation.queued" /> : null}
                   </Presence>
-                  <TurnEndLine end={ends.get(row.index)} />
+                  <TurnEndLine end={ends.get(row.index + behind)} />
                   {/* motion: Lervo notices in the conversation */}
                   {row.index === 0 && !window.hasEarlier ? (
                     <Presence className={styles.lead} enterOnMount={false}>

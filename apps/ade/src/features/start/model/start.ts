@@ -5,7 +5,7 @@ import {
   type PreparedImage,
   RequestFailure,
 } from "../../../ports";
-import { remember, sentImages, withAttachedFiles } from "../../conversation/model";
+import { remember, routeFirstTurn, sentImages, withAttachedFiles } from "../../conversation/model";
 import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces/model";
 import { useStartStore } from "./store";
 import { HIRE_PRODUCT_OWNER, PRODUCT_OWNER_ROLE, showProjectAgents } from "../../agents/model";
@@ -142,6 +142,11 @@ export async function startWork(
             ? null
             : { ...store.pending, workspaceId, baseNotice, coordinationFailure },
       }));
+    // The first turn reaches the agents it mentions, as every turn of the owner's does.
+    const lead = participants[0];
+    const routes = useWorkspaceStore.getState().advertisedCommands?.includes("room.route") === true;
+    if (lead !== undefined && routes)
+      await routeFirstTurn({ commands, workspaceId, leadAgentId: lead, text: instruction });
     await reloadWorkspaces(commands);
     if (workspaceId !== null && current()) useWorkspaceStore.getState().select(workspaceId);
   } catch (failure) {

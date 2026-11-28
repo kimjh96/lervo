@@ -10,6 +10,8 @@ import {
   latestHostedLaunch,
   recordHostedLaunch,
   roomSessionRecords,
+  memberWorkspacesOf,
+  conversationsLedBy,
 } from "../src/hosted-launch-records.js";
 import { resolveHostedSessionAdapter } from "../src/hosted-session-adapters.js";
 
@@ -84,6 +86,32 @@ describe("a conversation's agents in the launch records", () => {
       ["agt_arin", "session-arin-resumed"],
       ["agt_tarin", "session-3"],
     ]);
+  });
+
+  it("counts a member's own workspace in its conversation, never as one it leads (ADR-0661)", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-hosted-members-"));
+    roots.push(root);
+    const path = resolve(root, "hosted-launches.json");
+    const workspaceId = `wsp_${"2".repeat(24)}`;
+    const memberWorkspace = `wsp_${"3".repeat(24)}`;
+    await recordHostedLaunch(path, { ...record(1, workspaceId), agentId: "agt_bora" });
+    await recordHostedLaunch(path, {
+      ...record(2, memberWorkspace),
+      branch: "lervo/machining-fix-abc123",
+      agentId: "agt_machining",
+      room: workspaceId,
+    });
+    expect(
+      (await roomSessionRecords(path, workspaceId)).map((item) => [item.agentId, item.workspaceId]),
+    ).toEqual([
+      ["agt_bora", workspaceId],
+      ["agt_machining", memberWorkspace],
+    ]);
+    expect(await memberWorkspacesOf(path, workspaceId)).toEqual([memberWorkspace]);
+    expect(await conversationsLedBy(path, "agt_machining")).toEqual([]);
+    expect(await conversationsLedBy(path, "agt_bora")).toEqual([workspaceId]);
+    // The member's own workspace still finds its record, as retiring and sealing need.
+    expect((await latestHostedLaunch(path, memberWorkspace))?.room).toBe(workspaceId);
   });
 });
 

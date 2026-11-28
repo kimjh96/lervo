@@ -60,6 +60,12 @@ export interface HostedLaunchRecord {
    */
   access?: "read";
   /**
+   * The conversation a member workspace belongs to (ADR-0661): a member's session writes in its
+   * own workspace, which this record names by `workspaceId` and `branch`, and takes part in the
+   * conversation named here. Absent for a conversation's own records.
+   */
+  room?: string;
+  /**
    * Whether the conversation's session host answers the agents' questions with choices (Lervo ADE
    * sessions, "Questions"), so its native sessions ask through the provider's stream.
    */
@@ -107,6 +113,7 @@ function isRecord(value: unknown): value is HostedLaunchRecord {
     (record.conversationMode === "native" || record.conversationMode === "cli") &&
     (record.listedAt === undefined || typeof record.listedAt === "string") &&
     (record.access === undefined || record.access === "read") &&
+    (record.room === undefined || typeof record.room === "string") &&
     (record.questions === undefined || record.questions === true)
   );
 }
@@ -128,11 +135,12 @@ export async function latestHostedLaunchOfAgent(
 
 /**
  * The conversations `agentId` leads, by workspace ID, newest first: those whose launch records name
- * it with write access. A joined agent's read-access records are not its own conversations.
+ * it with write access. A joined agent's read-access records and a member's workspace in another
+ * agent's conversation (ADR-0661) are not its own conversations.
  */
 export async function conversationsLedBy(path: string, agentId: string): Promise<string[]> {
   const led = (await readRecords(path)).filter(
-    (record) => record.agentId === agentId && record.access === undefined,
+    (record) => record.agentId === agentId && leadsItsWorkspace(record),
   );
   return [...new Set(led.map((record) => record.workspaceId).reverse())];
 }
@@ -177,6 +185,11 @@ export async function latestHostedLaunchOfSession(
   return (await readRecords(path)).findLast((record) => record.sessionId === sessionId) ?? null;
 }
 
+/** The workspaces of every kept record. */
+export async function hostedWorkspaceIds(path: string): Promise<Set<string>> {
+  return new Set((await readRecords(path)).map((record) => record.workspaceId));
+}
+
 /** The sessions of every kept record. */
 export async function hostedLaunchSessions(path: string): Promise<Set<string>> {
   return new Set((await readRecords(path)).map((record) => record.sessionId));
@@ -195,8 +208,27 @@ export async function latestHostedLaunch(
 }
 
 /**
- * The newest record of each agent's session in `workspaceId`, the lead's first and then in the
- * order the agents joined. A conversation started without agents has none.
+ * Whether a record is its workspace's own writer: a conversation's lead, or a member in its member
+ * workspace. A joined agent that reads in the lead's worktree is neither.
+ */
+function leadsItsWorkspace(record: HostedLaunchRecord): boolean {
+  return record.access === undefined && record.room === undefined;
+}
+
+/** Whether `record` is the lead's session of the conversation `workspaceId`. */
+export function isConversationLead(record: HostedLaunchRecord, workspaceId: string): boolean {
+  return record.workspaceId === workspaceId && leadsItsWorkspace(record);
+}
+
+/** The conversation a session takes part in: its member workspace's conversation, or its own. */
+export function conversationOf(record: HostedLaunchRecord): string {
+  return record.room ?? record.workspaceId;
+}
+
+/**
+ * The newest record of each agent's session in the conversation `workspaceId`: its lead's, then
+ * each member's, in the order the agents joined. A member's record names its own workspace and
+ * the conversation as `room` (ADR-0661). A conversation started without agents has none.
  */
 export async function roomSessionRecords(
   path: string,
@@ -204,13 +236,25 @@ export async function roomSessionRecords(
 ): Promise<HostedLaunchRecord[]> {
   const newest = new Map<string, HostedLaunchRecord>();
   for (const record of await readRecords(path))
-    if (record.workspaceId === workspaceId && record.agentId !== undefined) {
+    if (conversationOf(record) === workspaceId && record.agentId !== undefined) {
       // A re-inserted key keeps its first place, so an agent stays where it joined.
       newest.set(record.agentId, record);
     }
   return [...newest.values()].sort(
-    (a, b) => Number(a.access === "read") - Number(b.access === "read"),
+    (a, b) =>
+      Number(!isConversationLead(a, workspaceId)) - Number(!isConversationLead(b, workspaceId)),
   );
+}
+
+/** The member workspaces of the conversation `workspaceId`, by their own workspace IDs. */
+export async function memberWorkspacesOf(path: string, workspaceId: string): Promise<string[]> {
+  return [
+    ...new Set(
+      (await readRecords(path))
+        .filter((record) => record.room === workspaceId)
+        .map((record) => record.workspaceId),
+    ),
+  ];
 }
 
 /** Every session the kept records name for `workspaceId`, oldest first. */

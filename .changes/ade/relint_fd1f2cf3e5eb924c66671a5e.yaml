@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fd1f2cf3e5eb924c66671a5e"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "A new conversation's first message reaches every agent it mentions, who join it as members, as any later message of the owner's does."

@@ -22,6 +22,12 @@ import {
   hireableRoleSchema,
 } from "./application-agent-results.js";
 import {
+  agentRoleResultSchema,
+  roleAddResultSchema,
+  roleEditResultSchema,
+  roleRemoveResultSchema,
+} from "./application-role-results.js";
+import {
   roomJoinResultSchema,
   roomAnswersResultSchema,
   roomRouteResultSchema,
@@ -36,6 +42,8 @@ import {
   repositorySummarySchema,
   workspaceListResultSchema,
   workspaceRetireResultSchema,
+  workspaceRenameResultSchema,
+  workspacePinResultSchema,
   workspaceStartResultSchema,
   workspaceSummarySchema,
 } from "./application-workspace-results.js";
@@ -112,6 +120,8 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     providerSummarySchema,
     providerListResultSchema,
     workspaceRetireResultSchema,
+    workspaceRenameResultSchema,
+    workspacePinResultSchema,
     turnSummarySchema,
     turnSummaryResultSchema,
     projectMarkSchema,
@@ -133,6 +143,10 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     agentMarkClearResultSchema,
     agentMarkReadResultSchema,
     agentContextResultSchema,
+    agentRoleResultSchema,
+    roleAddResultSchema,
+    roleEditResultSchema,
+    roleRemoveResultSchema,
     roomSessionSchema,
     roomJoinResultSchema,
     roomAnswersResultSchema,

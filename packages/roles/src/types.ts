@@ -34,7 +34,11 @@ export class RoleContractError extends Error {
       | "evaluation_bundle_invalid"
       | "evaluation_result_invalid"
       | "high_risk_workflow_invalid"
+      | "role_built_in"
       | "role_contract_stale"
+      | "role_exists"
+      | "role_extended"
+      | "role_name_conflict"
       | "role_not_found"
       | "role_publication_blocked"
       | "role_profile_invalid",

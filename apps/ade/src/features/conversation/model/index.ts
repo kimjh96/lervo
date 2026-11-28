@@ -4,3 +4,4 @@
  */
 export { attachedFiles, withAttachedFiles } from "./files";
 export { remember, sentImages } from "./images";
+export { routeFirstTurn } from "./room-routing";

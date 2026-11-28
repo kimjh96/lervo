@@ -9,7 +9,6 @@ import {
   type ModelEffort,
   type ModelTier,
   changeAgentDisplayName,
-  changeAgentRole,
   changeAgentStatus,
   listAgents,
   type AgentStatus,
@@ -20,6 +19,8 @@ import { agentContextUsage, runAgentContextCommand } from "./agent-context-comma
 import { agentMandateUsage, runAgentMandateCommand } from "./agent-mandate-command.js";
 import { agentLivenessUsage, runAgentLivenessCommand } from "./agent-liveness-command.js";
 import { hireAgent } from "./agent-hire.js";
+import { moveAgentToRole } from "./agent-role-move.js";
+import { commandActor } from "./organization-authority.js";
 import { clearAgentMark, setAgentMark } from "./core-link-agent-marks.js";
 import type { CliIo } from "./types.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
@@ -122,6 +123,7 @@ async function hireAction(values: AgentValues, root: string, io: CliIo): Promise
     responsibilityPaths: values.scope ?? ["*"],
     ...(values.capability === undefined ? {} : { capabilityPackageIds: values.capability }),
     ...(values.parent === undefined ? {} : { parentAgentId: values.parent }),
+    ...withActor(),
   });
   output(
     io,
@@ -235,19 +237,19 @@ async function markAction(values: AgentValues, root: string, io: CliIo): Promise
   );
 }
 
-/** Moves an agent to another role. */
+/** Moves an agent to another role, pausing it for the move when it is working (ADR-0662). */
 async function roleAction(values: AgentValues, root: string, io: CliIo): Promise<void> {
   if (!values.write || values.agent === undefined) {
     throw new Error("Agent role transition requires exact identity, role, revision, and --write.");
   }
-  const agent = await mutateWorkforceState(root, (recordEvent) =>
-    changeAgentRole({
-      repositoryRoot: root,
-      agentId: values.agent!,
+  const agent = await moveAgentToRole(
+    root,
+    {
+      agentId: values.agent,
       roleId: role(values.role),
       expectedRevision: revision(values.revision),
-      recordEvent,
-    }),
+    },
+    commandActor(),
   );
   output(
     io,
@@ -255,6 +257,12 @@ async function roleAction(values: AgentValues, root: string, io: CliIo): Promise
     values.json,
     `Agent ${agent.displayName} (${agent.agentId}) now holds role ${agent.roleId} at revision ${agent.revision}.`,
   );
+}
+
+/** The hired agent this command runs for, when an agent's own session runs it. */
+function withActor(): { actorAgentId?: string } {
+  const actorAgentId = commandActor();
+  return actorAgentId === undefined ? {} : { actorAgentId };
 }
 
 /** Each `lervo agent` action that changes or reads the workforce, by name. */

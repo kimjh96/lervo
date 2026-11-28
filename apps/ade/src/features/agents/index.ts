@@ -5,3 +5,4 @@ export { ParticipantMarks } from "./view/ParticipantMarks";
 export { ParticipantsChip } from "./view/ParticipantsChip";
 export { AgentProfile } from "./view/AgentProfile";
 export { AgentMark } from "./view/AgentMark";
+export { AgentSheets } from "./view/AgentSheets";

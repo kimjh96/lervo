@@ -35,6 +35,12 @@ export interface CoreLinkHandlers {
   ): Promise<{ items: HostedTranscriptItem[]; complete: boolean }>;
   /** Retires a hosted workspace without discarding work. */
   retireWorkspace(workspaceId: string, options: { discardChanges: boolean }): Promise<object>;
+  /** Renames or pins a conversation for the owner (Lervo ADE sessions, "Renaming and pinning"). */
+  runWorkspaceCommand?(
+    command: string,
+    workspaceId: string,
+    arguments_: Record<string, unknown>,
+  ): Promise<object>;
   /** Answers a project command (Lervo ADE projects, "Core link"). */
   runProjectCommand?(command: string, arguments_: Record<string, unknown>): Promise<object>;
   /** Answers an agent command (Lervo ADE agents, "Core link"). */

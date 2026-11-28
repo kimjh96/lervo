@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8066a9d4fa15d6f07c00d78f"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "A project can add, edit, and remove its own roles from Lervo's templates with lervo role, move an agent to another role, and name hires like people; an agent changes roles or hires only when its role grants that authority."

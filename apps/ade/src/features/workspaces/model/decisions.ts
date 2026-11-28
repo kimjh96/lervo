@@ -1,24 +1,23 @@
 import type { SessionStatus, Workspace } from "./types";
 
 /**
- * Workspaces grouped by repository, repositories by name. Each group keeps the core's order, latest
- * activity first, in which opening a conversation never moves it (Lervo ADE core link).
+ * Workspace rows grouped by repository, repositories by name. Each group keeps the list's order,
+ * pinned first and then latest activity first, in which opening a conversation never moves it
+ * (Lervo ADE core link).
  */
-export function groupByRepository(
-  workspaces: readonly Workspace[],
-): { repositoryName: string; workspaces: Workspace[] }[] {
-  const groups = new Map<string, Workspace[]>();
-  for (const workspace of workspaces) {
-    const group = groups.get(workspace.repositoryName) ?? [];
-    group.push(workspace);
-    groups.set(workspace.repositoryName, group);
+export function groupByRepository<T>(
+  rows: readonly T[],
+  repositoryOf: (row: T) => string,
+): { repositoryName: string; items: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const row of rows) {
+    const group = groups.get(repositoryOf(row)) ?? [];
+    group.push(row);
+    groups.set(repositoryOf(row), group);
   }
   return [...groups.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([repositoryName, group]) => ({
-      repositoryName,
-      workspaces: group,
-    }));
+    .map(([repositoryName, items]) => ({ repositoryName, items }));
 }
 
 /**

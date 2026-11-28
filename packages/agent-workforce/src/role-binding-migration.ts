@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 
-import { resolveRoleContract, roleProfileHash } from "@lervo/roles";
+import { resolveRoleContract } from "@lervo/roles";
 import { inspectRepositoryCoordinationHome } from "@lervo/project-storage";
 
-import { resolveAgentCapabilityBinding } from "./agent-capability-binding.js";
 import { withAgentDisplayIdentity } from "./agent-display-identity.js";
 import { readAgentRegistryState } from "./agent-registry.js";
-import { listRawAssignmentStates } from "./assignment-state.js";
+import { agentMigrationOf, type AgentMigration } from "./role-binding-agent-migration.js";
+import { archivalAwareRole, listRawAssignmentStates } from "./assignment-state.js";
 import type { WorkforceAgent, WorkforceAssignment, WorkforceEventRecorder } from "./types.js";
 import { fail, stableJson } from "./workforce-state-validation.js";
 import { transition } from "./workforce-state-io.js";
@@ -42,16 +42,6 @@ export interface WorkforceRepositoryRoleRefresh {
   roleContractHash: string;
   staleAgentCount: number;
   staleAssignmentCount: number;
-}
-
-interface AgentMigration {
-  before: WorkforceAgent;
-  target: Pick<
-    WorkforceAgent,
-    "roleVersion" | "roleContractHash" | "roleProfileHash" | "capabilityHash" | "capabilityPackages"
-  >;
-  /** Repository-defined roles this refresh follows, for the reported refresh counts. */
-  repositoryRoleIds: string[];
 }
 
 interface AssignmentMigration {
@@ -107,36 +97,20 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
   let conflictCount = 0;
 
   for (const agent of registry.value.agents) {
-    const contract = await resolveRoleContract(repositoryRoot, agent.roleId);
-    const roleBindingCurrent =
-      agent.roleVersion === contract.version &&
-      agent.roleContractHash === contract.contractHash &&
-      agent.roleProfileHash === roleProfileHash(contract.definition.profile);
-    if (roleBindingCurrent) continue;
-    const capabilityBinding = await resolveAgentCapabilityBinding({
-      repositoryRoot,
-      projectId: registry.projectId,
-      provider: agent.provider,
-      contract,
-      capabilityPackageIds: agent.capabilityPackages?.map((item) => item.capabilityId) ?? [],
-      generatedAt: agent.updatedAt,
-    });
-    agentMigrations.push({
-      before: structuredClone(agent),
-      target: {
-        roleVersion: contract.version,
-        roleContractHash: contract.contractHash,
-        ...capabilityBinding,
-      },
-      repositoryRoleIds: contract.sourceKind === "repository" ? [contract.roleId] : [],
-    });
-    if (contract.sourceKind === "repository")
-      repositoryRoleContracts.set(contract.roleId, contract);
+    const migration = await agentMigrationOf(repositoryRoot, registry.projectId, agent);
+    if (migration === null) continue;
+    agentMigrations.push(migration.migration);
+    if (migration.contract.sourceKind === "repository")
+      repositoryRoleContracts.set(migration.contract.roleId, migration.contract);
   }
 
   for (const assignmentState of assignments) {
     const assignment = assignmentState.value;
-    const contract = await resolveRoleContract(repositoryRoot, assignment.roleId);
+    const contract = await archivalAwareRole(assignment, (roleId) =>
+      resolveRoleContract(repositoryRoot, roleId),
+    );
+    // An ended assignment whose role was removed keeps its binding as history.
+    if (contract === null) continue;
     const roleBindingCurrent =
       assignment.roleVersion === contract.version &&
       assignment.roleContractHash === contract.contractHash;

@@ -24,8 +24,8 @@ import { renameAgent, setAgentModel, setAgentStatus } from "../model/controller"
 import { chooseAgentMark, clearAgentMark } from "../model/marks";
 import { useAgentStore } from "../model/store";
 import styles from "./AgentProfile.module.css";
-import { ContextSections } from "./LearnedSection";
 import { PauseSection } from "./PauseSection";
+import { RoleSection } from "./RoleSection";
 
 /** Each effort's words, lowest first. */
 const EFFORTS: readonly { value: string; message: MessageDescriptor }[] = [
@@ -105,8 +105,7 @@ export function AgentProfile(props: { agentId: string }) {
   const projectId = useAgentStore((store) => store.projectId);
   const models = useAgentStore((store) => store.models);
   const advertised = useWorkspaceStore((store) => store.advertisedCommands);
-  // The store gives one list; the agent's conversations are derived from it, so the selector
-  // never returns a new array on each read.
+  // Derived from the store's one list, so no selector returns a new array on each read.
   const workspaces = useWorkspaceStore((store) => store.workspaces);
   const conversations = useMemo(
     () =>
@@ -127,7 +126,6 @@ export function AgentProfile(props: { agentId: string }) {
   };
   const renames = advertised?.includes("agent.rename") === true;
   const pauses = advertised?.includes("agent.status") === true;
-  const learns = advertised?.includes("agent.context") === true;
   const { model } = agent;
   const choosesModel =
     advertised?.includes("agent.model") === true && model !== undefined && models.length > 0;
@@ -187,6 +185,7 @@ export function AgentProfile(props: { agentId: string }) {
           <p className={styles.role}>{agent.roleName}</p>
         </div>
       </header>
+      <RoleSection agent={agent} projectId={projectId} run={run} />
       {/* motion: History loads or a workspace reopens */}
       {model === undefined ? null : (
         <section className={styles.section}>
@@ -256,8 +255,6 @@ export function AgentProfile(props: { agentId: string }) {
           )}
         </Presence>
       </section>
-      {/* motion: History loads or a workspace reopens */}
-      {learns ? <ContextSections projectId={projectId} agentId={agent.agentId} /> : null}
       {/* motion: History loads or a workspace reopens */}
       {pauses ? (
         <PauseSection

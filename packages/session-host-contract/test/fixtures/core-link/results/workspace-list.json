@@ -1,6 +1,20 @@
 {
   "workspaces": [
     {
+      "workspaceId": "wsp_fedcba9876543210fedcba98",
+      "projectId": "prj_0123456789abcdef",
+      "repositoryName": "lervo",
+      "branch": "lervo/fix-the-build-1a2b3c",
+      "title": "Release checklist",
+      "provider": "claude",
+      "conversationMode": "native",
+      "conversationModes": ["native", "cli"],
+      "sessionId": "0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c",
+      "preparedAt": "2026-11-23T06:41:43.000Z",
+      "pinnedAt": "2026-11-28T09:12:00.000Z",
+      "activeAt": "2026-11-23T06:41:43.000Z"
+    },
+    {
       "workspaceId": "wsp_0123456789abcdef01234567",
       "projectId": "prj_0123456789abcdef",
       "repositoryName": "lervo",
@@ -10,7 +24,8 @@
       "conversationMode": "native",
       "conversationModes": ["native", "cli"],
       "sessionId": "0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c",
-      "preparedAt": "2026-11-23T06:41:43.000Z"
+      "preparedAt": "2026-11-23T06:41:43.000Z",
+      "activeAt": "2026-11-23T06:41:43.000Z"
     }
   ],
   "commands": ["workspace.start", "workspace.list", "repository.list", "provider.list"]

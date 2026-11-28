@@ -1,6 +1,7 @@
 export * from "./application.js";
 export * from "./application-project-results.js";
 export * from "./application-agent-results.js";
+export * from "./application-role-results.js";
 export * from "./application-room-results.js";
 export * from "./application-turn-results.js";
 export * from "./application-workspace-results.js";
@@ -17,6 +18,7 @@ export * from "./primitives.js";
 export * from "./protocol-document.js";
 export * from "./session.js";
 export * from "./tool-detail.js";
+export * from "./workspace-order.js";
 export * from "./workspace-title.js";
 export { validateCoreLinkRequest } from "../generated/core-link-request-validator.js";
 export * from "./choices.js";

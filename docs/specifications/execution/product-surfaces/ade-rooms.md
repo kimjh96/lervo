@@ -1,7 +1,7 @@
 # Lervo ADE rooms
 
 Status: `proposed`
-As of: 2026-11-27
+As of: 2026-11-28
 
 This specification defines S2g of [ADR-0637](../../../decisions/execution/applications/0637-build-projects-agents-and-conversations-in-the-ade-on-the-core.md): conversations where agents mention each other and the owner watches them work together. It implements [ADR-0641](../../../decisions/coordination/conversations/agent-organization/0641-let-agents-mention-each-other-in-core-rooms-and-keep-their-own-context.md) as amended by [ADR-0644](../../../decisions/coordination/conversations/agent-organization/0644-keep-agent-coordination-in-conversations.md). There is no team room; a mention stays in the conversation where it was made. The owner approved the interface on 2026-11-26 (mockup "Lervo ADE · 에이전트끼리 멘션하는 대화 (S2g)").
 
@@ -17,10 +17,15 @@ Agents mention each other directly, choosing by role and by what each has learne
 
 ## Participants and their sessions
 
-- A conversation is a workspace with participants ([Lervo ADE agents](ade-agents.md), "Participants and sessions"). The first participant leads: its session writes in the worktree. Every other participant gets its own hosted session in the same worktree when it is first addressed, with read access only. Writing beyond the lead waits for S2h's claims.
+- A conversation is a workspace with participants ([Lervo ADE agents](ade-agents.md), "Participants and sessions"). The first participant leads: its session writes in the conversation's worktree. Every other participant is a member ([ADR-0661](../../../decisions/coordination/conversations/agent-organization/0661-let-every-member-of-a-conversation-work-in-it-from-its-own-worktree.md)):
+  - When a member is first addressed, Lervo prepares its member workspace: a worktree and branch of its own from the fetched upstream tip, with its own coordination (generation, assignment, lease, and claim handler), as a conversation's start prepares one.
+  - The member's hosted session runs there with write access, keeps its context for the life of the conversation, and receives every turn addressed to the member in the conversation.
+  - Claims keep the members' writes apart as they keep conversations apart. A member reads the other agents' worktrees and writes only its own.
+  - A member workspace never lists as a conversation. Retiring the conversation retires each member workspace first, by the same rules.
+  - A member session recorded with read access before ADR-0661 keeps reading in the lead's worktree until the conversation ends.
 - Rooms need the native conversation mode, where the core decodes each session's output. A conversation in terminal mode keeps one agent.
 - An agent's session carries its identity (`LERVO_AGENT_ID`) and its own context, so each agent answers from what it has seen and learned rather than from a shared transcript.
-- Each participant's session has its own hosted launch record, with `agentId` and, for an agent that joined, `access: read`. The lead's record alone continues the conversation, so a joined agent's newer record never reopens as the conversation. `workspace.list` reports `participants`, those the conversation started with and then those who joined, and `sessions`, each with `agentId`, `sessionId`, and `access`, the lead's first. A conversation holds at most 16 agents.
+- Each participant's session has its own hosted launch record, with `agentId`. A member's record names its member workspace by `workspaceId` and `branch`, and the conversation by `room`; a reader's from before ADR-0661 says `access: read`. The lead's record alone continues the conversation, so a member's newer record never reopens as the conversation. `workspace.list` reports `participants`, those the conversation started with and then those who joined, and `sessions`, each with `agentId`, `sessionId`, and `access` (`write` for the lead and members, `read` for a reader), the lead's first. A conversation holds at most 16 agents.
 
 ## Routing
 
@@ -41,9 +46,12 @@ Agents mention each other directly, choosing by role and by what each has learne
   - the conversation's participants;
   - the project's team agents with their roles and IDs;
   - how a mention works: write `@Name` when the work needs that agent's role or knowledge, and its answer comes back as a turn.
-  - that an agent it mentions joins able to read and answer, never to change files; and, in a session that joined by a mention, that the session reads only, so a request that needs changes belongs in a conversation the agent starts and leads, never in a request for write permission;
-  - how to start a conversation, for itself or handed to the teammate whose work it is with `--lead`, and that each owner's work goes to that owner rather than being done by the agent itself (ADR-0657);
+  - that an agent it mentions joins and works in its own worktree, so each teammate's work inside the conversation's topic goes to that teammate by mention, and that no role, the product owner's included, routes work;
+  - that it answers whoever asked, keeps working until the request is done or it is blocked, and then says what it did, what comes next, and what it needs from whom; that the conversation's lead keeps the owner informed and raises what only the owner can decide; and that anyone speaks to the owner directly when only the owner can answer (ADR-0661);
+  - that it commits in its own worktree, seals a finished, committed change with `lervo workspace seal --write`, and reads but never writes the other agents' worktrees, with each agent's worktree path; a reader from before ADR-0661 hears instead that it reads only;
+  - how to start a conversation, only for a topic of its own, for itself or handed to the teammate whose topic it is with `--lead` (ADR-0657);
   - the open conversations its teammates lead, and how to send work to one with `lervo workspace send`;
+  - for an agent whose role carries `agent.hire`, how to hire: with `lervo agent hire --role <role ID> --name <nickname>`, naming each hire like a person, such as Bora, never by its specialty, which belongs in its role. An agent whose role also carries `organization.coordinate` learns to add a project role with `lervo role add` when no role fits, and to move a teammate with `lervo agent role`; any other hiring agent asks the product owner to add one ([ADR-0662](../../../decisions/coordination/conversations/agent-organization/0662-let-a-lead-shape-the-projects-roles-and-name-hires-like-people.md));
   - that work is handed over and asked for only through Lervo's commands and mentions, never through a provider's own messages to another session, and that no agent stops a process Lervo runs.
 - From slice 3, the block also says what each other agent knows from its reviewed expertise, so an agent can pick "the researcher who studied this API last week" by name. It never carries another agent's conversation notes: a session's block recalls only its own agent's notes ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)).
 
@@ -143,7 +151,7 @@ Work for a conversation a teammate already leads goes there rather than to a new
   - The note's subject is `conversation/<conversation>/<mention>`, and its source and review are the delivery's `room.mention.delivered`. It expires after 30 days.
   - The writer records nothing below event schema 16. It gives up after 10 seconds, and a note its receipt cannot attest yet is not written. None of these changes the turn.
 
-- Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both. A session's block recalls its own agent's three newest notes, labeled as notes it wrote itself and no one reviewed. The recalled notes take at most 2,048 bytes, and the block waits at most one second for them before the session starts without them. A note reaches only its own agent: its profile, its block, and its materialized context. The repository's compact context, which every session receives, never reads agent context.
+- Reviewed decisions and feedback reach the agent's expertise layer through the knowledge resident, as ADR-0641 sets. The room block reads both. A session's block recalls its own agent's three newest notes, labeled as notes it wrote itself and no one reviewed. The recalled notes take at most 2,048 bytes, and the block waits at most one second for them before the session starts without them. A note reaches only its own agent: its block and its materialized context; the ADE profile does not show it ([Lervo ADE agents](ade-agents.md), "The profile"). The repository's compact context, which every session receives, never reads agent context.
 
 ## State, events, privacy, and failure meaning
 
@@ -185,5 +193,4 @@ Channels may later group conversations by topic, as Discord channels group threa
 
 ## Open items
 
-- Whether a read-access participant may run the conversation's tests. S2h's claims skip the build output Git ignores, so this depends only on the read-access tool allowlist ([Lervo ADE coordination](ade-coordination.md#read-access-participants)).
 - How long a joined agent's session stays open after its last turn before the session host stops it.

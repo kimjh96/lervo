@@ -124,3 +124,4 @@ export {
   type GoneConversationSweep,
 } from "./conversation-worktree-sweep.js";
 export { CLAIM_PATH_KEY_FILE, readOrCreateClaimPathKey } from "./claim-path-key-store.js";
+export { readRoleHolders, type RoleHolders } from "./role-holders.js";
