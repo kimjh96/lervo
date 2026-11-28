@@ -41,6 +41,8 @@ export async function applyCrossCheckedEffect<T>(input: {
   provider?: "codex" | "claude";
   plan: unknown;
   paths: readonly string[];
+  /** Unchanged files the plan derives its content from, which the cross-check also reads. */
+  evidencePaths?: readonly string[];
   /** Paths the apply itself commits before changing them, such as a document it deletes. */
   preservedPaths?: readonly string[];
   notice: Omit<KnowledgeEffectNotice, "crossCheck">;
@@ -57,6 +59,7 @@ export async function applyCrossCheckedEffect<T>(input: {
     ...(input.provider === undefined ? {} : { provider: input.provider }),
     plan: input.plan,
     paths: input.paths,
+    ...(input.evidencePaths === undefined ? {} : { evidencePaths: input.evidencePaths }),
   });
   if (crossCheck.verdict !== "agree")
     throw new CommandFailure(

@@ -84,6 +84,9 @@ export async function runContinuationWorkstreamStage(input: {
       ...(input.provider === undefined ? {} : { provider: input.provider }),
       plan: reviewed,
       paths: lifecycleChangedPaths(reviewed),
+      // The workstream is derived from the continuation document, which the plan leaves in place;
+      // without its bytes the reviewer cannot judge whether the meaning was kept.
+      evidencePaths: reviewed.sourcePath === null ? [] : [reviewed.sourcePath],
       notice: {
         effect: "continuation_workstream",
         planId: reviewed.planId,
