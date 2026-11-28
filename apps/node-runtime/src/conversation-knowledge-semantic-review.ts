@@ -17,7 +17,7 @@ import { providerOutputSchema } from "@lervo/schemas";
 const MAXIMUM_PROVIDER_INPUT_BYTES = 256 * 1024;
 /**
  * Canonical candidates the provider receives. Instructions are all required and count only toward
- * the provider input bytes, as in review context (ADR-0657); 256 is review context's own bound.
+ * the provider input bytes, as in review context (ADR-0659); 256 is review context's own bound.
  */
 export const MAXIMUM_CONTEXT_CANDIDATES = 8;
 const MAXIMUM_CONTEXT_INSTRUCTIONS = 256;

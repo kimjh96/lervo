@@ -109,7 +109,7 @@ function sourceRelevantInstructionReferences(
 
 /**
  * Every applicable instruction, all required: the `AGENTS.md` chain and the owner rules. Bytes,
- * not their count, bound them; over the bound the review stops and names the largest (ADR-0657).
+ * not their count, bound them; over the bound the review stops and names the largest (ADR-0659).
  */
 async function loadRequiredInstructions(input: {
   repositoryRoot: string;

@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-09-29
-Amended by: [ADR-0657](../../semantics/0657-bound-review-instructions-by-bytes-not-by-count.md) (instructions are bounded by bytes, and low-ranked recommendations give way to the byte bound)
+Amended by: [ADR-0659](../../semantics/0659-bound-review-instructions-by-bytes-not-by-count.md) (instructions are bounded by bytes, and low-ranked recommendations give way to the byte bound)
 
 ## Context
 

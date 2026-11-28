@@ -191,7 +191,7 @@ export async function runLeasedConversationKnowledgeReview(input: {
 /**
  * The context the provider review receives: every instruction, then the loader's highest-ranked
  * candidates up to its candidate bound. Review context ranks candidates, so the lowest-ranked
- * optional recommendations give way first, as at the byte bound (ADR-0657).
+ * optional recommendations give way first, as at the byte bound (ADR-0659).
  */
 function providerContext(
   documents: SemanticReviewContextDocument[],

@@ -14,7 +14,7 @@ export type ReviewContextSkipReason =
   | "unsafe_document_path"
   | "document_changed_during_read"
   | "non_utf8"
-  /** A ranked recommendation left out so the context fits its byte bound (ADR-0657). */
+  /** A ranked recommendation left out so the context fits its byte bound (ADR-0659). */
   | "context_budget";
 
 /** Private selection evidence only; skipped bytes are never a loaded context binding. */
