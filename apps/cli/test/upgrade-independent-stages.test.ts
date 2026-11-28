@@ -309,13 +309,14 @@ describe("lervo upgrade when event writer backup retention fails (ADR-0651)", ()
     const leftover = resolve(root, ".lervo/data/event-writer-backups", leftovers[0]!);
     lockedDirectories.push(leftover);
 
-    // Once the removal can proceed, the next upgrade finishes the leftover.
+    // Once the removal can proceed, the next upgrade finishes the leftover, and with no grace
+    // period also schema-8, which schema-16 superseded.
     await chmod(leftover, 0o700);
     output.length = 0;
     await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission);
     expect(JSON.parse(output.join(""))).toMatchObject({
       appliedStages: expect.arrayContaining(["event_writer_backup_retention"]),
-      eventWriterBackupRetention: { removed: [leftovers[0]] },
+      eventWriterBackupRetention: { removed: [leftovers[0], "schema-8"] },
     });
   }, 60_000);
 });

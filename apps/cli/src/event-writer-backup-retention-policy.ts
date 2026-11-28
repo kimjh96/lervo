@@ -1,7 +1,11 @@
 import type { EventWriterBackupEntry } from "./event-writer-backup-inventory.js";
 
-/** ADR-0651: a superseded backup stays this long after the activation that superseded it. */
-export const EVENT_WRITER_BACKUP_GRACE_DAYS = 14;
+/**
+ * ADR-0651, amended 2026-11-28: a superseded backup goes at the next pass. The rollback procedure
+ * restores only the newest backup, the rollback point, so older full copies of the event store
+ * only filled disks: on WSL, eight of them took 1.5 GB in one checkout.
+ */
+export const EVENT_WRITER_BACKUP_GRACE_DAYS = 0;
 const DAY_MS = 86_400_000;
 
 export type EventWriterBackupKeepReason =

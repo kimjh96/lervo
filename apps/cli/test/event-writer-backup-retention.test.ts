@@ -64,7 +64,7 @@ async function names(root: string): Promise<string[]> {
 }
 
 describe("event writer backup retention (ADR-0651)", () => {
-  it("keeps the rollback point and young superseded backups, and prunes old ones", async () => {
+  it("keeps only the rollback point and prunes every superseded backup", async () => {
     const root = await repository();
     await backup(root, 5, 60);
     await backup(root, 8, 30);
@@ -77,28 +77,27 @@ describe("event writer backup retention (ADR-0651)", () => {
       reason: "event_writer_backup_retention_ready",
       selectedSchemaVersion: 16,
       rollbackPoint: ".lervo/data/event-writer-backups/schema-16",
-      gracePeriodDays: 14,
+      gracePeriodDays: 0,
     });
-    // schema-5 was superseded 30 days ago and schema-8 ten days ago; schema-14 a day ago.
-    expect(plan.candidates.map((item) => item.name)).toEqual(["schema-5"]);
-    expect(plan.reclaimableBytes).toBe(plan.candidates[0]!.bytes);
-    expect(plan.retained).toEqual([
-      { name: "schema-8", reason: "grace_period", until: "2026-12-01T12:00:00.000Z" },
-      { name: "schema-14", reason: "grace_period", until: "2026-12-10T12:00:00.000Z" },
-      { name: "schema-16", reason: "rollback_point" },
-    ]);
-
-    const bytes = plan.candidates[0]!.bytes;
-    expect(eventWriterBackupRetentionLines(plan)).toEqual([
-      `event writer backup retention: safe_apply (event_writer_backup_retention_ready) · rollback point .lervo/data/event-writer-backups/schema-16 · 1 directories, ${bytes} bytes`,
-      `  remove backup schema-5 (${bytes} bytes, superseded 2026-10-28T12:00:00.000Z)`,
-      "  keep backup schema-8 (grace_period until 2026-12-01T12:00:00.000Z)",
-      "  keep backup schema-14 (grace_period until 2026-12-10T12:00:00.000Z)",
+    expect(plan.candidates.map((item) => item.name)).toEqual(["schema-5", "schema-8", "schema-14"]);
+    expect(plan.reclaimableBytes).toBe(
+      plan.candidates.reduce((total, item) => total + item.bytes, 0),
+    );
+    expect(plan.retained).toEqual([{ name: "schema-16", reason: "rollback_point" }]);
+    const lines = eventWriterBackupRetentionLines(plan);
+    expect(lines[0]).toContain("rollback point .lervo/data/event-writer-backups/schema-16");
+    expect(lines.slice(1).map((line) => line.split(" (")[0])).toEqual([
+      "  remove backup schema-5",
+      "  remove backup schema-8",
+      "  remove backup schema-14",
     ]);
 
     const outcome = await applyEventWriterBackupRetention(root, plan, ports(16));
-    expect(outcome).toEqual({ removed: ["schema-5"], reclaimedBytes: plan.reclaimableBytes });
-    expect(await names(root)).toEqual(["schema-14", "schema-16", "schema-8"]);
+    expect(outcome).toEqual({
+      removed: ["schema-5", "schema-8", "schema-14"],
+      reclaimedBytes: plan.reclaimableBytes,
+    });
+    expect(await names(root)).toEqual(["schema-16"]);
     expect((await planEventWriterBackupRetention(root, ports(16))).disposition).toBe("current");
   });
 
@@ -273,10 +272,12 @@ describe("event writer backup retention (ADR-0651)", () => {
     ).toEqual([
       "event writer backup removal failed: schema-5 (EACCES); held as Lervo debt (event_writer_backup_retention_failed) and retried by the next upgrade",
     ]);
+    // With no grace period, the next run also removes schema-8, which schema-16 superseded.
     const resumed = await planEventWriterBackupRetention(root, ports(16));
-    expect(resumed.candidates.map((item) => item.name)).toEqual([leftover]);
+    expect(resumed.candidates.map((item) => item.name)).toEqual([leftover, "schema-8"]);
     expect((await applyEventWriterBackupRetention(root, resumed, ports(16))).removed).toEqual([
       leftover,
+      "schema-8",
     ]);
   });
 });
