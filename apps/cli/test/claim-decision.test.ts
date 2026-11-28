@@ -23,7 +23,7 @@ import { answerClaimHook } from "../src/write-claims.js";
 import {
   claimFixture,
   eventsOf,
-  openGateByFile,
+  closeGateByFile,
   type ClaimFixture,
 } from "./conversation-claim-fixture.js";
 
@@ -444,20 +444,25 @@ describe("claims at first write in a conversation's worktree", () => {
     await Promise.all(tracked);
   });
 
-  it("opens the gate from the repository's file alone, for the start and for claims", async () => {
+  it("follows the release's open gate unless the repository's owner-only file closes it", async () => {
     const { first } = app;
-    vi.stubEnv("LERVO_COORDINATION", "0");
-    expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/a.ts`)).toBe("{}\n");
-    expect(widening.calls).toBe(0);
-
-    const gate = await openGateByFile(app.repository);
+    vi.stubEnv("LERVO_COORDINATION", "");
     expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/a.ts`)).toBe("{}\n");
     expect((await conversationAssignment(first.leadAgentId)).expectedPaths).toEqual(["src/a.ts"]);
-    expect((await app.startConversation("Gate by file", "Oda")).workspaceId).toMatch(/^wsp_/u);
+    expect(widening.calls).toBe(1);
 
-    // A file others can read or write opens nothing.
+    const gate = await closeGateByFile(app.repository);
+    expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/b.ts`)).toBe("{}\n");
+    expect(widening.calls).toBe(1);
+
+    // A file others can read or write closes nothing.
     await chmod(gate, 0o644);
     expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/z.ts`)).toBe("{}\n");
-    expect(widening.calls).toBe(1);
+    expect(widening.calls).toBe(2);
+    // The process override still wins over the file, as tests use it.
+    await chmod(gate, 0o600);
+    vi.stubEnv("LERVO_COORDINATION", "1");
+    expect(await write(first.sessionId, first.worktree, `${first.worktree}/src/y.ts`)).toBe("{}\n");
+    expect(widening.calls).toBe(3);
   });
 });

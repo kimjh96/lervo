@@ -92,7 +92,7 @@ async function fixture(
     await symlink(resolve(root, "real-workspaces"), resolve(root, "workspaces"));
   }
   vi.stubEnv("LERVO_WORKSPACES_HOME", resolve(root, "workspaces"));
-  if (options.gate !== false) vi.stubEnv("LERVO_COORDINATION", "1");
+  vi.stubEnv("LERVO_COORDINATION", options.gate === false ? "0" : "1");
   vi.stubEnv("CLAUDE_CONFIG_DIR", resolve(root, "claude"));
   vi.stubEnv("PATH", `${bin}${delimiter}${process.env.PATH ?? ""}`);
   await git(repository, "init", "--initial-branch", "main");

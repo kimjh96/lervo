@@ -19,13 +19,15 @@ A conversation claims each path the first time it writes it. A claim that overla
 
 Slice 1 also delivers the part of S2c that ADR-0637 orders there: the workspace holds an assignment and a growing lease. The order follows ADR-0637: this specification, then the integration command, then the ADE driving integration.
 
-Slice 1 ships in parts behind one gate: the coordination stage of `lervo workspace start` runs only when this release enables it and the writer selects schema 16. Schema 16 also carries conversation notes, so it may be activated before claims are complete. The release's switch stays off until the claim handler, the turn's reconciliation, and retiring a conversation's assignment and generation record have landed. With the gate closed, the start reports `coordination_inactive`, as below schema 16.
+Slice 1 runs behind one gate. The coordination stage of `lervo workspace start` runs only when the repository's gate is open and the writer selects schema 16. The release's switch stayed off until the claim handler, the turn's reconciliation, and retiring a conversation's assignment and generation record had landed and passed a real-repository canary. That canary ran on 2026-11-28 on the Mac lervo checkout: a recorded claim, a same-file refusal through the served hook, and a retirement that released everything. From CLI 0.68 the switch is on, so every repository coordinates unless its owner closes the gate ([ADR-0654](../../../decisions/coordination/conversations/agent-organization/0654-coordinate-every-repository-by-default.md)). With the gate closed, the start reports `coordination_inactive`, as below schema 16.
 
-The gate belongs to the repository, not to a process, so the start and every claim in a repository agree. A served hook runs in the resident's context server, whose environment the session does not set. The gate is open for a repository when any of these holds:
+The gate belongs to the repository, not to a process, so the start and every claim in a repository agree. A served hook runs in the resident's context server, whose environment the session does not set. The gate is decided in this order:
 
-- this release's switch is on;
-- `LERVO_COORDINATION=1` is set in the deciding process, which tests use;
-- an owner-only regular file named `enabled` sits in the repository instance's coordination home, beside the claim path key: `<Git common directory>/lervo-coordination-v1/enabled`. A canary opens the gate this way. A file that others can read or write, a link, or a home that does not exist yet keeps the gate closed.
+- `LERVO_COORDINATION=1` or `0` in the deciding process opens or closes it, which tests use;
+- otherwise, an owner-only regular file named `disabled` in the repository instance's coordination home, beside the claim path key (`<Git common directory>/lervo-coordination-v1/disabled`), closes it. That file is the owner's switch. A file that others can read or write, or a link, closes nothing;
+- otherwise, this release's switch decides, and it is on. A coordination home that does not exist yet keeps the gate open: the start creates it, and a claim without a conversation record claims nothing.
+
+An `enabled` file that canaries of earlier releases created is no longer read.
 
 The gate decides only what starts: conversation records, claims, and the reconciliation that widens a lease. Ending coordination that already exists never asks it. Retiring a conversation, and the upgrade's sweep of conversations whose worktree is gone (under "Lease lifetime"), run whenever the conversation has generation records, with the gate open or closed. A field canary on 0.66.1 showed why: two conversations started with the gate open, the gate closed, and retiring them removed their worktrees and branches but left their leases held, their records `ready`, and their changes files in place, which nothing would ever retire again.
 
@@ -176,8 +178,8 @@ A request whose paths all sit inside a lease that expires more than 30 seconds f
 - **Deferral codes.** A failure defers with its code, which the hook's `claim_unverified` refusal names as its cause, such as `workforce_busy`, `assignment_lease_conflict` for another agent's lease, or `claim_deferred` when it has none. A lease of the same lead that expired, or that another of the lead's sessions holds, is reacquired instead (under "Lease lifetime"). A widening whose event failed defers with the event's cause. The claim opens the event store with a 250 ms busy wait instead of SQLite's 5 seconds, because the event is written under the scheduler lock, and a store another writer holds defers as `workforce_busy`. A store that no longer takes schema 16 envelopes answers `allow`, since no lease grows there.
 - **Cost.** Measured on macOS with the hook in process, as medians:
   - in a main checkout, about 0.2 ms, with no Git;
-  - in a conversation's worktree with the gate closed, about 17 ms, most of it the `git rev-parse` that finds the coordination home for the gate file;
-  - inside the lease, about 22 ms with the gate open in the process and about 55 ms with the gate file, each `git rev-parse` that resolves the coordination home costing about 15 ms;
+  - in a conversation's worktree with the gate closed, about 17 ms, most of it the `git rev-parse` that finds the coordination home for the gate's `disabled` file;
+  - inside the lease, about 22 ms with the gate decided in the process and about 55 ms when it is read from the repository's coordination home, each `git rev-parse` that resolves the coordination home costing about 15 ms;
   - a widening, 100 to 200 ms.
 
 ### How a claim widens the lease

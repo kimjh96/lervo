@@ -174,8 +174,8 @@ export async function eventsOf(repository: string, ...types: string[]) {
   }
 }
 
-/** Opens the repository's coordination gate by its owner-only file, as a canary does. */
-export async function openGateByFile(repository: string): Promise<string> {
+/** Closes the repository's coordination gate by its owner-only file, as an owner does. */
+export async function closeGateByFile(repository: string): Promise<string> {
   const home = await resolveRepositoryCoordinationHome(repository);
   const path = resolve(home.root, COORDINATION_GATE_FILE);
   await writeFile(path, "", { mode: 0o600 });
