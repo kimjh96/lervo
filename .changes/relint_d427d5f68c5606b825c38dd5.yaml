@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d427d5f68c5606b825c38dd5"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A host whose delegated provider is not admitted now reports provider_not_admitted, not knowledge_authority_unavailable, and looks at ownership again when that hour-old record lapses, so upgrade stages stop waiting as Lervo debt for an unrelated change."
