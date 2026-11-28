@@ -76,4 +76,28 @@ describe("moved documents in a plan review", () => {
       Buffer.byteLength(large) / 10,
     );
   });
+
+  it("bounds a rewritten line to its changed span, however long the line is", () => {
+    const row = `| ${"cell ".repeat(20_000)}[spec](../specs/a.md) ${"tail ".repeat(20_000)}|`;
+    const moved = row.replace("](../specs/a.md)", "](../../specs/a.md)");
+    const disclosed = discloseLifecyclePlanMoves(
+      {
+        operations: [
+          {
+            path: "docs/t.md",
+            destinationPath: "docs/x/t.md",
+            action: "move_update",
+            content: moved,
+          },
+        ],
+      },
+      [{ path: "docs/t.md", contentHash: "sha256:t", content: row }],
+    );
+    const [line] = (disclosed.sources[0] as { rewrittenLines: Array<Record<string, unknown>> })
+      .rewrittenLines;
+    expect(line).toMatchObject({ line: 1 });
+    expect(String(line!.before).length).toBeLessThan(200);
+    expect(String(line!.after)).toContain("](../../specs/a.md)");
+    expect(Number(line!.column)).toBeGreaterThan(90_000);
+  });
 });

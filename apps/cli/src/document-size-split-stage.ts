@@ -37,21 +37,34 @@ function printable(plan: DocumentSizeSplitPlan): unknown {
   };
 }
 
+/** Every document the split keeps whole, with why, so none is passed over silently. */
+function keptWholeLines(plan: DocumentSizeSplitPlan): string[] {
+  return [
+    ...plan.unsplittable.map(
+      (item) => `kept whole: ${item.path} (${item.byteCount} bytes, ${item.reason})`,
+    ),
+    ...plan.data.map(
+      (item) => `kept whole: ${item.path} (${item.byteCount} bytes, document_too_large)`,
+    ),
+    ...plan.deferred.map(
+      (item) => `waiting: ${item.path} (${item.byteCount} bytes, not_yet_registered)`,
+    ),
+  ];
+}
+
 function formatPlan(plan: DocumentSizeSplitPlan): string {
   const lines = [
     `Documents too large to normalize in one pass (over ${plan.boundBytes} bytes) split first.`,
     `plan: ${plan.planId}`,
     ...documentSizeSplitSummary(plan),
-    ...plan.unsplittable.map(
-      (part) => `unsplittable: ${part.path} (${part.byteCount} bytes, document_unsplittable)`,
+    ...plan.referenceUpdates.map((item) => `links updated: ${item.path}`),
+    ...plan.documents.flatMap((document) =>
+      document.unkeptLinks.map((url) => `link not kept: ${document.path} -> ${url}`),
     ),
-    ...plan.deferred.map(
-      (document) => `deferred: ${document.path} (${document.byteCount} bytes, not yet registered)`,
-    ),
-    ...plan.data.map(
-      (document) => `data: ${document.path} (${document.byteCount} bytes, document_too_large)`,
-    ),
-    "Every byte is kept: the parts are exact ranges of each document, checked deterministically.",
+    ...keptWholeLines(plan),
+    "Each part is its original byte range plus only recorded changes: rebased links, repeated",
+    "table header rows, copied reference definitions, and the managed parts block. The check undoes",
+    "them and compares every written file with its range.",
     `Apply with lervo migrate knowledge --apply ${plan.planId}.`,
   ];
   return `${lines.join("\n")}\n`;
@@ -86,10 +99,7 @@ export async function runDocumentSizeSplitStage(input: {
   });
   if (plan.status === "current") {
     // Nothing to split, but what stays whole is named on every run, never passed silently.
-    const kept = [...plan.data, ...plan.deferred].map(
-      (document) =>
-        `kept whole: ${document.path} (${document.byteCount} bytes, document_too_large)`,
-    );
+    const kept = keptWholeLines(plan);
     if (kept.length > 0) input.io.stderr(`${kept.join("\n")}\n`);
     return null;
   }

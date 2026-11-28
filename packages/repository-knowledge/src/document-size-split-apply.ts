@@ -4,7 +4,8 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
-import { splitOversizedDocument } from "./document-size-split-layout.js";
+import { restoreSplitPiece } from "./document-size-split-layout.js";
+import { restoreSplitLinks } from "./document-size-split-links.js";
 import type {
   DocumentSizeSplitPlan,
   DocumentSizeSplitReceipt,
@@ -14,9 +15,17 @@ import { applyDurableKnowledgeOperations } from "./durable-apply.js";
 import { sha256 } from "./integrity.js";
 import { RepositoryKnowledgeError, type RepositoryKnowledgeScanOptions } from "./types.js";
 
+/** The character offset of a byte offset in `content`, or null when it splits a character. */
+function characterOffset(content: string, byteOffset: number): number | null {
+  const prefix = Buffer.from(content).subarray(0, byteOffset).toString("utf8");
+  return Buffer.byteLength(prefix) === byteOffset ? prefix.length : null;
+}
+
 /**
- * The deterministic check that stands in for a reviewer: each document's current bytes split
- * again to exactly the planned index and parts, whose original ranges reassemble the document.
+ * The deterministic check that stands in for a reviewer. It never plans again: for every file the
+ * plan writes it undoes the recorded link rewrites, drops the copied definitions, the managed
+ * block, and a repeated table header, and compares what remains with the original byte range;
+ * the ranges must cover each document in order. A linking document must restore to its bytes.
  */
 export async function verifyDocumentSizeSplitPlan(plan: DocumentSizeSplitPlan): Promise<{
   agreed: boolean;
@@ -27,23 +36,58 @@ export async function verifyDocumentSizeSplitPlan(plan: DocumentSizeSplitPlan): 
       operation.content === undefined ? [] : [[operation.path, operation.content] as const],
     ),
   );
+  const disagree = (path: string, reason: string) => ({
+    agreed: false,
+    rationale: `${path} does not restore to its original bytes: ${reason}.`,
+  });
   for (const document of plan.documents) {
     const original = await readFile(resolve(plan.repositoryRoot, document.path), "utf8");
     if (sha256(original) !== document.beforeHash)
-      return { agreed: false, rationale: `${document.path} changed after the split was planned.` };
-    const split = splitOversizedDocument(document.path, original, plan.boundBytes);
-    const planned = [document.path, ...document.parts.map((part) => part.path)];
-    const expected = [split.index, ...split.parts.map((part) => part.content)];
-    if (planned.some((path, index) => contents.get(path) !== expected[index]))
-      return {
-        agreed: false,
-        rationale: `${document.path} does not split again to the planned index and parts.`,
-      };
+      return disagree(document.path, "it changed after the split was planned");
+    const ranges = [
+      { ...document, startByte: 0, endByte: document.preambleByteCount },
+      ...document.parts,
+    ];
+    let expectedStart = 0;
+    for (const [index, range] of ranges.entries()) {
+      const start = characterOffset(original, range.startByte);
+      const end = characterOffset(original, range.endByte);
+      const written = contents.get(range.path);
+      if (
+        range.startByte !== expectedStart ||
+        start === null ||
+        end === null ||
+        written === undefined
+      )
+        return disagree(range.path, "its range does not continue the document");
+      const reason = restoreSplitPiece(original, written, {
+        start,
+        end,
+        header: range.repeatedHeader,
+        appendix: range.copiedDefinitions,
+        rewrites: range.linkRewrites,
+        ...(index === 0 ? { block: document.partsBlock } : {}),
+      });
+      if (reason !== null) return disagree(range.path, reason);
+      expectedStart = range.endByte;
+    }
+    if (expectedStart !== Buffer.byteLength(original))
+      return disagree(document.path, "its parts end before the document does");
+  }
+  for (const reference of plan.referenceUpdates) {
+    const current = await readFile(resolve(plan.repositoryRoot, reference.path), "utf8");
+    const written = contents.get(reference.path);
+    if (
+      sha256(current) !== reference.beforeHash ||
+      written === undefined ||
+      restoreSplitLinks(written, reference.linkRewrites) !== current
+    )
+      return disagree(reference.path, "its only changes must be the recorded link rewrites");
   }
   const parts = plan.documents.reduce((sum, document) => sum + document.parts.length, 0);
   return {
     agreed: true,
-    rationale: `Every byte of ${plan.documents.length} document(s) is kept: their ${parts} parts are exact ranges of the original bytes, with only table header rows repeated and relative links rebased, and they split again identically.`,
+    rationale: `${plan.documents.length} document(s) restore exactly from their index and ${parts} parts once the recorded link rewrites, copied definitions, repeated table headers, and the managed block are undone; ${plan.referenceUpdates.length} linking document(s) differ only by their recorded link rewrites.`,
   };
 }
 

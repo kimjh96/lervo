@@ -16,8 +16,11 @@ interface ReviewSource {
 export interface DisclosedMoveSource extends ReviewSource {
   content: null;
   movedTo: string;
-  /** Absent for a byte-identical move; otherwise every line the move rewrites, 1-based. */
-  rewrittenLines?: Array<{ line: number; before: string; after: string }>;
+  /**
+   * Absent for a byte-identical move; otherwise every line the move rewrites, 1-based, as the
+   * changed span from `column` (1-based) with up to 80 unchanged characters around it.
+   */
+  rewrittenLines?: Array<{ line: number; column: number; before: string; after: string }>;
 }
 
 interface MoveOperation {
@@ -27,8 +30,8 @@ interface MoveOperation {
   content?: string;
 }
 
-/** The share of a document a move may rewrite and still be shown as its rewritten lines. */
-const MAXIMUM_REWRITTEN_FRACTION = 0.25;
+/** Unchanged characters shown around a rewritten span, so a long line stays bounded. */
+const CONTEXT_CHARACTERS = 80;
 
 function moves(plan: unknown): MoveOperation[] {
   const value = (plan as { operations?: unknown } | null)?.operations;
@@ -45,18 +48,45 @@ function moves(plan: unknown): MoveOperation[] {
   );
 }
 
-/** Every line that differs, when only lines change in place; null otherwise. */
+/** The changed span of one line, with bounded unchanged context on each side. */
+function changedSpan(
+  line: number,
+  before: string,
+  after: string,
+): { line: number; column: number; before: string; after: string } {
+  let prefix = 0;
+  while (prefix < before.length && prefix < after.length && before[prefix] === after[prefix])
+    prefix += 1;
+  let suffix = 0;
+  while (
+    suffix < before.length - prefix &&
+    suffix < after.length - prefix &&
+    before[before.length - 1 - suffix] === after[after.length - 1 - suffix]
+  )
+    suffix += 1;
+  const from = Math.max(0, prefix - CONTEXT_CHARACTERS);
+  return {
+    line,
+    column: from + 1,
+    before: before.slice(
+      from,
+      Math.min(before.length, before.length - suffix + CONTEXT_CHARACTERS),
+    ),
+    after: after.slice(from, Math.min(after.length, after.length - suffix + CONTEXT_CHARACTERS)),
+  };
+}
+
+/** Every line that differs, as its changed span, when only lines change in place; null otherwise. */
 function rewrittenLines(
   before: string,
   after: string,
-): Array<{ line: number; before: string; after: string }> | null {
+): Array<{ line: number; column: number; before: string; after: string }> | null {
   const old = before.split("\n");
   const next = after.split("\n");
   if (old.length !== next.length) return null;
-  const changed = old.flatMap((line, index) =>
-    line === next[index] ? [] : [{ line: index + 1, before: line, after: next[index]! }],
+  return old.flatMap((line, index) =>
+    line === next[index] ? [] : [changedSpan(index + 1, line, next[index]!)],
   );
-  return changed.length > old.length * MAXIMUM_REWRITTEN_FRACTION ? null : changed;
 }
 
 /**

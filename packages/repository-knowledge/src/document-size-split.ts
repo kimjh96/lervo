@@ -1,7 +1,7 @@
-// ADR-0653: a document too large to normalize in one pass is split, mechanically and byte for
-// byte, into parts beside it before normalization. The plan is a pure function of the document's
-// bytes, so its check is deterministic: the parts' original ranges reassemble the document
-// exactly, and planning again from the same bytes yields the same plan.
+// ADR-0653: a document too large to normalize in one pass is split mechanically into parts beside
+// it before normalization. Each part is an original byte range plus recorded changes: rebased and
+// heading-following links, repeated table header rows, and copied reference definitions. The
+// check undoes them and compares every written file with its range.
 import { resolve } from "node:path";
 
 import {
@@ -11,181 +11,19 @@ import {
 } from "./compiler.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { DOCUMENT_SINGLE_PASS_BYTES } from "./document-size-partition.js";
-import { byteOffset, splitOversizedDocument } from "./document-size-split-layout.js";
-import { assertSafeAbsentDestination } from "./document-structure-split.js";
+import { splitReferenceUpdates } from "./document-size-split-references.js";
 import type { DurableKnowledgeUserFileOperation } from "./durable-apply.js";
-import type {
-  DocumentSizeSplitDocument,
-  DocumentSizeSplitPlan,
-} from "./document-size-split-contract.js";
+import type { DocumentSizeSplitPlan } from "./document-size-split-contract.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
-import { isWithinPublicationRoot } from "./repository-publication-files.js";
-import {
-  repositoryPathCanRemainIncluded,
-  splitRepositoryKnowledgeScanSource,
-  upsertRepositoryKnowledgeScanSources,
-} from "./scanner.js";
-import { createDocumentSplitLineage } from "./source-lineage.js";
+import { upsertRepositoryKnowledgeScanSources } from "./scanner.js";
 import { loadStoredConcepts } from "./store-reader.js";
+import { planSplits } from "./document-size-split-documents.js";
 import {
   registryChange,
   requestedDocuments,
   unreadDocuments,
-  type ScannedPolicy,
-  type SplitSource,
 } from "./document-size-split-sources.js";
-import {
-  RepositoryKnowledgeError,
-  type KnowledgeFileOperation,
-  type RepositoryKnowledgeScan,
-  type RepositoryKnowledgeScanOptions,
-} from "./types.js";
-
-interface PlannedDocument {
-  document: DocumentSizeSplitDocument;
-  scan: RepositoryKnowledgeScan;
-  lineageOperations: KnowledgeFileOperation[];
-  userOperations: DurableKnowledgeUserFileOperation[];
-  lineageIds: string[];
-  unsplittable: DocumentSizeSplitPlan["unsplittable"];
-}
-
-/** One document's split: its lineage, its user writes, and the scan as it will read after them. */
-async function planDocument(input: {
-  root: string;
-  scan: RepositoryKnowledgeScan;
-  virtualScan: RepositoryKnowledgeScan;
-  policy: ScannedPolicy;
-  generatedPaths: ReadonlySet<string>;
-  source: SplitSource;
-  boundBytes: number;
-}): Promise<PlannedDocument> {
-  const { source, scan } = input;
-  const split = splitOversizedDocument(source.path, source.content, input.boundBytes);
-  for (const part of split.parts) {
-    await assertSafeAbsentDestination(input.root, part.path);
-    if (
-      !repositoryPathCanRemainIncluded(part.path, input.policy) ||
-      input.generatedPaths.has(part.path) ||
-      isWithinPublicationRoot(part.path, input.policy.publicationRoot) ||
-      scan.sources.some((item) => item.path === part.path)
-    )
-      throw new RepositoryKnowledgeError(
-        "knowledge_reconciliation_conflict",
-        `The split part path ${part.path} is not a new regular document path included by policy.`,
-      );
-  }
-  const afterHash = sha256(split.index);
-  const sourceUnitIds = scan.units
-    .filter((item) => item.sourceId === source.sourceId)
-    .map((item) => item.unitId);
-  const operationId = stableId("kdocop", {
-    projectId: scan.projectId,
-    action: "size_split",
-    sourceId: source.sourceId,
-    sourcePath: source.path,
-    sourceBeforeHash: source.contentHash,
-    sourceAfterHash: afterHash,
-    parts: split.parts.map((part) => [part.path, sha256(part.content)]),
-  });
-  const planned: PlannedDocument = {
-    document: {
-      path: source.path,
-      beforeHash: source.contentHash,
-      beforeByteCount: source.byteCount,
-      afterHash,
-      afterByteCount: Buffer.byteLength(split.index),
-      parts: [],
-    },
-    scan: input.virtualScan,
-    lineageOperations: [],
-    userOperations: [],
-    lineageIds: [],
-    unsplittable: [],
-  };
-  for (const part of split.parts) {
-    const range = {
-      startByte: byteOffset(source.content, part.part.start),
-      endByte: byteOffset(source.content, part.part.end),
-    };
-    const contentHash = sha256(part.content);
-    if (!source.unread) {
-      const lineage = createDocumentSplitLineage({
-        projectId: scan.projectId,
-        operationId,
-        sourcePath: source.path,
-        destinationPath: part.path,
-        identityPath: source.identityPath ?? source.path,
-        sourceId: source.sourceId,
-        sourceBeforeHash: source.contentHash,
-        sourceBeforeByteCount: source.byteCount,
-        sourceAfterHash: afterHash,
-        destinationHash: contentHash,
-        selectedHeadingLocator: part.part.locator,
-        extractedRange: range,
-        sourceUnitIds,
-      });
-      planned.lineageIds.push(lineage.value.lineageId);
-      planned.lineageOperations.push({
-        path: lineage.file,
-        action: "create",
-        ownership: "lervo_generated",
-        mediaType: "application/yaml",
-        content: lineage.content,
-        desiredHash: sha256(lineage.content),
-      });
-      planned.scan = splitRepositoryKnowledgeScanSource({
-        scan: planned.scan,
-        sourcePath: source.path,
-        destinationPath: part.path,
-        sourceContent: split.index,
-        destinationContent: part.content,
-      });
-    }
-    planned.userOperations.push({
-      path: part.path,
-      action: "create",
-      ownership: "user",
-      mediaType: "text/markdown",
-      content: part.content,
-      desiredHash: contentHash,
-    });
-    const byteCount = Buffer.byteLength(part.content);
-    if (part.part.oversized) planned.unsplittable.push({ path: part.path, byteCount });
-    planned.document.parts.push({
-      path: part.path,
-      title: part.part.title,
-      ...range,
-      contentHash,
-      byteCount,
-      repeatedHeaderBytes: Buffer.byteLength(part.part.repeatedHeader ?? ""),
-      rebasedLinks: part.rebased,
-    });
-  }
-  // A document the scanner left out for its size had no knowledge identity: its index and parts
-  // join the scan as new sources, without a lineage to carry.
-  if (source.unread)
-    planned.scan = upsertRepositoryKnowledgeScanSources(
-      {
-        ...planned.scan,
-        sources: planned.scan.sources.filter((item) => item.path !== source.path),
-      },
-      [
-        { path: source.path, content: split.index },
-        ...split.parts.map((part) => ({ path: part.path, content: part.content })),
-      ],
-    );
-  planned.userOperations.push({
-    path: source.path,
-    action: "update",
-    ownership: "user",
-    mediaType: "text/markdown",
-    content: split.index,
-    expectedCurrentHash: source.contentHash,
-    desiredHash: afterHash,
-  });
-  return planned;
-}
+import { RepositoryKnowledgeError, type RepositoryKnowledgeScanOptions } from "./types.js";
 
 /**
  * Plans the split of every given document over the single-pass bound, in one exact plan. Documents
@@ -226,27 +64,30 @@ export async function createDocumentSizeSplitPlan(input: {
         item.value.ownership === "user" &&
         item.value.publicationStatus !== "deprecated",
     ).length === 1;
-  let virtualScan = scan;
-  const planned: PlannedDocument[] = [];
-  const deferred: DocumentSizeSplitPlan["deferred"] = [];
-  for (const source of sources) {
-    if (source.data) continue;
-    if (!source.unread && !userConcept(source.path)) {
-      deferred.push({ path: source.path, byteCount: source.byteCount });
-      continue;
-    }
-    const document = await planDocument({
-      root,
-      scan,
+  const splitting = await planSplits({
+    root,
+    scan,
+    policy,
+    generatedPaths,
+    sources,
+    boundBytes,
+    registered: userConcept,
+  });
+  let virtualScan = splitting.virtualScan;
+  const { planned, deferred, unsplittable, splits } = splitting;
+  const references = splitReferenceUpdates(
+    scan,
+    new Map(
+      splits.flatMap(({ source, split }) =>
+        typeof split === "string" ? [] : [[source.path, split.anchors] as const],
+      ),
+    ),
+  );
+  if (references.length > 0)
+    virtualScan = upsertRepositoryKnowledgeScanSources(
       virtualScan,
-      policy,
-      generatedPaths,
-      source,
-      boundBytes,
-    });
-    virtualScan = document.scan;
-    planned.push(document);
-  }
+      references.map((reference) => ({ path: reference.path, content: reference.content })),
+    );
   const structural =
     planned.length === 0
       ? { status: "ready" as const, operations: [] }
@@ -267,6 +108,15 @@ export async function createDocumentSizeSplitPlan(input: {
     ...structural.operations,
     ...planned.flatMap((item) => item.lineageOperations),
     ...planned.flatMap((item) => item.userOperations),
+    ...references.map((reference): DurableKnowledgeUserFileOperation => ({
+      path: reference.path,
+      action: "update",
+      ownership: "user",
+      mediaType: "text/markdown",
+      content: reference.content,
+      expectedCurrentHash: reference.beforeHash,
+      desiredHash: reference.afterHash,
+    })),
   ];
   const registry = await registryChange(root, storedConcepts, structural.operations);
   const documents = planned.map((item) => item.document);
@@ -280,6 +130,7 @@ export async function createDocumentSizeSplitPlan(input: {
       operationId,
       boundBytes,
       documents,
+      references: references.map((reference) => [reference.path, reference.afterHash]),
       operations: operations.map(({ content: _content, ...operation }) => operation),
     }),
   );
@@ -299,7 +150,7 @@ export async function createDocumentSizeSplitPlan(input: {
     }),
     operationId,
     approvalHash,
-    status: documents.length === 0 ? "current" : "review_required",
+    status: documents.length === 0 && references.length === 0 ? "current" : "review_required",
     projectId: scan.projectId,
     repositoryRoot: root,
     sourceSnapshotId: scan.snapshotId,
@@ -310,7 +161,8 @@ export async function createDocumentSizeSplitPlan(input: {
     afterRegistryDigest: registry.afterRegistryDigest,
     boundBytes,
     documents,
-    unsplittable: planned.flatMap((item) => item.unsplittable),
+    referenceUpdates: references.map(({ content: _content, ...reference }) => reference),
+    unsplittable: [...unsplittable, ...planned.flatMap((item) => item.unsplittable)],
     data: sources
       .filter((source) => source.data)
       .map((source) => ({ path: source.path, byteCount: source.byteCount })),

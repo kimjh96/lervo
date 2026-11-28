@@ -1148,7 +1148,16 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
     ) {
       // ADR-0604: a selected source that is still an eligible document but no longer pending was
       // normalized or rescoped after generation, so the candidate is stale, not invalid.
-      const eligiblePaths = new Set(eligible.map((item) => item.source.path));
+      // ADR-0653: a source now over the single-pass bound left normalization for a size split.
+      const eligiblePaths = new Set(
+        normalizableDocuments(
+          input.scan,
+          input.publicationRoot,
+          input.taxonomy,
+          input.normalizationExclude,
+          input.toolGeneratedPaths,
+        ).map((item) => item.source.path),
+      );
       const requested = input.candidate.items.map((item) => item.sourcePath);
       if (
         new Set(requested).size === requested.length &&

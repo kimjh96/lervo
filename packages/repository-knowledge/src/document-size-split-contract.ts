@@ -2,24 +2,46 @@
 import type { DurableKnowledgeUserFileOperation } from "./durable-apply.js";
 import type { KnowledgeFileOperation, RepositoryKnowledgeScan } from "./types.js";
 
-export interface DocumentSizeSplitDocument {
+/** What the check must undo in one written file to reach its original range. */
+export interface DocumentSizeSplitRestoration {
+  /** Table header rows copied ahead of the range, or null. */
+  repeatedHeader: string | null;
+  /** Reference definitions copied after the range, or "". */
+  copiedDefinitions: string;
+  /** Link destinations rewritten, at character offsets before rewriting. */
+  linkRewrites: Array<{ start: number; end: number; before: string; after: string }>;
+}
+
+export interface DocumentSizeSplitDocument extends DocumentSizeSplitRestoration {
   path: string;
   beforeHash: string;
   beforeByteCount: number;
   afterHash: string;
   afterByteCount: number;
-  parts: Array<{
-    path: string;
-    title: string | null;
-    startByte: number;
-    endByte: number;
-    contentHash: string;
-    byteCount: number;
-    /** A table's header rows repeated ahead of the part, which reassembly removes. */
-    repeatedHeaderBytes: number;
-    /** Relative Markdown links rebased to the part's directory. */
-    rebasedLinks: number;
-  }>;
+  /** Bytes of the preamble the document keeps; the parts follow it in order. */
+  preambleByteCount: number;
+  /** The Lervo-managed block after the preamble. */
+  partsBlock: string;
+  parts: Array<
+    DocumentSizeSplitRestoration & {
+      path: string;
+      title: string | null;
+      startByte: number;
+      endByte: number;
+      contentHash: string;
+      byteCount: number;
+    }
+  >;
+  /** Link destinations the split could not rewrite, named so none breaks silently. */
+  unkeptLinks: string[];
+}
+
+/** Another document whose links into a split document follow the headings into its parts. */
+export interface DocumentSizeSplitReferenceUpdate {
+  path: string;
+  beforeHash: string;
+  afterHash: string;
+  linkRewrites: DocumentSizeSplitRestoration["linkRewrites"];
 }
 
 export interface DocumentSizeSplitPlan {
@@ -39,8 +61,17 @@ export interface DocumentSizeSplitPlan {
   afterRegistryDigest: string;
   boundBytes: number;
   documents: DocumentSizeSplitDocument[];
-  /** Parts that are one block larger than the bound; normalization reports and skips them. */
-  unsplittable: Array<{ path: string; byteCount: number }>;
+  /** Other documents whose anchor links the split rewrites. */
+  referenceUpdates: DocumentSizeSplitReferenceUpdate[];
+  /**
+   * Documents and parts kept whole over the bound: one indivisible block, or a split's own index.
+   * Normalization reports and skips them; no later plan splits them again.
+   */
+  unsplittable: Array<{
+    path: string;
+    byteCount: number;
+    reason: "document_unsplittable" | "document_parts_index";
+  }>;
   /** Documents over the split maximum, treated as data and never normalized. */
   data: Array<{ path: string; byteCount: number }>;
   /** Documents not yet a registered user concept; the structural stage registers them first. */

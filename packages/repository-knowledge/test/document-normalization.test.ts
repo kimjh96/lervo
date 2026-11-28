@@ -228,6 +228,31 @@ describe("document content normalization", () => {
     expect(lifecycle.pendingDocuments).toEqual(["docs/operations/new.md"]);
   });
 
+  it("reads a candidate whose source grew past the single-pass bound as stale", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/alpha.md"), "# Alpha\n\nOriginal.\n");
+    await writeFile(resolve(root, "docs/operations/beta.md"), "# Beta\n\nOriginal.\n");
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      normalize: async (envelope) => normalizedResponse(envelope),
+    };
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+      sourcePaths: ["docs/operations/alpha.md"],
+    });
+    // ADR-0653: a source now over 256 KiB waits for a size split; an earlier candidate is stale.
+    await writeFile(
+      resolve(root, "docs/operations/alpha.md"),
+      `# Alpha\n\n${"Grown paragraph.\n\n".repeat(20_000)}`,
+    );
+    await expect(
+      createDocumentNormalizationPlan({ repositoryRoot: root, candidate, now: new Date() }),
+    ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
+  });
+
   it("binds an explicit path subset inside the selected lifecycle scope", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/operations"), { recursive: true });

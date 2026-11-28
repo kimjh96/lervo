@@ -11,11 +11,14 @@ import {
   createDocumentSizeSplitPlan,
   createKnowledgeMigrationPlan,
   documentSizePartPaths,
+  githubHeadingSlug,
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
   partitionOversizedMarkdown,
+  restoreSplitPiece,
   splitOversizedDocument,
   verifyDocumentSizeSplitPlan,
+  type SplitDocument,
 } from "../src/index.js";
 
 const roots: string[] = [];
@@ -61,8 +64,14 @@ function document(seed: number, sections: number): string {
   return `${lines.join("\n")}\n`;
 }
 
+function split(path: string, content: string, bound?: number): SplitDocument {
+  const result = splitOversizedDocument(path, content, bound);
+  if (typeof result === "string") throw new Error(`kept whole: ${result}`);
+  return result;
+}
+
 function reassemble(content: string, bound: number): { text: string; bytes: number[] } {
-  const partition = partitionOversizedMarkdown(content, bound);
+  const partition = partitionOversizedMarkdown(content, bound)!;
   return {
     text:
       content.slice(0, partition.preambleEnd) +
@@ -99,7 +108,7 @@ describe("document size partition", () => {
       ...Array.from({ length: 2_000 }, (_, index) => `| R-${index} | ${"z".repeat(60)} |`),
     ];
     const content = ["# Title", "", ...fence, "", "## Rows", "", ...table, ""].join("\n");
-    const partition = partitionOversizedMarkdown(content, 16 * 1024);
+    const partition = partitionOversizedMarkdown(content, 16 * 1024)!;
     for (const part of partition.parts) {
       const text = content.slice(part.start, part.end);
       expect((text.match(/^```/gmu) ?? []).length % 2).toBe(0);
@@ -133,25 +142,97 @@ describe("document size partition", () => {
         "",
       ].join("\n");
       expect(Buffer.byteLength(content)).toBeGreaterThan(4_000_000);
-      const split = splitOversizedDocument("docs/ledger/sources/knowledge.md", content);
-      expect(split.parts.length).toBeGreaterThan(16);
-      expect(split.parts.every((part) => Buffer.byteLength(part.content) <= 256 * 1024)).toBe(true);
-      expect(split.parts.filter((part) => part.part.oversized)).toEqual([]);
-      expect(split.index.startsWith("# Knowledge and requirement extraction\n")).toBe(true);
-      expect(split.index).toContain("<!-- lervo:begin block=document-parts schema=1 -->");
+      const ledger = split("docs/ledger/sources/knowledge.md", content);
+      expect(ledger.parts.length).toBeGreaterThan(16);
+      expect(ledger.parts.every((part) => Buffer.byteLength(part.content) <= 256 * 1024)).toBe(
+        true,
+      );
+      expect(ledger.parts.filter((part) => part.part.oversized)).toEqual([]);
+      expect(ledger.index.content.startsWith("# Knowledge and requirement extraction\n")).toBe(
+        true,
+      );
+      expect(ledger.index.content).toContain("<!-- lervo:begin block=document-parts schema=1 -->");
     },
   );
 
   it("rebases a part's relative links to its directory and groups more than 32 parts", () => {
     const content = `# Guide\n\n${Array.from(
       { length: 40 },
-      (_, index) => `## Part ${index}\n\nSee [other](../other/guide.md#top) ${"w".repeat(300)}.\n`,
+      (_, index) =>
+        `## Part ${index}\n\nSee [other](../other/guide.md#top) ${"w".repeat(3_000)}.\n`,
     ).join("\n")}`;
-    const split = splitOversizedDocument("docs/specs/guide.md", content, 400);
-    expect(split.parts[0]!.content).toContain("](../../../other/guide.md#top)");
-    expect(split.parts.length).toBe(40);
-    expect(split.parts[33]!.path).toBe("docs/specs/guide/02/34-part-33.md");
+    const guide = split("docs/specs/guide.md", content, 4_000);
+    expect(guide.parts[0]!.content).toContain("](../../../other/guide.md#top)");
+    expect(guide.parts.length).toBe(40);
+    expect(guide.parts[33]!.path).toBe("docs/specs/guide/02/34-part-33.md");
     expect(documentSizePartPaths("a.md", ["절삭 공구"])).toEqual(["a/01-part.md"]);
+  });
+
+  it("keeps the index within the bound, its managed block whole, and never splits an index again", () => {
+    // axli's shape: a title, an introduction, and one table, with no section heading.
+    const rows = Array.from({ length: 900 }, (_, index) => `| R-${index} | ${"v".repeat(80)} |`);
+    const content = ["# Ledger", "", "Intro.", "", "| id | v |", "|---|---|", ...rows, ""].join(
+      "\n",
+    );
+    const ledger = split("docs/ledger.md", content, 16 * 1024);
+    expect(Buffer.byteLength(ledger.index.content)).toBeLessThanOrEqual(16 * 1024);
+    expect(ledger.parts.every((part) => Buffer.byteLength(part.content) <= 16 * 1024)).toBe(true);
+    expect(splitOversizedDocument("docs/ledger.md", ledger.index.content, 16)).toBe(
+      "document_parts_index",
+    );
+    // One block larger than the bound is kept whole instead of throwing.
+    const fence = [
+      "```",
+      ...Array.from({ length: 2_000 }, (_, index) => `line ${index}`),
+      "```",
+      "",
+    ];
+    expect(splitOversizedDocument("docs/code.md", fence.join("\n"), 1_024)).toBe(
+      "document_unsplittable",
+    );
+  });
+
+  it("follows headings with their links and keeps reference definitions with their uses", () => {
+    const content = [
+      "# Guide",
+      "",
+      "Jump to [late](#late-section) and [notes](#notes-1).",
+      "",
+      "## Early",
+      "",
+      `Uses [the spec][spec]. ${"e".repeat(900)}`,
+      "",
+      "## Notes",
+      "",
+      `First notes. ${"n".repeat(900)}`,
+      "",
+      "## Late section",
+      "",
+      `Back to [early](#early) and the [spec][spec]. ${"l".repeat(900)}`,
+      "",
+      "## Notes",
+      "",
+      `Second notes. ${"m".repeat(900)}`,
+      "",
+      "[spec]: ../specs/spec.md",
+      "",
+    ].join("\n");
+    const guide = split("docs/guide.md", content, 1_200);
+    const late = guide.parts.find((part) => part.part.title === "Late section")!;
+    const second = guide.parts.find((part) => part.content.includes("Second notes"))!;
+    expect(guide.index.content).toContain(`](${late.path.slice("docs/".length)}#late-section)`);
+    // The second "Notes" is the only one in its file, so its anchor there loses the suffix.
+    expect(guide.index.content).toContain(`](${second.path.slice("docs/".length)}#notes)`);
+    expect(late.content).toContain("](01-early.md#early)");
+    expect(late.content).toContain("[spec]: ../../specs/spec.md");
+    for (const piece of [guide.index, ...guide.parts])
+      expect(
+        restoreSplitPiece(content, piece.content, {
+          ...piece,
+          ...(piece === guide.index ? { block: guide.index.block } : {}),
+        }),
+      ).toBeNull();
+    expect(guide.unkept).toEqual([]);
   });
 });
 
@@ -182,14 +263,30 @@ describe("document size split plan", () => {
     const unread = document(11, 1_500);
     expect(Buffer.byteLength(registered)).toBeGreaterThan(256 * 1024);
     expect(Buffer.byteLength(unread)).toBeGreaterThan(1024 * 1024);
+    const heading = registered
+      .split("\n")
+      .find((line) => /^#+ Section 150\b/u.test(line))!
+      .replace(/^#+ /u, "")
+      .trim();
+    const code = [
+      "# Dump",
+      "",
+      "```",
+      ...Array.from({ length: 60_000 }, (_, i) => `x${i}`),
+      "```",
+      "",
+    ];
     const root = await repository({
       "docs/specs/acceptance.md": registered,
       "docs/ledger/final.md": unread,
       "docs/specs/small.md": "# Small\n\nKept as it is.\n",
+      "docs/specs/linker.md": `# Linker\n\nSee [late](acceptance.md#${githubHeadingSlug(heading)}).\n`,
+      "docs/specs/dump.md": code.join("\n"),
     });
     const normalization = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
     expect(normalization.oversizedDocuments.map((item) => item.path)).toEqual([
       "docs/specs/acceptance.md",
+      "docs/specs/dump.md",
     ]);
     expect(normalization.pendingDocuments).not.toContain("docs/specs/acceptance.md");
     const sourcePaths = normalization.oversizedDocuments.map((item) => item.path);
@@ -201,7 +298,18 @@ describe("document size split plan", () => {
     expect(plan.lineageIds).toHaveLength(
       plan.documents.find((item) => item.path === "docs/specs/acceptance.md")!.parts.length,
     );
+    expect(plan.unsplittable).toEqual([
+      expect.objectContaining({ path: "docs/specs/dump.md", reason: "document_unsplittable" }),
+    ]);
+    expect(plan.referenceUpdates.map((item) => item.path)).toEqual(["docs/specs/linker.md"]);
     expect(await verifyDocumentSizeSplitPlan(plan)).toMatchObject({ agreed: true });
+    // A part whose written bytes lose anything fails the check, even with its plan unchanged.
+    const lossy = structuredClone(plan);
+    const tampered = lossy.operations.find(
+      (operation) => operation.path === plan.documents[0]!.parts[2]!.path,
+    )!;
+    tampered.content = `${tampered.content!.slice(0, 100)}${tampered.content!.slice(101)}`;
+    expect(await verifyDocumentSizeSplitPlan(lossy)).toMatchObject({ agreed: false });
 
     await applyDocumentSizeSplitPlan({
       plan,
@@ -228,11 +336,35 @@ describe("document size split plan", () => {
         true,
       );
     }
+    for (const document of plan.documents) {
+      const original = document.path.endsWith("acceptance.md") ? registered : unread;
+      for (const part of document.parts) {
+        const written = await readFile(resolve(root, part.path), "utf8");
+        const start = Buffer.from(original).subarray(0, part.startByte).toString().length;
+        const end = Buffer.from(original).subarray(0, part.endByte).toString().length;
+        expect(
+          restoreSplitPiece(original, written, {
+            start,
+            end,
+            header: part.repeatedHeader,
+            appendix: part.copiedDefinitions,
+            rewrites: part.linkRewrites,
+          }),
+        ).toBeNull();
+      }
+    }
+    const linker = await readFile(resolve(root, "docs/specs/linker.md"), "utf8");
+    const target = /\]\((acceptance\/[^#)]+)#/u.exec(linker)![1]!;
+    expect(await readFile(resolve(root, "docs/specs", target), "utf8")).toContain(heading);
     expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+    // Planning again changes nothing: the parts and the index fit, and what stays whole says so.
     const after = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
-    expect(after.oversizedDocuments).toEqual([]);
-    expect(
-      (await createDocumentSizeSplitPlan({ repositoryRoot: root, sourcePaths: [] })).status,
-    ).toBe("current");
-  }, 60_000);
+    expect(after.oversizedDocuments.map((item) => item.path)).toEqual(["docs/specs/dump.md"]);
+    const again = await createDocumentSizeSplitPlan({
+      repositoryRoot: root,
+      sourcePaths: after.oversizedDocuments.map((item) => item.path),
+    });
+    expect(again.status).toBe("current");
+    expect(again.unsplittable.map((item) => item.path)).toEqual(["docs/specs/dump.md"]);
+  }, 180_000);
 });

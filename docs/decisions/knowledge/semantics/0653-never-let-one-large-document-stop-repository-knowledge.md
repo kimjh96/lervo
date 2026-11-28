@@ -20,25 +20,34 @@ In each case, one large document stopped work on every other document, or a docu
 ## Decision
 
 1. **Split before normalizing.** A Markdown document over 256 KiB (`DOCUMENT_SINGLE_PASS_BYTES`), up to 16 MiB (`DOCUMENT_SIZE_SPLIT_MAXIMUM_BYTES`), is split mechanically before normalization. Normalization never receives a document over 256 KiB.
-   - **Split points.** The split cuts at the shallowest heading level that keeps parts within the bound, then at deeper headings, and finally between top-level blocks, so never inside fenced code or a list. A pipe table that is too large is split between rows, and each continuation repeats the table's header and delimiter rows.
-   - **What the document keeps.** The document keeps its preamble and a Lervo-managed block (`document-parts`) that links the parts in order.
+   - **Split points.** The split cuts at the shallowest heading level that keeps parts within the bound, then at deeper headings, and finally between top-level blocks. It never cuts inside fenced code, a list, or a Lervo-managed block. A pipe table that is too large is split between rows, and each continuation repeats the table's header and delimiter rows.
+   - **What the document keeps.** The document keeps its preamble and a Lervo-managed block (`document-parts`) that links the parts in order. The preamble is packed with room for that block, so the document itself stays within the bound. Parts leave room for the bytes their rewritten links and copied definitions add.
    - **Where the parts go.** Each part is `<directory>/<document stem>/<NN>-<slug>.md`. A document with more than 32 parts groups them into numbered directories of 32.
-   - **Links.** Relative links inside a part are rebased to the part's directory. Anchors inside the document are not rewritten.
-2. **Check the split deterministically.** Instead of a provider review, the check is deterministic:
-   - the preamble and every part's original byte range reassemble the document exactly, and repeated header rows are the only additions;
-   - planning again from the current bytes yields the same index and parts.
+   - **Links.** Links follow the text:
+     - a relative link in a part is rebased to the part's directory;
+     - a link to a heading of a split document, inside it or from any other document, points to the file that now holds the heading, with the anchor that heading has there, since GitHub numbers a repeated heading within its file;
+     - a reference definition is copied into every part that uses it.
+
+     A destination the split cannot locate is listed as a link not kept. None is dropped silently.
+2. **Check the split deterministically.** Instead of a provider review, the check is deterministic. It never plans again. For every file the plan writes, it undoes the recorded link rewrites, then drops the copied definitions, the managed block, and the repeated header rows, and what remains must equal the original byte range. The ranges must cover the document in order. A linking document must restore to its current bytes once its recorded link rewrites are undone.
 
    A provider review cannot take documents over 1 MiB. The split is its own reversible `Lervo Knowledge` commit (ADR-0561), and the notice names the deterministic byte verifier as the cross-check.
 
 3. **Bring unread documents into knowledge.** A document the scanner left out for its size is split the same way. It had no knowledge identity, so its parts carry no lineage. A registered document's parts carry `document_split` lineage, as ADR-0183's split does.
-4. **Report what cannot be split.** A single block still over the bound, a document over 16 MiB, and a document that is not UTF-8 are named in the plan and in `lervo migrate knowledge` output, as `document_unsplittable` or `document_too_large`. Until a document over 256 KiB is split, normalization output names it and attention carries the `document_too_large_to_normalize` advisory. They never block the other documents.
-5. **Normalize in batches.** When pending documents exceed one run's source-byte or provider-call ceiling, each run normalizes the next batch in path order, recorded as an explicit selection. A single document over the ceiling still blocks, before any provider call.
-6. **Review a move by its changes.** A document that a plan moves byte for byte is shown to the reviewer by hash and destination. A move that rewrites references is shown as the lines it rewrites; Lervo checked that every other line is identical. A rewrite that changes the line count, or more than a quarter of the lines, is still shown whole.
+4. **Report what cannot be split, and never plan it again.** These are named in the plan and on every `lervo migrate knowledge` run as `kept whole`:
+   - a document with no cut point that makes it smaller, `document_unsplittable`, which includes a split whose every part would be one oversized block;
+   - a split's own index, `document_parts_index`, which is never split again;
+   - a document over 16 MiB or not UTF-8, `document_too_large`.
+
+   A document that waits for the structural stage to register it is named as `not_yet_registered`. Until a document over 256 KiB is split, normalization output names it and attention carries the `document_too_large_to_normalize` advisory. None of them blocks the other documents. Planning again after an apply is a no-op.
+
+5. **Normalize in batches.** When pending documents exceed one run's source-byte or provider-call ceiling, each run normalizes the next batch in path order, recorded as an explicit selection. A single document over the ceiling still blocks, before any provider call. A candidate whose selected source has since grown past 256 KiB is stale, not invalid.
+6. **Review a move by its changes.** A document that a plan moves byte for byte is shown to the reviewer by hash and destination. A move that rewrites references in place is shown as each line's changed span, from its column, with up to 80 unchanged characters around it, however long the line or how many lines change. Lervo checked that every other byte is identical. A rewrite that changes the line count is still shown whole.
 
 ## Consequences
 
-- A repository with large documents gains parts under new directories, with links from the original paths. Links into a moved section's anchor from elsewhere need the part's path.
+- A repository with large documents gains parts under new directories, with links from the original paths. Links to a moved heading are rewritten in every included Markdown document that names the split document.
 - The 512 KiB bound on one canonical assessment source, and the repository-wide capture bounds of 20,000 files and 256 MiB, still stop their stage. With documents split first, they are reached only by non-document sources or by repositories that large.
 - `axli-lab` reproduction on a clone of `main` (`203763cae`):
-  - The split divides its eight documents over 1 MiB into 76 parts of at most 262,105 bytes, and knowledge lint stays valid.
+  - A first split divides its eight documents over 1 MiB into 82 parts of at most 253,947 bytes, with indexes of at most 4,133 bytes. A second split takes the four documents of 292 to 944 KB once the first apply registered them, and a third plan is `current`. The check agrees each time, and knowledge lint stays valid.
   - Normalization preflight is `ready` with a first batch of 44 documents and 1,044,414 bytes.
