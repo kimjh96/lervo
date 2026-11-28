@@ -14,6 +14,7 @@ import {
   type CanonicalizationCandidateInspection,
   type WorkstreamFreshness,
 } from "@lervo/repository-knowledge";
+import type { StaleGitIndexLock } from "@lervo/repository-knowledge-runtime";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
 import type { RepositoryReplicaOpenDivergence } from "@lervo/sync";
 
@@ -22,6 +23,7 @@ import {
   type DocumentFreshnessAttentionInput,
 } from "./document-freshness-attention.js";
 import { heldEffectAttentionItems, type HeldEffect } from "./held-effect-debt.js";
+import { gitIndexLockAttentionItems } from "./git-index-lock-attention.js";
 import {
   instructionCaptureAttentionItems,
   type InstructionCaptureAttentionInput,
@@ -201,6 +203,8 @@ export function createOperatingAttentionReport(input: {
   knowledgeConvergence?: KnowledgeConvergenceAttentionInput | null;
   /** ADR-0561 foreground effects Lervo holds as its own debt. */
   heldEffects?: readonly HeldEffect[];
+  /** A Git index lock no Git command holds; every Lervo commit fails until the owner removes it. */
+  staleGitIndexLock?: StaleGitIndexLock | null;
   workstreamCoverage?: OperatingAttentionReportV1["coverage"]["workstream"];
   health?: OperatingAttentionReportV1["health"];
   observedAt: Date;
@@ -250,6 +254,7 @@ export function createOperatingAttentionReport(input: {
           ? []
           : knowledgeConvergenceAttentionItems(input.knowledgeConvergence)),
         ...heldEffectAttentionItems(input.heldEffects ?? []),
+        ...gitIndexLockAttentionItems(input.staleGitIndexLock),
       ].map((item) => [item.itemId, attributeOperatingAttention(item, input.observedAt)]),
     ).values(),
   ]);

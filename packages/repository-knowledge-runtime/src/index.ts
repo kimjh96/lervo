@@ -293,6 +293,12 @@ export {
   KnowledgeEffectUncommittedError,
   type KnowledgeEffectHold,
 } from "./knowledge-effect-guard.js";
+export {
+  STALE_GIT_INDEX_LOCK_AGE_MS,
+  staleGitIndexLock,
+  staleGitIndexLockInstruction,
+  type StaleGitIndexLock,
+} from "./git-index-lock.js";
 export { lifecycleUserContentPaths } from "./lifecycle-plan-scope.js";
 export { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
 export { watchRepositoryChanges } from "./repository-change-watch.js";

@@ -22,7 +22,7 @@
     "apps/cli/src/managed-deliberation.ts:executeWithStorage": 212,
     "apps/cli/src/managed-run.ts:createManagedRunExecutor": 469,
     "apps/cli/src/node-fleet-apply.ts:applyNodeFleetOnboarding": 294,
-    "apps/cli/src/operating-attention-ownership.ts:attributeOperatingAttention": 170,
+    "apps/cli/src/operating-attention-ownership.ts:attributeOperatingAttention": 167,
     "apps/cli/src/repository-command.ts:runRepositoryCommand": 275,
     "apps/cli/src/repository-replica-service.ts:prepareReplicaService": 169,
     "apps/cli/src/state-command.ts:runStateCommand": 159,

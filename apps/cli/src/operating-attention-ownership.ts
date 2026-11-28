@@ -5,6 +5,14 @@ import type {
 
 const ATTENTION = "lervo application attention --json";
 
+/** The owner's notice-only recovery for each Hub credential Lervo cannot create itself. */
+const HUB_CREDENTIAL_RECOVERY: Readonly<Record<string, string>> = {
+  hub_forbidden:
+    "Grant bounded workspace.read and workspace.coordinate for the configured Hub scope",
+  hub_unauthorized: "Replace the rejected Hub token for the configured project and destination",
+  token_file_unreadable: "Restore owner-only access to the configured Hub token file",
+};
+
 /** Authority comes from structured state, never from words such as 'review' in an instruction. */
 export function attributeOperatingAttention(
   item: OperatingAttentionItemV1,
@@ -89,6 +97,14 @@ export function attributeOperatingAttention(
       inspectCommand =
         item.effect === "capability_install" ? "lervo capability list" : "lervo upgrade";
       break;
+    // The lock is in the owner's repository and Lervo never deletes it, so removing it is theirs.
+    case "git_index_lock_stale":
+      actor = "owner";
+      consequence = "owner_repository_file";
+      waitingSince = item.since;
+      recommendation = `Remove the stale Git index lock ${item.path}`;
+      inspectCommand = "lervo upgrade";
+      break;
     // ADR-0561: continuity renews within the installed policy limits; held continuity is Lervo debt.
     case "knowledge_convergence_continuity":
       actor = "knowledge resident";
@@ -97,26 +113,15 @@ export function attributeOperatingAttention(
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
     // ADR-0561: the resident retries ownership coordination; only a credential is the owner's.
-    case "knowledge_convergence_owner":
+    case "knowledge_convergence_owner": {
+      const credential = HUB_CREDENTIAL_RECOVERY[item.failureCode ?? ""];
       actor = "knowledge resident";
       waitingSince = item.observedAt;
-      recommendation = "Retry ownership coordination on the next cycle";
-      if (item.failureCode === "hub_forbidden") {
-        consequence = "credentials";
-        recommendation =
-          "Grant bounded workspace.read and workspace.coordinate for the configured Hub scope";
-      }
-      if (item.failureCode === "hub_unauthorized") {
-        consequence = "credentials";
-        recommendation =
-          "Replace the rejected Hub token for the configured project and destination";
-      }
-      if (item.failureCode === "token_file_unreadable") {
-        consequence = "credentials";
-        recommendation = "Restore owner-only access to the configured Hub token file";
-      }
+      consequence = credential === undefined ? null : "credentials";
+      recommendation = credential ?? "Retry ownership coordination on the next cycle";
       inspectCommand = "lervo knowledge convergence owner status";
       break;
+    }
     case "knowledge_publication":
       actor = "knowledge publisher";
       waitingSince = item.firstObservedAt;

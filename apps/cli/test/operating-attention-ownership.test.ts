@@ -155,6 +155,15 @@ describe("attention authority at consequential effects", () => {
       attempts: 1,
       since: healthNow.toISOString(),
     },
+    git_index_lock_stale: {
+      ...base,
+      kind: "git_index_lock_stale",
+      state: "action_required",
+      itemId: "git_index_lock_stale",
+      path: ".git/index.lock",
+      ageSeconds: 3600,
+      since: healthNow.toISOString(),
+    },
     knowledge_convergence_owner: {
       ...base,
       kind: "knowledge_convergence_owner",
@@ -204,6 +213,8 @@ describe("attention authority at consequential effects", () => {
     ["captured_decision", "knowledge resident", false],
     ["instruction_capture_blocked", "knowledge resident", false],
     ["held_effect", "capability installer", false],
+    // Lervo never deletes a lock in the owner's repository, so removing it is the owner's step.
+    ["git_index_lock_stale", "owner", true],
     ["knowledge_convergence_owner", "knowledge resident", false],
     ["knowledge_publication", "knowledge publisher", false],
     ["knowledge_convergence_continuity", "knowledge resident", false],

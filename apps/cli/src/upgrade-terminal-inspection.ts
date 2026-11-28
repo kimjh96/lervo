@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { gitVisiblePaths, knowledgeEffectPreflight } from "@lervo/repository-knowledge-runtime";
 
 import { heldTerminalIntegrationReason } from "./held-effect-debt.js";
-import { knowledgeEffectHoldReason } from "./upgrade-knowledge-gate.js";
+import {
+  knowledgeEffectHoldBlockers,
+  knowledgeEffectHoldReason,
+} from "./upgrade-knowledge-gate.js";
 import {
   planTerminalIntegrationStage,
   type PreparedTerminalIntegration,
@@ -85,11 +88,14 @@ export async function inspectTerminalIntegration(root: string): Promise<{
             : plan.status === "blocked"
               ? "provider_configuration_blocked"
               : "terminal_integration_current",
-      blockers: plan.blockers.map((item) => ({
-        code: item.code,
-        path: item.path,
-        message: `${item.provider} terminal integration is blocked by ${item.code}.`,
-      })),
+      blockers: [
+        ...plan.blockers.map((item) => ({
+          code: item.code,
+          path: item.path,
+          message: `${item.provider} terminal integration is blocked by ${item.code}.`,
+        })),
+        ...(held === null && preflight !== null ? knowledgeEffectHoldBlockers(preflight) : []),
+      ],
     },
     prepared,
   };

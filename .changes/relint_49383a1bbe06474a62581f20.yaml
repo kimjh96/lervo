@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_49383a1bbe06474a62581f20"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A resumed provider-probe now clears that provider's recorded failures host-wide and wakes ineligible repositories, and an empty Git index lock older than 10 minutes with no git running is reported as git_index_lock_stale with its path for the owner to remove."

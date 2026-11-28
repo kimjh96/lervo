@@ -9,6 +9,7 @@ import {
 
 import { readDocumentFreshnessAttention } from "./document-freshness-attention.js";
 import { readHeldEffectsWithRepositoryHold } from "./held-effect-debt.js";
+import { readStaleGitIndexLock } from "./git-index-lock-attention.js";
 import { readInstructionCaptureAttention } from "./instruction-capture-attention.js";
 import { readKnowledgeConvergenceAttention } from "./knowledge-convergence-attention.js";
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
@@ -58,6 +59,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       heldEffects,
       wakeChannel,
       casRetention,
+      gitIndexLock,
     ] = await Promise.all([
       input.cachedSourcesOnly
         ? readHealthWorkstream(storage)
@@ -99,6 +101,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       readHeldEffectsWithRepositoryHold(input.repositoryRoot),
       readWakeChannelAttention(input.repositoryRoot, storage.events),
       readCasRetentionAttention(input.repositoryRoot, observedAt),
+      readStaleGitIndexLock(input.repositoryRoot),
     ]);
     const workstream = workstreamObservation.snapshot;
     const workstreamFreshness =
@@ -145,6 +148,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       instructionCapture,
       knowledgeConvergence: convergence,
       heldEffects,
+      staleGitIndexLock: gitIndexLock,
       observedAt,
       ...(health === undefined ? {} : { health }),
     });

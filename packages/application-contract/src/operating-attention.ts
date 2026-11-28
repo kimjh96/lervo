@@ -223,6 +223,22 @@ export interface HeldEffectAttentionItemV1 extends OperatingAttentionItemBaseV1 
 }
 
 /**
+ * A Git index lock no Git command holds: empty, older than ten minutes, while no `git` process
+ * runs. Every Lervo commit in the repository fails until it is gone, and it never clears by
+ * itself. The lock belongs to the owner's repository, so Lervo never deletes it; the instruction
+ * names the exact file to remove. One item per checkout.
+ */
+export interface GitIndexLockStaleAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "git_index_lock_stale";
+  state: "action_required";
+  /** Relative to the repository root when inside it, otherwise absolute. */
+  path: string;
+  ageSeconds: number;
+  /** The lock's last modification time. */
+  since: string;
+}
+
+/**
  * ADR-0466: this host cannot prove it owns knowledge convergence, or a standalone host saw
  * another host's fresh knowledge commit. Convergence stays read-only until it is resolved. Under
  * ADR-0561 the resident retries the coordination itself, so the item is `lervo_debt`; only a
@@ -289,6 +305,7 @@ export type OperatingAttentionItemV1 =
   | CapturedDecisionAttentionItemV1
   | InstructionCaptureBlockedAttentionItemV1
   | HeldEffectAttentionItemV1
+  | GitIndexLockStaleAttentionItemV1
   | KnowledgeConvergenceOwnerAttentionItemV1
   | KnowledgePublicationAttentionItemV1
   | KnowledgeConvergenceContinuityAttentionItemV1;
