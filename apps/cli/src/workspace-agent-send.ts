@@ -2,6 +2,10 @@
 // beside the pending starts and reaches the lead, as the sender's message, when the sender's turn
 // ends, so the work goes on where its owner already holds the context.
 import { CommandFailure } from "./command-error-output.js";
+import {
+  hostedConversationProfilesPath,
+  ownerConversationTitle,
+} from "./hosted-conversation-profiles.js";
 import { isConversationLead, roomSessionRecords } from "./hosted-launch-records.js";
 import { pendingSendsPath, recordPendingSend, AGENT_SENDS_PER_HOUR } from "./room-sends.js";
 import { locateWorkspaceSession } from "./workspace-launch-service.js";
@@ -54,7 +58,13 @@ export async function sendToConversation(
       workspaceId: options.workspaceId,
       agentId: lead.agentId,
       sessionId: lead.sessionId,
-      title: (await workstreamTitle(workingDirectory)) ?? previous.branch,
+      title:
+        (await ownerConversationTitle(
+          hostedConversationProfilesPath(environment),
+          options.workspaceId,
+        )) ??
+        (await workstreamTitle(workingDirectory)) ??
+        previous.branch,
       sentBy: options.from,
       text: options.text,
     },

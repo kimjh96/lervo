@@ -6,7 +6,13 @@ import {
   listRegisteredRepositories,
 } from "@lervo/repository-registry";
 import { readPrivateJsonFile } from "@lervo/repository-knowledge-runtime";
+import { conversationOrder } from "@lervo/session-host-contract";
 
+import {
+  type HostedConversationProfile,
+  hostedConversationProfilesPath,
+  readHostedConversationProfiles,
+} from "./hosted-conversation-profiles.js";
 import {
   conversationOf,
   type HostedLaunchRecord,
@@ -44,6 +50,10 @@ export interface WorkspaceSummary {
   participants?: string[];
   /** Each participant's session, the lead's first (Lervo ADE rooms). */
   sessions?: { agentId: string; sessionId: string; access: "write" | "read" }[];
+  /** The latest activity the list orders by. */
+  activeAt: string;
+  /** When the owner pinned the conversation (Lervo ADE sessions, "Renaming and pinning"). */
+  pinnedAt?: string;
 }
 
 /**
@@ -54,6 +64,9 @@ interface ListedWorkspace {
   lead: HostedLaunchRecord;
   agents: Map<string, HostedLaunchRecord>;
   activeAt: string;
+  /** What the owner set for the conversation: its title and pin. */
+  profile?: HostedConversationProfile;
+  pinnedAt?: string;
 }
 
 /** The host's registered repositories, by name. */
@@ -135,8 +148,29 @@ function roomOf(workspace: ListedWorkspace): Pick<WorkspaceSummary, "participant
 }
 
 /**
- * The workspaces with a hosted launch on this host whose worktree still exists, newest first. It
- * reads one worktree listing per repository and one workstream file per workspace.
+ * The listed workspaces in the list's order: pinned first, then latest activity first, so the
+ * bound never drops a pinned conversation.
+ */
+async function listedInOrder(): Promise<ListedWorkspace[]> {
+  const profiles = await readHostedConversationProfiles(hostedConversationProfilesPath());
+  return conversationOrder(
+    (await latestRecords()).map((listed) => {
+      const profile = profiles.get(listed.lead.workspaceId);
+      return profile === undefined
+        ? listed
+        : {
+            ...listed,
+            profile,
+            ...(profile.pinnedAt === undefined ? {} : { pinnedAt: profile.pinnedAt }),
+          };
+    }),
+  );
+}
+
+/**
+ * The workspaces with a hosted launch on this host whose worktree still exists, pinned first and
+ * then newest first. It reads one worktree listing per repository and one workstream file per
+ * workspace whose owner gave it no title.
  */
 export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[] }> {
   const registrations = new Map(
@@ -147,7 +181,7 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
   );
   const worktrees = new Map<string, Promise<Map<string, string>>>();
   const workspaces: WorkspaceSummary[] = [];
-  for (const listed of await latestRecords()) {
+  for (const listed of await listedInOrder()) {
     if (workspaces.length >= MAX_LISTED_WORKSPACES) break;
     const record = listed.lead;
     const repository = registrations.get(record.projectId);
@@ -161,7 +195,7 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
       projectId: record.projectId,
       repositoryName: repository.name,
       branch: record.branch,
-      title: await workstreamTitle(worktree),
+      title: listed.profile?.title ?? (await workstreamTitle(worktree)),
       provider: record.provider,
       conversationMode: record.conversationMode,
       conversationModes: hostedProviderModes(record.provider) ?? [record.conversationMode],
@@ -169,6 +203,8 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
       preparedAt: record.preparedAt,
       ...(record.agentId === undefined ? {} : { agentId: record.agentId }),
       ...roomOf(listed),
+      activeAt: listed.activeAt,
+      ...(listed.pinnedAt === undefined ? {} : { pinnedAt: listed.pinnedAt }),
     });
   }
   return { workspaces };

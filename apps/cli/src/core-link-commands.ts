@@ -66,6 +66,15 @@ export function commandAnswer(
       return { kind: "result", run: () => handlers.listProviders() };
     case "turn.summary":
       return optional(handlers.summarizeTurns, arguments_, "This core keeps no turn records.");
+    case "workspace.rename":
+    case "workspace.pin": {
+      const run = handlers.runWorkspaceCommand;
+      return optional(
+        run && ((args) => run(command, workspaceIdArgument(args), args)),
+        arguments_,
+        "This core keeps no conversation titles or pins.",
+      );
+    }
     case "project.add":
     case "project.rename":
     case "project.mark.set":

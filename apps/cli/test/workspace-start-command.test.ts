@@ -10,6 +10,7 @@ import { registerAgent } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { runCli } from "../src/main.js";
+import { runCoreLinkWorkspaceCommand } from "../src/core-link-workspace-commands.js";
 import { listRepositories, listWorkspaces } from "../src/workspace-list-service.js";
 import { openWorkspace, startWorkspaceFromInstruction } from "../src/workspace-launch-service.js";
 import { joinWorkspaceRoom, routeRoomTurn } from "../src/workspace-room.js";
@@ -246,6 +247,39 @@ describe("lervo workspace start and open", () => {
     const [started, reopened] = records.filter((record) => record.workspaceId === first);
     expect(reopened?.listedAt).toBe(started?.preparedAt);
     expect(reopened!.preparedAt > started!.preparedAt).toBe(true);
+  });
+
+  it("lists the owner's title over the agent's, and a pinned conversation first", async () => {
+    const app = await fixture();
+    const start = async (text: string) => {
+      const started = io(app.root, text);
+      expect(
+        await runCli(["workspace", "start", "--repository", app.projectId, "--json"], started.io),
+      ).toBe(0);
+      return (JSON.parse(started.stdout.join("")) as { workspaceId: string }).workspaceId;
+    };
+    const first = await start("Fix the login form");
+    const second = await start("Tidy the footer");
+    await runCoreLinkWorkspaceCommand("workspace.rename", first, { title: "Login release" });
+    await runCoreLinkWorkspaceCommand("workspace.pin", first, { pinned: true });
+    // The agent updates its workstream title; the owner's title stays.
+    const { launch } = await openWorkspace(first);
+    const current = resolve(launch.workingDirectory, ".lervo/state/workstreams/current.json");
+    const workstream = JSON.parse(await readFile(current, "utf8")) as Record<string, unknown>;
+    await writeFile(current, JSON.stringify({ ...workstream, title: "Agent's own title" }));
+    const listed = (await listWorkspaces()).workspaces;
+    expect(
+      listed.map((item) => [item.workspaceId, item.title, item.pinnedAt !== undefined]),
+    ).toEqual([
+      [first, "Login release", true],
+      [second, "Tidy the footer", false],
+    ]);
+    // Unpinned, the older conversation returns to its place by activity.
+    await runCoreLinkWorkspaceCommand("workspace.pin", first, { pinned: false });
+    expect((await listWorkspaces()).workspaces.map((item) => item.workspaceId)).toEqual([
+      second,
+      first,
+    ]);
   });
 
   it("refuses a repository with no commit yet under its own code", async () => {

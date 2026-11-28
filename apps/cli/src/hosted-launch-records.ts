@@ -185,6 +185,11 @@ export async function latestHostedLaunchOfSession(
   return (await readRecords(path)).findLast((record) => record.sessionId === sessionId) ?? null;
 }
 
+/** The workspaces of every kept record. */
+export async function hostedWorkspaceIds(path: string): Promise<Set<string>> {
+  return new Set((await readRecords(path)).map((record) => record.workspaceId));
+}
+
 /** The sessions of every kept record. */
 export async function hostedLaunchSessions(path: string): Promise<Set<string>> {
   return new Set((await readRecords(path)).map((record) => record.sessionId));

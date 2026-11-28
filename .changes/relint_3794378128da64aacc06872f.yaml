@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3794378128da64aacc06872f"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "The core link answers workspace.rename and workspace.pin, keeping the owner's conversation title and pin host-side, and workspace.list shows the owner's title over the workstream title and lists pinned conversations first."
