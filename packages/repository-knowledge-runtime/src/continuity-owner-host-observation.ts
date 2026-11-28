@@ -15,10 +15,14 @@ export function ownerHostObservation(
         : host.config.coordination.mode;
   return {
     state,
+    // ADR-0654: a missing own credential is named as such, not as the probe's 403 or unreadable
+    // token, so the remediation can say exactly which credential to create.
     hubFailureCode:
-      state === "standalone" || state === "hub"
-        ? (derivation?.hubFailure?.failureCode ?? null)
-        : null,
+      state === "hub" && derivation?.credentialAbsent === true
+        ? "hub_credential_absent"
+        : state === "standalone" || state === "hub"
+          ? (derivation?.hubFailure?.failureCode ?? null)
+          : null,
     publication:
       host?.config.coordination.mode !== "hub"
         ? "not_applicable"

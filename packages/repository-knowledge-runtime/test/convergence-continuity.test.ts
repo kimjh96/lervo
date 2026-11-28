@@ -20,6 +20,7 @@ import {
 } from "../src/convergence-continuity.js";
 import { ConvergenceOwnership } from "../src/convergence-owner.js";
 import { readConvergenceOwnerHost } from "../src/convergence-owner-host.js";
+import type { ConvergenceOwnerHubCandidate } from "../src/convergence-owner-host-derivation.js";
 import {
   assertConvergenceDelegationBindings,
   CONVERGENCE_DELEGATION_PATH,
@@ -97,13 +98,15 @@ function continuity(input: {
   hosts?: FakeHostRecordHub;
   label?: string;
   now?: () => number;
+  candidates?: ConvergenceOwnerHubCandidate[];
 }): ConvergenceContinuity {
   return new ConvergenceContinuity({
     providerAdmission: async () => null,
     storage: input.f.storage as Fixture["storage"],
     policyPath: input.policyPath,
     hubCandidates: async () =>
-      input.hosts === undefined ? [] : [{ source: "node_runtime" as const, hub }],
+      input.candidates ??
+      (input.hosts === undefined ? [] : [{ source: "node_runtime" as const, hub }]),
     ...(input.hosts === undefined ? {} : { transport: async () => input.hosts!.port() }),
     publication: async () => publication,
     hostLabel: input.label ?? "mac",
@@ -451,6 +454,68 @@ describe("two hosts of one repository", () => {
       code: "owner_host_hub_unusable",
       severity: "attention",
       detail: "hub_forbidden",
+    });
+  });
+});
+
+describe("a project without a Hub credential of its own (ADR-0654)", () => {
+  const borrowed = [
+    {
+      source: "host_repository" as const,
+      hub: { ...hub, bearerTokenFile: "/nodes/prj_other/secrets/hub-sync.token" },
+      credential: "foreign" as const,
+    },
+  ];
+
+  it("is maintained standalone on this host when it does not sync through the Hub", async () => {
+    const f = await tracked(true);
+    const path = await policyFile(f, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    hosts.refuse = { failureCode: "hub_forbidden", httpStatus: 403 };
+    const state = await continuity({
+      f,
+      policyPath: path,
+      hosts,
+      candidates: borrowed,
+    }).reconcile();
+    expect(state?.ownerHost).toMatchObject({ state: "standalone", hubFailureCode: null });
+    expect(state?.findings.map((finding) => finding.code)).not.toContain("owner_host_hub_unusable");
+    expect((await readConvergenceOwnerHost(f.root))?.config.coordination).toEqual({
+      mode: "standalone",
+    });
+  });
+
+  it("stays read-only behind its own missing token, one notice, when it syncs through the Hub", async () => {
+    const f = await tracked(true);
+    (f.storage.manifest.dataPolicy as { hubSyncEnabled: boolean }).hubSyncEnabled = true;
+    const path = await policyFile(f, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    hosts.refuse = { failureCode: "hub_forbidden", httpStatus: 403 };
+    const own = {
+      source: "host_repository" as const,
+      hub: { ...hub, bearerTokenFile: "/nodes/prj_this/secrets/hub-sync.token" },
+      credential: "absent" as const,
+    };
+    const state = await continuity({
+      f,
+      policyPath: path,
+      hosts,
+      candidates: [own, ...borrowed],
+    }).reconcile();
+    expect(state?.ownerHost).toMatchObject({
+      state: "hub",
+      hubFailureCode: "hub_credential_absent",
+    });
+    expect(
+      state?.findings.filter((finding) =>
+        ["owner_host_hub_unusable", "hub_unavailable"].includes(finding.code),
+      ),
+    ).toEqual([
+      { code: "owner_host_hub_unusable", severity: "attention", detail: "hub_credential_absent" },
+    ]);
+    expect((await readConvergenceOwnerHost(f.root))?.config.coordination).toEqual({
+      mode: "hub",
+      hub: own.hub,
     });
   });
 });

@@ -34,6 +34,13 @@ export type ConvergenceOwnerHubSource = "node_runtime" | "host_repository";
 export interface ConvergenceOwnerHubCandidate {
   source: ConvergenceOwnerHubSource;
   hub: ConvergenceOwnerHubCoordinates;
+  /**
+   * Whose credential the coordinates carry: absent for this project's own (or its Node's);
+   * `foreign` for another repository's coordinates as written, usable only once a probe proves
+   * them for this project; `absent` for another Hub paired with the path where this project's own
+   * token belongs but does not exist yet.
+   */
+  credential?: "foreign" | "absent";
 }
 
 interface DerivationMarker {
@@ -58,6 +65,8 @@ export interface ConvergenceOwnerHostDerivationResult {
   derivation: ConvergenceOwnerHostDerivation;
   /** The last Hub probe that kept this host standalone; null when no probe failed. */
   hubFailure: KnowledgeConvergenceOwnerFailure | null;
+  /** The written coordinates name this project's own token, which does not exist yet. */
+  credentialAbsent?: true;
   publication: "configured" | "unavailable" | "not_applicable";
 }
 
@@ -135,6 +144,12 @@ export async function deriveConvergenceOwnerHost(input: {
   hostLabel: string;
   now: Date;
   random?: () => string;
+  /**
+   * The project's tracked `dataPolicy.hubSyncEnabled`. When false, only this project's own
+   * credentials coordinate it through the Hub; a host without one maintains it standalone instead
+   * of staying read-only behind another project's refused token (ADR-0654).
+   */
+  hubSyncEnabled?: boolean;
 }): Promise<ConvergenceOwnerHostDerivationResult> {
   let current: ConvergenceOwnerHostConfig | null;
   try {
@@ -148,8 +163,14 @@ export async function deriveConvergenceOwnerHost(input: {
 
   let chosen: ConvergenceOwnerHubCandidate | null = null;
   let hubFailure: KnowledgeConvergenceOwnerFailure | null = null;
+  // ADR-0654: a project that does not sync through the Hub is coordinated there only with its own
+  // credential; without one, this host maintains it standalone rather than not at all.
+  const hubSync = input.hubSyncEnabled !== false;
+  const candidates = hubSync
+    ? input.candidates
+    : input.candidates.filter((candidate) => candidate.credential === undefined);
   const currentHub = current?.coordination.mode === "hub" ? current.coordination.hub : null;
-  for (const candidate of input.candidates) {
+  for (const candidate of candidates) {
     // Unchanged coordinates were proven when they were written; the lease reports later failures.
     if (
       currentHub !== null &&
@@ -166,9 +187,13 @@ export async function deriveConvergenceOwnerHost(input: {
     }
     hubFailure ??= failure;
   }
-  // A Hub configuration whose coordinates disappeared from every source stays as written: losing
-  // a local service definition must not silently downgrade a coordinated host to standalone.
-  if (chosen === null && currentHub !== null)
+  // ADR-0654: the unproven fallback is only ever this project's own credential or the path where
+  // it belongs, never another repository's token that the Hub refused for this project.
+  const unproven = chosen === null ? (candidates.find(ownCredential) ?? null) : null;
+  // A proven Hub configuration whose coordinates disappeared from every source stays as written:
+  // losing a local service definition must not silently downgrade a coordinated host to
+  // standalone. Coordinates Lervo wrote unproven are replaced, so a borrowed token never stays.
+  if (chosen === null && currentHub !== null && marker?.unproven !== true)
     return {
       derivation: { status: "unchanged", mode: "hub", source: marker?.source ?? "none" },
       hubFailure,
@@ -177,9 +202,8 @@ export async function deriveConvergenceOwnerHost(input: {
 
   // ADR-0470: Hub coordinates that exist but are refused or unreachable never fall back to
   // standalone, whose verdict owns unconditionally: another host may hold the Hub lease. The
-  // most specific candidate is written unproven, so the lease reports `unverifiable` and this
+  // most specific own candidate is written unproven, so the lease reports `unverifiable` and this
   // host stays read-only until coordination works. Standalone is only for hosts without any.
-  const unproven = chosen === null ? (input.candidates[0] ?? null) : null;
   // ADR-0473: a derived publication setting is probed again on the same interval, so a remote
   // whose default branch changed, or a base derived from a stale local ref, is corrected. A failed
   // probe keeps the current setting, and fixed default roots become the delegation scope.
@@ -234,6 +258,9 @@ export async function deriveConvergenceOwnerHost(input: {
       source,
     },
     hubFailure: chosen === null ? hubFailure : null,
+    ...(chosen === null && unproven?.credential === "absent"
+      ? { credentialAbsent: true as const }
+      : {}),
     publication:
       desired.coordination.mode !== "hub"
         ? "not_applicable"
@@ -241,4 +268,9 @@ export async function deriveConvergenceOwnerHost(input: {
           ? "unavailable"
           : "configured",
   };
+}
+
+/** A candidate this project may be pinned to unproven: its own credential or that credential's path. */
+function ownCredential(candidate: ConvergenceOwnerHubCandidate): boolean {
+  return candidate.credential !== "foreign";
 }

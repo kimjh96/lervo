@@ -97,19 +97,27 @@ async function projectCredential(
  * registered for this exact checkout, this project's own credential (its per-project Node
  * configuration, or its token paired with a Hub another repository on this host uses), then
  * other repositories' Hub configurations as written. A candidate is only a proposal; continuity
- * probes it for this project before using it.
+ * probes it for this project before using it, and another repository's token is never pinned.
  */
 export async function knowledgeHostHubCandidates(
   repositoryRoot: string,
   nodeDirectories: readonly string[] = projectNodeDirectories(),
 ): Promise<ConvergenceOwnerHubCandidate[]> {
   const candidates: ConvergenceOwnerHubCandidate[] = [];
-  const add = (hub: HubCoordinates, source: ConvergenceOwnerHubCandidate["source"]) => {
+  const add = (
+    hub: HubCoordinates,
+    source: ConvergenceOwnerHubCandidate["source"],
+    credential?: ConvergenceOwnerHubCandidate["credential"],
+  ) => {
     if (
       candidates.length < 4 &&
       !candidates.some((candidate) => JSON.stringify(candidate.hub) === JSON.stringify(hub))
     )
-      candidates.push({ source, hub: { ...hub } });
+      candidates.push({
+        source,
+        hub: { ...hub },
+        ...(credential === undefined ? {} : { credential }),
+      });
   };
   const node = await registeredNodeHubCoordinates(repositoryRoot);
   if (node !== null) add(node, "node_runtime");
@@ -131,6 +139,17 @@ export async function knowledgeHostHubCandidates(
   }
   if (own.tokenFile !== null)
     for (const hub of others) add({ ...hub, bearerTokenFile: own.tokenFile }, "host_repository");
-  for (const hub of others) add(hub, "host_repository");
+  // ADR-0654: without its own token, the project is offered the Hub another repository uses with
+  // the path where its own token belongs, so the coordinates Lervo writes unproven never borrow
+  // another project's credential and start working once the operator places that token.
+  else if (projectId !== null && others[0] !== undefined && nodeDirectories[0] !== undefined)
+    add(
+      { ...others[0], bearerTokenFile: resolve(nodeDirectories[0], projectId, ...PROJECT_TOKEN) },
+      "host_repository",
+      "absent",
+    );
+  // Another repository's coordinates as written carry its own token: only a probe that proves
+  // them for this project makes them usable, and they are never written unproven.
+  for (const hub of others) add(hub, "host_repository", "foreign");
   return candidates;
 }

@@ -5,6 +5,7 @@ Decision date: 2026-10-06
 Amends: [ADR-0469](0469-keep-background-knowledge-continuous-on-every-host.md) (owner-host derivation, Hub candidates, delegation continuity), [ADR-0466](0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md) (standalone fallback)
 Related: [ADR-0470](../../operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md)
 Amended by: [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (rebind only on the owner, review time kept)
+Amended by: [ADR-0656](knowledge-ownership/0656-maintain-a-project-without-its-own-hub-credential.md) (no foreign token written unproven; standalone without an own credential when Hub sync is off)
 
 ## Context
 
@@ -32,10 +33,10 @@ The 2026-10-06 rollout of CLI 0.20.0 exposed these gaps:
 
 ### Doctor
 
-| Code | Severity | Meaning |
-| --- | --- | --- |
-| `owner_host_hub_unusable` | attention | Also reported in Hub mode: unproven coordinates keep the host read-only. |
-| `host_resident_scan_stalled` | attention | The host resident heartbeats, but its scan has not finished. |
+| Code                         | Severity  | Meaning                                                                  |
+| ---------------------------- | --------- | ------------------------------------------------------------------------ |
+| `owner_host_hub_unusable`    | attention | Also reported in Hub mode: unproven coordinates keep the host read-only. |
+| `host_resident_scan_stalled` | attention | The host resident heartbeats, but its scan has not finished.             |
 
 ## Failure meaning
 

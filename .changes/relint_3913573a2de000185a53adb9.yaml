@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3913573a2de000185a53adb9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A project without its own Hub credential never borrows another project's token; without Hub sync it is maintained standalone, and otherwise one notice names the credential to issue."

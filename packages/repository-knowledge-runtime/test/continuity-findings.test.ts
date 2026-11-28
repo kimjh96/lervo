@@ -140,10 +140,21 @@ describe("continuity findings", () => {
       { code: "owner_host_hub_unusable", severity: "attention", detail: "hub_forbidden" },
       { code: "lease_unverifiable", severity: "attention", detail: "hub_unreachable" },
       { code: "publication_failed", severity: "attention", detail: "failed" },
-      { code: "hub_unavailable", severity: "attention", detail: "hub_unreachable" },
+      // ADR-0654: the unusable owner-host coordinates already explain the failed exchange.
       { code: "peer_unreported", severity: "info", detail: "wsl" },
       { code: "peer_delegation_expiring", severity: "attention", detail: "mac" },
     ]);
+  });
+
+  it("reports a failed host-record exchange while the owner-host coordinates work", () => {
+    expect(
+      continuityFindings(
+        input({
+          ownerHost: { state: "hub", hubFailureCode: null, publication: "configured" },
+          hubFailure: "hub_unreachable",
+        }),
+      ),
+    ).toContainEqual({ code: "hub_unavailable", severity: "attention", detail: "hub_unreachable" });
   });
 
   it("names a failed definition exchange only while host records still work (ADR-0477)", () => {

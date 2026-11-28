@@ -93,7 +93,7 @@ export function attributeOperatingAttention(
     case "knowledge_convergence_continuity":
       actor = "knowledge resident";
       waitingSince = item.observedAt;
-      recommendation = "Restore continuity within the installed policy limits";
+      ({ consequence, recommendation } = continuityAttribution(item.state, consequence));
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
     // ADR-0561: the resident retries ownership coordination; only a credential is the owner's.
@@ -175,4 +175,17 @@ export function attributeOperatingAttention(
         ? item.instruction
         : `${actor}: ${recommendation}. Inspect with ${inspectCommand}.`,
   };
+}
+
+/** ADR-0656: Hub coordinates this host cannot use without a credential are a credential notice. */
+function continuityAttribution(
+  state: string,
+  consequence: string | null,
+): { consequence: string | null; recommendation: string } {
+  return state === "credentials_missing"
+    ? {
+        consequence: "credentials",
+        recommendation: "Issue this project its own Hub credential, or keep it standalone",
+      }
+    : { consequence, recommendation: "Restore continuity within the installed policy limits" };
 }

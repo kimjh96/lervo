@@ -265,7 +265,8 @@ export interface KnowledgePublicationAttentionItemV1 extends OperatingAttentionI
  */
 export interface KnowledgeConvergenceContinuityAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "knowledge_convergence_continuity";
-  state: "lervo_debt" | "observed";
+  /** `credentials_missing`: Hub coordinates this host cannot use without a credential (ADR-0654). */
+  state: "lervo_debt" | "observed" | "credentials_missing";
   findingCode: string;
   actor?: "provider admission";
   severity: "attention" | "lervo_debt";

@@ -216,7 +216,10 @@ function hostFindings(input: ContinuityFindingsInput): ContinuityFinding[] {
       severity: "attention",
       detail: input.publicationStatus,
     });
-  if (input.hubFailure !== null)
+  // ADR-0654: unusable owner-host coordinates already explain why the host-record exchange
+  // through the same Hub failed, so one cause is reported once.
+  const unusable = findings.some((finding) => finding.code === "owner_host_hub_unusable");
+  if (input.hubFailure !== null && !unusable)
     findings.push({ code: "hub_unavailable", severity: "attention", detail: input.hubFailure });
   else if ((input.definitionExchangeFailure ?? null) !== null)
     findings.push({

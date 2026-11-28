@@ -38,8 +38,10 @@ const SEED_FAILURES: Record<string, string> = {
 };
 
 const HUB_FAILURES: Record<string, string> = {
+  hub_credential_absent:
+    "This project syncs through the Hub (dataPolicy.hubSyncEnabled in .lervo/project.yaml), but this host has no credential of its own for it, and another project's token is never borrowed. On the Hub host, add a principal whose projects list {destinationId, projectId} for this project with sync.write, reload the Hub (SIGHUP), and put its token at nodes/<projectId>/secrets/hub-sync.token, mode 0600, in the Lervo user state directory (or ~/.config/lervo/nodes on Linux); the resident uses it on its next reconciliation. To maintain this project on each host without the Hub instead, set dataPolicy.hubSyncEnabled to false",
   hub_forbidden:
-    "The Hub refused this host's credential for this project. Hub credentials are scoped per project: place this project's own credential at nodes/<projectId>/secrets/hub-sync.token in the Lervo user state directory (or ~/.config/lervo/nodes on Linux), upgrade the Hub to an ADR-0469 version so a credential with sync.write coordinates knowledge for its projects, or add this project to the credential's projects",
+    "The Hub refused this project's own credential. Hub credentials are scoped per project: on the Hub host, add {destinationId, projectId} for this project with sync.write to that credential's principal, or issue a principal of its own, then reload the Hub (SIGHUP)",
   hub_unauthorized:
     "The Hub did not accept the token in this host's Node configuration. Replace it with a current credential",
   hub_unreachable: "The Hub did not answer. Check that it runs and is reachable from this host",
@@ -113,7 +115,7 @@ export function continuityRemediation(finding: ContinuityFinding): string {
     case "policy_horizon_near":
       return "The host continuity policy horizon ends soon. The resident rolls it forward within the same limits on its next reconciliation.";
     case "owner_host_standalone":
-      return "No Hub coordinates exist for this repository on this host, so it converges standalone. Register a Node for it (lervo repository node plan, then apply) to coordinate across hosts.";
+      return "This repository converges standalone on this host: its project does not sync through the Hub (dataPolicy.hubSyncEnabled false), or no Hub coordinates exist for it here. A standalone host that sees another host's knowledge commit yields as contended. To coordinate across hosts, enable Hub sync and register a Node for it (lervo repository node plan, then apply).";
     case "owner_host_hub_unusable":
       return `This host has Hub coordinates but they cannot coordinate this project, so it stays read-only: it never owns standalone while another host may hold the Hub lease. ${hubFailure(finding.detail)}. The resident re-probes on every reconciliation and resumes as soon as coordination works.`;
     case "owner_host_invalid":

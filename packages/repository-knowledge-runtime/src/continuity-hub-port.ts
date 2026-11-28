@@ -3,6 +3,7 @@ import {
   calculateProjectIdentityHash,
   knowledgeConvergenceOwnerFailureOf,
   type KnowledgeConvergenceHostListing,
+  type KnowledgeConvergenceOwnerFailure,
 } from "@lervo/sync-contract";
 
 import type {
@@ -10,6 +11,7 @@ import type {
   ConvergenceHostRecordTransport,
 } from "./convergence-continuity.js";
 import type { ConvergenceOwnerHost } from "./convergence-owner-host.js";
+import type { ConvergenceOwnerHubCandidate } from "./convergence-owner-host-derivation.js";
 import { adoptPeerModelSelection } from "./model-selection-host.js";
 
 function httpStatusOf(error: unknown): number | null {
@@ -112,5 +114,22 @@ export async function listContinuityHosts(
       presenceHub: false,
       failureCode: knowledgeConvergenceOwnerFailureOf(error).failureCode,
     };
+  }
+}
+
+/** One host-record read with candidate coordinates for owner-host derivation: null when accepted. */
+export async function probeOwnerHub(
+  transport: ConvergenceHostRecordTransport | undefined,
+  hub: ConvergenceOwnerHubCandidate["hub"],
+  identity: { projectId: string; repositoryIdentityHash: string },
+  signal: AbortSignal | undefined,
+): Promise<KnowledgeConvergenceOwnerFailure | null> {
+  try {
+    const port = await transport?.({ ...hub, ...identity });
+    if (port === undefined) return { failureCode: "hub_configuration_invalid", httpStatus: null };
+    await port.list(signal);
+    return null;
+  } catch (error) {
+    return knowledgeConvergenceOwnerFailureOf(error);
   }
 }
