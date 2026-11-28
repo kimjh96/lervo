@@ -92,7 +92,7 @@ export interface KnowledgeDocumentSplitReceipt {
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
 
-async function safeHash(path: string): Promise<string> {
+export async function safeHash(path: string): Promise<string> {
   let handle;
   try {
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
@@ -121,7 +121,7 @@ async function safeHash(path: string): Promise<string> {
   }
 }
 
-async function assertSafeAbsentDestination(root: string, path: string): Promise<void> {
+export async function assertSafeAbsentDestination(root: string, path: string): Promise<void> {
   const child = relative(root, dirname(resolve(root, path)));
   let current = root;
   for (const segment of child.split(sep).filter(Boolean)) {

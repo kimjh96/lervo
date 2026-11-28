@@ -39,6 +39,8 @@ import {
 } from "./knowledge-migration-format.js";
 import { runRepositoryLayoutStage } from "./repository-layout-stage.js";
 import { runContinuationWorkstreamStage } from "./continuation-workstream-stage.js";
+import { runDocumentSizeSplitStage } from "./document-size-split-stage.js";
+import { normalizationProviderSelection } from "./normalization-provider-selection.js";
 import { crossCheckPlan } from "./plan-cross-check.js";
 import { REMOVED_APPROVE_ITEM, REMOVED_LAYOUT_DECISION } from "./removed-approval-options.js";
 import {
@@ -260,6 +262,8 @@ export async function runKnowledgeMigration(input: {
       }
     }
     if (input.mode === "migrate" && structuralCurrent) {
+      const sizeSplit = await runDocumentSizeSplitStage({ ...stage, preparedScan }); // ADR-0653
+      if (sizeSplit !== null) return sizeSplit;
       if (
         values.provider !== undefined &&
         values.candidate === undefined &&
@@ -296,23 +300,7 @@ export async function runKnowledgeMigration(input: {
           preparedScan,
         });
         if (normalization.pendingDocuments.length > 0) {
-          const result = {
-            schemaVersion: 1,
-            planKind: "document_normalization_provider_selection",
-            status: "provider_required",
-            repositoryRoot,
-            outputLanguage: normalization.outputLanguage,
-            formatVersion: normalization.formatVersion,
-            eligibleDocuments: normalization.eligibleDocuments,
-            currentDocuments: normalization.currentDocuments,
-            pendingDocuments: normalization.pendingDocuments,
-            supportedProviders: ["codex", "claude"],
-          };
-          io.stdout(
-            values.json
-              ? `${JSON.stringify(result, null, 2)}\n`
-              : `Repository content normalization requires an installed provider.\npending documents: ${normalization.pendingDocuments.length}/${normalization.eligibleDocuments}\nlanguage: ${normalization.outputLanguage} · format: ${normalization.formatVersion}\nRun lervo migrate knowledge --provider codex (or claude) to create the reviewable rewrite candidate.\n`,
-          );
+          io.stdout(normalizationProviderSelection(repositoryRoot, normalization, values.json));
           return 0;
         }
       }

@@ -77,7 +77,7 @@ interface PositionedMarkdownNode {
   children?: PositionedMarkdownNode[];
 }
 
-function rebaseMarkdownLinks(
+export function rebaseMarkdownLinks(
   content: string,
   fromPath: string,
   toPath: string,

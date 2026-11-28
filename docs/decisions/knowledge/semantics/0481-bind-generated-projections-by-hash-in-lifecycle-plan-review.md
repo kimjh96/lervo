@@ -7,6 +7,8 @@ Amended by: [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-eval
 
 Amended by: [continuation and relocation](../../../specs/repository-knowledge-entrypoints-and-continuation/continuation-and-relocation.md) (a plan that derives a generated file from an unchanged source sends that source's bytes as review `evidence`)
 
+Amended by: [ADR-0653](0653-never-let-one-large-document-stop-repository-knowledge.md) (moved documents are reviewed by hash and rewritten lines)
+
 ## Context
 
 After ADR-0479 deployed as `main` `bafdf86d`, the WSL `axli` resident ran the new runtime but again recorded `attention_required/knowledge_source_limit_exceeded` at `assessment`, at 14:09:56 UTC on 2026-10-06. The private stack identified `reviewLifecyclePlan` at the second bound, covering the plan, sources, and context together.

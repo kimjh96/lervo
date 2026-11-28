@@ -1,3 +1,4 @@
+import { DOCUMENT_SINGLE_PASS_BYTES } from "./document-size-partition.js";
 import { requireCompleteRepositoryKnowledgeCoverage } from "./scan-completeness.js";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readFile } from "node:fs/promises";
@@ -34,6 +35,7 @@ import {
   createDocumentNormalizationPreflightReport,
   documentNormalizationWorksetBinding,
   resolveDocumentNormalizationResourceCeilings,
+  selectDocumentNormalizationBatch,
   selectDocumentNormalizationPaths,
   type DocumentNormalizationPreflight,
   type DocumentNormalizationResourceCeilings,
@@ -439,17 +441,29 @@ function unitsForSource(
   );
 }
 
+type NormalizableDocument = {
+  source: RepositorySource & { content: string; contentHash: string };
+  profile: DocumentNormalizationProfile;
+  units: RepositorySourceUnit[];
+};
+
+/** ADR-0653: a document over the single-pass bound is split before normalization, never sent. */
+const oversized = (document: NormalizableDocument): boolean =>
+  Buffer.byteLength(document.source.content) > DOCUMENT_SINGLE_PASS_BYTES;
+
 function eligibleDocuments(
+  ...input: Parameters<typeof normalizableDocuments>
+): NormalizableDocument[] {
+  return normalizableDocuments(...input).filter((document) => !oversized(document));
+}
+
+function normalizableDocuments(
   scan: RepositoryKnowledgeScan,
   publicationRoot: string,
   taxonomy?: DecisionTaxonomy,
   normalizationExclude: readonly string[] = [],
   toolGeneratedPaths: ReadonlySet<string> = new Set(),
-): Array<{
-  source: RepositorySource & { content: string; contentHash: string };
-  profile: DocumentNormalizationProfile;
-  units: RepositorySourceUnit[];
-}> {
+): NormalizableDocument[] {
   const generatedPrefix = `${publicationRoot.replace(/\/$/u, "")}/`;
   return scan.sources
     .flatMap((source) => {
@@ -496,7 +510,7 @@ function normalizationEnvelopes(input: {
   let bytes = 0;
   for (const document of input.documents) {
     const documentBytes = Buffer.byteLength(document.source.content);
-    if (documentBytes > 1024 * 1024)
+    if (documentBytes > DOCUMENT_SINGLE_PASS_BYTES)
       throw new RepositoryKnowledgeError(
         "knowledge_source_limit_exceeded",
         "A document normalization source exceeds the file limit.",
@@ -1845,6 +1859,8 @@ export interface DocumentNormalizationLifecycleInspection {
   eligibleDocuments: number;
   currentDocuments: number;
   pendingDocuments: string[];
+  /** ADR-0653: documents over the single-pass bound, which a size split must divide first. */
+  oversizedDocuments: Array<{ path: string; byteCount: number }>;
   records: Array<{
     path: string;
     recordId: string | null;
@@ -1941,13 +1957,14 @@ export async function inspectConfiguredDocumentNormalization(input: {
         .map((output) => output.path),
     });
   }
-  const eligible = eligibleDocuments(
+  const normalizable = normalizableDocuments(
     scan,
     policy.publicationRoot,
     taxonomy,
     policy.normalization?.exclude,
     await toolGeneratedDocumentPaths(root, scan, taxonomy),
   );
+  const eligible = normalizable.filter((document) => !oversized(document));
   const pendingDocuments = eligible
     .map((item) => item.source.path)
     .filter((path) => !current.has(path));
@@ -1958,6 +1975,10 @@ export async function inspectConfiguredDocumentNormalization(input: {
     eligibleDocuments: eligible.length,
     currentDocuments: eligible.length - pendingDocuments.length,
     pendingDocuments,
+    oversizedDocuments: normalizable.filter(oversized).map((document) => ({
+      path: document.source.path,
+      byteCount: Buffer.byteLength(document.source.content),
+    })),
     records,
   };
 }
@@ -2053,12 +2074,29 @@ async function prepareConfiguredDocumentNormalization(input: {
   const pending = eligible.filter((item) => !lifecycle.current.has(item.source.path));
   const pendingPaths = new Set(pending.map((item) => item.source.path));
   const stale = pending.filter((item) => lifecycle.staleSources.has(item.source.path));
-  const selectedPaths = selectDocumentNormalizationPaths({
+  const scoped = selectDocumentNormalizationPaths({
     scope: input.scope ?? "all_pending",
     pendingPaths,
     stalePaths: lifecycle.staleSources,
     ...(input.sourcePaths === undefined ? {} : { requestedPaths: input.sourcePaths }),
   });
+  // ADR-0653: pending documents beyond one run's ceilings normalize in order, a batch per run,
+  // instead of blocking the repository; the batch is an explicit selection the candidate records.
+  const sourcePaths =
+    input.sourcePaths ??
+    selectDocumentNormalizationBatch(
+      pending.filter((item) => scoped.has(item.source.path)),
+      resolveDocumentNormalizationResourceCeilings(input.ceilings),
+    );
+  const selectedPaths =
+    sourcePaths === input.sourcePaths
+      ? scoped
+      : selectDocumentNormalizationPaths({
+          scope: input.scope ?? "all_pending",
+          pendingPaths,
+          stalePaths: lifecycle.staleSources,
+          ...(sourcePaths === undefined ? {} : { requestedPaths: sourcePaths }),
+        });
   const selected = pending.filter((item) => selectedPaths.has(item.source.path));
   const envelopes = normalizationEnvelopes({
     scan,
@@ -2076,7 +2114,7 @@ async function prepareConfiguredDocumentNormalization(input: {
     currentDocuments: eligible.length - pending.length,
     pendingDocuments: pending.length,
     staleDocuments: stale.length,
-    ...(input.sourcePaths === undefined ? {} : { selectionPaths: input.sourcePaths }),
+    ...(sourcePaths === undefined ? {} : { selectionPaths: sourcePaths }),
     documents: selected.map((item) => ({
       path: item.source.path,
       contentHash: item.source.contentHash,

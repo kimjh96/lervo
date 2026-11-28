@@ -227,6 +227,12 @@ async function inspectValidationLifecycle(input: {
         command: documentNormalizationProcedure(normalization.pendingDocuments.length),
       });
     }
+    // ADR-0653: a document too large to normalize is attention until the migration splits it.
+    if (normalization.oversizedDocuments.length > 0)
+      advisories.push({
+        code: "document_too_large_to_normalize",
+        command: "lervo migrate knowledge",
+      });
   } else {
     lintIssues.push(
       lifecycleFailure({
