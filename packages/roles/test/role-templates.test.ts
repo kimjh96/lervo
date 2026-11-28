@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -22,6 +22,26 @@ describe("role templates", () => {
     const bytes = await readFile(resolve(root, ".lervo/roles/product-owner.json"), "utf8");
     expect(await ensureTemplateRole(root, "product-owner")).toBe("present");
     expect(await readFile(resolve(root, ".lervo/roles/product-owner.json"), "utf8")).toBe(bytes);
+  });
+
+  it("resolves a role the main checkout keeps in a linked worktree, and writes none there", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-role-template-"));
+    roots.push(root);
+    // A main checkout and a linked worktree, as `git worktree add` lays out their Git files.
+    const main = resolve(root, "main");
+    const worktree = resolve(root, "work");
+    await mkdir(resolve(main, ".git/worktrees/work"), { recursive: true });
+    await writeFile(resolve(main, ".git/worktrees/work/commondir"), "../..\n");
+    await mkdir(worktree);
+    await writeFile(resolve(worktree, ".git"), `gitdir: ${resolve(main, ".git/worktrees/work")}\n`);
+    expect(await ensureTemplateRole(main, "product-owner")).toBe("written");
+    const kept = await resolveRoleContract(main, "product-owner");
+    // The same source resolves to the same contract, so agents hired in either stay bound.
+    expect((await resolveRoleContract(worktree, "product-owner")).contractHash).toBe(
+      kept.contractHash,
+    );
+    expect(await ensureTemplateRole(worktree, "product-owner")).toBe("present");
+    await expect(access(resolve(worktree, ".lervo/roles/product-owner.json"))).rejects.toThrow();
   });
 
   it("writes nothing for a built-in role or an unknown one", async () => {

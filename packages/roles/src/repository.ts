@@ -15,6 +15,7 @@ import {
   listBuiltInRoleDefinitions,
   type BuiltInRoleId,
 } from "./profiles.js";
+import { mainCheckoutOf } from "./shared-role-checkout.js";
 import {
   fail,
   parseRepositoryRoleSource,
@@ -85,7 +86,22 @@ function customContract(
   return { ...material, sourcePath, contractHash: roleSha256(canonicalJson(material)) };
 }
 
+/**
+ * The repository's role sources: its own, and in a linked worktree also the main checkout's that it
+ * lacks, since every worktree shares one agent registry. Its own source of a role wins.
+ */
 async function repositorySources(
+  repositoryRoot: string,
+): Promise<Map<string, { source: RepositoryRoleSource; path: string }>> {
+  const own = await checkoutSources(repositoryRoot);
+  const main = await mainCheckoutOf(repositoryRoot);
+  if (main === undefined) return own;
+  for (const [roleId, entry] of await checkoutSources(main))
+    if (!own.has(roleId)) own.set(roleId, entry);
+  return own;
+}
+
+async function checkoutSources(
   repositoryRoot: string,
 ): Promise<Map<string, { source: RepositoryRoleSource; path: string }>> {
   const directory = resolve(repositoryRoot, ".lervo/roles");
