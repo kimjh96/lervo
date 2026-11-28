@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fbdab02b602b4bc7257a54d3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Start CAS retention when a resident starts or finds an old retention observation, even when its full cycle is skipped on an unchanged fence"
