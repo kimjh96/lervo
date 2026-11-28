@@ -13,6 +13,7 @@ import {
   teamAgents,
 } from "../src/features/agents/model/decisions";
 import { useAgentStore } from "../src/features/agents/model/store";
+import { workspaceStatus } from "../src/features/workspaces/model";
 import { type ApplicationCommands, RequestFailure } from "../src/ports";
 
 const agent = (displayName: string, origin: "team" | "lervo"): AgentSummary => ({
@@ -143,6 +144,18 @@ describe("the sidebar's agents", () => {
       "needsYou",
     );
     expect(agentActivity(elio.agentId, workspaces, { s1: "working" })).toBeNull();
+    // An agent that joined a conversation shows the work of its own session there.
+    const room = {
+      ...workspace("s3", ciel.agentId),
+      sessions: [
+        { agentId: ciel.agentId, sessionId: "s3", access: "write" },
+        { agentId: elio.agentId, sessionId: "s4", access: "read" },
+      ],
+    } as Parameters<typeof agentActivity>[1][number];
+    expect(agentActivity(elio.agentId, [room], { s3: "idle", s4: "working" })).toBe("working");
+    expect(agentActivity(ciel.agentId, [room], { s3: "idle", s4: "working" })).toBeNull();
+    expect(workspaceStatus(room, { s3: "idle", s4: "working" })).toBe("working");
+    expect(workspaceStatus(room, { s3: "working", s4: "needs_user" })).toBe("needsYou");
   });
 });
 

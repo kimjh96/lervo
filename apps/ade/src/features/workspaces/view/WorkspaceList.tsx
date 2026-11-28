@@ -12,7 +12,7 @@ import { StatusDot } from "../../../ui/StatusDot";
 import { WorkingLabel } from "../../../ui/WorkingLabel";
 import { Presence } from "../../../ui/Presence";
 import { SectionHeading } from "../../../ui/SectionHeading";
-import { groupByRepository, visibleStatus } from "../model/decisions";
+import { groupByRepository, workspaceStatus } from "../model/decisions";
 import { useWorkspaceStore } from "../model/store";
 import type { Workspace } from "../model/types";
 import { statusMessages } from "./messages";
@@ -63,7 +63,7 @@ function WorkspaceRows(props: { workspaces: readonly Workspace[]; leaving: Reado
   return (
     <ul className={styles.rows}>
       {props.workspaces.map((workspace) => {
-        const status = visibleStatus(statuses[workspace.sessionId]);
+        const status = workspaceStatus(workspace, statuses);
         const current = selected === workspace.workspaceId;
         const gone = props.leaving.has(workspace.workspaceId);
         return (

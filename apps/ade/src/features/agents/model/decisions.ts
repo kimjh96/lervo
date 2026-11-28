@@ -1,6 +1,6 @@
 import type { AgentSummary, HireableRole } from "@lervo/session-host-contract";
 
-import { visibleStatus, type Workspace } from "../../workspaces/model";
+import { sessionsOf, visibleStatus, type Workspace } from "../../workspaces/model";
 
 /** Whether the core link answers the agent commands; an older core shows no agents. */
 export const managesAgents = (advertised: readonly string[] | null): boolean =>
@@ -71,9 +71,9 @@ export const takesParticipants = (advertised: readonly string[] | null): boolean
   advertised?.includes("workspace.participants") === true;
 
 /**
- * What an agent is doing, from the conversations whose session is its own: needs the owner when
- * any of them does, working when any works, and nothing otherwise (Lervo ADE agents, "The
- * sidebar").
+ * What an agent is doing, from its sessions in every conversation, those it leads and those it
+ * joined: needs the owner when any of them does, working when any works, and nothing otherwise
+ * (Lervo ADE agents, "The sidebar").
  */
 export function agentActivity(
   agentId: string,
@@ -81,12 +81,13 @@ export function agentActivity(
   statuses: Readonly<Record<string, Parameters<typeof visibleStatus>[0]>>,
 ): "working" | "needsYou" | null {
   let activity: "working" | "needsYou" | null = null;
-  for (const workspace of workspaces) {
-    if (workspace.agentId !== agentId) continue;
-    // Statuses are kept by session, as the workspace list reads them.
-    const status = visibleStatus(statuses[workspace.sessionId]);
-    if (status === "needsYou") return "needsYou";
-    if (status === "working") activity = "working";
-  }
+  for (const workspace of workspaces)
+    for (const session of sessionsOf(workspace)) {
+      if (session.agentId !== agentId) continue;
+      // Statuses are kept by session, as the workspace list reads them.
+      const status = visibleStatus(statuses[session.sessionId]);
+      if (status === "needsYou") return "needsYou";
+      if (status === "working") activity = "working";
+    }
   return activity;
 }

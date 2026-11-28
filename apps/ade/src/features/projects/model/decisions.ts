@@ -1,5 +1,5 @@
 import type { Repository, Workspace } from "../../workspaces/model";
-import { visibleStatus } from "../../workspaces/model";
+import { type visibleStatus, workspaceStatus } from "../../workspaces/model";
 
 type Statuses = Readonly<Record<string, Parameters<typeof visibleStatus>[0]>>;
 
@@ -22,7 +22,7 @@ export function projectsNeedingYou(
 ): ReadonlySet<string> {
   return new Set(
     workspaces
-      .filter((workspace) => visibleStatus(statuses[workspace.sessionId]) === "needsYou")
+      .filter((workspace) => workspaceStatus(workspace, statuses) === "needsYou")
       .map((workspace) => workspace.projectId),
   );
 }
