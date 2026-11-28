@@ -63,8 +63,11 @@
   box-sizing: border-box;
 }
 
+/* A run of tool lines reads as one block: its lines sit close, and the block keeps the same room
+   from the message before it as from the message after it (2026-11-28, the owner found a message
+   hugging the run above it and the run below it far away). */
 .row[data-kind="tool_activity"] {
-  padding-block-end: var(--space-6);
+  padding-block: var(--space-6) 0;
 }
 
 /* A finished turn's summary keeps one line's room while the core answers, so it never moves the
@@ -89,7 +92,12 @@
 
 /* Consecutive tool lines read as one run of steps. */
 .row[data-kind="tool_activity"][data-follows="tool_activity"] {
-  padding-block-start: var(--space-2);
+  padding-block-start: var(--space-4);
+}
+
+/* What follows a run keeps the room the run keeps from what comes before it. */
+.row[data-follows="tool_activity"]:not([data-kind="tool_activity"]) {
+  padding-block-start: var(--space-20);
 }
 
 .row[data-kind="agent_message"] {

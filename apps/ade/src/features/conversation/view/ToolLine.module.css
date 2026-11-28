@@ -2,9 +2,10 @@
    it acted on in the mono face, and its result at the end. A call with output or a change opens
    at once to its preview, which fades in over `enter`; its height never animates (ADE motion,
    "Disclosure"). */
+/* The details keep their room inside their own fade, so a closed line, whose empty details still
+   take a grid cell, adds no gap under its summary. */
 .tool {
   display: grid;
-  gap: var(--space-6);
   min-width: 0;
 }
 
@@ -171,6 +172,7 @@ button.summary:focus-visible {
 }
 
 .preview {
+  margin-block: var(--space-6);
   margin-inline-start: calc(var(--size-icon-sm) + var(--space-8));
   padding-block: var(--space-10);
   padding-inline: var(--space-12);
