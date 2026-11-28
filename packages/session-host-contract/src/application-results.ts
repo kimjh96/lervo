@@ -42,6 +42,16 @@ import {
   agentsListResultSchema,
 } from "./application-agent-results.js";
 import {
+  agentRoleResultSchema,
+  roleAddResultSchema,
+  roleEditResultSchema,
+  roleRemoveResultSchema,
+  type AgentRoleResult,
+  type RoleAddResult,
+  type RoleEditResult,
+  type RoleRemoveResult,
+} from "./application-role-results.js";
+import {
   roomJoinResultSchema,
   roomAnswersResultSchema,
   roomRouteResultSchema,
@@ -93,6 +103,10 @@ export const applicationCommandNames = [
   "agent.mark.clear",
   "agent.mark.read",
   "agent.context",
+  "agent.role",
+  "role.add",
+  "role.edit",
+  "role.remove",
   "room.join",
   "room.route",
   "room.answers",
@@ -131,6 +145,10 @@ export const applicationResultSchemas = {
   "agent.mark.clear": agentMarkClearResultSchema,
   "agent.mark.read": agentMarkReadResultSchema,
   "agent.context": agentContextResultSchema,
+  "agent.role": agentRoleResultSchema,
+  "role.add": roleAddResultSchema,
+  "role.edit": roleEditResultSchema,
+  "role.remove": roleRemoveResultSchema,
   "room.join": roomJoinResultSchema,
   "room.route": roomRouteResultSchema,
   "room.answers": roomAnswersResultSchema,
@@ -164,6 +182,10 @@ export interface ApplicationResults {
   "agent.mark.clear": AgentMarkClearResult;
   "agent.mark.read": AgentMarkReadResult;
   "agent.context": AgentContextResult;
+  "agent.role": AgentRoleResult;
+  "role.add": RoleAddResult;
+  "role.edit": RoleEditResult;
+  "role.remove": RoleRemoveResult;
   "room.join": RoomJoinResult;
   "room.route": RoomRouteResult;
   "room.answers": RoomAnswersResult;

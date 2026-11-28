@@ -22,6 +22,12 @@ import {
   hireableRoleSchema,
 } from "./application-agent-results.js";
 import {
+  agentRoleResultSchema,
+  roleAddResultSchema,
+  roleEditResultSchema,
+  roleRemoveResultSchema,
+} from "./application-role-results.js";
+import {
   roomJoinResultSchema,
   roomAnswersResultSchema,
   roomRouteResultSchema,
@@ -137,6 +143,10 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     agentMarkClearResultSchema,
     agentMarkReadResultSchema,
     agentContextResultSchema,
+    agentRoleResultSchema,
+    roleAddResultSchema,
+    roleEditResultSchema,
+    roleRemoveResultSchema,
     roomSessionSchema,
     roomJoinResultSchema,
     roomAnswersResultSchema,

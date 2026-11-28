@@ -1537,6 +1537,76 @@
         }
       }
     },
+    "AgentRoleResult": {
+      "title": "AgentRoleResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "agent"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "agent": {
+          "$ref": "#/$defs/AgentSummary"
+        }
+      }
+    },
+    "RoleAddResult": {
+      "title": "RoleAddResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "role"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "role": {
+          "$ref": "#/$defs/HireableRole"
+        }
+      }
+    },
+    "RoleEditResult": {
+      "title": "RoleEditResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "role",
+        "changed"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "role": {
+          "$ref": "#/$defs/HireableRole"
+        },
+        "changed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RoleRemoveResult": {
+      "title": "RoleRemoveResult",
+      "type": "object",
+      "required": [
+        "projectId",
+        "roleId"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "roleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
     "RoomSession": {
       "title": "RoomSession",
       "type": "object",
@@ -1695,6 +1765,10 @@
             "agent.mark.clear",
             "agent.mark.read",
             "agent.context",
+            "agent.role",
+            "role.add",
+            "role.edit",
+            "role.remove",
             "room.join",
             "room.route",
             "room.answers"
