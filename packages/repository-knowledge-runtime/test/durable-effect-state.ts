@@ -37,8 +37,10 @@ const EXEMPT_STATE_PATHS: readonly RegExp[] = [
   // maintenance, retention, freshness, staleness, and document lifecycle readings, and provider
   // CLI detection. ADR-0597 adds the retention scan gate and the skill usage cursor: both only let
   // a later pass skip work, and a missing or invalid one rebuilds from the full event log.
+  // ADR-0660 adds the retention wait: when and why a retention slice should come back, which a
+  // missing or invalid one only delays to the resident's next retry.
   /^knowledge-worker\.lock$/u,
-  /^knowledge\/(cas-retention-observation|cas-retention-scan|maintenance-observation|maintenance-schedule|freshness-cycle|document-staleness|document-lifecycle|provider-clis|provider-cli-selection|requeue-cursor)\.json$/u,
+  /^knowledge\/(cas-retention-observation|cas-retention-scan|cas-retention-wait|maintenance-observation|maintenance-schedule|freshness-cycle|document-staleness|document-lifecycle|provider-clis|provider-cli-selection|requeue-cursor)\.json$/u,
   /^knowledge\/terminal-skills\/usage(-cursor)?\.json$/u,
 ];
 
