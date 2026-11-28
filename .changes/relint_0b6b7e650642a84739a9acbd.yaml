@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0b6b7e650642a84739a9acbd"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Splitting large documents during knowledge migration reuses the migration's repository scan instead of scanning the repository a second time."
