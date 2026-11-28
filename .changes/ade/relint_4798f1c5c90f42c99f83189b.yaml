@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4798f1c5c90f42c99f83189b"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A shell line that runs a Lervo command among other commands reads as what Lervo did, then the other commands as code, instead of the whole raw command line."

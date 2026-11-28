@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_80f421462455b2072e8551a7"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Switching between agent profiles keeps the leaving profile's model and effort as they were, instead of showing the first model and Low while it fades."

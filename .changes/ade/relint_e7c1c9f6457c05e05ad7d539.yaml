@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e7c1c9f6457c05e05ad7d539"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A tool call with nothing to show, such as TaskStop, lines up with the other tool lines, its name in the same place and face, instead of a plain line of its own."
