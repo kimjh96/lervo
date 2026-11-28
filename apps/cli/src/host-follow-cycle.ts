@@ -13,11 +13,11 @@ import {
   publishedReleases,
   repositoryPassDue,
 } from "./host-follow-policy.js";
+import { dueRepositories } from "./host-follow-due.js";
 import { readActiveCli, type ActiveCli } from "./host-follow-runtime.js";
 import { followHeldTag, followReleaseWatch } from "./host-follow-release-watch.js";
 import {
   activationOfIntent,
-  dueRepositories,
   handoverDue,
   retryRepositories,
   settleInFlight,
@@ -134,7 +134,8 @@ async function install(
 /**
  * ADR-0575, one follow cycle: settle the follower's own unsettled release first, hand over to the
  * active CLI, honour a pause, upgrade repositories for a CLI the last pass did not run, otherwise
- * poll the newest published release and install it, or retry repositories whose retry is due.
+ * poll the newest published release and install it, or run repositories whose retry is due or
+ * that were registered since the last pass.
  * ADR-0589: a pass that installs no release yields to a newer release at a repository boundary.
  */
 export async function runFollowCycle(
@@ -211,10 +212,19 @@ export async function runFollowCycle(
     pinnedTag: control.pinnedTag,
   });
   if (target.kind === "install") return finish(await install(dependencies, state, target.tag));
-  const due = dueRepositories(state, active, now());
+  // An unreadable registry runs nothing now; the next poll reads it again.
+  const registered = await dependencies.listRepositories().catch((): string[] => []);
+  const due = dueRepositories(state, active, now(), registered);
   if (due.length > 0) {
     const watch = releaseWatch(dependencies, state, active, { releases, at: now() });
-    const retried = await retryRepositories(dependencies, state, active, due, watch.yieldToRelease);
+    const retried = await retryRepositories(
+      dependencies,
+      state,
+      active,
+      due,
+      registered,
+      watch.yieldToRelease,
+    );
     return finish(await installAfterPass(dependencies, retried, watch));
   }
   return stop({ outcome: target.reason, tag: target.tag });
