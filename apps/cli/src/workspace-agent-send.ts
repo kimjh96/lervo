@@ -2,7 +2,7 @@
 // beside the pending starts and reaches the lead, as the sender's message, when the sender's turn
 // ends, so the work goes on where its owner already holds the context.
 import { CommandFailure } from "./command-error-output.js";
-import { roomSessionRecords } from "./hosted-launch-records.js";
+import { isConversationLead, roomSessionRecords } from "./hosted-launch-records.js";
 import { pendingSendsPath, recordPendingSend, AGENT_SENDS_PER_HOUR } from "./room-sends.js";
 import { locateWorkspaceSession } from "./workspace-launch-service.js";
 import { resolveParticipants } from "./workspace-participants.js";
@@ -37,7 +37,7 @@ export async function sendToConversation(
     options.workspaceId,
   );
   const lead = (await roomSessionRecords(path, options.workspaceId)).find(
-    (record) => record.access === undefined && record.agentId !== undefined,
+    (record) => isConversationLead(record, options.workspaceId) && record.agentId !== undefined,
   );
   if (lead?.agentId === undefined)
     throw new CommandFailure("send_target_invalid", "No agent leads that conversation.");

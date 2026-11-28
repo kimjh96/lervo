@@ -40,6 +40,8 @@ const HOSTED_BRANCH = /^lervo\/[a-z0-9]+(?:-[a-z0-9]+)*-[a-f0-9]{6}$/u;
 export interface WorkspaceRetireEffects {
   latestLaunch(workspaceId: string): Promise<HostedLaunchRecord | null>;
   sessionsOf(workspaceId: string): Promise<string[]>;
+  /** The member workspaces of the conversation, by their own workspace IDs (ADR-0661). */
+  membersOf(workspaceId: string): Promise<string[]>;
   repositoryRoot(projectId: string): Promise<string | null>;
   worktreeOf(root: string, branch: string): Promise<string | null>;
   /** Whether any process other than this one has its working directory in the worktree. */
@@ -81,6 +83,10 @@ export async function retireHostedWorkspace(
       { workspaceId },
     );
   await effects.conversation.assertRetirable(root, workspaceId);
+  // Each member's workspace leaves with its conversation, by the same rules, before it; the first
+  // that refuses stops the retire with its own code (ADR-0661).
+  for (const member of await effects.membersOf(workspaceId))
+    if (member !== workspaceId) await retireHostedWorkspace(member, effects, options);
   // A conversation's worktree is found by its record's path when its branch moved.
   const worktree =
     (await effects.worktreeOf(root, launch.branch)) ??

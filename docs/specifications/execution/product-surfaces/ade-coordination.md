@@ -380,11 +380,12 @@ The [craft rules](ade-craft.md) apply: finished work shows nothing, and only wha
 - **The amber sign.** An unresolved path or an integration conflict adds the still amber dot beside the conversation (rule 21) until it resolves. Nothing else adds a sign.
 - **The sidebar.** While a batch pull request is open, one quiet row below the conversations names it, "Pull request #812 · 3 conversations", and opens it in the browser.
 
-## Read-access participants
+## Members of a conversation
 
-- A joined agent's session runs with read access ([Lervo ADE rooms](ade-rooms.md)). It claims nothing and holds no assignment or lease: its launch record says `access: read`, and its tool allowlist already refuses writes. A read-only lease would grant nothing and block nothing.
-- A joined agent that needs to write does not become a second writer; ADR-0222 keeps one writer per generation. It mentions the lead with the change it needs. When the work is its own, it starts its own conversation, as rooms slice 2 defines (`workspace.start` with `startedBy`), which its read-access allowlist admits. Any agent can also hand work to the teammate whose work it is, as a conversation that teammate leads (`--lead`, ADR-0657). That conversation gets its own workspace generation, assignment, and growing lease, and its claims conflict with the first conversation's like any other's.
-- A test run writes build output that Git ignores, which claims nothing. Whether a read-access session may run tests is therefore a question of its tool allowlist alone, which settles S2h's part of the [rooms open item](ade-rooms.md#open-items).
+- A member of a conversation writes from its own member workspace ([ADR-0661](../../../decisions/coordination/conversations/agent-organization/0661-let-every-member-of-a-conversation-work-in-it-from-its-own-worktree.md)): a worktree, a branch, and the same coordination a conversation's start prepares, so each member workspace is a generation with one writer, as ADR-0222 requires. Its claims conflict with the lead's and the other members' like any conversation's, and it seals, integrates, and retires like one.
+- Retiring a conversation retires its member workspaces first. The first that refuses, such as with `workspace_has_changes` or `workspace_integration_pending`, stops the retire with its own code and workspace ID.
+- A session recorded with read access before ADR-0661 claims nothing and holds no assignment or lease: its launch record says `access: read`, and its tool allowlist refuses writes. It keeps reading in the lead's worktree until the conversation ends.
+- A test run writes build output that Git ignores, which claims nothing.
 
 ## State, events, privacy, and failure meaning
 

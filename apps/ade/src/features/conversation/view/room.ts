@@ -43,8 +43,10 @@ export function useRoom(input: {
     [agents, participants, coreRooms],
   );
 
+  // Every session but the lead's is a member's: one that writes in its own workspace (ADR-0661)
+  // or, from before it, one that reads.
   const memberKey = (workspace?.sessions ?? [])
-    .filter((session) => session.access === "read")
+    .filter((session) => session.agentId !== leadAgentId)
     .map((session) => `${session.agentId}=${session.sessionId}`)
     .join(",");
   const room = useRef<RoomMembers | null>(null);

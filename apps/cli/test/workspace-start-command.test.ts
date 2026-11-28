@@ -401,7 +401,7 @@ describe("lervo workspace start and open", () => {
 });
 
 describe("agents joining a conversation", () => {
-  it("routes the owner's turn, joins a mentioned agent with read access, and keeps the lead", async () => {
+  it("routes the owner's turn, gives a mentioned agent its own member workspace, and keeps the lead", async () => {
     const app = await fixture();
     const lead = await registerAgent({
       repositoryRoot: app.repository,
@@ -432,23 +432,31 @@ describe("agents joining a conversation", () => {
       agentId: researcher.agentId,
       instruction: "Is the Retry-After header in seconds?",
     });
-    expect(joined).toMatchObject({ status: "joined", agentId: researcher.agentId, resumed: false });
-    expect(joined.launch.workingDirectory).toBe(started.launch.workingDirectory);
-    expect(joined.launch.arguments).toEqual(expect.arrayContaining(["dontAsk"]));
-    expect(joined.launch.arguments).not.toContain("bypassPermissions");
+    expect(joined).toMatchObject({
+      status: "joined",
+      workspaceId,
+      agentId: researcher.agentId,
+      resumed: false,
+    });
+    // The member writes in a worktree of its own, never in the lead's (ADR-0661).
+    expect(joined.launch.workingDirectory).not.toBe(started.launch.workingDirectory);
+    expect(joined.launch.arguments).not.toContain("dontAsk");
     expect(joined.launch.environment.LERVO_AGENT_ID).toBe(researcher.agentId);
     expect(joined.launch.initialInput).toBe("Is the Retry-After header in seconds?");
+    expect(
+      (await git(app.repository, "worktree", "list")).includes(joined.launch.workingDirectory),
+    ).toBe(true);
 
-    const listed = (await listWorkspaces()).workspaces.find(
-      (workspace) => workspace.workspaceId === workspaceId,
-    );
-    expect(listed).toMatchObject({
+    const workspaces = (await listWorkspaces()).workspaces;
+    // The member workspace never lists as a conversation of its own.
+    expect(workspaces.map((workspace) => workspace.workspaceId)).toEqual([workspaceId]);
+    expect(workspaces[0]).toMatchObject({
       sessionId: started.sessionId,
       agentId: lead.agentId,
       participants: [lead.agentId, researcher.agentId],
       sessions: [
         { agentId: lead.agentId, sessionId: started.sessionId, access: "write" },
-        { agentId: researcher.agentId, sessionId: joined.sessionId, access: "read" },
+        { agentId: researcher.agentId, sessionId: joined.sessionId, access: "write" },
       ],
     });
 
@@ -458,25 +466,32 @@ describe("agents joining a conversation", () => {
       `you are ${lead.displayName}, the Developer, in this conversation with ${researcher.displayName} (Researcher)`,
     );
     expect(block).toContain("write @Name in your reply");
-    expect(block).toContain("able to read and answer, never to change files");
-    // The lead writes; only a session that joined by a mention hears that it reads only.
+    expect(block).toContain("joins this conversation and works in its own worktree");
     expect(block).not.toContain("cannot change files");
     const member = await roomBlock(joined.sessionId);
     expect(member).toContain(`you are ${researcher.displayName}, the Researcher`);
-    expect(member).toContain(
-      "cannot change files. When a request needs changes, start a conversation you lead",
-    );
+    // A member writes in its own worktree and learns where each agent works.
+    expect(member).not.toContain("cannot change files");
+    expect(member).toContain("write only in yours");
+    expect(member).toContain(`- You: ${joined.launch.workingDirectory}`);
+    expect(member).toContain(`- ${lead.displayName}: ${started.launch.workingDirectory}`);
     // Every agent learns how to hand work to a teammate, with the teammate's ID, and the channels.
     expect(member).toContain(`${lead.displayName} (Developer, ${lead.agentId})`);
-    expect(member).toContain("add `--lead <agent ID>` to hand it to the teammate whose work it is");
+    expect(member).toContain(
+      "add `--lead <agent ID>` to hand it to the teammate whose topic it is",
+    );
     expect(member).toContain("Never message another session through a provider's own tools");
     expect(await roomBlock("00000000-0000-4000-8000-000000000000")).toBeNull();
 
-    // Joining again continues the agent's session, and reopening still opens the lead's.
+    // Joining again continues the member's session in its own worktree, and reopening still
+    // opens the lead's.
     const again = await joinWorkspaceRoom({ workspaceId, agentId: researcher.agentId });
     expect(again).toMatchObject({ resumed: true, sessionId: joined.sessionId });
-    expect(again.launch.arguments).toEqual(expect.arrayContaining(["dontAsk", "--resume"]));
+    expect(again.lead).toBeUndefined();
+    expect(again.launch.workingDirectory).toBe(joined.launch.workingDirectory);
+    expect(again.launch.arguments).toEqual(expect.arrayContaining(["--resume"]));
     expect((await openWorkspace(workspaceId)).sessionId).toBe(started.sessionId);
+    expect((await listWorkspaces()).workspaces).toHaveLength(1);
 
     await expect(
       joinWorkspaceRoom({ workspaceId, agentId: `agt_${"0".repeat(24)}`, instruction: "Hi." }),

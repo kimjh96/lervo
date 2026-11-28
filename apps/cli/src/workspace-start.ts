@@ -128,6 +128,8 @@ export interface WorkspaceStartRequest {
   readonly title?: string;
   /** The team agent that started the conversation and leads it. */
   readonly startedBy?: string;
+  /** The conversation this workspace is a member workspace of (ADR-0661). */
+  readonly room?: string;
 }
 
 export interface WorkspaceStartResult {
@@ -303,6 +305,7 @@ export async function startWorkspace(
             participants: [...request.participants.participants],
           }),
       ...(request.startedBy === undefined ? {} : { startedBy: request.startedBy }),
+      ...(request.room === undefined ? {} : { room: request.room }),
       ...(base === undefined
         ? {}
         : {

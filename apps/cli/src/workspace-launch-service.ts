@@ -109,6 +109,8 @@ export interface WorkspaceStartOptions {
    * teammate that handed it to the lead (ADR-0657).
    */
   readonly startedBy?: string;
+  /** The conversation the workspace is a member workspace of (ADR-0661). */
+  readonly room?: string;
   /**
    * Whether the session host answers the agents' questions with choices. A provider that cannot
    * ask through its stream, or a conversation in the terminal, asks in prose.
@@ -177,6 +179,7 @@ export async function startWorkspaceFromInstruction(
       ...(participants === undefined ? {} : { participants }),
       ...(options.title === undefined ? {} : { title: options.title }),
       ...(options.startedBy === undefined ? {} : { startedBy: options.startedBy }),
+      ...(options.room === undefined ? {} : { room: options.room }),
     },
     {
       adapter,

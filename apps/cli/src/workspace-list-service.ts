@@ -8,8 +8,10 @@ import {
 import { readPrivateJsonFile } from "@lervo/repository-knowledge-runtime";
 
 import {
+  conversationOf,
   type HostedLaunchRecord,
   hostedLaunchRecordsPath,
+  isConversationLead,
   listedTime,
 } from "./hosted-launch-records.js";
 import { hostedProviderModes } from "./hosted-session-adapters.js";
@@ -89,22 +91,26 @@ async function latestRecords(): Promise<ListedWorkspace[]> {
   const records = (file.value as { records?: HostedLaunchRecord[] }).records ?? [];
   const listed = new Map<string, ListedWorkspace>();
   for (const record of records) {
-    const known = listed.get(record.workspaceId);
-    // A joined agent's record never leads; the workspace lists once its lead's record is read.
-    const lead = record.access === "read" ? known?.lead : record;
+    // A member's record belongs to its conversation, never lists on its own (ADR-0661).
+    const conversation = conversationOf(record);
+    const known = listed.get(conversation);
+    // Only the lead's record leads; the conversation lists once its lead's record is read.
+    const lead = isConversationLead(record, conversation) ? record : known?.lead;
     if (lead === undefined) continue;
     const agents = known?.agents ?? new Map<string, HostedLaunchRecord>();
     if (record.agentId !== undefined) agents.set(record.agentId, record);
     const listedAt = listedTime(record);
     const activeAt = known === undefined || listedAt > known.activeAt ? listedAt : known.activeAt;
-    listed.set(record.workspaceId, { lead, agents, activeAt });
+    listed.set(conversation, { lead, agents, activeAt });
   }
   return [...listed.values()].sort((left, right) => right.activeAt.localeCompare(left.activeAt));
 }
 
 /** The conversation's agents and their sessions: the lead first, then those who joined. */
 function roomOf(workspace: ListedWorkspace): Pick<WorkspaceSummary, "participants" | "sessions"> {
-  const joined = [...workspace.agents.values()].filter((record) => record.access === "read");
+  const joined = [...workspace.agents.values()].filter(
+    (record) => !isConversationLead(record, workspace.lead.workspaceId),
+  );
   const started = workspace.lead.participants ?? [];
   const participants = [
     ...started,
@@ -115,10 +121,11 @@ function roomOf(workspace: ListedWorkspace): Pick<WorkspaceSummary, "participant
     ...(lead === undefined
       ? []
       : [{ agentId: lead, sessionId: workspace.lead.sessionId, access: "write" as const }]),
+    // A member writes in its own workspace (ADR-0661); an agent that joined before it reads.
     ...joined.map((record) => ({
       agentId: record.agentId as string,
       sessionId: record.sessionId,
-      access: "read" as const,
+      access: record.access === "read" ? ("read" as const) : ("write" as const),
     })),
   ];
   return {

@@ -5,6 +5,7 @@ import {
 } from "@lervo/repository-registry";
 
 import {
+  conversationOf,
   conversationsLedBy,
   hostedLaunchRecordsPath,
   latestHostedLaunch,
@@ -19,8 +20,13 @@ import { worktreesByBranch } from "./workspace-start-effects.js";
 
 /** A session's conversation, and whether the session joined it with read access only. */
 export interface SessionRoom extends RoomContext {
-  /** The session reads and answers, never writes: it joined by a mention (Lervo ADE rooms). */
+  /**
+   * The session reads and answers, never writes: it joined by a mention before members worked in
+   * their own workspaces (ADR-0661).
+   */
   readonly readOnly?: boolean;
+  /** Each agent's branch in the conversation: the lead's worktree's, or a member's own. */
+  readonly branches: ReadonlyMap<string, string>;
 }
 
 /**
@@ -36,19 +42,44 @@ export async function loadRoomContext(sessionId: string): Promise<SessionRoom | 
     projectId: record.projectId,
   }).catch(() => null);
   if (repository === null) return null;
+  // A member's session takes part in the conversation its own workspace belongs to.
+  const workspaceId = conversationOf(record);
   const sessions = new Map<string, string>();
-  for (const room of await roomSessionRecords(path, record.workspaceId))
-    if (room.agentId !== undefined) sessions.set(room.agentId, room.sessionId);
+  const branches = new Map<string, string>();
+  for (const room of await roomSessionRecords(path, workspaceId))
+    if (room.agentId !== undefined) {
+      sessions.set(room.agentId, room.sessionId);
+      branches.set(room.agentId, room.branch);
+    }
   return {
-    workspaceId: record.workspaceId,
+    workspaceId,
     projectId: record.projectId,
     repositoryRoot: repository.repositoryRoot,
     provider: record.provider,
     agentId: record.agentId,
     team: await teamAgents(repository.repositoryRoot),
     sessions,
+    branches,
     ...(record.access === "read" ? { readOnly: true } : {}),
   };
+}
+
+/**
+ * Where each agent of the conversation works (ADR-0661): a line per agent with its worktree, the
+ * session's own first. None when the worktrees cannot be listed.
+ */
+async function worktreeLines(context: SessionRoom, team: readonly TeamAgent[]): Promise<string[]> {
+  if (context.repositoryRoot === undefined) return [];
+  const live = await worktreesByBranch(context.repositoryRoot);
+  const ordered = [...context.branches].sort(
+    ([left], [right]) => Number(right === context.agentId) - Number(left === context.agentId),
+  );
+  return ordered.flatMap(([agentId, branch]) => {
+    const path = live.get(branch);
+    const agent = team.find((candidate) => candidate.agentId === agentId);
+    if (path === undefined || agent === undefined) return [];
+    return [`- ${agentId === context.agentId ? "You" : agent.displayName}: ${path}`];
+  });
 }
 
 function named(agents: readonly { displayName: string; roleName: string }[]): string {
@@ -153,16 +184,21 @@ export async function roomBlock(sessionId: string): Promise<string | null> {
   const present = others.filter((agent) => context.sessions.has(agent.agentId));
   const notes = await ownNotes(context.repositoryRoot, self.agentId);
   const led = await teammateConversations(context, others).catch(() => []);
+  const worktrees = await worktreeLines(context, context.team).catch(() => []);
   return [
     `Lervo room: you are ${self.displayName}, the ${self.roleName}, in this conversation${
       present.length === 0 ? "" : ` with ${named(present)}`
     }.`,
     others.length === 0 ? null : `The project's team: ${namedWithIds(others)}.`,
-    "When your work needs another agent's role or what it knows, write @Name in your reply. Your message reaches that agent, and its answer comes back to you as a turn. Mention the product owner only for priorities and decisions; never route work through it. A mention grants no access beyond your own: an agent you mention joins this conversation able to read and answer, never to change files.",
+    "When your work needs another agent's role or what it knows, write @Name in your reply. Your message reaches that agent, and its answer comes back to you as a turn. An agent you mention joins this conversation and works in its own worktree, so hand each teammate its own work here by mention rather than doing it yourself. Ask the teammate you need directly; no role, the product owner's included, routes work.",
+    "Answer whoever asked you, here. Keep working until the request is done or you are blocked, then say what you did, what comes next, and what you need from whom. The conversation's lead keeps the owner informed and raises what only the owner can decide; anyone speaks to the owner directly when only the owner can answer.",
     context.readOnly === true
-      ? "Your session in this conversation reads and answers; it cannot change files. When a request needs changes, start a conversation you lead for them, as below, and say so in your answer. Never ask anyone for write permission here."
-      : null,
-    `When work belongs apart from this conversation, start a conversation for it: run \`lervo workspace start --repository ${context.projectId} --started-by ${self.agentId} --title "<title>" --json <<'EOF'\`, then its first turn, then \`EOF\`. It opens when your turn ends. You lead it unless you add \`--lead <agent ID>\` to hand it to the teammate whose work it is: that teammate leads it and changes the files, your request is its first turn, and it mentions you when it needs you. Hand each owner its own work this way rather than doing it yourself. Never start one for work this conversation already covers.`,
+      ? "Your session in this conversation reads and answers; it cannot change files. When a request needs changes, say so in your answer and name who should make them. Never ask anyone for write permission here."
+      : "Commit your work in your own worktree, and seal a finished, committed change with `lervo workspace seal --write`. Read the other agents' worktrees when you need their work, but write only in yours.",
+    worktrees.length === 0
+      ? null
+      : ["Where each agent of this conversation works:", ...worktrees].join("\n"),
+    `Start a separate conversation only for a topic of its own, never for work inside this conversation's topic: run \`lervo workspace start --repository ${context.projectId} --started-by ${self.agentId} --title "<title>" --json <<'EOF'\`, then its first turn, then \`EOF\`. It opens when your turn ends. You lead it unless you add \`--lead <agent ID>\` to hand it to the teammate whose topic it is: that teammate leads it, your request is its first turn, and it mentions you when it needs you.`,
     led.length === 0
       ? null
       : [

@@ -16,6 +16,7 @@ import {
   hostedLaunchRecordsPath,
   hostedSessionsOfWorkspace,
   latestHostedLaunch,
+  memberWorkspacesOf,
 } from "./hosted-launch-records.js";
 import { hostedSessionSettingsDirectory } from "./hosted-session-settings.js";
 import type { WorkspaceRetireEffects } from "./hosted-workspace-retire.js";
@@ -84,6 +85,7 @@ export function hostedWorkspaceRetireEffects(): WorkspaceRetireEffects {
   const records = hostedLaunchRecordsPath();
   return {
     latestLaunch: (workspaceId) => latestHostedLaunch(records, workspaceId),
+    membersOf: (workspaceId) => memberWorkspacesOf(records, workspaceId),
     sessionsOf: (workspaceId) => hostedSessionsOfWorkspace(records, workspaceId),
     async repositoryRoot(projectId) {
       const registrations = await listRegisteredRepositories(defaultRepositoryRegistryPath());

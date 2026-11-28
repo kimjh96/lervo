@@ -39,13 +39,21 @@ function effects(state: {
   usedAfterKeep?: boolean;
   /** How many checks see a process still leaving the worktree before it is gone. */
   leavingChecks?: number;
+  /** The member workspaces of each conversation (ADR-0661). */
+  members?: Record<string, string[]>;
 }) {
   let kept = false;
   let leaving = state.leavingChecks ?? 0;
   const changes: string[] = [];
   const port: WorkspaceRetireEffects = {
-    latestLaunch: async () => (state.launch === undefined ? launch : state.launch),
+    latestLaunch: async (workspaceId) =>
+      state.members?.[launch.workspaceId]?.includes(workspaceId) === true
+        ? { ...launch, workspaceId, branch: "lervo/machining-fix-abc123", room: launch.workspaceId }
+        : state.launch === undefined
+          ? launch
+          : state.launch,
     sessionsOf: async () => ["session-a", "session-b"],
+    membersOf: async (workspaceId) => state.members?.[workspaceId] ?? [],
     repositoryRoot: async (projectId) => (projectId === "prj_1" ? "/repo" : null),
     worktreeOf: async () => (state.worktree === undefined ? "/repo-wt/fix" : state.worktree),
     inUse: async () =>
@@ -77,6 +85,18 @@ function effects(state: {
 }
 
 describe("retiring a hosted workspace", () => {
+  it("retires each member workspace before its conversation (ADR-0661)", async () => {
+    const { port, changes } = effects({
+      members: { [launch.workspaceId]: ["wsp_member"] },
+      worktree: null,
+    });
+    await retireHostedWorkspace(launch.workspaceId, port);
+    expect(changes.indexOf("conversation wsp_member")).toBeGreaterThanOrEqual(0);
+    expect(changes.indexOf("conversation wsp_member")).toBeLessThan(
+      changes.indexOf(`conversation ${launch.workspaceId}`),
+    );
+  });
+
   it("removes the clean worktree, the merged branch, and every session's settings", async () => {
     const { port, changes } = effects({});
     await expect(retireHostedWorkspace("wsp_a", port)).resolves.toEqual({

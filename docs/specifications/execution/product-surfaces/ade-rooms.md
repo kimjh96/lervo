@@ -17,10 +17,15 @@ Agents mention each other directly, choosing by role and by what each has learne
 
 ## Participants and their sessions
 
-- A conversation is a workspace with participants ([Lervo ADE agents](ade-agents.md), "Participants and sessions"). The first participant leads: its session writes in the worktree. Every other participant gets its own hosted session in the same worktree when it is first addressed, with read access only. Writing beyond the lead waits for S2h's claims.
+- A conversation is a workspace with participants ([Lervo ADE agents](ade-agents.md), "Participants and sessions"). The first participant leads: its session writes in the conversation's worktree. Every other participant is a member ([ADR-0661](../../../decisions/coordination/conversations/agent-organization/0661-let-every-member-of-a-conversation-work-in-it-from-its-own-worktree.md)):
+  - When a member is first addressed, Lervo prepares its member workspace: a worktree and branch of its own from the fetched upstream tip, with its own coordination (generation, assignment, lease, and claim handler), as a conversation's start prepares one.
+  - The member's hosted session runs there with write access, keeps its context for the life of the conversation, and receives every turn addressed to the member in the conversation.
+  - Claims keep the members' writes apart as they keep conversations apart. A member reads the other agents' worktrees and writes only its own.
+  - A member workspace never lists as a conversation. Retiring the conversation retires each member workspace first, by the same rules.
+  - A member session recorded with read access before ADR-0661 keeps reading in the lead's worktree until the conversation ends.
 - Rooms need the native conversation mode, where the core decodes each session's output. A conversation in terminal mode keeps one agent.
 - An agent's session carries its identity (`LERVO_AGENT_ID`) and its own context, so each agent answers from what it has seen and learned rather than from a shared transcript.
-- Each participant's session has its own hosted launch record, with `agentId` and, for an agent that joined, `access: read`. The lead's record alone continues the conversation, so a joined agent's newer record never reopens as the conversation. `workspace.list` reports `participants`, those the conversation started with and then those who joined, and `sessions`, each with `agentId`, `sessionId`, and `access`, the lead's first. A conversation holds at most 16 agents.
+- Each participant's session has its own hosted launch record, with `agentId`. A member's record names its member workspace by `workspaceId` and `branch`, and the conversation by `room`; a reader's from before ADR-0661 says `access: read`. The lead's record alone continues the conversation, so a member's newer record never reopens as the conversation. `workspace.list` reports `participants`, those the conversation started with and then those who joined, and `sessions`, each with `agentId`, `sessionId`, and `access` (`write` for the lead and members, `read` for a reader), the lead's first. A conversation holds at most 16 agents.
 
 ## Routing
 
@@ -41,8 +46,10 @@ Agents mention each other directly, choosing by role and by what each has learne
   - the conversation's participants;
   - the project's team agents with their roles and IDs;
   - how a mention works: write `@Name` when the work needs that agent's role or knowledge, and its answer comes back as a turn.
-  - that an agent it mentions joins able to read and answer, never to change files; and, in a session that joined by a mention, that the session reads only, so a request that needs changes belongs in a conversation the agent starts and leads, never in a request for write permission;
-  - how to start a conversation, for itself or handed to the teammate whose work it is with `--lead`, and that each owner's work goes to that owner rather than being done by the agent itself (ADR-0657);
+  - that an agent it mentions joins and works in its own worktree, so each teammate's work inside the conversation's topic goes to that teammate by mention, and that no role, the product owner's included, routes work;
+  - that it answers whoever asked, keeps working until the request is done or it is blocked, and then says what it did, what comes next, and what it needs from whom; that the conversation's lead keeps the owner informed and raises what only the owner can decide; and that anyone speaks to the owner directly when only the owner can answer (ADR-0661);
+  - that it commits in its own worktree, seals a finished, committed change with `lervo workspace seal --write`, and reads but never writes the other agents' worktrees, with each agent's worktree path; a reader from before ADR-0661 hears instead that it reads only;
+  - how to start a conversation, only for a topic of its own, for itself or handed to the teammate whose topic it is with `--lead` (ADR-0657);
   - the open conversations its teammates lead, and how to send work to one with `lervo workspace send`;
   - that work is handed over and asked for only through Lervo's commands and mentions, never through a provider's own messages to another session, and that no agent stops a process Lervo runs.
 - From slice 3, the block also says what each other agent knows from its reviewed expertise, so an agent can pick "the researcher who studied this API last week" by name. It never carries another agent's conversation notes: a session's block recalls only its own agent's notes ([ADR-0648](../../../decisions/coordination/conversations/agent-organization/0648-attest-a-conversation-note-by-its-delivery-receipt.md)).
@@ -185,5 +192,4 @@ Channels may later group conversations by topic, as Discord channels group threa
 
 ## Open items
 
-- Whether a read-access participant may run the conversation's tests. S2h's claims skip the build output Git ignores, so this depends only on the read-access tool allowlist ([Lervo ADE coordination](ade-coordination.md#read-access-participants)).
 - How long a joined agent's session stays open after its last turn before the session host stops it.
