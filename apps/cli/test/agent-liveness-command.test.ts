@@ -47,6 +47,57 @@ afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
 
+describe("agent inspection of a child agent", () => {
+  it("reports the root ancestor's liveness instead of refusing", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-agent-liveness-child-"));
+    roots.push(root);
+    expect(await runCli(["init", "--root", root, "--name", "agent-child"], io(root))).toBe(0);
+    const hire = async (parent?: string) => {
+      const output: string[] = [];
+      expect(
+        await runCli(
+          [
+            "agent",
+            "hire",
+            "--role",
+            "developer",
+            "--provider",
+            "claude",
+            ...(parent === undefined ? [] : ["--parent", parent]),
+            "--root",
+            root,
+            "--write",
+            "--json",
+          ],
+          io(root, output),
+        ),
+      ).toBe(0);
+      return JSON.parse(output.join("")) as { agentId: string };
+    };
+    const parent = await hire();
+    const child = await hire(parent.agentId);
+
+    const output: string[] = [];
+    expect(
+      await runCli(
+        ["agent", "inspect", "--agent", child.agentId, "--root", root, "--json"],
+        io(root, output),
+      ),
+    ).toBe(0);
+    const inspected = JSON.parse(output.join(""));
+    expect(inspected.agent).toMatchObject({
+      agentId: child.agentId,
+      parentAgentId: parent.agentId,
+    });
+    expect(inspected.livenessAgentId).toBe(parent.agentId);
+    expect(inspected.liveness).toMatchObject({ agentId: parent.agentId, status: "unobserved" });
+
+    const text: string[] = [];
+    await runCli(["agent", "inspect", "--agent", child.agentId, "--root", root], io(root, text));
+    expect(text.join("")).toContain(`liveness (of root ${parent.agentId}) unobserved`);
+  });
+});
+
 describe("root-agent liveness CLI", () => {
   it("records a privacy-bounded v2 heartbeat and projects it without changing authority", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-agent-liveness-"));
