@@ -46,6 +46,31 @@ export function visibleStatus(status: SessionStatus | undefined): VisibleStatus 
   return null;
 }
 
+/** A conversation's sessions with their agents: every participant's, or the lead's alone. */
+export function sessionsOf(
+  workspace: Workspace,
+): readonly { readonly agentId: string | undefined; readonly sessionId: string }[] {
+  // An older core names only the lead's session.
+  return workspace.sessions ?? [{ agentId: workspace.agentId, sessionId: workspace.sessionId }];
+}
+
+/**
+ * The status a conversation shows, from every agent's session in it: it needs the owner when any
+ * of them does, and works when any works, so an agent that joined shows its work as the lead's does.
+ */
+export function workspaceStatus(
+  workspace: Workspace,
+  statuses: Readonly<Record<string, SessionStatus | undefined>>,
+): VisibleStatus | null {
+  let shown: VisibleStatus | null = null;
+  for (const session of sessionsOf(workspace)) {
+    const status = visibleStatus(statuses[session.sessionId]);
+    if (status === "needsYou") return status;
+    if (status === "working") shown = status;
+  }
+  return shown;
+}
+
 /** Whether the session host runs the session, as its last status says; no status counts as not. */
 export function isRunning(status: SessionStatus | undefined): boolean {
   return status !== undefined && status !== "ended";

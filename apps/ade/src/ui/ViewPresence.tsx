@@ -20,14 +20,49 @@ function elementsOf(root: Element): Element[] {
   return elements;
 }
 
-/** Copies how a view looks now, with its scroll offsets, which a copy does not keep. */
+const CONTROLS = "select, input, textarea";
+
+/**
+ * Gives a copy the state its controls show, which a copy does not keep: it copies attributes, so a
+ * select would show its first option, as an agent's model choice showed the first model while its
+ * profile left (2026-11-28).
+ */
+function keepControls(original: Node, copy: Node): void {
+  if (!(original instanceof Element) || !(copy instanceof Element)) return;
+  const from = [
+    ...(original.matches(CONTROLS) ? [original] : []),
+    ...original.querySelectorAll(CONTROLS),
+  ];
+  const to = [...(copy.matches(CONTROLS) ? [copy] : []), ...copy.querySelectorAll(CONTROLS)];
+  from.forEach((control, index) => {
+    const target = to[index];
+    if (control instanceof HTMLSelectElement && target instanceof HTMLSelectElement)
+      target.selectedIndex = control.selectedIndex;
+    else if (control instanceof HTMLTextAreaElement && target instanceof HTMLTextAreaElement)
+      target.value = control.value;
+    else if (
+      control instanceof HTMLInputElement &&
+      target instanceof HTMLInputElement &&
+      control.type !== "file"
+    ) {
+      target.value = control.value;
+      target.checked = control.checked;
+    }
+  });
+}
+
+/** Copies how a view looks now, with its scroll offsets and controls, which a copy does not keep. */
 function copyOf(layer: HTMLElement): Ghost {
   const scrolls: (readonly [number, number, number])[] = [];
   elementsOf(layer).forEach((element, index) => {
     if (element.scrollTop !== 0 || element.scrollLeft !== 0)
       scrolls.push([index, element.scrollTop, element.scrollLeft]);
   });
-  const nodes = [...layer.childNodes].map((node) => node.cloneNode(true));
+  const nodes = [...layer.childNodes].map((node) => {
+    const copy = node.cloneNode(true);
+    keepControls(node, copy);
+    return copy;
+  });
   nextGhost += 1;
   return { id: nextGhost, nodes, scrolls };
 }

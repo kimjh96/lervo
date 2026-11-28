@@ -1,9 +1,12 @@
-/* The speaker line: a mark, the agent's name, and its role, a step above its turn. */
+/* The speaker line: a mark, the agent's name, and its role, a step above its turn. A change of
+   speaker keeps more room above it than any step within a turn, so where one agent's turn ends and
+   the next begins reads at a glance (2026-11-28). The room is the line's own, so it comes and goes
+   with the line. */
 .speaker {
   display: flex;
   gap: var(--space-8);
   align-items: center;
-  margin: 0 0 var(--space-4);
+  margin: var(--space-12) 0 var(--space-4);
   color: var(--color-text-secondary);
   font-size: var(--type-meta-size);
   line-height: var(--type-meta-line-height);
