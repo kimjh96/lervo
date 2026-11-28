@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5e62067ecb382d838f2618a2"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Lervo upgrade removes every superseded event writer backup at once and keeps only the rollback point, instead of keeping each one for 14 days."

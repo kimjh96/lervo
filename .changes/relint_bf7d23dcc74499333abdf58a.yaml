@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_bf7d23dcc74499333abdf58a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Lervo agent inspect reports a child agent with its root agent's liveness instead of refusing it."

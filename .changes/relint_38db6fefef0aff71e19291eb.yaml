@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_38db6fefef0aff71e19291eb"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Lervo restores a project checkout that Git reads as bare, such as after a hook's test ran git init against it, instead of resolving an empty coordination home that hides the team."

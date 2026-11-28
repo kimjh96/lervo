@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b4dc6d010cad1353fc741c94"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A hosted conversation leaves out Claude Code's ToolSearch calls, which only load tool definitions, and names what a Monitor call watches and whom a SendMessage call addresses."

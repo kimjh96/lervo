@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e79618ae629e88db35538d33"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "An agent can hand work to the teammate whose work it is, as a conversation that teammate leads and writes in, with lervo workspace start --lead; an agent that joined a conversation can start one too, and the hourly start guard rises to 12 as a backstop."
